@@ -1,0 +1,17 @@
+.Blog-link {
+    background-color: #61dafb;
+    color: #ffffff;
+    padding-left: 2vw;
+    padding-right: 2vw;
+    padding-top: 2vh;
+    padding-bottom: 2vh;
+    border-radius: 1vh;
+    font-size: calc(8px + 2vmin);
+    &:hover {
+        background-color: #9be9ff;
+    }
+}
+
+.Blog-link-container {
+    height: 10vh;
+}
