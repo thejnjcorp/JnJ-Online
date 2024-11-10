@@ -5,6 +5,7 @@ import shieldIcon from '../icons/shield.svg';
 import { useState } from 'react';
 
 export function CharacterPage() {
+    document.title="Character Page";
     const [disableTooltips, setDisableTooltips] = useState(false);
 
     return <div className="CharacterPage">
