@@ -7,8 +7,11 @@ import { useState } from 'react';
 export function CharacterPage() {
     document.title="Character Page";
     const [disableTooltips, setDisableTooltips] = useState(false);
+    const [tempHealth, setTempHealth] = useState(2);
+
+
     return <div className="CharacterPage">
-        <div className="CharacterPage-stats">
+        <div className={tempHealth > 0 ? "CharacterPage-stats CharacterPage-stats-temp-hp-yellow" : "CharacterPage-stats"}>
             <div className='CharacterPage-stats-horizontal'>
                 <div className='CharacterPage-stats-block-hp'>
                     <div className='CharacterPage-hp-block'>
@@ -25,7 +28,7 @@ export function CharacterPage() {
                     <div className='CharacterPage-hp-block'>
                         <div data-tooltip-id="temp-hp">TEMP</div>
                         <div className='CharaterPage-hp-divider'/>
-                        <input key="TEMP_HP" defaultValue={0} className='CharacterPage-hp-stat'/>
+                        <input key="TEMP_HP" defaultValue={tempHealth} className='CharacterPage-hp-stat'/>
                     </div>
                 </div>
                 <div className='CharacterPage-stats-block-shield' data-tooltip-id='ac'>
