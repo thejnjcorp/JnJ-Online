@@ -1,6 +1,7 @@
 import { Tooltip } from 'react-tooltip';
 import '../styles/CharacterPage.scss'
 import 'react-tooltip/dist/react-tooltip.css'
+import shieldIcon from '../icons/shield.svg';
 import { useState } from 'react';
 
 export function CharacterPage() {
@@ -29,7 +30,7 @@ export function CharacterPage() {
                 </div>
                 <div className='CharacterPage-stats-block-shield' data-tooltip-id='ac'>
                     AC<br/>
-                    <img src="/shield.svg" className='CharacterPage-shield' alt='shield.svg'/>
+                    <img src={shieldIcon} className='CharacterPage-shield' alt='shield.svg'/>
                     <div className='CharacterPage-shield-text'>17</div>
                 </div>
             </div>
