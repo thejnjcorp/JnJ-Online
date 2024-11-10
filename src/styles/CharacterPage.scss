@@ -1,0 +1,105 @@
+.CharacterPage {
+
+    .CharacterPage-stats {
+        display: flex;
+        flex-direction: column;
+        width: 500px;
+        margin: 10px;
+        border-color: white;
+        border-radius: 20px;
+        border-width: 5px;
+        border-style: solid;
+        background-color: inherit;
+        height:190px;
+        font-size: 24px;
+
+        .CharacterPage-stats-horizontal {
+            display: flex;
+            justify-content: center;
+            height: 140px;
+        }
+
+        .CharacterPage-stats-block-shield {
+            display: block;
+            width: 150px;
+            font-size: inherit;
+            padding-top: 5px;                       
+        }
+        
+        .CharacterPage-stats-block-hp {
+            display: flex;
+            width: 300px;
+            font-size: inherit;
+            padding-top: 30px;
+
+            .CharacterPage-hp-block {
+                width: 100px;
+            }
+
+            .CharacterPage-hp-stat {
+                background-color: inherit;
+                width: 60px;
+                justify-items: center;
+                border: none;
+                border-color: white;
+                border-radius: 8px;
+                color: white;
+                font-size: inherit;
+            }
+
+            .CharaterPage-hp-divider {
+                margin-top: 10px;
+            }
+        }
+    }
+
+    .CharacterPage-shield {
+        height: 100px;
+        filter: sepia(1) saturate(8) hue-rotate(120deg);
+    }
+
+    .CharacterPage-shield-text {
+        position: relative;
+        top: -80px;
+        font-size: 36px;
+    }
+
+    .CharacterPage-xp-and-hardness-stat {
+        padding-top: 4px;
+        margin-left: 10px;
+        background-color: inherit;
+        width: 30px;
+        justify-items: center;
+        border: none;
+        border-color: white;
+        border-radius: 8px;
+        color: white;
+        font-size: inherit;
+    }
+
+    .CharacterPage-xp {
+        padding-top: 40px;
+        
+    }
+
+    .CharacterPage-xp-slash {
+        position: relative;
+        top: -34px;
+        left: 95px;
+        width: 10px;
+    }
+
+    .CharacterPage-stats-xp {
+        padding-top: 10px;
+    }
+
+    .CharacterPage-stats-hardness {
+        padding-top: 10px;
+        padding-left: 140px;
+        padding-right: 10px;
+    }
+
+    .CharacterPage-justify-right {
+        justify-content: right !important;
+    }
+}

@@ -1,0 +1,21 @@
+.Navigation {
+    align-items: left;
+    justify-content: left;
+}
+
+.Navigation-button {
+    background-color: #000000;
+    padding-left: 0.5vw;
+    padding-right: 0.5vw;
+    padding-top: calc(6vh - calc(10px + 2vmin));
+    padding-bottom: calc(6vh - calc(10px + 2vmin));
+    color: #61dafb;
+    font-size: calc(10px + 2vmin);
+    transition-duration: 0.4s;
+    text-decoration: none;
+
+    &:hover {
+        background-color: #9c9c9c;
+        color: #9be9ff;
+    }
+}
