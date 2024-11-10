@@ -39,12 +39,15 @@
             .CharacterPage-hp-stat {
                 background-color: inherit;
                 width: 60px;
+                height: 30px;
                 justify-items: center;
+                text-align: center;
                 border: none;
                 border-color: white;
                 border-radius: 8px;
                 color: white;
                 font-size: inherit;
+                padding: 0;
             }
 
             .CharaterPage-hp-divider {
@@ -66,10 +69,12 @@
 
     .CharacterPage-xp-and-hardness-stat {
         padding-top: 4px;
-        margin-left: 10px;
         background-color: inherit;
-        width: 30px;
+        width: 50px;
+        padding: 0;
+        height: 30px;
         justify-items: center;
+        text-align: center;
         border: none;
         border-color: white;
         border-radius: 8px;
@@ -91,15 +96,16 @@
 
     .CharacterPage-stats-xp {
         padding-top: 10px;
+        width: 170px;
+        padding-left: 30px;
     }
 
     .CharacterPage-stats-hardness {
         padding-top: 10px;
-        padding-left: 140px;
-        padding-right: 10px;
+        width: 190px;
     }
 
-    .CharacterPage-justify-right {
-        justify-content: right !important;
+    .CharacterPage-stats-divider {
+        width: 110px;
     }
 }

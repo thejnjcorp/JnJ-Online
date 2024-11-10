@@ -7,7 +7,6 @@ import { useState } from 'react';
 export function CharacterPage() {
     document.title="Character Page";
     const [disableTooltips, setDisableTooltips] = useState(false);
-
     return <div className="CharacterPage">
         <div className="CharacterPage-stats">
             <div className='CharacterPage-stats-horizontal'>
@@ -35,11 +34,12 @@ export function CharacterPage() {
                     <div className='CharacterPage-shield-text'>17</div>
                 </div>
             </div>
-            <div className='CharacterPage-stats-horizontal CharacterPage-justify-right'>
+            <div className='CharacterPage-stats-horizontal'>
                 <div className='CharacterPage-stats-xp' data-tooltip-id='xp'>
                     XP<input key="CURRENT_XP" defaultValue={0} className='CharacterPage-xp-and-hardness-stat'/>
                     / 1000
                 </div>
+                <div className='CharacterPage-stats-divider'></div>
                 <div className='CharacterPage-stats-hardness'>
                     HARDNESS<input key="HARDNESS" defaultValue={0} className='CharacterPage-xp-and-hardness-stat'/>
                 </div>
