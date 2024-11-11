@@ -1,0 +1,16 @@
+{
+    "current_health": 0,
+    "maximum_health": 10,
+    "temporary_health": 0,
+    "armor_class": 16,
+    "experience_points": 0,
+    "hardness": 0,
+    
+    "strength_stat": 4,
+    "dexterity_stat": 1,
+    "intelligence_stat": 2,
+    "charisma_stat": 3,
+    
+    "tooltips": true,
+    "background_color": "#fcf3f3"
+}

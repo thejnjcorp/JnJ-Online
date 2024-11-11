@@ -1,0 +1,16 @@
+{
+    "characters": [
+        {
+            "player_name": "John Smith",
+            "character_name": "Johnny Smithington",
+            "class": "Chef",
+            "column_number": 1
+        },
+        {
+            "player_name": "Carla Well",
+            "character_name": "Carolina Wellington",
+            "class": "Bartender",
+            "column_number": 2
+        }
+    ]
+}

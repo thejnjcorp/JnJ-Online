@@ -20,12 +20,12 @@ function Homepage({setValidAccessToken, setErrorMessage, accessToken}) {
             </a>
             <br/>
             <button onClick={() => 
-            updateGoogleSheetCells(appData.spreadSheetKey, 'Sheet1', 'B1', 'B2', [['hi'], ['there']], accessToken)
+            updateGoogleSheetCells(appData.spreadSheetKey, 'Sheet1', 'C1', 'C2', [['hi'], ['there']], accessToken)
             .catch(res => {
             setErrorMessage(res.result.error);
             setValidAccessToken(false);
             })}>
-            Put 'hi' and 'there' into cells B1 and B2
+            Put 'hi' and 'there' into cells C1 and C2
           </button>
         </div>
 }
