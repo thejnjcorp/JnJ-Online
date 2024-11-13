@@ -22,7 +22,7 @@ function Homepage({setValidAccessToken, setErrorMessage, accessToken}) {
             <button onClick={() => 
             updateGoogleSheetCells(appData.spreadSheetKey, 'Sheet1', 'C1', 'C2', [['hi'], ['there']], accessToken)
             .catch(res => {
-            setErrorMessage(res.result.error);
+              if (typeof res.result === 'undefined') setErrorMessage(res.result.error);
             setValidAccessToken(false);
             })}>
             Put 'hi' and 'there' into cells C1 and C2

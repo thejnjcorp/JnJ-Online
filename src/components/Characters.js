@@ -6,19 +6,26 @@ import playerListLayout from '../PlayerListLayout.json';
 import { useNavigate } from "react-router-dom";
 import { CharacterPage } from "./CharacterPage";
 
-export function Characters() {
+export function Characters({setValidAccessToken, setErrorMessage, accessToken}) {
     const [playerList, setPlayerList] = useState(playerListLayout);
     const navigate = useNavigate();
 
     useEffect(() => {
-        setTimeout(() => {
-            getGoogleSheetCells(appData.spreadSheetKey, "Sheet1", "A1", "A1").then(response => {
+        function getCharacterList() {
+            getGoogleSheetCells(appData.spreadSheetKey, "Sheet1", "A1", "A1")
+            .then(response => {
                 setPlayerList(JSON.parse(response.at(0)))
             })
+            .catch(res => {
+                if (typeof res.result === 'undefined') setErrorMessage(res.result.error);
+                setValidAccessToken(false);
+                })
+        }
+        setTimeout(() => {
+            getCharacterList();
           }, 1000);
-        getGoogleSheetCells(appData.spreadSheetKey, "Sheet1", "A1", "A1").then(response => {
-            setPlayerList(JSON.parse(response.at(0)))
-        })
+        getCharacterList();
+        // eslint-disable-next-line
     },[]);
 
     function handleCharacterCardSelect(character) {
@@ -37,6 +44,7 @@ export function Characters() {
                 </div>
             )}
         </>}
-        {window.location.hash.substring(window.location.hash.lastIndexOf('/') + 1) !== "characters" && <CharacterPage/>}
+        {window.location.hash.substring(window.location.hash.lastIndexOf('/') + 1) !== "characters" && 
+            <CharacterPage setValidAccessToken={setValidAccessToken} setErrorMessage={setErrorMessage} accessToken={accessToken} />}
     </div>
 }

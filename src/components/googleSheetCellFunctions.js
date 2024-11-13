@@ -1,13 +1,9 @@
 export async function getGoogleSheetCells(spreadsheetKey, sheetName, startCell, endCell) {
-    try {
-        const response = await window.gapi.client.sheets.spreadsheets.values.get({
-            'spreadsheetId': spreadsheetKey,
-            'range': sheetName + '!' + startCell + ':' + endCell
-        })
-        return response.result.values;
-    } catch(res) {
-        return [];
-    }
+    const response = await window.gapi.client.sheets.spreadsheets.values.get({
+        'spreadsheetId': spreadsheetKey,
+        'range': sheetName + '!' + startCell + ':' + endCell
+    })
+    return response.result.values;
 }
 
 export async function updateGoogleSheetCells(spreadsheetKey, sheetName, startCell, endCell, values, accessToken) {

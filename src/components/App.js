@@ -114,7 +114,7 @@ function App() {
             <Route path="/" element={ <Navigate to="/home" /> } />
             <Route path="blog" element={ <Blog/> } />
             <Route path="/home" element={ <Homepage setValidAccessToken={setValidAccessToken} setErrorMessage={setErrorMessage} accessToken={accessToken} /> } />
-            <Route path="/characters/*" element={ <Characters/>}/>
+            <Route path="/characters/*" element={ <Characters setValidAccessToken={setValidAccessToken} setErrorMessage={setErrorMessage} accessToken={accessToken} />}/>
             {routeMarkdownFiles}
           </Routes>
         </div>
