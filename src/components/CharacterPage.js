@@ -1,13 +1,15 @@
-import { Tooltip } from 'react-tooltip';
 import '../styles/CharacterPage.scss'
 import 'react-tooltip/dist/react-tooltip.css'
 import loadingIcon from '../icons/loading.svg';
 import characterPageLayout from '../CharacterPageLayout.json';
 import { useEffect, useState } from 'react';
-import { getGoogleSheetCells } from './googleSheetCellFunctions';
+import { getGoogleSheetCells, updateGoogleSheetCells } from './googleSheetCellFunctions';
 import { CharacterPageAbilityScorePanel } from './CharacterPageAbilityScorePanel';
 import { CharacterPageStatsPanel } from './CharacterPageStatsPanel';
+import { CharacterPageNavigation } from './CharacterPageNavigation';
 import appData from "./AppData.json";
+
+const delay = ms => new Promise(res => setTimeout(res, ms));
 
 export function CharacterPage({setValidAccessToken, setErrorMessage, accessToken}) {
     document.title="Character Page";
@@ -41,67 +43,25 @@ export function CharacterPage({setValidAccessToken, setErrorMessage, accessToken
         // eslint-disable-next-line
     }, [])
 
+    async function refreshPageRender() {
+        const cell = "B" + window.location.hash.split("/").at(2);
+        updateGoogleSheetCells(appData.spreadSheetKey, "Sheet1", cell, cell, [[JSON.stringify(characterPageLayoutLive)]], accessToken)
+        .catch(res => {
+            if (typeof res.result === 'undefined') setErrorMessage(res.result.error);
+            setValidAccessToken(false);
+        });
+        setLoadingScreen(true);
+        await delay(1);
+        setLoadingScreen(false);
+    }
+
     return <>
-        {!loadingScreen && <div className="CharacterPage">
+        {!loadingScreen && <div className="CharacterPage" style={{background: characterPageLayoutLive.background_color}}>
+        <CharacterPageNavigation characterPageLayoutLive={characterPageLayoutLive} setCharacterPageLayoutLive={setCharacterPageLayoutLive} refreshPageRender={refreshPageRender}/>    
         <CharacterPageAbilityScorePanel characterPageLayoutLive={characterPageLayoutLive}/>
         <CharacterPageStatsPanel characterPageLayoutLive={characterPageLayoutLive}/>
         
-        {characterPageLayoutLive.tooltips && <>
-            <Tooltip 
-                id="current-hp"
-                place="top"
-                content="current health points"
-                variant='info'
-            />
-            <Tooltip 
-                id="max-hp"
-                place="top"
-                content="maximum health points"
-                variant='info'
-            />
-            <Tooltip 
-                id="temp-hp"
-                place="top"
-                content="temporary health points"
-                variant='info'
-            />
-            <Tooltip 
-                id="ac"
-                place="top"
-                content="armor class"
-                variant='info'
-            />
-            <Tooltip 
-                id="xp"
-                place="top"
-                content="experience points"
-                variant='info'
-            />
-            <Tooltip 
-                id="Strength-stat"
-                place="top"
-                content="Strength"
-                variant='info'
-            />
-            <Tooltip 
-                id="Dexterity-stat"
-                place="top"
-                content="Dexterity"
-                variant='info'
-            />
-            <Tooltip 
-                id="Intelligence-stat"
-                place="top"
-                content="Intelligence"
-                variant='info'
-            />
-            <Tooltip 
-                id="Charisma-stat"
-                place="top"
-                content="Charisma"
-                variant='info'
-            />
-        </>}
+        
     </div>}
     {loadingScreen && <img src={loadingIcon} alt="loading" className='CharacterPage-loading-icon'/>}
     </>

@@ -1,3 +1,4 @@
+import { Tooltip } from "react-tooltip";
 import shieldIcon from '../icons/shield.svg';
 
 export function CharacterPageStatsPanel({characterPageLayoutLive}) {
@@ -37,5 +38,37 @@ export function CharacterPageStatsPanel({characterPageLayoutLive}) {
                 HARDNESS<input key="HARDNESS" defaultValue={characterPageLayoutLive.hardness} className='CharacterPage-xp-and-hardness-stat'/>
             </div>
         </div>
+        {characterPageLayoutLive.tooltips && <>
+            <Tooltip 
+                id="current-hp"
+                place="top"
+                content="current health points"
+                variant='info'
+            />
+            <Tooltip 
+                id="max-hp"
+                place="top"
+                content="maximum health points"
+                variant='info'
+            />
+            <Tooltip 
+                id="temp-hp"
+                place="top"
+                content="temporary health points"
+                variant='info'
+            />
+            <Tooltip 
+                id="ac"
+                place="top"
+                content="armor class"
+                variant='info'
+            />
+            <Tooltip 
+                id="xp"
+                place="top"
+                content="experience points"
+                variant='info'
+            />
+        </>}
     </div>
 }
