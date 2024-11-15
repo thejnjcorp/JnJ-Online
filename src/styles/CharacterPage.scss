@@ -198,10 +198,13 @@
     .CharacterPage-colorpicker-panel {
         position: absolute;
         z-index: 1;
-        top: 180px;
+        top: 183px;
         background-color: rgba(198, 239, 255, 0.514);
         margin: 20px;
         border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
     }
     
     .CharacterPage-colorpicker-actual {
@@ -209,15 +212,24 @@
     }
 
     .CharacterPage-colorpicker-select-button {
-        background-color: rgba(128, 128, 128, 0.363);
+        background-color: rgba(68, 68, 68, 0.363);
         margin: 5px;
         border-radius: 10px;
         width: 200px;
         border-style: none;
+        color: white;
 
         &:hover {
-            background-color: rgba(61, 61, 61, 0.363);
+            background-color: rgba(0, 0, 0, 0.363);
         }
+    }
+
+    .CharacterPage-colorpicker-quick-select-button {
+        margin: 10px;
+        margin-bottom: 0px;
+        width: 20px;
+        height: 20px;
+        border-radius: 10px;
     }
 }
 

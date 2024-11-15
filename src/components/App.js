@@ -102,10 +102,16 @@ function App() {
         {!validAccessToken && <div className='App-banner'>
           {"ERROR: " + errorMessage.code + ", " + errorMessage.message + ": " + errorMessage.status}
           <button 
-          className='App-banner-button'
-          onClick={() => login()}
+            className='App-banner-button'
+            onClick={() => login()}
           >
             Sign in with Google
+          </button>
+          <button 
+            className='App-banner-button'
+            onClick={() => setValidAccessToken(true)}
+          >
+            Dismiss
           </button>
         </div>}
         <div className="App-body">

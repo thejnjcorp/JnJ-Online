@@ -43,13 +43,17 @@ export function CharacterPage({setValidAccessToken, setErrorMessage, accessToken
         // eslint-disable-next-line
     }, [])
 
-    async function refreshPageRender() {
+    function saveCharacterPageLayout() {
         const cell = "B" + window.location.hash.split("/").at(2);
         updateGoogleSheetCells(appData.spreadSheetKey, "Sheet1", cell, cell, [[JSON.stringify(characterPageLayoutLive)]], accessToken)
         .catch(res => {
             if (typeof res.result === 'undefined') setErrorMessage(res.result.error);
             setValidAccessToken(false);
         });
+    }
+
+    async function refreshPageRender() {
+        saveCharacterPageLayout();
         setLoadingScreen(true);
         await delay(1);
         setLoadingScreen(false);
@@ -57,7 +61,11 @@ export function CharacterPage({setValidAccessToken, setErrorMessage, accessToken
 
     return <>
         {!loadingScreen && <div className="CharacterPage" style={{background: characterPageLayoutLive.background_color}}>
-        <CharacterPageNavigation characterPageLayoutLive={characterPageLayoutLive} setCharacterPageLayoutLive={setCharacterPageLayoutLive} refreshPageRender={refreshPageRender}/>    
+        <CharacterPageNavigation 
+            characterPageLayoutLive={characterPageLayoutLive} 
+            setCharacterPageLayoutLive={setCharacterPageLayoutLive} 
+            refreshPageRender={refreshPageRender}
+        />    
         <CharacterPageAbilityScorePanel characterPageLayoutLive={characterPageLayoutLive}/>
         <CharacterPageStatsPanel characterPageLayoutLive={characterPageLayoutLive}/>
         
