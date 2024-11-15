@@ -4,12 +4,14 @@
             "player_name": "John Smith",
             "character_name": "Johnny Smithington",
             "class": "Chef",
+            "campaign": "Test",
             "column_number": 1
         },
         {
             "player_name": "Carla Well",
             "character_name": "Carolina Wellington",
             "class": "Bartender",
+            "campaign": "Test",
             "column_number": 2
         }
     ]

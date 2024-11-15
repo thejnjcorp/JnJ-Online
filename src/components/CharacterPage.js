@@ -28,7 +28,7 @@ export function CharacterPage({setValidAccessToken, setErrorMessage, accessToken
                 setLoadingScreen(false);
             })
             .catch(res => {
-                if (typeof res.result === 'undefined') setErrorMessage(res.result.error);
+                if (typeof res.result != 'undefined') setErrorMessage(res.result.error);
                 setValidAccessToken(false);
                 })
         }
@@ -47,7 +47,7 @@ export function CharacterPage({setValidAccessToken, setErrorMessage, accessToken
         const cell = "B" + window.location.hash.split("/").at(2);
         updateGoogleSheetCells(appData.spreadSheetKey, "Sheet1", cell, cell, [[JSON.stringify(characterPageLayoutLive)]], accessToken)
         .catch(res => {
-            if (typeof res.result === 'undefined') setErrorMessage(res.result.error);
+            if (typeof res.result != 'undefined') setErrorMessage(res.result.error);
             setValidAccessToken(false);
         });
     }

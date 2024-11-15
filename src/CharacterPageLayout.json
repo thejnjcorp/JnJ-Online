@@ -1,4 +1,8 @@
 {
+    "player_name": "player name",
+    "character_name": "character name",
+    "class": "class",
+
     "current_health": 0,
     "maximum_health": 10,
     "temporary_health": 0,

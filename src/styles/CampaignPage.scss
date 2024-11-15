@@ -1,7 +1,8 @@
-.CharacterCard {
+.CampaignCard {
     border-width: 2px;
     border-radius: 10px;
     width: calc(30vw);
+    height: 120px;
     border-style: hidden;
     font-weight: bold;
     font-size: 36px;
@@ -17,17 +18,22 @@
     }
 }
 
-.CharacterCard-small-text {
-    font-size: 24px;
-    font-weight: 100;
-}
-
-.Character-page {
+.CampaignPage {
     width: 100vw;
     height: 90vh;
 }
 
-.Characters-title {
+.Campaign-shift-up {
+    position: relative;
+    top: -17px;
+}
+
+.CampaignCard-small-text {
+    font-size: 24px;
+    font-weight: 100;
+}
+
+.Campaigns-title {
     display: flex;
     flex-wrap: wrap;
     width: 90vw;

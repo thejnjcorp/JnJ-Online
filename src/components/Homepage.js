@@ -20,18 +20,18 @@ function Homepage({setValidAccessToken, setErrorMessage, accessToken}) {
             </a>
             <br/>
             <button onClick={() => 
-            updateGoogleSheetCells(appData.spreadSheetKey, 'Sheet1', 'C1', 'C2', [['hi'], ['there']], accessToken)
+            updateGoogleSheetCells(appData.spreadSheetKey, 'Sheet1', 'D1', 'D2', [['hi'], ['there']], accessToken)
             .catch(res => {
-              if (typeof res.result === 'undefined') setErrorMessage(res.result.error);
+              if (typeof res.result != 'undefined') setErrorMessage(res.result.error);
             setValidAccessToken(false);
             })}>
-            Put 'hi' and 'there' into cells C1 and C2
+            Put 'hi' and 'there' into cells D1 and D2
           </button>
           <button onClick={() => {
             getGoogleSheetCellsTargeted(appData.spreadSheetKey, 'Sheet1', ['B1', 'C2'])
             .then((res) => console.log(res))
             .catch(res => {
-              if (typeof res.result === 'undefined') setErrorMessage(res.result.error);
+              if (typeof res.result != 'undefined') setErrorMessage(res.result.error);
             setValidAccessToken(false);
             })
           }}>

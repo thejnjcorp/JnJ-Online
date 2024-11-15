@@ -10,6 +10,7 @@ import { getGoogleSheetCells } from './googleSheetCellFunctions.js';
 import { useGoogleLogin } from '@react-oauth/google';
 import appData from './AppData.json';
 import { Characters } from './Characters.js';
+import { CampaignPage } from './CampaignPage.js';
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
@@ -121,6 +122,7 @@ function App() {
             <Route path="blog" element={ <Blog/> } />
             <Route path="/home" element={ <Homepage setValidAccessToken={setValidAccessToken} setErrorMessage={setErrorMessage} accessToken={accessToken} /> } />
             <Route path="/characters/*" element={ <Characters setValidAccessToken={setValidAccessToken} setErrorMessage={setErrorMessage} accessToken={accessToken} />}/>
+            <Route path="/campaigns/*" element={ <CampaignPage setValidAccessToken={setValidAccessToken} setErrorMessage={setErrorMessage} accessToken={accessToken} />}/>
             {routeMarkdownFiles}
           </Routes>
         </div>

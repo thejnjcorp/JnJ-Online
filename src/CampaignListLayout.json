@@ -1,0 +1,14 @@
+{
+    "campaigns": [
+        {
+            "campaign_name": "Test 1",
+            "director_name": "Julius Caesar",
+            "column": 1
+        }, 
+        {
+            "campaign_name": "Test 2",
+            "director_name": "Marcus Junius Brutus",
+            "column": 1
+        }
+    ]
+}
