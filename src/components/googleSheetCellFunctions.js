@@ -17,3 +17,11 @@ export async function updateGoogleSheetCells(spreadsheetKey, sheetName, startCel
         }
     })
 }
+
+export async function getGoogleSheetCellsTargeted(spreadsheetKey, sheetName, targetCells) {
+    const response = await window.gapi.client.sheets.spreadsheets.values.batchGet({
+        'spreadsheetId': spreadsheetKey,
+        'ranges': targetCells.map((value) => sheetName + "!" + value)
+    })
+    return response.result.valueRanges.map(valueRanges => valueRanges.values).flat(2);
+}

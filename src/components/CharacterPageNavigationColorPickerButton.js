@@ -39,7 +39,7 @@ export function CharacterPageNavigationColorPickerButton({characterPageLayoutLiv
             <Tooltip
                 id="background-color-picker"
                 place="right"
-                content="background color picker"
+                content="color picker"
                 variant='info'
             />
         

@@ -1,7 +1,7 @@
 import React from "react";
 import logo from '../logo.svg';
 import appData from './AppData.json';
-import { updateGoogleSheetCells } from "./googleSheetCellFunctions";
+import { updateGoogleSheetCells, getGoogleSheetCellsTargeted } from "./googleSheetCellFunctions";
 
 function Homepage({setValidAccessToken, setErrorMessage, accessToken}) {
         document.title="Home"
@@ -26,6 +26,16 @@ function Homepage({setValidAccessToken, setErrorMessage, accessToken}) {
             setValidAccessToken(false);
             })}>
             Put 'hi' and 'there' into cells C1 and C2
+          </button>
+          <button onClick={() => {
+            getGoogleSheetCellsTargeted(appData.spreadSheetKey, 'Sheet1', ['B1', 'C2'])
+            .then((res) => console.log(res))
+            .catch(res => {
+              if (typeof res.result === 'undefined') setErrorMessage(res.result.error);
+            setValidAccessToken(false);
+            })
+          }}>
+            Get cells B1 and C2
           </button>
         </div>
 }
