@@ -6,11 +6,10 @@ import { Blog } from './Blog';
 import { Navigation } from './Navigation';
 import BlogPages from './BlogPages';
 import { InvalidPage } from './InvalidPage';
-import { getGoogleSheetCells } from './googleSheetCellFunctions.js';
 import { useGoogleLogin } from '@react-oauth/google';
 import appData from './AppData.json';
 import { Characters } from './Characters.js';
-import { CampaignPage } from './CampaignPage.js';
+import { Campaigns } from './Campaigns.js';
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
@@ -27,27 +26,11 @@ async function initializeGoogleSheets() {
     }).catch(res => res);
   });
 
-  /*
-  // Now load the GIS client
-  window.google.accounts.oauth2.initTokenClient({
-    client_id: appData.apiKey,
-    scope: appData.scope,
-    prompt: 'consent',
-    callback: (tokenResponse) => {
-      accessToken = tokenResponse.accessToken;
-      console.log(tokenResponse.accessToken)
-    },
-  });*/
-
   await delay(100);
   window.gapi.client.load('https://sheets.googleapis.com/$discovery/rest?version=v4');
   if (getAccessToken() !== null) {
     window.gapi.client.setToken({access_token: getAccessToken()});
   }
-  await delay(500);
-
-  const response = await getGoogleSheetCells('1TcAIoDPvix4FLdMQIDlpzBEQtcDlPBUfU8mfNVZEQek', 'Sheet1', 'A', 'A');
-  return response;
 }
 
 function App() {
@@ -122,7 +105,7 @@ function App() {
             <Route path="blog" element={ <Blog/> } />
             <Route path="/home" element={ <Homepage setValidAccessToken={setValidAccessToken} setErrorMessage={setErrorMessage} accessToken={accessToken} /> } />
             <Route path="/characters/*" element={ <Characters setValidAccessToken={setValidAccessToken} setErrorMessage={setErrorMessage} accessToken={accessToken} />}/>
-            <Route path="/campaigns/*" element={ <CampaignPage setValidAccessToken={setValidAccessToken} setErrorMessage={setErrorMessage} accessToken={accessToken} />}/>
+            <Route path="/campaigns/*" element={ <Campaigns setValidAccessToken={setValidAccessToken} setErrorMessage={setErrorMessage} accessToken={accessToken} />}/>
             {routeMarkdownFiles}
           </Routes>
         </div>

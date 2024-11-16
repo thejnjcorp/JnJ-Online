@@ -9,12 +9,18 @@ import { CharacterPage } from "./CharacterPage";
 export function Characters({setValidAccessToken, setErrorMessage, accessToken}) {
     const [characterList, setCharacterList] = useState(characterListLayout);
     const navigate = useNavigate();
+    document.title = "Characters";
 
     useEffect(() => {
         function getCharacterList() {
-            getGoogleSheetCells(appData.spreadSheetKey, "Sheet1", "A1", "A1")
+            getGoogleSheetCells(appData.spreadSheetKey, "Sheet1", "A", "A")
             .then(response => {
-                setCharacterList(JSON.parse(response.at(0)))
+                const actualList = [...new Set(response.map(value => JSON.parse(value)))];
+                const temp = {
+                    "characters": actualList.map(charList => charList.characters).flat(2)
+                }
+                setCharacterList(temp);
+                setValidAccessToken(true);
             })
             .catch(res => {
                 if (typeof res.result != 'undefined') setErrorMessage(res.result.error);

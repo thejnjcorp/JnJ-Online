@@ -12,9 +12,9 @@ import appData from "./AppData.json";
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 export function CharacterPage({setValidAccessToken, setErrorMessage, accessToken}) {
-    document.title="Character Page";
     const [characterPageLayoutLive, setCharacterPageLayoutLive] = useState(characterPageLayout);
     const [loadingScreen, setLoadingScreen] = useState(true);
+    document.title = characterPageLayoutLive.character_name;
 
     useEffect(() => {
         function getCharacterData() {
@@ -26,6 +26,7 @@ export function CharacterPage({setValidAccessToken, setErrorMessage, accessToken
                     ...JSON.parse(response),
             }));
                 setLoadingScreen(false);
+                setValidAccessToken(true);
             })
             .catch(res => {
                 if (typeof res.result != 'undefined') setErrorMessage(res.result.error);
