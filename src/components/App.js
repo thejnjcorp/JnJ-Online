@@ -40,6 +40,7 @@ function App() {
   const [errorMessage, setErrorMessage] = useState({});
 
   const login = useGoogleLogin({
+    scope: appData.scope,
     onSuccess: tokenResponse => {
       window.gapi.client.setToken({access_token: tokenResponse.access_token});
       localStorage.setItem(appData.localStorageLocation, tokenResponse.access_token);
