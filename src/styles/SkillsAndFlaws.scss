@@ -1,0 +1,20 @@
+.SkillsAndFlaws {
+    margin-left: 1vw;
+    margin-right: 1vw;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    width: 18vw;
+    height: max-content;
+    border: 1px;
+    border-style: solid;
+    border-radius: 10px;
+    padding-bottom: 10px;
+}
+
+.SkillsAndFlaws-skill {
+    border-color: aqua;
+}
+
+.SkillsAndFlaws-flaw {
+    border-color: red;
+}

@@ -8,6 +8,7 @@ import { CharacterPageAbilityScorePanel } from './CharacterPageAbilityScorePanel
 import { CharacterPageStatsPanel } from './CharacterPageStatsPanel';
 import { CharacterPageNavigation } from './CharacterPageNavigation';
 import appData from "./AppData.json";
+import { SkillsAndFlaws } from './SkillsAndFlaws';
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
@@ -62,15 +63,19 @@ export function CharacterPage({setValidAccessToken, setErrorMessage, accessToken
 
     return <>
         {!loadingScreen && <div className="CharacterPage" style={{background: characterPageLayoutLive.background_color}}>
-        <CharacterPageNavigation 
-            characterPageLayoutLive={characterPageLayoutLive} 
-            setCharacterPageLayoutLive={setCharacterPageLayoutLive} 
-            refreshPageRender={refreshPageRender}
-        />    
-        <CharacterPageAbilityScorePanel characterPageLayoutLive={characterPageLayoutLive}/>
-        <CharacterPageStatsPanel characterPageLayoutLive={characterPageLayoutLive}/>
-        
-        
+            <div className='CharacterPage-column-div CharacterPage-skills-and-flaws' style={{background: characterPageLayoutLive.navigation_color}}>
+                Skills and Flaws<br/>
+                <SkillsAndFlaws skills_and_flaws={characterPageLayoutLive.skills_and_flaws}/>
+            </div>
+            <div className='CharacterPage-column-div CharacterPage-right-content'>
+                <CharacterPageNavigation 
+                    characterPageLayoutLive={characterPageLayoutLive} 
+                    setCharacterPageLayoutLive={setCharacterPageLayoutLive} 
+                    refreshPageRender={refreshPageRender}
+                />    
+                <CharacterPageAbilityScorePanel characterPageLayoutLive={characterPageLayoutLive}/>
+                <CharacterPageStatsPanel characterPageLayoutLive={characterPageLayoutLive}/>
+            </div>
     </div>}
     {loadingScreen && <img src={loadingIcon} alt="loading" className='CharacterPage-loading-icon'/>}
     </>

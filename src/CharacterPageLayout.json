@@ -14,6 +14,21 @@
     "dexterity_stat": 1,
     "intelligence_stat": 2,
     "charisma_stat": 3,
+
+    "skills_and_flaws": [
+        {
+            "isSkill": true,
+            "degree": 1,
+            "name": "Skill Name",
+            "description": "description"
+        },
+        {
+            "isSkill": false,
+            "degree": 1,
+            "name": "Flaw Name",
+            "description": "description"
+        }
+    ],
     
     "tooltips": true,
     "background_color": "#a9a9a9",
