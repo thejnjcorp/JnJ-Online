@@ -1,0 +1,21 @@
+.AlternativeCharacterPage {
+    background-color: rgb(59, 59, 59);
+
+    .SkillsAndFlawsPanelOverride {
+        background-color: rgb(63, 67, 99);
+    }
+
+    .SkillsOverride {
+        border-style: none;
+        border-width: 0px;
+        border-radius: 1px;
+        background-color: rgb(120, 140, 255);
+    }
+
+    .FlawsOverride {
+        border-style: none;
+        border-width: 0px;
+        border-radius: 1px;
+        background-color: rgb(255, 147, 147);
+    }
+}

@@ -1,4 +1,5 @@
 .SkillsAndFlaws {
+    display: flex;
     margin-left: 1vw;
     margin-right: 1vw;
     margin-top: 10px;
@@ -8,7 +9,15 @@
     border: 1px;
     border-style: solid;
     border-radius: 10px;
-    padding-bottom: 10px;
+    padding: 10px;
+    flex-direction: column;
+    font-size: 24px;
+    background-color: gray;
+    color: white;
+
+    &:hover {
+        filter: brightness(0.5)
+    }
 }
 
 .SkillsAndFlaws-skill {
@@ -17,4 +26,15 @@
 
 .SkillsAndFlaws-flaw {
     border-color: red;
+}
+
+.SkillsAndFlaws-star {
+    filter: invert(1);
+}
+
+.SkillsAndFlaws-inner-div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 16vw;
 }

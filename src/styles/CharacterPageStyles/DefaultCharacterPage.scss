@@ -1,0 +1,19 @@
+.DefaultCharacterPage {
+    background-color: rgb(59, 59, 59);
+
+    .SkillsAndFlawsPanelOverride {
+        background-color: rgb(63, 67, 99);
+    }
+
+    .SkillsOverride {
+        border-color: navy;
+        border-width: 3px;
+        background-color: blue;
+    }
+
+    .FlawsOverride {
+        border-color: darkred;
+        border-width: 3px;
+        background-color: red;
+    }
+}

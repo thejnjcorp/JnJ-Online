@@ -1,5 +1,5 @@
-import '../styles/CharacterPage.scss'
-import 'react-tooltip/dist/react-tooltip.css'
+import '../styles/CharacterPage.scss';
+import 'react-tooltip/dist/react-tooltip.css';
 import loadingIcon from '../icons/loading.svg';
 import characterPageLayout from '../CharacterPageLayout.json';
 import { useEffect, useState } from 'react';
@@ -7,8 +7,13 @@ import { getGoogleSheetCells, updateGoogleSheetCells } from './googleSheetCellFu
 import { CharacterPageAbilityScorePanel } from './CharacterPageAbilityScorePanel';
 import { CharacterPageStatsPanel } from './CharacterPageStatsPanel';
 import { CharacterPageNavigation } from './CharacterPageNavigation';
-import appData from "./AppData.json";
 import { SkillsAndFlaws } from './SkillsAndFlaws';
+import { TabContainer } from './TabContainer';
+import { CombatActionList } from './CombatActionList';
+import '../styles/CharacterPageStyles/DefaultCharacterPage.scss';
+import '../styles/CharacterPageStyles/AlternativeCharacterPage.scss';
+
+import appData from "./AppData.json";
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
@@ -61,11 +66,36 @@ export function CharacterPage({setValidAccessToken, setErrorMessage, accessToken
         setLoadingScreen(false);
     }
 
+    const mainTabContainer = [
+        {
+            tabName: "Roleplay Mode",
+            content: <>
+                roleplay mode
+            </>
+        },
+        {
+            tabName: "Combat Mode",
+            content: <>
+                <CombatActionList characterPageLayout={characterPageLayoutLive}/>
+            </>
+        },
+        {
+            tabName: "Inventory",
+            content: <>
+                inventory
+            </>
+        }
+    ]
+
     return <>
-        {!loadingScreen && <div className="CharacterPage" style={{background: characterPageLayoutLive.background_color}}>
-            <div className='CharacterPage-column-div CharacterPage-skills-and-flaws' style={{background: characterPageLayoutLive.navigation_color}}>
+        {!loadingScreen && <div className={"CharacterPage " + "DefaultCharacterPage"}>
+            <div className='CharacterPage-column-div CharacterPage-skills-and-flaws SkillsAndFlawsPanelOverride'>
                 Skills and Flaws<br/>
-                <SkillsAndFlaws skills_and_flaws={characterPageLayoutLive.skills_and_flaws}/>
+                <SkillsAndFlaws 
+                    characterPageLayoutLive={characterPageLayoutLive} 
+                    setCharacterPageLayoutLive={setCharacterPageLayoutLive} 
+                    saveCharacterPageLayout={saveCharacterPageLayout}
+                />
             </div>
             <div className='CharacterPage-column-div CharacterPage-right-content'>
                 <CharacterPageNavigation 
@@ -75,6 +105,7 @@ export function CharacterPage({setValidAccessToken, setErrorMessage, accessToken
                 />    
                 <CharacterPageAbilityScorePanel characterPageLayoutLive={characterPageLayoutLive}/>
                 <CharacterPageStatsPanel characterPageLayoutLive={characterPageLayoutLive}/>
+                <TabContainer tabs={mainTabContainer}/>
             </div>
     </div>}
     {loadingScreen && <img src={loadingIcon} alt="loading" className='CharacterPage-loading-icon'/>}

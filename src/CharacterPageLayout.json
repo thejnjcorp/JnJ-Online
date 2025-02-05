@@ -20,13 +20,36 @@
             "isSkill": true,
             "degree": 1,
             "name": "Skill Name",
-            "description": "description"
+            "description": "description",
+            "isVisible": false
         },
         {
             "isSkill": false,
             "degree": 1,
             "name": "Flaw Name",
-            "description": "description"
+            "description": "description",
+            "isVisible": false
+        }
+    ],
+
+    "actions": [
+        {
+            "actionName": "action 1",
+            "actionCost": 3,
+            "range": "Zone 0, AOE",
+            "toHitBool": true,
+            "toHit": "1",
+            "difficultyClass": "",
+            "description": "This is where an action description would go. You would just have a string of characters here explaining what it does and then maybe some flavor later, sue me."
+        },
+        {
+            "actionName": "action 2",
+            "actionCost": 1,
+            "range": "1 Zone",
+            "toHitBool": false,
+            "toHit": "",
+            "difficultyClass": "Dex,0",
+            "description": "This is where an action description would go. You would just have a string of characters here explaining what it does and then maybe some flavor later, sue me. This is indeed different from the other action description, you are not paranoid."
         }
     ],
     
