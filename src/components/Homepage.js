@@ -2,8 +2,7 @@ import React from "react";
 import logo from '../logo.svg';
 import appData from './AppData.json';
 import { updateGoogleSheetCells, getGoogleSheetCellsTargeted } from "./googleSheetCellFunctions";
-import { createJSONFile, updateJSONFile } from "./googleDriveFunctions";
-import { generateGoogleRefreshToken } from "./googleRefreshTokenFunctions";
+import { createJSONFile, getJSONFile, listFiles, updateJSONFile } from "./googleDriveFunctions";
 
 function Homepage({setValidAccessToken, setErrorMessage, accessToken}) {
         document.title="Home"
@@ -54,14 +53,19 @@ function Homepage({setValidAccessToken, setErrorMessage, accessToken}) {
               "is": "going",
               "on": "right"  
             }
-            updateJSONFile(json, accessToken, 'test.json', '1VWQ9MAPxjuMd5HPr_Ff3scV5WCTCf88O')
+            updateJSONFile(json, accessToken, 'test.json', '12VPnAH9O0tzXBqWwHIDCDAiIxThP0M7d')
           }}>
             update file hopefully
           </button>
           <button onClick={() => {
-            generateGoogleRefreshToken()
+            getJSONFile('12VPnAH9O0tzXBqWwHIDCDAiIxThP0M7d').then(res => console.log(res))
           }}>
-            redirect for refresh token
+            get json file
+          </button>
+          <button onClick={() => {
+            listFiles().then(res => console.log(res))
+          }}>
+            list files in folder
           </button>
         </div>
 }

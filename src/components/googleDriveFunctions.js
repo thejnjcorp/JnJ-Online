@@ -1,3 +1,5 @@
+const parentFolderId = '1W7tEkctOTWMjjsq8Y5090fL7lkqaboJY';
+
 export async function createJSONFile(json, access_token, filename) {
     const jsonString = JSON.stringify(json);
     const file = new File([jsonString], filename, {type: 'application/json'});
@@ -13,9 +15,18 @@ export async function updateJSONFile(json, access_token, filename, fileId) {
 }
 
 export async function getJSONFile(fileId) {
-    window.gapi.client.drive.files.download({
-        "fileid": fileId
-    })
+    const response = await window.gapi.client.drive.files.get({
+        'fileId': fileId,
+        'alt': 'media'
+    });
+    return response.result;
+}
+
+export async function listFiles() {
+    const response = await window.gapi.client.drive.files.list({
+        'q': `'${parentFolderId}' in parents and trashed = false`,
+    });
+    return response.result.files;
 }
 
 export async function deleteJSONFile(fileId) {
@@ -67,11 +78,14 @@ function uploadFileToDrive(file, access_token, fileIdExists = false, fileId) {
             });
         }
 
-        initResumable.send(JSON.stringify({
+        const payloadJSON = {
             'name': file.name,
             'mimeType': file.type,
             'Content-Type': file.type,
             'Content-Length': file.size
-        }));
+        };
+
+        if(!fileIdExists) payloadJSON.parents = [parentFolderId];
+        initResumable.send(JSON.stringify(payloadJSON));
     });
 }
