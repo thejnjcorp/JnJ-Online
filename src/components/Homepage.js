@@ -2,6 +2,8 @@ import React from "react";
 import logo from '../logo.svg';
 import appData from './AppData.json';
 import { updateGoogleSheetCells, getGoogleSheetCellsTargeted } from "./googleSheetCellFunctions";
+import { createJSONFile, updateJSONFile } from "./googleDriveFunctions";
+import { generateGoogleRefreshToken } from "./googleRefreshTokenFunctions";
 
 function Homepage({setValidAccessToken, setErrorMessage, accessToken}) {
         document.title="Home"
@@ -36,6 +38,30 @@ function Homepage({setValidAccessToken, setErrorMessage, accessToken}) {
             })
           }}>
             Get cells B1 and C2
+          </button>
+          <button onClick={() => {
+            const json = {
+              "something": "else",
+              "is": "going"
+            }
+            createJSONFile(json, accessToken, 'test.json')
+          }}>
+            Upload test JSON
+          </button>
+          <button onClick={() => {
+            const json = {
+              "something": "else",
+              "is": "going",
+              "on": "right"  
+            }
+            updateJSONFile(json, accessToken, 'test.json', '1VWQ9MAPxjuMd5HPr_Ff3scV5WCTCf88O')
+          }}>
+            update file hopefully
+          </button>
+          <button onClick={() => {
+            generateGoogleRefreshToken()
+          }}>
+            redirect for refresh token
           </button>
         </div>
 }

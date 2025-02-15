@@ -28,6 +28,7 @@ async function initializeGoogleSheets() {
 
   await delay(100);
   window.gapi.client.load('https://sheets.googleapis.com/$discovery/rest?version=v4');
+  window.gapi.client.load('https://www.googleapis.com/discovery/v1/apis/drive/v3/rest');
   if (getAccessToken() !== null) {
     window.gapi.client.setToken({access_token: getAccessToken()});
   }
