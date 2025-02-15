@@ -1,5 +1,8 @@
 import appData from './AppData.json';
 
+/**
+ * @deprecated due to client side issues with Google. Request is considered insecure and is unable to generate auth tokens.
+ */
 export function generateGoogleRefreshToken() {
     const redirectUri = window.location.href;
     console.log(redirectUri)
