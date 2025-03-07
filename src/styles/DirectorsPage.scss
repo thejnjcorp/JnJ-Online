@@ -1,0 +1,299 @@
+.DirectorsPage {
+    height: 90vh;
+    width: 100vw;
+    display: flex;
+    flex-direction: row;
+}
+
+.DirectorsPage-SkillsTab {
+    height: 90vh;
+    width: 20vw;
+    background-color: rgb(73, 73, 73);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: flex-start;
+}
+
+.DirectorsPage-MainBody {
+    height: 90vh;
+    width: 80vw;
+    display: flex;
+}
+
+.DirectorsPage-player-skill-dropdown {
+    width: 20vw;
+}
+
+.DirectorsPage-player-skill-dropdown-open {
+    width: 20vw;
+}
+
+.DirectorsPage-player-skill-inner-div {
+    width: 20vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.DirectorsPage-player-skill-trigger {
+    display: block;
+    width: 20vw;
+    background-color: rgb(0, 0, 78);
+}
+
+.TabContainer {
+    max-height: 90vh;
+}
+
+.DirectorsPage-Combat {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.DirectorsPage-CombatCharacterStats {
+    width: 27vw;
+    height: 80vh;
+    background-color: rgb(1, 70, 49);
+    border-radius: 10px;
+    margin-left: 1vw;
+    margin-top: 1vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.DirectorsPage-CombatTracker {
+    width: 20vw;
+    height: 80vh;
+    background-color: rgb(116, 85, 0);
+    border-radius: 10px;
+    margin-top: 1vh;
+    overflow-y: auto;
+    overflow-x: auto;
+}
+
+.DirectorsPage-CombatEnemyStats {
+    width: 27vw;
+    height: 80vh;
+    background-color: rgb(153, 50, 50);
+    border-radius: 10px;
+    margin-right: 1vw;
+    margin-top: 1vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.DirectorsPage-player-stats-dropdown, .DirectorsPage-enemy-stats-dropdown {
+    width: 26vw;
+    background-color: rgb(0, 151, 25);
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
+
+.DirectorsPage-enemy-stats-dropdown {
+    background-color: rgb(221, 162, 0);
+}
+
+.DirectorsPage-player-stats-dropdown-open, .DirectorsPage-enemy-stats-dropdown-open {
+    width: 26vw;
+    background-color: rgb(0, 151, 25);
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
+
+.DirectorsPage-enemy-stats-dropdown-open {
+    background-color: rgb(221, 162, 0);
+}
+
+.DirectorsPage-player-stats-inner-div, .DirectorsPage-enemy-stats-inner-div {
+    display: flex;
+    align-items: center;
+    padding-bottom: 10px;
+    flex-direction: column;
+}
+
+.DirectorsPage-player-stats-trigger, .DirectorsPage-enemy-stats-trigger {
+    width: 26vw;
+    display: flex;
+    justify-content: center;
+}
+
+.DirectorsPageCharacterStatsOverride {
+    height: min-content;
+    width: 410px;
+    background-color: inherit;
+    justify-content: center;
+    display: flex;
+    flex-direction: row;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+
+    .CharacterPage-stats {
+        display: flex;
+        flex-direction: column;
+        border-color: white;
+        border-width: 5px;
+        border-style: hidden;
+        font-size: 24px;
+        width: min-content;
+        height: min-content;
+        margin: 0px;
+        border-radius: 0px;
+        background: none;
+
+        .CharacterPage-stats-horizontal {
+            display: flex;
+            justify-content: center; 
+            height: min-content !important;
+            flex-direction: row;
+        }
+
+        .CharacterPage-stats-block-shield {
+            display: block;
+            font-size: inherit;
+            padding: 0px;
+            width: 90px;
+            height: 120px;
+        }
+        
+        .CharacterPage-stats-block-hp {
+            display: flex;
+            padding: 0px;
+            height: min-content;
+            font-size: 16px;
+            width: 160px;
+            display: flex;
+            justify-content: space-between;
+
+            .CharacterPage-hp-block {
+                width: min-content;
+            }
+
+            .CharacterPage-hp-stat {
+                background-color: inherit;
+                width: 30px;
+                height: 30px;
+                justify-items: center;
+                text-align: center;
+                border: none;
+                border-color: white;
+                border-radius: 8px;
+                color: white;
+                font-size: inherit;
+                padding: 0;
+            }
+
+            .CharaterPage-hp-divider {
+                margin-top: 10px;
+            }
+        }
+    }
+
+    .CharacterPage-shield {
+        height: 90px;
+        filter: sepia(1) saturate(8) hue-rotate(120deg);
+    }
+
+    .CharacterPage-shield-text {
+        position: relative;
+        top: -80px;
+        font-size: 36px;
+    }
+
+    .CharacterPage-xp-and-hardness-stat {
+        padding-top: 4px;
+        background-color: inherit;
+        width: 60px;
+        margin-left: 5px;
+        padding: 0;
+        height: 30px;
+        justify-items: center;
+        text-align: center;
+        border: none;
+        border-color: white;
+        border-radius: 8px;
+        color: white;
+        font-size: inherit;
+    }
+
+    .CharacterPage-xp {
+        padding-top: 40px;
+        
+    }
+
+    .CharacterPage-xp-slash {
+        position: relative;
+        top: -28px;
+        left: 60px;
+        width: 10px;
+    }
+
+    .CharacterPage-stats-xp {
+        width: 90px;
+        padding: 0px;
+        font-size: 16px;
+    }
+
+    .CharacterPage-stats-hardness {
+        padding: 0px;
+        width: 115px;
+        font-size: 16px;
+    }
+
+    .CharacterPage-stats-divider {
+        width: 0px;
+    }
+
+    .CharacterPage-stats-temp-hp-yellow {
+        border-color: yellow;
+    }
+
+    .CharacterPage-abiltyscore-horzontal {
+        display: flex;
+        flex-direction: row;
+        border-color: white;
+        border-width: 5px;
+        border-style: hidden;
+        justify-content: center;
+        border-radius: 0px;
+        margin: 0px;
+        padding: 0px;
+        padding-top: 10px;
+        width: min-content;
+        height: min-content;
+        background: none;
+    }
+
+    .CharacterPage-abilityscore-icon {
+        height: 40px; 
+        margin-top: 15px;
+        filter: invert(1) sepia(1);
+    }
+
+    .CharacterPage-abiltyscore-block {
+        padding: 0px;
+        font-size: 16px;
+    }
+
+    .CharacterPage-abilityscore-stat {
+        background-color: inherit;
+        width: 40px;
+        height: 30px;
+        justify-items: center;
+        text-align: center;
+        border: none;
+        border-color: white;
+        border-radius: 8px;
+        color: white;
+        font-size: inherit;
+        padding: 0;
+        margin-top: 20px;
+    }
+}

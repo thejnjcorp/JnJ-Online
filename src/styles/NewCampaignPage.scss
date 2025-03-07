@@ -1,0 +1,33 @@
+.NewCampaignPage {
+    width: 100vw;
+    height: 90vh;
+}
+
+.NewCampaignPage-input {
+    font-size: 24px;
+}
+
+.NewCampaignPage-input-box {
+    font-size: 18px;
+    position: relative;
+    bottom: 2px;
+    margin-left: 10px;
+}
+
+.NewCampaignPage-submit-button {
+    font-size: 18px;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    border-radius: 10px;
+    border-style: solid;
+    border-color: white;
+    background-color: rgba(0, 0, 0, 0);
+    color: white;
+
+    &:hover {
+        background-color: white;
+        color: #282c34;
+    }
+}

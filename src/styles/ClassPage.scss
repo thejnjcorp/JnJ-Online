@@ -1,0 +1,125 @@
+.ClassPage {
+    height: 90vh;
+    width: 100vw;
+    background-color: inherit;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.ClassPage-input {
+    font-size: 24px;
+}
+
+.ClassPage-input-box {
+    font-size: 18px;
+    position: relative;
+    bottom: 2px;
+    margin-left: 10px;
+}
+
+.ClassPage-input-text-area {
+    width: 80vw;
+    height: 20vh;
+    font-size: 18px;
+    resize: none;
+    overflow-y: auto;
+}
+
+.ClassPage-actions-box {
+    width: 80vw;
+    margin: 0px 10vw;
+    text-align: left;
+}
+
+.ClassPage-add-action-button {
+    margin-left: 10px;
+    width: 200px;
+    position: relative;
+    top: -4px;
+    font-size: 24px;
+    background-color: inherit;
+    border-radius: 10px;
+    border-color: white;
+    border-style: solid;
+    color: white;
+    &:hover {
+        background-color: white;
+        color: black;
+    }
+}
+
+.ClassPage-remove-action-button {
+    margin-left: 20px;
+    width: 200px;
+    position: relative;
+    top: -1px;
+    font-size: 24px;
+    background-color: inherit;
+    border-radius: 10px;
+    border-color: white;
+    border-style: solid;
+    color: white;
+    &:hover {
+        background-color: white;
+        color: black;
+    }
+}
+
+.ClassPage-add-tag-button {
+    position: relative;
+    top: -2px;
+    font-size: 18px;
+    border-radius: 5px;
+    padding: 2px 5px;
+    margin-left: 10px;
+    background-color: royalblue;
+    border-style: none;
+
+    &:hover {
+        background-color: lightblue;
+    }
+}
+
+.ClassPage-tag-input-box {
+    font-size: 24px;
+    border-radius: 5px;
+    padding: 5px 5px;
+    margin-top: 5px;
+    background-color: rosybrown;
+    border-style: none;
+}
+
+.ClassPage-delete-tag-button {
+    margin-left: 10px;
+    width: 200px;
+    position: relative;
+    top: -3px;
+    font-size: 18px;
+    background-color: inherit;
+    border-radius: 10px;
+    border-color: inherit;
+    border-style: solid;
+    color: inherit;
+    &:hover {
+        background-color: white;
+        color: black;
+    }
+}
+
+.ClassPage-submit-button {
+    font-size: 18px;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    border-radius: 10px;
+    border-style: solid;
+    border-color: white;
+    background-color: rgba(0, 0, 0, 0);
+    color: white;
+
+    &:hover {
+        background-color: white;
+        color: #282c34;
+    }
+}

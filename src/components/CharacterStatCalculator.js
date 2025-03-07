@@ -2,6 +2,44 @@ export function CharacterLevelCalculator(experience) {
     return Math.floor(experience / 1000) + 1;
 }
 
+export function CharacterDiceConverter(inputNum) {
+    switch(inputNum) {
+        case 1:
+            return "d4"
+        case 2:
+            return "d6"
+        case 3:
+            return "d8"
+        case 4:
+            return "d10"
+        case 5:
+            return "d12"
+        case 6:
+            return "d20"
+        default:
+            return "N/A"
+    }
+}
+
+export function reverseCharacterDiceConverter(inputString) {
+    switch(inputString) {
+        case "d4":
+            return 1
+        case "d6":
+            return 2
+        case "d8":
+            return 3
+        case "d10":
+            return 4
+        case "d12":
+            return 5
+        case "d20":
+            return 6
+        default:
+            return 0
+    }
+}
+
 export function CharacterStatCalculator(experience, baseArmorClass, baseHitModifier, baseDamageModifier, baseDamageDice, baseDamageDiceType, baseHealingDiceType) {
     const level = CharacterLevelCalculator(experience);
     const baseClassDifficultyClass = 14;

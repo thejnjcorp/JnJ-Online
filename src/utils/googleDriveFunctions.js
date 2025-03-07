@@ -35,6 +35,20 @@ export async function deleteJSONFile(fileId) {
     })
 }
 
+export async function watchFile(fileId, characterPageUrl) {
+    const channelId = crypto.randomUUID();
+    const channel = {
+        id: channelId,
+        type: 'web_hook',
+        address: characterPageUrl
+    };
+    const response = await window.gapi.client.drive.files.watch({
+        'fileId': fileId,
+        'resource': channel
+    });
+    return response;
+}
+
 function uploadFileToDrive(file, access_token, fileIdExists = false, fileId) {
     return new Promise(function (resolve, reject) {
         // https://stackoverflow.com/questions/46160511/how-to-upload-files-to-google-drive-using-gapi-and-resumable-uploads

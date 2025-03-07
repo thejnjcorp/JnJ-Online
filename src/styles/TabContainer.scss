@@ -1,9 +1,11 @@
 .TabContainer {
     width: 80vw;
-    height: 30vh;
+    min-height: 30vh;
     background-color: rgba(0, 0, 0, 0.3);
     margin: 10px;
     border-radius: 15px;
+    max-height: 50vh;
+    overflow-y: auto;
 
     .TabButton {
         font-size: 24px;

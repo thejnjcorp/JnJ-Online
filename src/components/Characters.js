@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
-import { getGoogleSheetCells } from "./googleSheetCellFunctions";
+import { getGoogleSheetCells } from "../utils/googleSheetCellFunctions";
 import appData from './AppData.json';
 import '../styles/Characters.scss';
 import characterListLayout from '../CharacterListLayout.json';
 import { useNavigate } from "react-router-dom";
 import { CharacterPage } from "./CharacterPage";
+import { useLocation } from "react-router-dom";
 
 export function Characters({setValidAccessToken, setErrorMessage, accessToken}) {
     const [characterList, setCharacterList] = useState(characterListLayout);
     const navigate = useNavigate();
+    const location = useLocation();
     document.title = "Characters";
 
     useEffect(() => {
@@ -39,7 +41,7 @@ export function Characters({setValidAccessToken, setErrorMessage, accessToken}) 
     }
 
     return <div>
-        {window.location.hash.substring(window.location.hash.lastIndexOf('/') + 1) === "characters" && <div className="Character-page">
+        {location.pathname.endsWith('characters') && <div className="Character-page">
             <div className="Characters-title">
                 Characters
             </div>
@@ -54,7 +56,7 @@ export function Characters({setValidAccessToken, setErrorMessage, accessToken}) 
                 </button>
             )}
         </div>}
-        {window.location.hash.substring(window.location.hash.lastIndexOf('/') + 1) !== "characters" && 
-            <CharacterPage setValidAccessToken={setValidAccessToken} setErrorMessage={setErrorMessage} accessToken={accessToken} />}
+        {!location.pathname.endsWith('characters') && 
+            <CharacterPage/>}
     </div>
 }

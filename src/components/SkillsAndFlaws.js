@@ -1,37 +1,28 @@
-import { useState } from 'react';
+import Collapsible from 'react-collapsible';
 import starIcon from '../icons/star.svg';
 import '../styles/SkillsAndFlaws.scss';
 
-export function SkillsAndFlaws({characterPageLayoutLive, setCharacterPageLayoutLive, saveCharacterPageLayout}) {
-    const [isVisible, setIsVisible] = useState(characterPageLayoutLive.skills_and_flaws.map(value => value.isVisible))
-
-    function flipBool(index) {
-        var newCharacterPageLayoutLive = characterPageLayoutLive;
-        newCharacterPageLayoutLive.skills_and_flaws[index].isVisible = !characterPageLayoutLive.skills_and_flaws[index].isVisible;
-        setCharacterPageLayoutLive(newCharacterPageLayoutLive);
-        setIsVisible(newCharacterPageLayoutLive.skills_and_flaws.map(value => value.isVisible));
-    }
-
+export function SkillsAndFlaws({characterPage}) {
     return <>
-        {characterPageLayoutLive.skills_and_flaws.map((skill_or_flaw, index) => 
-            <button 
-                key={index} 
+        {characterPage.skills_and_flaws.map((skill_or_flaw, index, isOpen=false) => 
+            <Collapsible 
+                key={index}
+                trigger={<>{skill_or_flaw.name}
+                {Array.from({ length: skill_or_flaw.degree }, (_, index) => (
+                    <img key={index} src={starIcon} alt='star' className='SkillsAndFlaws-star' width={30}/>
+                ))}</>}
                 className={skill_or_flaw.isSkill ? "SkillsAndFlaws SkillsAndFlaws-skill SkillsOverride" : "SkillsAndFlaws SkillsAndFlaws-flaw FlawsOverride"}
-                onClick={() => flipBool(index)}
+                openedClassName={skill_or_flaw.isSkill ? "SkillsAndFlaws SkillsAndFlaws-skill SkillsOverride" : "SkillsAndFlaws SkillsAndFlaws-flaw FlawsOverride"}
+                contentInnerClassName='SkillsAndFlaws-inner-div'
+                triggerClassName='SkillsAndFlaws-trigger'
+                triggerOpenedClassName='SkillsAndFlaws-trigger'
+                transitionTime={100}
+                open={isOpen}
             >
-                <div className='SkillsAndFlaws-inner-div'>
-                    {skill_or_flaw.name}
-                    {Array.from({ length: skill_or_flaw.degree }, (_, index) => (
-                        <img key={index} src={starIcon} alt='star' className='SkillsAndFlaws-star' width={30}/>
-                    ))}
-                </div>
-                <div className='SkillsAndFlaws-inner-div'>
-                    {isVisible[index] && <>
-                        {skill_or_flaw.description}
-                    </>}
-                </div>
-                
-            </button>
+                <p style={{margin: 0}}>
+                    {skill_or_flaw.description}
+                </p>
+            </Collapsible>
         )}
     </>
 }

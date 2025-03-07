@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, HashRouter } from 'react-router-dom';
+import { Routes, Route, Navigate, BrowserRouter } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import '../styles/App.scss';
 import { Homepage } from './Homepage';
@@ -10,6 +10,9 @@ import { useGoogleLogin } from '@react-oauth/google';
 import appData from './AppData.json';
 import { Characters } from './Characters.js';
 import { Campaigns } from './Campaigns.js';
+import { AccountPage } from './AccountPage.js';
+import { DirectorsPage } from './DirectorsPage.js';
+import { ClassPage } from './ClassPage.js';
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
@@ -39,6 +42,7 @@ function App() {
   const [accessToken, setAccessToken] = useState(getAccessToken() ? getAccessToken() : "bogus access token");
   const [validAccessToken, setValidAccessToken] = useState(true);
   const [errorMessage, setErrorMessage] = useState({});
+  const [accountInfo, setAccountInfo] = useState();
 
   const login = useGoogleLogin({
     scope: appData.scope,
@@ -80,7 +84,7 @@ function App() {
   );
 
   return (
-    <HashRouter basename='/'>
+    <BrowserRouter basename='JnJ-Online'>
       <div className="App">
         <div className='App-header'>
           <Navigation/>
@@ -105,14 +109,17 @@ function App() {
             <Route path="*" element={ <InvalidPage/> } />
             <Route path="/" element={ <Navigate to="/home" /> } />
             <Route path="blog" element={ <Blog/> } />
-            <Route path="/home" element={ <Homepage setValidAccessToken={setValidAccessToken} setErrorMessage={setErrorMessage} accessToken={accessToken} /> } />
+            <Route path="/home" element={ <Homepage accountInfo={accountInfo} setAccountInfo={setAccountInfo} /> } />
             <Route path="/characters/*" element={ <Characters setValidAccessToken={setValidAccessToken} setErrorMessage={setErrorMessage} accessToken={accessToken} />}/>
-            <Route path="/campaigns/*" element={ <Campaigns setValidAccessToken={setValidAccessToken} setErrorMessage={setErrorMessage} accessToken={accessToken} />}/>
+            <Route path="/campaigns/*" element={ <Campaigns/> }/>
+            <Route path="/account/*" element={<AccountPage accountInfo={accountInfo} setAccountInfo={setAccountInfo} /> }/>
+            <Route path='/directors/*' element={<DirectorsPage/>} />
+            <Route path='/classes/*' element={<ClassPage/>} />
             {routeMarkdownFiles}
           </Routes>
         </div>
       </div>
-    </HashRouter>
+    </BrowserRouter>
     
   );
 }

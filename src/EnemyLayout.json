@@ -1,0 +1,48 @@
+{
+    "enemy_name": "GUNMECH Leo",
+    "enemy_type": "Captain",
+    "id": "dfinso",
+    "level": 3,
+    "base_armor_class": 17,
+    "Weaknesses": ["Lightning 5", "Acid 10"],
+    "Resistances": ["Non Magical-Physical 4", "Fire 5"],
+    "action_points": 3,
+
+    "strength_stat": 4,
+    "dexterity_stat": 1,
+    "intelligence_stat": 2,
+    "charisma_stat": 3,
+
+    "hardness": 0,
+    "current_health": 130,
+    "maximum_health": 130,
+    "temporary_health": 0,
+    "experience_points": 0,
+
+    "actions": [
+        {
+            "actionName": "action 1",
+            "actionCost": 3,
+            "range": "Zone 0, AOE",
+            "toHitBool": true,
+            "toHit": "1",
+            "difficultyClass": "",
+            "description": "This is where an action description would go. You would just have a string of characters here explaining what it does and then maybe some flavor later, sue me.",
+            "tags": [{"tagInfo": "red tag", "tagColor":"#A84646", "textColor": "#FAF6F6", "tagDescription": "this tag is red."}, {"tagInfo": "blue tag", "tagColor":"#248AE4", "textColor": "#FAF6F6"}]
+        },
+        {
+            "actionName": "action 2",
+            "actionCost": 1,
+            "range": "1 Zone",
+            "toHitBool": false,
+            "toHit": "",
+            "difficultyClass": "Dex,0",
+            "description": "This is where an action description would go. You would just have a string of characters here explaining what it does and then maybe some flavor later, sue me. This is indeed different from the other action description, you are not paranoid."
+        }
+    ],
+    "base_hit_modifier": 1,
+    "base_damage_modifier": 2,
+    "base_damage_dice": 1,
+    "base_damage_dice_type": 2,
+    "base_healing_dice_type": 1
+}

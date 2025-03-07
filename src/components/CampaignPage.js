@@ -1,52 +1,49 @@
 import { useState, useEffect } from "react";
-import { getGoogleSheetCells } from "./googleSheetCellFunctions";
-import { useNavigate } from "react-router-dom";
-import appData from './AppData.json';
+import { useLocation, useNavigate } from "react-router-dom";
+import { collection, getDocs, getDoc, doc, where, query } from "firebase/firestore";
+import { db } from "../utils/firebase";
 import '../styles/CampaignPage.scss';
-import characterListLayout from '../CharacterListLayout.json';
 
-export function CampaignPage({setValidAccessToken, setErrorMessage, accessToken}) {
-    const [characterListLive, setCharacterListLive] = useState(characterListLayout);
+export function CampaignPage() {
+    const [characterList, setCharacterList] = useState([]);
+    const [campaignInfo, setCampaignInfo] = useState({director_name: "placeholder", campaign_name: "placeholder"});
     const navigate = useNavigate();
-    document.title = characterListLive.campaign_name;
+    const location = useLocation();
+
+    const getCharacterList = async() => {
+        const docSnap = await getDoc(doc(db, "campaigns", location.pathname.split("/").at(2)));
+        setCampaignInfo(docSnap.data());
+        document.title = docSnap.data().campaign_name;
+        const characters = query(collection(db, "characters"), where("campaigns", "array-contains", location.pathname.split("/").at(2)));
+        const querySnapshot = await getDocs(characters);
+        setCharacterList(querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
+    }
 
     useEffect(() => {
-        function getCharacterList() {
-            const cell = "A" + window.location.hash.split("/").at(2);
-            getGoogleSheetCells(appData.spreadSheetKey, "Sheet1", cell, cell)
-            .then(response => {
-                setCharacterListLive(JSON.parse(response.at(0)));
-                setValidAccessToken(true);
-            })
-            .catch(res => {
-                if (typeof res.result != 'undefined') setErrorMessage(res.result.error);
-                setValidAccessToken(false);
-                })
-        }
-        setTimeout(() => {
-            getCharacterList();
-          }, 1000);
         getCharacterList();
         // eslint-disable-next-line
-    },[]);
-
-    function handleCharacterCardSelect(character) {
-        navigate("/characters/" + character.column_number)
-    }
+    },[location]);
 
     return <div className="CampaignPage">
         <div className="Campaigns-title">
-            {characterListLive.campaign_name}
+            {campaignInfo.campaign_name}
         </div>
-        {characterListLive.characters.map((character, index) =>
-        <button className='CharacterCard' key={index} onClick={() => handleCharacterCardSelect(character)}>
+        {characterList.map((character, index) =>
+            <button className='CharacterCard' key={index} onClick={() => navigate("/characters/" + character.id)}>
                 {character.character_name}<br/>
                 <div className="CharacterCard-small-text">
                     {character.class}<br/>
                     Player: {character.player_name}<br/>
-                    Campaign: {character.campaign}
                 </div>
             </button>
         )}
+        <br/>
+        <button className='CharacterCard' onClick={() => navigate("/directors/" + location.pathname.split("/").at(2))}>
+            Director Mode<br/>
+        </button>
+        <br/>
+        <button className='CharacterCard' onClick={() => navigate(location.pathname.split("/").at(2) + "/newCharacter")}>
+            New Character
+        </button>
     </div>
 }

@@ -1,7 +1,17 @@
 import { Tooltip } from "react-tooltip";
+import { CharacterStatCalculator } from "./CharacterStatCalculator";
 import shieldIcon from '../icons/shield.svg';
 
 export function CharacterPageStatsPanel({characterPageLayoutLive}) {
+    const characterStats = CharacterStatCalculator(
+        characterPageLayoutLive.experience_points, 
+        characterPageLayoutLive.base_armor_class, 
+        characterPageLayoutLive.base_hit_modifier, 
+        characterPageLayoutLive.base_damage_modifier, 
+        characterPageLayoutLive.base_damage_dice, 
+        characterPageLayoutLive.base_damage_dice_type, 
+        characterPageLayoutLive.base_healing_dice_type);
+
     return <div className={characterPageLayoutLive.temporary_health > 0 ? "CharacterPage-stats CharacterPage-stats-temp-hp-yellow" : "CharacterPage-stats"}>
         <div className='CharacterPage-stats-horizontal'>
             <div className='CharacterPage-stats-block-hp'>
@@ -25,17 +35,16 @@ export function CharacterPageStatsPanel({characterPageLayoutLive}) {
             <div className='CharacterPage-stats-block-shield' data-tooltip-id='ac'>
                 AC<br/>
                 <img src={shieldIcon} className='CharacterPage-shield' alt='shield.svg'/>
-                <div className='CharacterPage-shield-text'>{characterPageLayoutLive.armor_class}</div>
+                <div className='CharacterPage-shield-text'>{characterStats.ArmorClass}</div>
             </div>
         </div>
         <div className='CharacterPage-stats-horizontal'>
             <div className='CharacterPage-stats-xp' data-tooltip-id='xp'>
                 XP<input key="CURRENT_XP" defaultValue={characterPageLayoutLive.experience_points} className='CharacterPage-xp-and-hardness-stat'/>
-                / 1000
             </div>
             <div className='CharacterPage-stats-divider'></div>
             <div className='CharacterPage-stats-hardness'>
-                HARDNESS<input key="HARDNESS" defaultValue={characterPageLayoutLive.hardness} className='CharacterPage-xp-and-hardness-stat'/>
+                HARDNESS<input key="HARDNESS" defaultValue={characterPageLayoutLive.hardness} className='CharacterPage-xp-and-hardness-stat' style={{width: 30}}/>
             </div>
         </div>
         {characterPageLayoutLive.tooltips && <>

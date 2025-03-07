@@ -1,15 +1,10 @@
-import { CharacterPageNavigationColorPickerButton } from './CharacterPageNavigationColorPickerButton';
 import '../styles/CharacterPage.scss';
 
 
-export function CharacterPageNavigation({characterPageLayoutLive, setCharacterPageLayoutLive, refreshPageRender}) {
+export function CharacterPageNavigation({characterPage}) {
 
 
-    return <div className="CharacterPage-navigation" style={{background: characterPageLayoutLive.navigation_color}}>
-        <CharacterPageNavigationColorPickerButton 
-            characterPageLayoutLive={characterPageLayoutLive} 
-            setCharacterPageLayoutLive={setCharacterPageLayoutLive} 
-            refreshPageRender={refreshPageRender}
-        />
+    return <div className="CharacterPage-navigation" style={{background: characterPage.navigation_color}}>
+
     </div>
 }

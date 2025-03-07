@@ -78,7 +78,8 @@
     .CharacterPage-xp-and-hardness-stat {
         padding-top: 4px;
         background-color: inherit;
-        width: 50px;
+        width: 60px;
+        margin-left: 5px;
         padding: 0;
         height: 30px;
         justify-items: center;
@@ -254,6 +255,7 @@
     width: 20vw;
     height: 90vh;
     background-color: gray;
+    overflow-y: auto;
 }
 
 .CharacterPage-right-content {

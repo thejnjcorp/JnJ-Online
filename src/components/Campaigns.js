@@ -1,61 +1,57 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { getGoogleSheetCells } from "./googleSheetCellFunctions";
 import { CampaignPage } from "./CampaignPage";
-import campaignListLayout from '../CampaignListLayout.json';
-import appData from './AppData.json';
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../utils/firebase";
 import '../styles/CampaignPage.scss';
+import { NewCampaignPage } from "./NewCampaignPage";
+import { NewCharacterPage } from "./NewCharacterPage";
 
-export function Campaigns({setValidAccessToken, setErrorMessage, accessToken}) {
-    const [campaignList, setCampaignListLayout] = useState(campaignListLayout);
+export function Campaigns() {
+    const [campaignList, setCampaignList] = useState([]);
     const navigate = useNavigate();
+    const location = useLocation();
     document.title = "Campaigns";
 
+    const getCampaigns = async() => {
+        const querySnapshot = await getDocs(collection(db, "campaigns"));
+        setCampaignList(querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
+    }
+
     useEffect(() => {
-        function getCampaignList() {
-            getGoogleSheetCells(appData.spreadSheetKey, "Sheet1", "C1", "C1")
-            .then(response => {
-                setCampaignListLayout(JSON.parse(response.at(0)));
-                setValidAccessToken(true);
-            })
-            .catch(res => {
-                if (typeof res.result != 'undefined') setErrorMessage(res.result.error);
-                setValidAccessToken(false);
-                })
-        }
-        setTimeout(() => {
-            getCampaignList();
-          }, 1000);
-        getCampaignList();
+        getCampaigns();
         // eslint-disable-next-line
     },[]);
 
     function handleCampaignCardSelect(campaign) {
-        navigate("/campaigns/" + campaign.column)
+        navigate("/campaigns/" + campaign.id);
     }
 
     function handleCreateCampaign() {
-
+        navigate("/campaigns/new");
     }
 
     return <div>
-        {window.location.hash.substring(window.location.hash.lastIndexOf('/') + 1) === "campaigns" && <div className="CampaignPage">
+        {location.pathname.endsWith('campaigns') && <div className="CampaignPage">
             <div className="Campaigns-title">
                 Campaigns
             </div>
-            {campaignList.campaigns.map((campaign, index) =>
+            {campaignList.map((campaign, index) =>
                 <button className='CampaignCard' key={index} onClick={() => handleCampaignCardSelect(campaign)}>
                     {campaign.campaign_name}<br/>
                     <div className="CampaignCard-small-text">
                         Director: {campaign.director_name}
                     </div>
-                </button>
-            )}
+                </button>)}
             <button className='CampaignCard Campaign-shift-up' onClick={() => handleCreateCampaign()}>
                 Create Campaign
             </button>
         </div>}
-        {window.location.hash.substring(window.location.hash.lastIndexOf('/') + 1) !== "campaigns" &&
-            <CampaignPage setValidAccessToken={setValidAccessToken} setErrorMessage={setErrorMessage} accessToken={accessToken} />}
+        {!location.pathname.endsWith('campaigns') && !location.pathname.endsWith('new') && !location.pathname.endsWith('newCharacter') &&
+            <CampaignPage/>}
+        {location.pathname.endsWith('new') && 
+            <NewCampaignPage/>}
+        {location.pathname.endsWith('newCharacter') &&
+            <NewCharacterPage/>}
     </div>
 }

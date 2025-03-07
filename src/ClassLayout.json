@@ -1,0 +1,12 @@
+{
+    "class_name": "class name",
+    "base_armor_class": 14,
+    "base_hit_modifier": 5,
+    "base_healing_dice_type": 2,
+    "base_damage_dice_type": 2,
+    "base_class_damage_class": 14,
+    "base_hardness": 0,
+    "description": "lore/flavor for the class",
+    "actions": [],
+    "feats": []
+}

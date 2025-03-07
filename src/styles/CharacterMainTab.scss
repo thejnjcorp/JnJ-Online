@@ -1,0 +1,39 @@
+.CharacterMainTab-inventory-item {
+    height: min-content;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    background-color: darkblue;
+
+    &:hover {
+        background-color: navy;
+    }
+}
+
+.CharacterMainTab-inventory-item-opened {
+    height: min-content;
+    background-color: darkblue;
+}
+
+.CharacterMainTab-inventory-item-description {
+    background-color: wheat;
+    color: black;
+}
+
+.CharacterMainTab-action-points {
+    display: flex;
+    justify-content: start;
+    align-items: center;
+    padding-left: 10px;
+}
+
+.CharacterMainTab-star {
+    filter: invert(1);
+}
+
+.CharacterMainTab-header-left-align {
+    display: block;
+    text-align: start;
+    border-bottom: 1px solid white;
+    margin: 10px;
+    margin-top: 0px;
+}
