@@ -2,6 +2,7 @@
     "player_name": "player name",
     "character_name": "character name",
     "class": "class",
+    "class_id": "id",
 
     "current_health": 0,
     "maximum_health": 10,

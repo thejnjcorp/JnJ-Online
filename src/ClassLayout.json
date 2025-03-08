@@ -7,6 +7,5 @@
     "base_class_damage_class": 14,
     "base_hardness": 0,
     "description": "lore/flavor for the class",
-    "actions": [],
-    "feats": []
+    "actions": []
 }

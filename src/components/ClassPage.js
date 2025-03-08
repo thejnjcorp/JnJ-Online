@@ -197,24 +197,24 @@ export function ClassPage() {
     }
 
     async function handleSubmit() {
-        if (formData.class_name === null
-            || formData.base_armor_class === null
-            || formData.base_hit_modifier === null
-            || formData.base_healing_dice_type === null
-            || formData.base_damage_dice_type === null
-            || formData.base_class_damage_class === null
-            || formData.base_hardness === null) {
+        if (formData.class_name === ""
+            || formData.base_armor_class === ""
+            || formData.base_hit_modifier === ""
+            || formData.base_healing_dice_type === ""
+            || formData.base_damage_dice_type === ""
+            || formData.base_class_damage_class === ""
+            || formData.base_hardness === "") {
             return alert("invalid form value(s)");
         }
         if (CharacterDiceConverter(formData.base_healing_dice_type) === 'N/A') return alert("invalid base healing dice type");
         if (CharacterDiceConverter(formData.base_damage_dice_type) === 'N/A') return alert("invalid base damage dice type");
 
         formData.actions.forEach(action => {
-            if (action.actionCost === null
-                || action.range === null
-                || action.actionName === null
-                || action.actionLevel === null
-                || action.actionType === null
+            if (action.actionCost === ""
+                || action.range === ""
+                || action.actionName === ""
+                || action.actionLevel === ""
+                || action.actionType === ""
                 ) {
                     return alert("invalid action value(s)")
                 }
@@ -257,7 +257,7 @@ export function ClassPage() {
             Base Hit Modifier:
             <input 
                 className='ClassPage-input-box' 
-                name="base_armor_class" 
+                name="base_hit_modifier" 
                 type="number"
                 onChange={handleChange}
                 required
@@ -500,5 +500,6 @@ export function ClassPage() {
         <button className='ClassPage-submit-button' type='submit' onClick={() => handleSubmit()}>
             {location.pathname.split('/').length > 2 ? "Update Class" : "Create Class"}
         </button>
+        <br/><br/>
     </div>}</>
 }
