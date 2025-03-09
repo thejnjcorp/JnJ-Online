@@ -198,6 +198,8 @@ export function ClassPage() {
 
     async function handleSubmit() {
         if (formData.class_name === ""
+            || formData.author === ""
+            || formData.class_type === ""
             || formData.base_armor_class === ""
             || formData.base_hit_modifier === ""
             || formData.base_healing_dice_type === ""
@@ -226,6 +228,7 @@ export function ClassPage() {
         } else {
             const docRef = await addDoc(collection(db, "classes"), formData);
             navigate(docRef.id);
+            alert("sucessfully created the class")
         }
     }
 
@@ -240,6 +243,34 @@ export function ClassPage() {
                 required
                 defaultValue={formData.class_name}
             />
+        </div>
+        <div className='ClassPage-input'>
+            Author:
+            <input 
+                className='ClassPage-input-box' 
+                name="author" 
+                type="text"
+                onChange={handleChange}
+                required
+                defaultValue={formData.author}
+            />
+        </div>
+        <div className='ClassPage-input'>
+            Class Type:
+            <select
+                className='ClassPage-input-box'
+                name={"class_type"}
+                onChange={handleChange}
+                required
+                type='dropdown'
+                defaultValue={formData.class_type}
+            >
+                <option hidden></option>
+                <option value="Attrionist">Attrionist</option>
+                <option value="Crit Hunter">Crit Hunter</option>
+                <option value="Manipulator">Manipulator</option>
+                <option value="Snowballer">Snowballer</option>
+            </select>
         </div>
         <div className='ClassPage-input'>
             Base Armor Class:

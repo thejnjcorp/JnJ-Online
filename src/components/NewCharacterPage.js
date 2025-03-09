@@ -135,6 +135,8 @@ export function NewCharacterPage() {
             onClick={() => setSelectedClassInfo(classList.filter(individualClass => individualClass.id === formData.class_id).at(0))}>View Class Info</button>
             {selectedClassInfo && <><br/>
                 {selectedClassInfo.class_name}:<br/>
+                {selectedClassInfo.class_type}<br/>
+                {"Author: " + selectedClassInfo.author}<br/>
                 {"Base AC: " + selectedClassInfo.base_armor_class}
                 {"\xa0\xa0Base Hardness: " + selectedClassInfo.base_hardness}<br/>
                 {"+" + selectedClassInfo.base_hit_modifier + " to Hit"}

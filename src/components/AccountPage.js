@@ -1,5 +1,5 @@
 
-export function AccountPage({accountInfo, setAccountInfo}) {
+export function AccountPage({userInfo, setUserInfo}) {
     return <div>
         Account
     </div>

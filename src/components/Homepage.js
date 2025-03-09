@@ -1,14 +1,7 @@
 import React from "react";
-import { signInWithGooglePopup } from "../utils/firebase";
 import logo from '../logo.svg';
 
-export function Homepage({accountInfo, setAccountInfo}) {
-  const logGoogleUser = async() => {
-    const response = await signInWithGooglePopup();
-    console.log(response)
-    setAccountInfo(response)
-  }
-
+export function Homepage() {
   document.title="Home"
   return <div>
       <img src={logo} className="App-logo" alt="logo" />
@@ -23,7 +16,5 @@ export function Homepage({accountInfo, setAccountInfo}) {
       >
       Powered by React
       </a>
-      <br/>
-      <button onClick={logGoogleUser}>Sign In With Google</button>
   </div>
 }

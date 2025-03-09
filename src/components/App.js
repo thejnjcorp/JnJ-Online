@@ -13,6 +13,8 @@ import { Campaigns } from './Campaigns.js';
 import { AccountPage } from './AccountPage.js';
 import { DirectorsPage } from './DirectorsPage.js';
 import { ClassPage } from './ClassPage.js';
+import { ClassListPage } from './ClassListPage.js';
+import { auth } from '../utils/firebase.js';
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
@@ -42,7 +44,7 @@ function App() {
   const [accessToken, setAccessToken] = useState(getAccessToken() ? getAccessToken() : "bogus access token");
   const [validAccessToken, setValidAccessToken] = useState(true);
   const [errorMessage, setErrorMessage] = useState({});
-  const [accountInfo, setAccountInfo] = useState();
+  const [userInfo, setUserInfo] = useState(null);
 
   const login = useGoogleLogin({
     scope: appData.scope,
@@ -64,6 +66,9 @@ function App() {
         initializeGoogleSheets();
       })
       .catch(err => console.log(err));
+      // eslint-disable-next-line
+    const unsubscribe = auth.onAuthStateChanged((currentUser) => setUserInfo(currentUser));
+    return () => unsubscribe();
   },[]);
 
   useEffect(() => {
@@ -87,7 +92,7 @@ function App() {
     <BrowserRouter basename='JnJ-Online'>
       <div className="App">
         <div className='App-header'>
-          <Navigation/>
+          <Navigation userInfo={userInfo} setUserInfo={setUserInfo}/>
         </div>
         {!validAccessToken && <div className='App-banner'>
           {"ERROR: " + errorMessage.code + ", " + errorMessage.message + ": " + errorMessage.status}
@@ -109,12 +114,13 @@ function App() {
             <Route path="*" element={ <InvalidPage/> } />
             <Route path="/" element={ <Navigate to="/home" /> } />
             <Route path="blog" element={ <Blog/> } />
-            <Route path="/home" element={ <Homepage accountInfo={accountInfo} setAccountInfo={setAccountInfo} /> } />
+            <Route path="/home" element={ <Homepage/> } />
             <Route path="/characters/*" element={ <Characters setValidAccessToken={setValidAccessToken} setErrorMessage={setErrorMessage} accessToken={accessToken} />}/>
             <Route path="/campaigns/*" element={ <Campaigns/> }/>
-            <Route path="/account/*" element={<AccountPage accountInfo={accountInfo} setAccountInfo={setAccountInfo} /> }/>
+            <Route path="/account/*" element={<AccountPage userInfo={userInfo} setUserInfo={setUserInfo}/> }/>
             <Route path='/directors/*' element={<DirectorsPage/>} />
             <Route path='/classes/*' element={<ClassPage/>} />
+            <Route path='/class-list' element={<ClassListPage/>} />
             {routeMarkdownFiles}
           </Routes>
         </div>

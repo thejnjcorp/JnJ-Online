@@ -1,0 +1,54 @@
+.ClassListPage-class-card {
+    border-width: 2px;
+    border-radius: 10px;
+    width: calc(30vw);
+    border-style: hidden;
+    font-weight: bold;
+    font-size: 36px;
+    margin: 20px;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    color: white;
+    background: rgba(161, 244, 255, 0.541);
+
+    &:hover {
+        background: rgba(123, 186, 194, 0.541);
+        color: cyan;
+    }
+}
+
+.ClassListPage-class-card-small-text {
+    font-size: 24px;
+    font-weight: 100;
+}
+
+.ClassListPage {
+    width: 100vw;
+    height: 90vh;
+}
+
+.ClassListPage-title {
+    display: flex;
+    flex-wrap: wrap;
+    width: 90vw;
+    justify-content: center;
+    align-content: center;
+    font-size: 48px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    padding-bottom: 10px;
+    margin-left: 5vw;
+    margin-right: 5vw;
+    margin-bottom: 30px;
+    border: 0px;
+    border-bottom: 2px;
+    border-color: white;
+    border-style: solid;
+}
+
+.ClassListPage-class-card-description {
+    width: max-content;
+    margin: 0px 10px;
+    height: 120px;
+    overflow-y: auto;
+}
