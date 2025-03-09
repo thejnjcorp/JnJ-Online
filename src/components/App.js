@@ -115,7 +115,7 @@ function App() {
             <Route path="/" element={ <Navigate to="/home" /> } />
             <Route path="blog" element={ <Blog/> } />
             <Route path="/home" element={ <Homepage/> } />
-            <Route path="/characters/*" element={ <Characters setValidAccessToken={setValidAccessToken} setErrorMessage={setErrorMessage} accessToken={accessToken} />}/>
+            <Route path="/characters/*" element={ <Characters/>}/>
             <Route path="/campaigns/*" element={ <Campaigns/> }/>
             <Route path="/account/*" element={<AccountPage userInfo={userInfo} setUserInfo={setUserInfo}/> }/>
             <Route path='/directors/*' element={<DirectorsPage/>} />

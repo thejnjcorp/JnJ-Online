@@ -1,43 +1,39 @@
 import { useState, useEffect } from "react";
-import { getGoogleSheetCells } from "../utils/googleSheetCellFunctions";
-import appData from './AppData.json';
 import '../styles/Characters.scss';
-import characterListLayout from '../CharacterListLayout.json';
 import { useNavigate } from "react-router-dom";
 import { CharacterPage } from "./CharacterPage";
 import { useLocation } from "react-router-dom";
+import { getDocs, query, collection } from "firebase/firestore";
+import { db } from "../utils/firebase";
 
-export function Characters({setValidAccessToken, setErrorMessage, accessToken}) {
-    const [characterList, setCharacterList] = useState(characterListLayout);
+export function Characters() {
+    const [characterList, setCharacterList] = useState([]);
     const navigate = useNavigate();
     const location = useLocation();
     document.title = "Characters";
 
     useEffect(() => {
-        function getCharacterList() {
-            getGoogleSheetCells(appData.spreadSheetKey, "Sheet1", "A", "A")
-            .then(response => {
-                const actualList = [...new Set(response.map(value => JSON.parse(value)))];
-                const temp = {
-                    "characters": actualList.map(charList => charList.characters).flat(2)
-                }
-                setCharacterList(temp);
-                setValidAccessToken(true);
-            })
-            .catch(res => {
-                if (typeof res.result != 'undefined') setErrorMessage(res.result.error);
-                setValidAccessToken(false);
-                })
-        }
-        setTimeout(() => {
-            getCharacterList();
-          }, 1000);
         getCharacterList();
         // eslint-disable-next-line
     },[]);
 
+    async function getCharacterList() {
+        const characters = query(collection(db, "characters"));
+        const querySnapshotCharacters = await getDocs(characters);
+        const campaigns = query(collection(db, "campaigns"));
+        const querySnapshotCampaigns = await getDocs(campaigns);
+        const campaignAssociation = new Map(querySnapshotCampaigns.docs.map(doc => [doc.id, doc.data().campaign_name]));
+        setCharacterList(querySnapshotCharacters.docs.map(doc => ({
+            id: doc.id, 
+            character_name: doc.data().character_name,
+            player_name: doc.data().player_name,
+            class: doc.data().class,
+            campaigns: doc.data().campaigns.map(campaign_id => campaignAssociation.get(campaign_id))
+        })));
+    }
+
     function handleCharacterCardSelect(character) {
-        navigate("/characters/" + character.column_number)
+        navigate("/characters/" + character.id)
     }
 
     return <div>
@@ -45,13 +41,16 @@ export function Characters({setValidAccessToken, setErrorMessage, accessToken}) 
             <div className="Characters-title">
                 Characters
             </div>
-            {characterList.characters.map((character, index) =>
+            {characterList.map((character, index) =>
             <button className='CharacterCard' key={index} onClick={() => handleCharacterCardSelect(character)}>
                     {character.character_name}<br/>
                     <div className="CharacterCard-small-text">
                         {character.class}<br/>
                         Player: {character.player_name}<br/>
-                        Campaign: {character.campaign}
+                        {"Campaign(s): " + character.campaigns.map((campaign, index) => {
+                            if (!index) return campaign;
+                            return ", " + campaign;
+                        })}
                     </div>
                 </button>
             )}
