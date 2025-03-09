@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Markdown from 'markdown-to-jsx';
+import '../styles/BlogPages.scss';
 
 function BlogPages(props) {
 
@@ -15,9 +16,9 @@ function BlogPages(props) {
         .catch(err => console.log(err));
 
     document.title=props.post
-    return (
+    return <div className="BlogPage-content">
         <Markdown>{post}</Markdown>
-    )
+    </div>
 }
 
 export default BlogPages
