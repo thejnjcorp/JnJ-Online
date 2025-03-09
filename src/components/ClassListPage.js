@@ -6,6 +6,7 @@ import '../styles/ClassListPage.scss';
 
 export function ClassListPage() {
     const [classList, setClassList] = useState([]);
+    const [filterClasses, setFilterClasses] = useState("all");
     const navigate = useNavigate();
     const location = useLocation();
     document.title = "Class List";
@@ -35,8 +36,28 @@ export function ClassListPage() {
         <div className="ClassListPage-title">
             Classes:
         </div>
-        {classList.map((individualClass, index) =>
-        <button className='ClassListPage-class-card' key={index} onClick={() => handleCharacterCardSelect(individualClass)}>
+        <button onClick={() => setFilterClasses("all")} className="ClassListPage-selector-button" disabled={filterClasses === "all"}>
+            All
+        </button>
+        <button onClick={() => setFilterClasses("Attrionist")} className="ClassListPage-selector-button" disabled={filterClasses === "Attrionist"}>
+            Attrionists
+        </button>
+        <button onClick={() => setFilterClasses("Crit Hunter")} className="ClassListPage-selector-button" disabled={filterClasses === "Crit Hunter"}>
+            Crit Hunters
+        </button>
+        <button onClick={() => setFilterClasses("Manipulator")} className="ClassListPage-selector-button" disabled={filterClasses === "Manipulator"}>
+            Manipulators
+        </button>
+        <button onClick={() => setFilterClasses("Snowballer")} className="ClassListPage-selector-button" disabled={filterClasses === "Snowballer"}>
+            Snowballers
+        </button>
+        <br/>
+        {classList.filter(individualClass => {
+            if (filterClasses === "all") return true;
+            if (filterClasses === individualClass.class_type) return true;
+            return false;
+        }).map((individualClass, index) =>
+            <button className='ClassListPage-class-card' key={index} onClick={() => handleCharacterCardSelect(individualClass)}>
                 Class: {individualClass.class_name}<br/>
                 <div className="ClassListPage-class-card-small-text">
                     By {individualClass.author}<br/>
@@ -44,6 +65,9 @@ export function ClassListPage() {
                     <div className="ClassListPage-class-card-description">{individualClass.description}</div>
                 </div>
             </button>
-        )}
+        )}<br/>
+        <button className="ClassListPage-class-card" onClick={() => navigate("/classes")}>
+            Create New Class
+        </button>
     </div>
 }
