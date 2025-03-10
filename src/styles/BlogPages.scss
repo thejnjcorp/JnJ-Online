@@ -1,3 +1,38 @@
+.BlogPage-nav-buttons {
+    width: 90vw;
+    display: flex;
+    justify-content: center;
+}
+
+.BlogPage-summary-sidebar {
+    height: 100vh;
+    position: fixed;
+    left: 0px;
+    top: 0px;
+    width: 3vw;
+    z-index: 0;
+    background-color: rgb(48, 48, 104);
+    overflow-y: auto;
+
+    &:hover {
+        width: 20vw;
+    }
+}
+
+.BlogPage-summary-sidebar-content {
+    margin: 1vh 1vw;
+    font-size: 18px;
+}
+
+.BlogPage-summary-sidebar-subheader-href {
+    color: white;
+    text-decoration: none;
+
+    &:hover {
+        color: wheat;
+    }
+}
+
 .BlogPage-content {
     margin: 0px 5vw;
     text-align: left;
@@ -10,5 +45,13 @@
 
     h2 {
         font-size: 36px;
+    }
+
+    table, th, td {
+        border-collapse: collapse;
+        border-color: white;
+        border-width: 1px;
+        border-style: solid;
+        padding: 0px 10px;
     }
 }

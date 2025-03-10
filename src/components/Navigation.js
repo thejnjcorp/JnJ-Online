@@ -5,8 +5,12 @@ import { signInWithGooglePopup } from "../utils/firebase";
 
 export function Navigation({userInfo, setUserInfo}) {
     const logGoogleUser = async() => {
-        const response = await signInWithGooglePopup();
-        setUserInfo(response.user);
+        try {
+            const response = await signInWithGooglePopup();
+            setUserInfo(response.user);
+        } catch(error) {
+            console.log(error);
+        }
     }
 
     return <nav className="Navigation">

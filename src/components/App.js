@@ -24,7 +24,6 @@ function App() {
       .then(text  => {
         var array = text.split(/\r?\n/);
         array.pop();
-        console.log(array);
         setMarkdowns(array);
       })
       .catch(err => console.log(err));
@@ -47,7 +46,7 @@ function App() {
           <Routes>
             <Route path="*" element={ <InvalidPage/> } />
             <Route path="/" element={ <Navigate to="/home" /> } />
-            <Route path="blog" element={ <Blog/> } />
+            <Route path="blog" element={ <Blog markdowns={markdowns}/> } />
             <Route path="/home" element={ <Homepage/> } />
             <Route path="/characters/*" element={ <Characters/>}/>
             <Route path="/campaigns/*" element={ <Campaigns/> }/>
