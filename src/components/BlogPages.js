@@ -116,7 +116,8 @@ const BlogPages =(props)=> {
                     >
                         {header?.subHeaders?.map((subHeader, subIndex) => {
                             return <div key={`sidebar-header-${index}-${subIndex}`} style={{ marginLeft: (subHeader.level - 1) * 20}}><a 
-                            href={`#${subHeader.text.slice(0, -1).replace(/\s+/g, '-').toLowerCase()}`}
+                            // eslint-disable-next-line
+                            href={`#${subHeader.text.slice(0, -1).replace(/\s+/g, '-').replace(/[\\\/]/g, "").toLowerCase()}`}
                             className="BlogPage-summary-sidebar-subheader-href"
                             >- {subHeader.text}</a></div>
                         })}

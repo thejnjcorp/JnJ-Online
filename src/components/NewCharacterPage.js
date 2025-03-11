@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { db } from '../utils/firebase';
 import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { CharacterDiceConverter } from './CharacterStatCalculator';
+import { CombatActionList } from './CombatActionList';
 
 const formReducer = (state, event) => {
     return {
@@ -116,6 +117,49 @@ export function NewCharacterPage() {
             </div>}
         </div>
         <div className='NewCharacterPage-input'>
+            {"Ability Point Allocation: (+4, +3, +2, +1 or +3, +3, +2, +2)"}<br/>
+            Strength:
+            <input 
+                className='NewCharacterPage-input-box' 
+                name="strength_stat_allocated" 
+                type="number" min={0} max={4} // 10 points total
+                onChange={handleChange}
+                required
+                placeholder={0}
+                style={{width: 30}}
+            />{"\xa0\xa0"}
+            Dexterity:
+            <input 
+                className='NewCharacterPage-input-box' 
+                name="dexterity_stat_allocated" 
+                type="number" min={0} max={4}
+                onChange={handleChange}
+                required
+                placeholder={0}
+                style={{width: 30}}
+            />{"\xa0\xa0"}
+            Intelligence:
+            <input 
+                className='NewCharacterPage-input-box' 
+                name="intelligence_stat_allocated" 
+                type="number" min={0} max={4}
+                onChange={handleChange}
+                required
+                placeholder={0}
+                style={{width: 30}}
+            />{"\xa0\xa0"}
+            Charisma:
+            <input 
+                className='NewCharacterPage-input-box' 
+                name="charisma_stat_allocated" 
+                type="number" min={0} max={4}
+                onChange={handleChange}
+                required
+                placeholder={0}
+                style={{width: 30}}
+            />
+        </div>
+        <div className='NewCharacterPage-input'>
             Class:
             <select 
                 className='NewCharacterPage-input-box' 
@@ -141,20 +185,30 @@ export function NewCharacterPage() {
                 {"\xa0\xa0Base Hardness: " + selectedClassInfo.base_hardness}<br/>
                 {"+" + selectedClassInfo.base_hit_modifier + " to Hit"}
                 {"\xa0\xa0Base DC: " + selectedClassInfo.base_class_damage_class}<br/>
+                {"Base Damage Modifier: " + selectedClassInfo.base_damage_modifier}<br/>
+                {"Base Number of Damage Dice: " + selectedClassInfo.base_damage_dice}<br/>
                 {"Base Healing Dice Type: " + CharacterDiceConverter(selectedClassInfo.base_healing_dice_type)}<br/>
                 {"Base Damage Dice Type: " + CharacterDiceConverter(selectedClassInfo.base_damage_dice_type)}<br/>
                 <br/>Description:<br/>
                 {selectedClassInfo.description}<br/>
                 <br/>Actions:
-                {selectedClassInfo.actions.map((action, index) => {
-                    return <div key={index}>
-                        {action.actionName}
-                    </div>
-                })}
+                {<div className='NewCharacterPage-actions'>
+                    <CombatActionList 
+                        actions={selectedClassInfo.actions}
+                        experience_points={0}
+                        baseArmorClass={parseInt(selectedClassInfo.base_armor_class)}
+                        baseHitModifier={parseInt(selectedClassInfo.base_hit_modifier)}
+                        baseDamageModifier={parseInt(selectedClassInfo.base_damage_modifier)}
+                        baseDamageDice={parseInt(selectedClassInfo.base_damage_dice)}
+                        baseDamageDiceType={parseInt(selectedClassInfo.base_damage_dice_type)}
+                        baseHealingDiceType={parseInt(selectedClassInfo.base_healing_dice_type)}
+                    />
+                </div>}
             </>}
         </div>}
         <button className='NewCharacterPage-submit-button' type='submit' onClick={() => handleSubmit()}>
             Create Character
         </button>
+        <br/><br/>
     </div>
 }

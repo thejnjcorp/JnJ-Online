@@ -201,11 +201,14 @@ export function ClassPage() {
             || formData.author === ""
             || formData.class_type === ""
             || formData.base_armor_class === ""
+            || formData.base_health_dice === ""
             || formData.base_hit_modifier === ""
             || formData.base_healing_dice_type === ""
             || formData.base_damage_dice_type === ""
             || formData.base_class_damage_class === ""
-            || formData.base_hardness === "") {
+            || formData.base_hardness === ""
+            || formData.base_damage_dice === ""
+            || formData.base_damage_modifier === "") {
             return alert("invalid form value(s)");
         }
         if (CharacterDiceConverter(formData.base_healing_dice_type) === 'N/A') return alert("invalid base healing dice type");
@@ -285,6 +288,18 @@ export function ClassPage() {
             />
         </div>
         <div className='ClassPage-input'>
+            Base Health Dice:
+            <input 
+                className='ClassPage-input-box' 
+                name="base_health_dice" 
+                type="text"
+                onChange={handleChangeDice}
+                required
+                placeholder={CharacterDiceConverter(ClassLayout.base_health_dice)}
+                defaultValue={CharacterDiceConverter(formData.base_health_dice) === 'N/A' ? null : CharacterDiceConverter(formData.base_health_dice)}
+            />
+        </div>
+        <div className='ClassPage-input'>
             Base Hit Modifier:
             <input 
                 className='ClassPage-input-box' 
@@ -297,6 +312,92 @@ export function ClassPage() {
             />
         </div>
         <div className='ClassPage-input'>
+            Base Melee Damage:
+            <input 
+                className='ClassPage-input-box' 
+                name="base_melee_damage_dice" 
+                type="number"
+                onChange={handleChange}
+                required
+                style={{width: 40}}
+                placeholder={ClassLayout.base_melee_damage_dice}
+                defaultValue={formData.base_melee_damage_dice}
+            />
+            <input 
+                className='ClassPage-input-box' 
+                name="base_melee_damage_dice_type" 
+                type="text"
+                onChange={handleChangeDice}
+                required
+                style={{width: 40}}
+                placeholder={CharacterDiceConverter(ClassLayout.base_melee_damage_dice_type)}
+                defaultValue={CharacterDiceConverter(formData.base_melee_damage_dice_type) === 'N/A' ? null : CharacterDiceConverter(formData.base_melee_damage_dice_type)}
+            />{"\xa0"}+
+            <input 
+                className='ClassPage-input-box' 
+                name="base_melee_damage_modifier" 
+                type="number"
+                onChange={handleChange}
+                required
+                style={{width: 40}}
+                placeholder={ClassLayout.base_melee_damage_modifier}
+                defaultValue={formData.base_melee_damage_modifier}
+            />
+            {"\xa0"}Damage Type:
+            <input 
+                className='ClassPage-input-box' 
+                name="base_melee_damage_type" 
+                type="text"
+                onChange={handleChange}
+                required
+                placeholder={ClassLayout.base_melee_damage_type}
+                defaultValue={formData.base_melee_damage_type}
+            />
+        </div>
+        <div className='ClassPage-input'>
+            Base Ranged Damage:
+            <input 
+                className='ClassPage-input-box' 
+                name="base_ranged_damage_dice" 
+                type="number"
+                onChange={handleChange}
+                required
+                style={{width: 40}}
+                placeholder={ClassLayout.base_ranged_damage_dice}
+                defaultValue={formData.base_ranged_damage_dice}
+            />
+            <input 
+                className='ClassPage-input-box' 
+                name="base_ranged_damage_dice_type" 
+                type="text"
+                onChange={handleChangeDice}
+                required
+                style={{width: 40}}
+                placeholder={CharacterDiceConverter(ClassLayout.base_ranged_damage_dice_type)}
+                defaultValue={CharacterDiceConverter(formData.base_ranged_damage_dice_type) === 'N/A' ? null : CharacterDiceConverter(formData.base_ranged_damage_dice_type)}
+            />{"\xa0"}+
+            <input 
+                className='ClassPage-input-box' 
+                name="base_ranged_damage_modifier" 
+                type="number"
+                onChange={handleChange}
+                required
+                style={{width: 40}}
+                placeholder={ClassLayout.base_ranged_damage_modifier}
+                defaultValue={formData.base_ranged_damage_modifier}
+            />
+            {"\xa0"}Damage Type:
+            <input 
+                className='ClassPage-input-box' 
+                name="base_ranged_damage_type" 
+                type="text"
+                onChange={handleChange}
+                required
+                placeholder={ClassLayout.base_ranged_damage_type}
+                defaultValue={formData.base_ranged_damage_type}
+            />
+        </div>
+        <div className='ClassPage-input'>
             Base Healing Dice Type:
             <input 
                 className='ClassPage-input-box' 
@@ -306,18 +407,6 @@ export function ClassPage() {
                 required
                 placeholder={CharacterDiceConverter(ClassLayout.base_healing_dice_type)}
                 defaultValue={CharacterDiceConverter(formData.base_healing_dice_type) === 'N/A' ? null : CharacterDiceConverter(formData.base_healing_dice_type)}
-            />
-        </div>
-        <div className='ClassPage-input'>
-            Base Damage Dice Type:
-            <input 
-                className='ClassPage-input-box' 
-                name="base_damage_dice_type" 
-                type="text"
-                onChange={handleChangeDice}
-                required
-                placeholder={CharacterDiceConverter(ClassLayout.base_damage_dice_type)}
-                defaultValue={CharacterDiceConverter(formData.base_damage_dice_type) === 'N/A' ? null : CharacterDiceConverter(formData.base_damage_dice_type)}
             />
         </div>
         <div className='ClassPage-input'>
