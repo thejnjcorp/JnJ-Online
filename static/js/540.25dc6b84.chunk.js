@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkwebsite=self.webpackChunkwebsite||[]).push([[540],{540:(e,s,t)=>{e.exports=t.p+"static/media/JnJ_Ruleset.9df09b62121aede80876.md"}}]);
