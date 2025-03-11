@@ -1,7 +1,7 @@
 .ClassListPage-class-card {
     border-width: 2px;
     border-radius: 10px;
-    width: calc(30vw);
+    width: 30vw;
     border-style: hidden;
     font-weight: bold;
     font-size: 36px;
@@ -47,9 +47,10 @@
 }
 
 .ClassListPage-class-card-description {
-    width: max-content;
+    width: 28vw;
     margin: 0px 10px;
     height: 120px;
+    white-space: pre-wrap;
     overflow-y: auto;
 }
 
