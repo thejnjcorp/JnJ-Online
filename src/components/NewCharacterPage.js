@@ -185,12 +185,15 @@ export function NewCharacterPage() {
                 {"\xa0\xa0Base Hardness: " + selectedClassInfo.base_hardness}<br/>
                 {"+" + selectedClassInfo.base_hit_modifier + " to Hit"}
                 {"\xa0\xa0Base DC: " + selectedClassInfo.base_class_damage_class}<br/>
-                {"Base Damage Modifier: " + selectedClassInfo.base_damage_modifier}<br/>
-                {"Base Number of Damage Dice: " + selectedClassInfo.base_damage_dice}<br/>
+                {`Base Melee Damage: \
+                ${selectedClassInfo.base_melee_damage_dice}${CharacterDiceConverter(selectedClassInfo.base_melee_damage_dice_type)}+${selectedClassInfo.base_melee_damage_modifier} \
+                ${selectedClassInfo.base_melee_damage_type}`}<br/>
+                {`Base Ranged Damage: \
+                ${selectedClassInfo.base_ranged_damage_dice}${CharacterDiceConverter(selectedClassInfo.base_ranged_damage_dice_type)}+${selectedClassInfo.base_ranged_damage_modifier} \
+                ${selectedClassInfo.base_ranged_damage_type}`}<br/>
                 {"Base Healing Dice Type: " + CharacterDiceConverter(selectedClassInfo.base_healing_dice_type)}<br/>
-                {"Base Damage Dice Type: " + CharacterDiceConverter(selectedClassInfo.base_damage_dice_type)}<br/>
                 <br/>Description:<br/>
-                {selectedClassInfo.description}<br/>
+                <div style={{whiteSpace: "pre-wrap"}}>{selectedClassInfo.description}</div>
                 <br/>Actions:
                 {<div className='NewCharacterPage-actions'>
                     <CombatActionList 
