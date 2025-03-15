@@ -29,3 +29,31 @@
     margin-left: 10px;
     height: calc(10px + 2vmin);
 }
+
+.Navigation-new-player {
+    z-index: 1;
+    position: absolute;
+    width: 40vw;
+    height: 300px;
+    background-color: #492100;
+    border-radius: 10px;
+    top: 15vh;
+    left: 30vw;
+}
+
+.Navigation-new-player-input {
+    font-size: 24px;
+}
+
+.Navigation-new-player-button {
+    font-size: 24px;
+    background-color: rgb(153, 94, 94);
+    color: white;
+    border-color: white;
+    
+    &:hover {
+        background-color: #3a1e1e;
+        color: wheat;
+        border-color: wheat;
+    }
+}

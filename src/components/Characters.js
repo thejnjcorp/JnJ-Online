@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import '../styles/Characters.scss';
 import { useNavigate } from "react-router-dom";
 import { CharacterPage } from "./CharacterPage";
 import { useLocation } from "react-router-dom";
-import { getDocs, query, collection } from "firebase/firestore";
-import { db } from "../utils/firebase";
+import { getDocs, query, collection, where, or } from "firebase/firestore";
+import { auth, db } from "../utils/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 export function Characters() {
     const [characterList, setCharacterList] = useState([]);
@@ -12,15 +13,15 @@ export function Characters() {
     const location = useLocation();
     document.title = "Characters";
 
-    useEffect(() => {
-        getCharacterList();
-        // eslint-disable-next-line
-    },[]);
+    onAuthStateChanged(auth, (user) => {
+        if (!user) return;
+        getCharacterList(user);
+    });
 
-    async function getCharacterList() {
-        const characters = query(collection(db, "characters"));
+    async function getCharacterList(user) {
+        const characters = query(collection(db, "characters"), or(where("playerId", "==", user.uid), where("canRead", "array-contains", user.uid)));
         const querySnapshotCharacters = await getDocs(characters);
-        const campaigns = query(collection(db, "campaigns"));
+        const campaigns = query(collection(db, "campaigns"), or(where("canRead", "array-contains", user.uid), where("canWrite", "array-contains", user.uid)));
         const querySnapshotCampaigns = await getDocs(campaigns);
         const campaignAssociation = new Map(querySnapshotCampaigns.docs.map(doc => [doc.id, doc.data().campaign_name]));
         setCharacterList(querySnapshotCharacters.docs.map(doc => ({

@@ -231,8 +231,12 @@ export function ClassPage() {
         })
         
         if (location.pathname.split('/').length > 2) {
-            await updateDoc(doc(db, "classes", location.pathname.split('/').at(2)), formData);
-            alert("successfully updated the class")
+            try {
+                await updateDoc(doc(db, "classes", location.pathname.split('/').at(2)), formData);
+                alert("successfully updated the class")
+            } catch(error) {
+                alert(`Failed to update class: ${error.message}`)
+            }
         } else {
             const docRef = await addDoc(collection(db, "classes"), formData);
             navigate(docRef.id);

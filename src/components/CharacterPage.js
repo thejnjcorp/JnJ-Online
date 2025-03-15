@@ -20,9 +20,10 @@ export function CharacterPage() {
     const [loadingScreen, setLoadingScreen] = useState(true);
     const location = useLocation();
     const pageTheme = 'DefaultCharacterPage';
+
     const docQuery = doc(db, "characters", location.pathname.split("/").at(2));
     // eslint-disable-next-line
-    const docSnap = onSnapshot(docQuery, { includeMetadataChanges: true }, (docSnap) => {
+    const unsubscribe = onSnapshot(docQuery, { includeMetadataChanges: true }, (docSnap) => {
         if (docSnap.metadata.hasPendingWrites || loadingScreen) {
             setCharacterPage(prevData => ({
                 ...prevData,
@@ -32,6 +33,7 @@ export function CharacterPage() {
             setLoadingScreen(false);
         }
     });
+    window.addEventListener('beforeunload', () => unsubscribe());
 
     return <>
         {!loadingScreen && <div className={"CharacterPage " + pageTheme}>

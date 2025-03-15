@@ -1,11 +1,12 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { CampaignPage } from "./CampaignPage";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "../utils/firebase";
+import { collection, query, getDocs, or, where } from "firebase/firestore";
+import { auth, db } from "../utils/firebase";
 import '../styles/CampaignPage.scss';
 import { NewCampaignPage } from "./NewCampaignPage";
 import { NewCharacterPage } from "./NewCharacterPage";
+import { onAuthStateChanged } from "firebase/auth";
 
 export function Campaigns() {
     const [campaignList, setCampaignList] = useState([]);
@@ -13,15 +14,16 @@ export function Campaigns() {
     const location = useLocation();
     document.title = "Campaigns";
 
-    const getCampaigns = async() => {
-        const querySnapshot = await getDocs(collection(db, "campaigns"));
+    onAuthStateChanged(auth, (user) => {
+        if (!user) return;
+        getCampaigns(user);
+    });
+
+    async function getCampaigns(user) {
+        const campaigns = query(collection(db, "campaigns"), or(where("canRead", "array-contains", user.uid), where("canWrite", "array-contains", user.uid)));
+        const querySnapshot = await getDocs(campaigns);
         setCampaignList(querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
     }
-
-    useEffect(() => {
-        getCampaigns();
-        // eslint-disable-next-line
-    },[]);
 
     function handleCampaignCardSelect(campaign) {
         navigate("/campaigns/" + campaign.id);
