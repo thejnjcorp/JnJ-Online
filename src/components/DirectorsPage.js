@@ -8,7 +8,7 @@ import { doc, query, collection, where, onSnapshot } from 'firebase/firestore';
 import { SkillsAndFlaws } from './SkillsAndFlaws';
 import Collapsible from 'react-collapsible';
 import characterPageLayout from '../CharacterPageLayout.json';
-import enemyLayout from '../EnemyLayout.json';
+import npcLayout from '../NPCLayout.json';
 import { TabContainer } from './TabContainer';
 import { CharacterPageAbilityScorePanel } from './CharacterPageAbilityScorePanel';
 import { CharacterPageStatsPanel } from './CharacterPageStatsPanel';
@@ -170,7 +170,7 @@ export function DirectorsPage() {
                     <div className='DirectorsPage-CombatEnemyStats'>
                         Enemy Stats<br/>
                         {campaignInfo.enemy_list.map((enemy, index) => {
-                            const actualEnemy = { ...enemyLayout, ...enemy }
+                            const actualEnemy = { ...npcLayout, ...enemy }
                             const setActionPoints = function(actionPoints) {
                                 setCampaignInfo(prevState => ({
                                     ...prevState,

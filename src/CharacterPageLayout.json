@@ -13,7 +13,7 @@
     "base_damage_dice": 1,
     "base_damage_dice_type": 1,
     "base_healing_dice_type": 1,
-    "experience_points": 3000,
+    "experience_points": 0,
     "hardness": 0,
     
     "strength_stat": 4,

@@ -2,6 +2,9 @@
     width: 100vw;
     height: 90vh;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .NewCharacterPage-input {
@@ -24,7 +27,6 @@
 
 .NewCharacterPage-actions {
     width: 70vw;
-    margin: 0 15vw;
 }
 
 .NewCharacterPage-submit-button {

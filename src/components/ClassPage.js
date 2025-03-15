@@ -102,10 +102,11 @@ export function ClassPage() {
     const handleChange = event => {
         const { name, type, checked, value } = event.target;
         const newValue = type === 'checkbox' ? checked : value;
+        const newValue2 = type === 'number' ? Number(newValue) : value;
 
         setFormData({
             name: name,
-            value: newValue
+            value: newValue2
         });
     }
 
@@ -204,15 +205,19 @@ export function ClassPage() {
             || formData.base_health_dice === ""
             || formData.base_hit_modifier === ""
             || formData.base_healing_dice_type === ""
-            || formData.base_damage_dice_type === ""
             || formData.base_class_damage_class === ""
             || formData.base_hardness === ""
-            || formData.base_damage_dice === ""
-            || formData.base_damage_modifier === "") {
+            || formData.base_melee_damage_dice_type === ""
+            || formData.base_melee_damage_dice === ""
+            || formData.base_melee_damage_modifier === ""
+            || formData.base_ranged_damage_dice_type === ""
+            || formData.base_ranged_damage_dice === ""
+            || formData.base_ranged_damage_modifier === "") {
             return alert("invalid form value(s)");
         }
         if (CharacterDiceConverter(formData.base_healing_dice_type) === 'N/A') return alert("invalid base healing dice type");
-        if (CharacterDiceConverter(formData.base_damage_dice_type) === 'N/A') return alert("invalid base damage dice type");
+        if (CharacterDiceConverter(formData.base_melee_damage_dice_type) === 'N/A') return alert("invalid base melee damage dice type");
+        if (CharacterDiceConverter(formData.base_ranged_damage_dice_type) === 'N/A') return alert("invalid base ranged damage dice type");
 
         formData.actions.forEach(action => {
             if (action.actionCost === ""

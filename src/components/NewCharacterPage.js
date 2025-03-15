@@ -7,9 +7,17 @@ import { CharacterDiceConverter } from './CharacterStatCalculator';
 import { CombatActionList } from './CombatActionList';
 
 const formReducer = (state, event) => {
-    return {
-        ...state,
-        [event.name]: event.value
+    switch(event.type) {
+        case 'SET_FORM_DATA':
+        return {
+            ...state,
+            ...event.payload,
+        };
+        default: 
+        return {
+            ...state,
+            [event.name]: event.value
+        }
     }
 }
 
@@ -18,6 +26,7 @@ export function NewCharacterPage() {
     const [formData, setFormData] = useReducer(formReducer, {});
     const [playerList, setPlayerList] = useState([]);
     const [classList, setClassList] = useState([]);
+    const [raceList, setRaceList] = useState([]);
     const [isNewPlayerTabVisible, setIsNewPlayerTabVisible] = useState(false);
     const [newPlayerInfo, setNewPlayerInfo] = useState(null);
     const [selectedClassInfo, setSelectedClassInfo] = useState(null);
@@ -27,8 +36,26 @@ export function NewCharacterPage() {
     useEffect(() => {
         getPlayerList();
         getClassList();
+        getRaceList();
         // eslint-disable-next-line
-    }, [location])
+    }, [location]);
+
+    useEffect(() => {
+        if (formData.class_id === ""
+            || formData.race_id === ""
+            || formData.strength_stat_allocated === ""
+            || formData.charisma_stat_allocated === ""
+            || formData.intelligence_stat_allocated === ""
+            || formData.dexterity_stat_allocated === ""
+            || formData.player_id === ""
+            || formData.character_name === ""
+            || formData.class_name
+            || !formData.player_name
+            || !formData.race_name) {
+            return;
+        }
+        console.log("ready to submit!")
+    },[formData])
 
     async function getPlayerList() {
         const players = query(collection(db, "players"), where("campaigns", "array-contains", location.pathname.split("/").at(2)));
@@ -41,13 +68,43 @@ export function NewCharacterPage() {
         setClassList(docsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
     }
 
+    async function getRaceList() {
+        const docsSnapshot = await getDocs(collection(db, "races"));
+        setRaceList(docsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
+    }
+
     async function handleSubmit() {
-        if (!formData.campaign_name || !formData.director_name) {
+        if (formData.class_id === ""
+            || formData.race_id === ""
+            || formData.strength_stat_allocated === ""
+            || formData.charisma_stat_allocated === ""
+            || formData.intelligence_stat_allocated === ""
+            || formData.dexterity_stat_allocated === ""
+            || formData.player_id === "") {
             return alert("invalid form values");
         }
         
-        const docRef = await addDoc(collection(db, "characters"), formData);
-        navigate(docRef.id);
+        const classData = classList.filter(individualClass => individualClass.id === formData.class_id)?.at(0);
+        if (!classData) return alert("invalid class found!");
+        delete classData.id;
+        classData.class_description = classData.description;
+        delete classData.description;
+        const playerData = playerList.filter(player => player.id === formData.player_id)?.at(0);
+        if (!playerData) return alert("invalid player found!");
+        const raceData = raceList.filter(race => race.id === formData.race_id)?.at(0);
+        if (!raceData) return alert("invalid race found!");
+
+        const newData = classData;
+        newData.race_name = raceData.name;
+        newData.actions = newData.actions.concat(raceData.feat);
+        newData.player_name = playerData.player_name;
+
+        setFormData({ type: 'SET_FORM_DATA', payload: newData });
+
+        
+
+        // const docRef = await addDoc(collection(db, "characters"), formData);
+        // navigate(docRef.id);
     }
 
     async function handlePlayerSubmit() {
@@ -60,9 +117,11 @@ export function NewCharacterPage() {
     }
 
     const handleChange = event => {
+        const value = event.target.type === 'number' ? Number(event.target.value) : event.target.value;
+
         setFormData({
             name: event.target.name,
-            value: event.target.value
+            value: value
         });
     }
 
@@ -89,7 +148,7 @@ export function NewCharacterPage() {
             Player:
             <select 
                 className='NewCharacterPage-input-box' 
-                name="player_name" 
+                name="player_id" 
                 type="text"
                 onChange={handleChange}
                 required
@@ -160,6 +219,34 @@ export function NewCharacterPage() {
             />
         </div>
         <div className='NewCharacterPage-input'>
+            Race:
+            <select 
+                className='NewCharacterPage-input-box' 
+                name="race_id" 
+                type="text"
+                onChange={handleChange}
+                required
+            >
+                <option hidden></option>
+                {raceList.map((race) => {
+                    return <option key={race.id} value={race.id}>{race.name}</option>
+                })}
+            </select>
+        </div>
+        {formData.race_id && formData.class_id && selectedClassInfo && <div className='NewCharacterPage-actions'>
+            <CombatActionList 
+                key={"race-feats"}
+                actions={[raceList.filter(race => race.id === formData.race_id)?.at(0).feat]}
+                experience_points={0}
+                baseArmorClass={parseInt(selectedClassInfo.base_armor_class)}
+                baseHitModifier={parseInt(selectedClassInfo.base_hit_modifier)}
+                baseDamageModifier={parseInt(selectedClassInfo.base_damage_modifier)}
+                baseDamageDice={parseInt(selectedClassInfo.base_damage_dice)}
+                baseDamageDiceType={parseInt(selectedClassInfo.base_damage_dice_type)}
+                baseHealingDiceType={parseInt(selectedClassInfo.base_healing_dice_type)}
+            />
+        </div>}
+        <div className='NewCharacterPage-input'>
             Class:
             <select 
                 className='NewCharacterPage-input-box' 
@@ -197,6 +284,7 @@ export function NewCharacterPage() {
                 <br/>Actions:
                 {<div className='NewCharacterPage-actions'>
                     <CombatActionList 
+                        key={"class-actions"}
                         actions={selectedClassInfo.actions}
                         experience_points={0}
                         baseArmorClass={parseInt(selectedClassInfo.base_armor_class)}
