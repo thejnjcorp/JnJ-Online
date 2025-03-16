@@ -2,7 +2,7 @@ import { useEffect, useReducer, useState } from 'react';
 import { reverseCharacterDiceConverter, CharacterDiceConverter } from './CharacterStatCalculator';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { addDoc, collection, getDoc, doc, updateDoc } from '@firebase/firestore';
-import { db } from '../utils/firebase';
+import { auth, db } from '../utils/firebase';
 import ClassLayout from '../ClassLayout.json';
 import '../styles/ClassPage.scss';
 
@@ -98,6 +98,8 @@ export function ClassPage() {
         await delay(1);
         setIsPageVisible(true);
     }
+
+    const canWrite = !formData.canWrite?.includes(auth.currentUser.uid) && (location.pathname.split('/').length > 2);
 
     const handleChange = event => {
         const { name, type, checked, value } = event.target;
@@ -254,6 +256,7 @@ export function ClassPage() {
                 onChange={handleChange}
                 required
                 defaultValue={formData.class_name}
+                disabled={canWrite}
             />
         </div>
         <div className='ClassPage-input'>
@@ -265,6 +268,7 @@ export function ClassPage() {
                 onChange={handleChange}
                 required
                 defaultValue={formData.author}
+                disabled={canWrite}
             />
         </div>
         <div className='ClassPage-input'>
@@ -276,6 +280,7 @@ export function ClassPage() {
                 required
                 type='dropdown'
                 defaultValue={formData.class_type}
+                disabled={canWrite}
             >
                 <option hidden></option>
                 <option value="Attrionist">Attrionist</option>
@@ -294,6 +299,7 @@ export function ClassPage() {
                 required
                 placeholder={ClassLayout.base_armor_class}
                 defaultValue={formData.base_armor_class}
+                disabled={canWrite}
             />
         </div>
         <div className='ClassPage-input'>
@@ -306,6 +312,7 @@ export function ClassPage() {
                 required
                 placeholder={CharacterDiceConverter(ClassLayout.base_health_dice)}
                 defaultValue={CharacterDiceConverter(formData.base_health_dice) === 'N/A' ? null : CharacterDiceConverter(formData.base_health_dice)}
+                disabled={canWrite}
             />
         </div>
         <div className='ClassPage-input'>
@@ -318,6 +325,7 @@ export function ClassPage() {
                 required
                 placeholder={ClassLayout.base_hit_modifier}
                 defaultValue={formData.base_hit_modifier}
+                disabled={canWrite}
             />
         </div>
         <div className='ClassPage-input'>
@@ -331,6 +339,7 @@ export function ClassPage() {
                 style={{width: 40}}
                 placeholder={ClassLayout.base_melee_damage_dice}
                 defaultValue={formData.base_melee_damage_dice}
+                disabled={canWrite}
             />
             <input 
                 className='ClassPage-input-box' 
@@ -341,6 +350,7 @@ export function ClassPage() {
                 style={{width: 40}}
                 placeholder={CharacterDiceConverter(ClassLayout.base_melee_damage_dice_type)}
                 defaultValue={CharacterDiceConverter(formData.base_melee_damage_dice_type) === 'N/A' ? null : CharacterDiceConverter(formData.base_melee_damage_dice_type)}
+                disabled={canWrite}
             />{"\xa0"}+
             <input 
                 className='ClassPage-input-box' 
@@ -351,6 +361,7 @@ export function ClassPage() {
                 style={{width: 40}}
                 placeholder={ClassLayout.base_melee_damage_modifier}
                 defaultValue={formData.base_melee_damage_modifier}
+                disabled={canWrite}
             />
             {"\xa0"}Damage Type:
             <input 
@@ -361,6 +372,7 @@ export function ClassPage() {
                 required
                 placeholder={ClassLayout.base_melee_damage_type}
                 defaultValue={formData.base_melee_damage_type}
+                disabled={canWrite}
             />
         </div>
         <div className='ClassPage-input'>
@@ -374,6 +386,7 @@ export function ClassPage() {
                 style={{width: 40}}
                 placeholder={ClassLayout.base_ranged_damage_dice}
                 defaultValue={formData.base_ranged_damage_dice}
+                disabled={canWrite}
             />
             <input 
                 className='ClassPage-input-box' 
@@ -384,6 +397,7 @@ export function ClassPage() {
                 style={{width: 40}}
                 placeholder={CharacterDiceConverter(ClassLayout.base_ranged_damage_dice_type)}
                 defaultValue={CharacterDiceConverter(formData.base_ranged_damage_dice_type) === 'N/A' ? null : CharacterDiceConverter(formData.base_ranged_damage_dice_type)}
+                disabled={canWrite}
             />{"\xa0"}+
             <input 
                 className='ClassPage-input-box' 
@@ -394,6 +408,7 @@ export function ClassPage() {
                 style={{width: 40}}
                 placeholder={ClassLayout.base_ranged_damage_modifier}
                 defaultValue={formData.base_ranged_damage_modifier}
+                disabled={canWrite}
             />
             {"\xa0"}Damage Type:
             <input 
@@ -404,6 +419,7 @@ export function ClassPage() {
                 required
                 placeholder={ClassLayout.base_ranged_damage_type}
                 defaultValue={formData.base_ranged_damage_type}
+                disabled={canWrite}
             />
         </div>
         <div className='ClassPage-input'>
@@ -416,6 +432,7 @@ export function ClassPage() {
                 required
                 placeholder={CharacterDiceConverter(ClassLayout.base_healing_dice_type)}
                 defaultValue={CharacterDiceConverter(formData.base_healing_dice_type) === 'N/A' ? null : CharacterDiceConverter(formData.base_healing_dice_type)}
+                disabled={canWrite}
             />
         </div>
         <div className='ClassPage-input'>
@@ -428,6 +445,7 @@ export function ClassPage() {
                 required
                 placeholder={ClassLayout.base_class_damage_class}
                 defaultValue={formData.base_class_damage_class}
+                disabled={canWrite}
             />
         </div>
         <div className='ClassPage-input'>
@@ -440,6 +458,7 @@ export function ClassPage() {
                 required
                 placeholder={ClassLayout.base_hardness}
                 defaultValue={formData.base_hardness}
+                disabled={canWrite}
             />
         </div>
         <div className='ClassPage-input'>
@@ -451,11 +470,12 @@ export function ClassPage() {
                 required
                 placeholder={ClassLayout.description}
                 defaultValue={formData.description}
+                disabled={canWrite}
             />
         </div>
         <div className='ClassPage-actions-box'>
             Actions:
-            <button className='ClassPage-add-action-button' onClick={() => handleAddAction()}>
+            <button className='ClassPage-add-action-button' onClick={() => handleAddAction()} disabled={canWrite}>
                 Add Action
             </button>
             {"\xa0*Note: Feats are actions denoted by the prefix \"Feat:\""}<br/>
@@ -471,6 +491,7 @@ export function ClassPage() {
                         type='number' min={0} max={3}
                         placeholder={0}
                         defaultValue={formData.actions[index].actionCost}
+                        disabled={canWrite}
                     />
                     {"\xa0Range:"}
                     <input
@@ -481,6 +502,7 @@ export function ClassPage() {
                         type='text'
                         placeholder='1 Zone'
                         defaultValue={formData.actions[index].range}
+                        disabled={canWrite}
                     />
                     {"\xa0To-Hit Action:"}
                     <input
@@ -490,6 +512,7 @@ export function ClassPage() {
                         required
                         type='checkbox'
                         defaultChecked={formData.actions[index].toHitBool}
+                        disabled={canWrite}
                     />
                     {formData.actions[index].toHitBool && <>
                         {"\xa0To Hit Modifier:"}
@@ -502,6 +525,7 @@ export function ClassPage() {
                             type="number"
                             placeholder={1}
                             defaultValue={formData.actions[index].toHit}
+                            disabled={canWrite}
                         />
                     </>}
                     {!formData.actions[index].toHitBool && <>
@@ -515,6 +539,7 @@ export function ClassPage() {
                             type="text"
                             placeholder="Dex,0"
                             defaultValue={formData.actions[index].difficultyClass}
+                            disabled={canWrite}
                         />
                     </>}
                     {"\xa0Action Name:"}
@@ -525,11 +550,12 @@ export function ClassPage() {
                         required
                         type="text"
                         defaultValue={formData.actions[index].actionName}
+                        disabled={canWrite}
                     />
-                    <button className='ClassPage-add-tag-button' onClick={() => handleAddTag(index)}>
+                    <button className='ClassPage-add-tag-button' onClick={() => handleAddTag(index)} disabled={canWrite}>
                         Add Tag
                     </button>
-                    <button className='ClassPage-remove-action-button' onClick={() => handleRemoveAction(index)}>
+                    <button className='ClassPage-remove-action-button' onClick={() => handleRemoveAction(index)} disabled={canWrite}>
                         Remove Action
                     </button>
                     <br/>
@@ -543,6 +569,7 @@ export function ClassPage() {
                         type='number' min={1} max={15}
                         placeholder={1}
                         defaultValue={formData.actions[index].actionLevel}
+                        disabled={canWrite}
                     />
                     {"\xa0Action Type:"}
                     <select
@@ -552,6 +579,7 @@ export function ClassPage() {
                         required
                         type='dropdown'
                         defaultValue={formData.actions[index].actionType}
+                        disabled={canWrite}
                     >
                         <option value="standard">Standard</option>
                         <option value="perDay">Per Day</option>
@@ -567,6 +595,7 @@ export function ClassPage() {
                         type='number' min={0}
                         placeholder={0}
                         defaultValue={formData.actions[index].actionTypeCount}
+                        disabled={canWrite}
                     />}
                     <br/>
                     {areTagsVisible && formData.actions[index].tags !== undefined && formData.actions[index].tags.map((tag, tagIndex) => {
@@ -580,6 +609,7 @@ export function ClassPage() {
                                 required
                                 type="text"
                                 defaultValue={formData.actions[index].tags[tagIndex].tagInfo}
+                                disabled={canWrite}
                             />
                             {"\xa0Tag Color"}
                             <input
@@ -589,6 +619,7 @@ export function ClassPage() {
                                 required
                                 type="color"
                                 defaultValue={formData.actions[index].tags[tagIndex].tagColor}
+                                disabled={canWrite}
                             />
                             {"\xa0Text Color"}
                             <input
@@ -598,6 +629,7 @@ export function ClassPage() {
                                 required
                                 type="color"
                                 defaultValue={formData.actions[index].tags[tagIndex].textColor}
+                                disabled={canWrite}
                             />
                             {"\xa0Tag Description"}
                             <input
@@ -608,8 +640,9 @@ export function ClassPage() {
                                 required
                                 type="text"
                                 defaultValue={formData.actions[index].tags[tagIndex].tagDescription}
+                                disabled={canWrite}
                             />
-                            <button className='ClassPage-delete-tag-button' onClick={() => handleRemoveTag(index, tagIndex)}>
+                            <button className='ClassPage-delete-tag-button' onClick={() => handleRemoveTag(index, tagIndex)} disabled={canWrite}>
                                 Delete Tag
                             </button>
                         </div>
@@ -622,11 +655,12 @@ export function ClassPage() {
                         required
                         type="textarea"
                         defaultValue={formData.actions[index].description}
+                        disabled={canWrite}
                     />
                 </div>
             })}
         </div>
-        <button className='ClassPage-submit-button' type='submit' onClick={() => handleSubmit()}>
+        <button className='ClassPage-submit-button' type='submit' onClick={() => handleSubmit()} disabled={canWrite}>
             {location.pathname.split('/').length > 2 ? "Update Class" : "Create Class"}
         </button>
         <br/><br/>

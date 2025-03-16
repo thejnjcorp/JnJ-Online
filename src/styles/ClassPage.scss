@@ -42,9 +42,19 @@
     border-color: white;
     border-style: solid;
     color: white;
+
     &:hover {
         background-color: white;
         color: black;
+    }
+
+    &:disabled {
+        border-color: gray;
+        color: gray;
+
+        &:hover {
+            background-color: inherit;
+        }
     }
 }
 
@@ -59,9 +69,19 @@
     border-color: white;
     border-style: solid;
     color: white;
+
     &:hover {
         background-color: white;
         color: black;
+    }
+
+    &:disabled {
+        border-color: gray;
+        color: gray;
+
+        &:hover {
+            background-color: inherit;
+        }
     }
 }
 
@@ -77,6 +97,15 @@
 
     &:hover {
         background-color: lightblue;
+    }
+
+    &:disabled {
+        color: gray;
+
+        &:hover {
+            background-color: royalblue;
+            color: gray;
+        }
     }
 }
 
@@ -100,9 +129,19 @@
     border-color: inherit;
     border-style: solid;
     color: inherit;
+
     &:hover {
         background-color: white;
         color: black;
+    }
+
+    &:disabled {
+        color: gray;
+
+        &:hover {
+            background-color: inherit;
+            color: gray;
+        }
     }
 }
 
@@ -121,5 +160,15 @@
     &:hover {
         background-color: white;
         color: #282c34;
+    }
+
+    &:disabled {
+        border-color: gray;
+        color: gray;
+
+        &:hover {
+            background-color: inherit;
+            color: gray;
+        }
     }
 }
