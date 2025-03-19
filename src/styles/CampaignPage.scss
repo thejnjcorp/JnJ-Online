@@ -51,3 +51,30 @@
     border-color: white;
     border-style: solid;
 }
+
+.Campaigns-new-player-div {
+    width: 40vw;
+    height: 200px;
+    top: 20vh;
+    left: 30vw;
+    background-color: rgb(0, 109, 42);
+    border-radius: 20px;
+    position: fixed;
+}
+
+.Campaign-new-player-input {
+    font-size: 24px;
+}
+
+.Campaign-new-player-button {
+    font-size: 24px;
+    background-color: rgb(153, 94, 94);
+    color: white;
+    border-color: white;
+    
+    &:hover {
+        background-color: #3a1e1e;
+        color: wheat;
+        border-color: wheat;
+    }
+}

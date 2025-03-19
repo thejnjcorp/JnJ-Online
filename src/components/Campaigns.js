@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CampaignPage } from "./CampaignPage";
 import { collection, query, getDocs, or, where } from "firebase/firestore";
 import { auth, db } from "../utils/firebase";
@@ -14,10 +14,13 @@ export function Campaigns() {
     const location = useLocation();
     document.title = "Campaigns";
 
-    onAuthStateChanged(auth, (user) => {
-        if (!user) return;
-        getCampaigns(user);
-    });
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (!user) return;
+            getCampaigns(user);
+            unsubscribe();
+        });
+    },[])
 
     async function getCampaigns(user) {
         const campaigns = query(collection(db, "campaigns"), or(where("canRead", "array-contains", user.uid), where("canWrite", "array-contains", user.uid)));

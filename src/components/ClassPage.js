@@ -234,7 +234,10 @@ export function ClassPage() {
         
         if (location.pathname.split('/').length > 2) {
             try {
-                await updateDoc(doc(db, "classes", location.pathname.split('/').at(2)), formData);
+                await updateDoc(doc(db, "classes", location.pathname.split('/').at(2)), {
+                    ...formData, 
+                    canWrite: [auth.currentUser.uid]
+                });
                 alert("successfully updated the class")
             } catch(error) {
                 alert(`Failed to update class: ${error.message}`)

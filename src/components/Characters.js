@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import '../styles/Characters.scss';
 import { useNavigate } from "react-router-dom";
 import { CharacterPage } from "./CharacterPage";
@@ -13,13 +13,17 @@ export function Characters() {
     const location = useLocation();
     document.title = "Characters";
 
-    onAuthStateChanged(auth, (user) => {
-        if (!user) return;
-        getCharacterList(user);
-    });
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (!user) return;
+            getCharacterList(user);
+            unsubscribe();
+        });
+    },[])
+    
 
     async function getCharacterList(user) {
-        const characters = query(collection(db, "characters"), or(where("playerId", "==", user.uid), where("canRead", "array-contains", user.uid)));
+        const characters = query(collection(db, "characters"), or(where("playerId", "==", user.uid), where("canRead", "array-contains", user.uid), where("canWrite", "array-contains", user.uid)));
         const querySnapshotCharacters = await getDocs(characters);
         const campaigns = query(collection(db, "campaigns"), or(where("canRead", "array-contains", user.uid), where("canWrite", "array-contains", user.uid)));
         const querySnapshotCampaigns = await getDocs(campaigns);

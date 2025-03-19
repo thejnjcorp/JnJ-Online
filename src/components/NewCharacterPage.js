@@ -87,24 +87,30 @@ export function NewCharacterPage() {
         const classData = classList.filter(individualClass => individualClass.id === formData.class_id)?.at(0);
         if (!classData) return alert("invalid class found!");
         delete classData.id;
+        delete classData.canWrite;
         classData.class_description = classData.description;
         delete classData.description;
         const playerData = playerList.filter(player => player.id === formData.player_id)?.at(0);
         if (!playerData) return alert("invalid player found!");
         const raceData = raceList.filter(race => race.id === formData.race_id)?.at(0);
+        delete raceData.canWrite;
         if (!raceData) return alert("invalid race found!");
 
         const newData = classData;
         newData.race_name = raceData.name;
         newData.actions = newData.actions.concat(raceData.feat);
         newData.player_name = playerData.player_name;
+        const finalData = {
+            ...formData,
+            ...newData
+        }
+        console.log(finalData)
 
-        setFormData({ type: 'SET_FORM_DATA', payload: newData });
-
-        
-
-        // const docRef = await addDoc(collection(db, "characters"), formData);
-        // navigate(docRef.id);
+        //const docRef = await addDoc(collection(db, "characters"), {
+        //    ...formData,
+        //    ...newData
+        //});
+        //navigate(docRef.id);
     }
 
     async function handlePlayerSubmit() {

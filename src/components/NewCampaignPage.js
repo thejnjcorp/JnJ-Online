@@ -1,5 +1,5 @@
 import { useReducer } from 'react';
-import { db } from '../utils/firebase';
+import { auth, db } from '../utils/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import '../styles/NewCampaignPage.scss';
 import { useNavigate } from 'react-router-dom';
@@ -26,7 +26,7 @@ export function NewCampaignPage() {
             return alert("invalid form values");
         }
         
-        const docRef = await addDoc(collection(db, "campaigns"), formData);
+        const docRef = await addDoc(collection(db, "campaigns"), {...formData, canWrite: [auth.currentUser.uid]});
         navigate(docRef.id);
     }
 
