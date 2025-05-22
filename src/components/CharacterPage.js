@@ -2,7 +2,7 @@ import '../styles/CharacterPage.scss';
 import 'react-tooltip/dist/react-tooltip.css';
 import loadingIcon from '../icons/loading.svg';
 import characterPageLayout from '../CharacterPageLayout.json';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CharacterPageAbilityScorePanel } from './CharacterPageAbilityScorePanel';
 import { CharacterPageStatsPanel } from './CharacterPageStatsPanel';
 import { CharacterPageNavigation } from './CharacterPageNavigation';
@@ -18,18 +18,20 @@ import { CharacterMainTab } from './CharacterMainTab';
 export function CharacterPage() {
     const [characterPage, setCharacterPage] = useState(characterPageLayout);
     const [loadingScreen, setLoadingScreen] = useState(true);
+    const [isTitleCharacterTitle, setIsTitleCharacterTitle] = useState(false);
     const location = useLocation();
     const pageTheme = 'DefaultCharacterPage';
 
     const docQuery = doc(db, "characters", location.pathname.split("/").at(2));
+    
     // eslint-disable-next-line
     const unsubscribe = onSnapshot(docQuery, { includeMetadataChanges: true }, (docSnap) => {
+        if (document.title !== docSnap.data().character_name) document.title = docSnap.data().character_name;
         if (docSnap.metadata.hasPendingWrites || loadingScreen) {
             setCharacterPage(prevData => ({
                 ...prevData,
                 ...docSnap.data()
             }));
-            document.title = docSnap.data().character_name;
             setLoadingScreen(false);
         }
     });

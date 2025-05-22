@@ -1,8 +1,9 @@
 import '../styles/NewCharacterPage.scss'
 import { useEffect, useReducer, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { db } from '../utils/firebase';
-import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
+import { db, auth } from '../utils/firebase';
+import { collection, addDoc, query, where, getDocs, getDoc, doc } from 'firebase/firestore';
+import { onAuthStateChanged } from "firebase/auth";
 import { CharacterDiceConverter } from './CharacterStatCalculator';
 import { CombatActionList } from './CombatActionList';
 
@@ -24,19 +25,21 @@ const formReducer = (state, event) => {
 export function NewCharacterPage() {
     document.title = "New Character";
     const [formData, setFormData] = useReducer(formReducer, {});
-    const [playerList, setPlayerList] = useState([]);
+    const [playerInfo, setPlayerInfo] = useState([]);
     const [classList, setClassList] = useState([]);
     const [raceList, setRaceList] = useState([]);
-    const [isNewPlayerTabVisible, setIsNewPlayerTabVisible] = useState(false);
-    const [newPlayerInfo, setNewPlayerInfo] = useState(null);
     const [selectedClassInfo, setSelectedClassInfo] = useState(null);
     const navigate = useNavigate();
     const location = useLocation();
 
     useEffect(() => {
-        getPlayerList();
         getClassList();
         getRaceList();
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (!user) return;
+            getPlayerInfo(user);
+            unsubscribe();
+        });
         // eslint-disable-next-line
     }, [location]);
 
@@ -57,20 +60,42 @@ export function NewCharacterPage() {
         console.log("ready to submit!")
     },[formData])
 
-    async function getPlayerList() {
-        const players = query(collection(db, "players"), where("campaigns", "array-contains", location.pathname.split("/").at(2)));
-        const querySnapshot = await getDocs(players);
-        setPlayerList(querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
-    }
-
     async function getClassList() {
-        const docsSnapshot = await getDocs(collection(db, "classes"));
-        setClassList(docsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
+        try {
+           const docsSnapshot = await getDocs(collection(db, "classes"));
+            setClassList(docsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}))); 
+        } catch(e) {
+            console.log("Failed to get Class list: " + e)
+        }
     }
 
     async function getRaceList() {
-        const docsSnapshot = await getDocs(collection(db, "races"));
-        setRaceList(docsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
+        try {
+            const docsSnapshot = await getDocs(collection(db, "races"));
+            setRaceList(docsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
+        } catch(e) {
+            console.log("Failed to get Race list: " + e)
+        }
+    }
+
+    async function getPlayerInfo(user) {
+        if (user?.uid === undefined) return;
+        try {
+            const docSnap = await getDoc(doc(db, "players", user.uid));
+            setPlayerInfo({name: docSnap.data().name, uid: user.uid});
+
+        } catch (e) {
+            console.log("Failed to get player info: " + e)
+        }
+    }
+
+    async function getMembersOfCampaign() {
+        try {
+            const docSnap = await getDoc(doc(db, "campaigns", location.pathname.split("/").at(2)));
+            return docSnap.data();
+        } catch (e) {
+            console.log("Failed to get campaign info: " + e)
+        }
     }
 
     async function handleSubmit() {
@@ -79,8 +104,7 @@ export function NewCharacterPage() {
             || formData.strength_stat_allocated === ""
             || formData.charisma_stat_allocated === ""
             || formData.intelligence_stat_allocated === ""
-            || formData.dexterity_stat_allocated === ""
-            || formData.player_id === "") {
+            || formData.dexterity_stat_allocated === "") {
             return alert("invalid form values");
         }
         
@@ -90,8 +114,6 @@ export function NewCharacterPage() {
         delete classData.canWrite;
         classData.class_description = classData.description;
         delete classData.description;
-        const playerData = playerList.filter(player => player.id === formData.player_id)?.at(0);
-        if (!playerData) return alert("invalid player found!");
         const raceData = raceList.filter(race => race.id === formData.race_id)?.at(0);
         delete raceData.canWrite;
         if (!raceData) return alert("invalid race found!");
@@ -99,27 +121,24 @@ export function NewCharacterPage() {
         const newData = classData;
         newData.race_name = raceData.name;
         newData.actions = newData.actions.concat(raceData.feat);
-        newData.player_name = playerData.player_name;
+        newData.player_name = playerInfo.name;
+        newData.playerId = playerInfo.uid;
+        const membersOfCampaign = await getMembersOfCampaign();
+        newData.canWrite = [playerInfo.uid].concat(membersOfCampaign.canWrite);
+        newData.canRead = membersOfCampaign.canRead
+        newData.campaign = location.pathname.split("/").at(2)
         const finalData = {
             ...formData,
             ...newData
         }
-        console.log(finalData)
+        // console.log(finalData)
 
-        //const docRef = await addDoc(collection(db, "characters"), {
-        //    ...formData,
-        //    ...newData
-        //});
-        //navigate(docRef.id);
-    }
-
-    async function handlePlayerSubmit() {
-        if (!newPlayerInfo) return alert("no name provided!");
-
-        const docRef = await addDoc(collection(db, "players"), { player_name: newPlayerInfo, campaigns: [location.pathname.split("/").at(2)] });
-        setPlayerList(playerList.concat({id: docRef.id, campaigns: [location.pathname.split("/").at(2)], player_name: newPlayerInfo }));
-        setIsNewPlayerTabVisible(false);
-        alert("Successfully added new player");
+        console.log("Creating new Character:")
+        const docRef = await addDoc(collection(db, "characters"), {
+            ...finalData
+        });
+        console.log("New character Created!")
+        navigate("/characters/" + docRef.id);
     }
 
     const handleChange = event => {
@@ -129,14 +148,6 @@ export function NewCharacterPage() {
             name: event.target.name,
             value: value
         });
-    }
-
-    const handleAddPlayer = function() {
-        setIsNewPlayerTabVisible(true);
-    }
-
-    const handleNewPlayerChange = event => {
-        setNewPlayerInfo(event.target.value);
     }
 
     return <div className="NewCharacterPage">
@@ -151,35 +162,8 @@ export function NewCharacterPage() {
             />
         </div>
         <div className='NewCharacterPage-input'>
-            Player:
-            <select 
-                className='NewCharacterPage-input-box' 
-                name="player_id" 
-                type="text"
-                onChange={handleChange}
-                required
-            >
-                <option hidden></option>
-                {playerList.map((player) => {
-                    return <option key={player.id} value={player.id}>{player.player_name}</option>
-                })}
-            </select>
-            <button className='NewCharacterPage-add-player-button' onClick={() => handleAddPlayer()}>
-                Add Player
-            </button>
-            {isNewPlayerTabVisible && <div className='NewCharacterPage-input'>
-                New Player Name:
-                <input 
-                    className='NewCharacterPage-input-box' 
-                    name="player_name" 
-                    type="text"
-                    onChange={handleNewPlayerChange}
-                    required
-                />
-                <button className='NewCharacterPage-submit-button' type='submit' onClick={() => handlePlayerSubmit()}>
-                    Add Player
-                </button>
-            </div>}
+            Player: {playerInfo?.name}<br/>
+            UID: {playerInfo?.uid}
         </div>
         <div className='NewCharacterPage-input'>
             {"Ability Point Allocation: (+4, +3, +2, +1 or +3, +3, +2, +2)"}<br/>

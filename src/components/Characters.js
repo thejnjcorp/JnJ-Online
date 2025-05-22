@@ -25,15 +25,12 @@ export function Characters() {
     async function getCharacterList(user) {
         const characters = query(collection(db, "characters"), or(where("playerId", "==", user.uid), where("canRead", "array-contains", user.uid), where("canWrite", "array-contains", user.uid)));
         const querySnapshotCharacters = await getDocs(characters);
-        const campaigns = query(collection(db, "campaigns"), or(where("canRead", "array-contains", user.uid), where("canWrite", "array-contains", user.uid)));
-        const querySnapshotCampaigns = await getDocs(campaigns);
-        const campaignAssociation = new Map(querySnapshotCampaigns.docs.map(doc => [doc.id, doc.data().campaign_name]));
-        setCharacterList(querySnapshotCharacters.docs.map(doc => ({
+        setCharacterList(querySnapshotCharacters?.docs?.map(doc => ({
             id: doc.id, 
             character_name: doc.data().character_name,
             player_name: doc.data().player_name,
             class: doc.data().class,
-            campaigns: doc.data().campaigns.map(campaign_id => campaignAssociation.get(campaign_id))
+            campaign: doc.data().campaign
         })));
     }
 
@@ -52,10 +49,7 @@ export function Characters() {
                     <div className="CharacterCard-small-text">
                         {character.class}<br/>
                         Player: {character.player_name}<br/>
-                        {"Campaign(s): " + character.campaigns.map((campaign, index) => {
-                            if (!index) return campaign;
-                            return ", " + campaign;
-                        })}
+                        Campaign: {character.campaign}
                     </div>
                 </button>
             )}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { collection, getDocs, getDoc, doc, where, query, getCountFromServer, documentId, updateDoc, arrayUnion } from "firebase/firestore";
 import { auth, db } from "../utils/firebase";
@@ -12,15 +12,16 @@ export function CampaignPage() {
     const [playerId, setPlayerId] = useState("");
     const navigate = useNavigate();
     const location = useLocation();
+    const divRef = useRef(null);
 
     const getCharacterList = async() => {
         const docSnap = await getDoc(doc(db, "campaigns", location.pathname.split("/").at(2)));
         setCampaignInfo(docSnap.data());
         document.title = docSnap.data().campaign_name;
-        const characters = query(collection(db, "characters"), where("canRead", "array-contains", auth.currentUser.uid));
+        const characters = query(collection(db, "characters"), where("campaign", "==", location.pathname.split("/").at(2)));
         const querySnapshot = await getDocs(characters);
-        const tempSnapshot = querySnapshot.docs.filter(doc => doc.data().campaigns.includes(location.pathname.split("/").at(2)));
-        setCharacterList(tempSnapshot.map(doc => ({id: doc.id, ...doc.data()})));
+        // console.log(querySnapshot)
+        setCharacterList(querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
     }
 
     useEffect(() => {
@@ -29,7 +30,11 @@ export function CampaignPage() {
             getCharacterList();
             unsubscribe();
         });
-        
+        document.addEventListener('mousedown', clickOutsideNewPlayerScreen);
+
+        return () => {
+            document.removeEventListener('mousedown', clickOutsideNewPlayerScreen);
+        }
         // eslint-disable-next-line
     },[location]);
 
@@ -51,6 +56,12 @@ export function CampaignPage() {
             }
         }
         setVisibleAddPlayerScreen(false);
+    }
+
+    const clickOutsideNewPlayerScreen =(event) => {
+        if (divRef.current && !divRef.current.contains(event.target)) {
+            setVisibleAddPlayerScreen(false);
+        }
     }
 
     return <div className="CampaignPage">
@@ -76,7 +87,7 @@ export function CampaignPage() {
                 Add a Player
             </button>
             <br/>
-            {visibleAddPlayerScreen && <div className="Campaigns-new-player-div">
+            {visibleAddPlayerScreen && <div className="Campaigns-new-player-div" ref={divRef}>
                 <h2>Player ID:</h2>
                 <input
                     className="Campaign-new-player-input"

@@ -58,6 +58,7 @@ export function Navigation({userInfo, setUserInfo}) {
                 className="Navigation-user-icon"
             />
         </button>
+        {userInfo?.uid && <span>UID: {userInfo?.uid}</span>}
         {newPlayerInfoScreen && <div className="Navigation-new-player">
             <h1>New Account:</h1>
             <input
