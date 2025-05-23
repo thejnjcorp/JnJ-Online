@@ -52,7 +52,10 @@ export function CharacterMainTab(characterPage, setCharacterPage) {
         {
             tabName: "Roleplay Mode",
             content: <>
-                roleplay mode
+            <div className="CharacterMainTab-background">
+                <h2>Background:</h2>
+                {characterPage.class_description}
+            </div>
             </>
         },
         {
@@ -70,31 +73,33 @@ export function CharacterMainTab(characterPage, setCharacterPage) {
                     {characterPage.action_points > 3 ? <img src={starFilledIcon} alt='starFilled' className="CharacterMainTab-star" width={30} onClick={() => setActionPoints(4)}/> :
                     <img src={starIcon} alt='star' className="CharacterMainTab-star" width={30} onClick={() => setActionPoints(4)}/>}
                 </div>
-                <span className="CharacterMainTab-header-left-align">Available Actions:</span>
-                <CombatActionList 
-                    actions={characterPage.actions.filter(action => action.actionCost <= characterPage.action_points)}
-                    experience_points={characterPage.experience_points}
-                    baseArmorClass={characterPage.base_armor_class}
-                    baseHitModifier={characterPage.base_hit_modifier}
-                    baseDamageModifier={characterPage.base_damage_modifier}
-                    baseDamageDice={characterPage.base_damage_dice}
-                    baseDamageDiceType={characterPage.base_damage_dice_type}
-                    baseHealingDiceType={characterPage.base_healing_dice_type}
-                    canUseActions={true}
-                    characterPage={characterPage}
-                    setCharacterPage={setCharacterPage}
-                />
-                <span className="CharacterMainTab-header-left-align">Unavailable Actions:</span>
-                <CombatActionList 
-                    actions={characterPage.actions.filter(action => action.actionCost > characterPage.action_points)}
-                    experience_points={characterPage.experience_points}
-                    baseArmorClass={characterPage.base_armor_class}
-                    baseHitModifier={characterPage.base_hit_modifier}
-                    baseDamageModifier={characterPage.base_damage_modifier}
-                    baseDamageDice={characterPage.base_damage_dice}
-                    baseDamageDiceType={characterPage.base_damage_dice_type}
-                    baseHealingDiceType={characterPage.base_healing_dice_type}
-                />
+                <div className="CharacterMainTab-action-body">
+                    <span className="CharacterMainTab-header-left-align">Available Actions:</span>
+                    <CombatActionList 
+                        actions={characterPage.actions.filter(action => action.actionCost <= characterPage.action_points)}
+                        experience_points={characterPage.experience_points}
+                        baseArmorClass={characterPage.base_armor_class}
+                        baseHitModifier={characterPage.base_hit_modifier}
+                        baseDamageModifier={characterPage.base_damage_modifier}
+                        baseDamageDice={characterPage.base_damage_dice}
+                        baseDamageDiceType={characterPage.base_damage_dice_type}
+                        baseHealingDiceType={characterPage.base_healing_dice_type}
+                        canUseActions={true}
+                        characterPage={characterPage}
+                        setCharacterPage={setCharacterPage}
+                    />
+                    <span className="CharacterMainTab-header-left-align">Unavailable Actions:</span>
+                    <CombatActionList 
+                        actions={characterPage.actions.filter(action => action.actionCost > characterPage.action_points)}
+                        experience_points={characterPage.experience_points}
+                        baseArmorClass={characterPage.base_armor_class}
+                        baseHitModifier={characterPage.base_hit_modifier}
+                        baseDamageModifier={characterPage.base_damage_modifier}
+                        baseDamageDice={characterPage.base_damage_dice}
+                        baseDamageDiceType={characterPage.base_damage_dice_type}
+                        baseHealingDiceType={characterPage.base_healing_dice_type}
+                    />
+                </div>
             </>
         },
         {

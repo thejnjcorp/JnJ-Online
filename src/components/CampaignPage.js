@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { collection, getDocs, getDoc, doc, where, query, getCountFromServer, documentId, updateDoc, arrayUnion } from "firebase/firestore";
+import { collection, getDocs, getDoc, doc, where, query, getCountFromServer, documentId, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { auth, db } from "../utils/firebase";
 import '../styles/CampaignPage.scss';
 import { onAuthStateChanged } from "firebase/auth";
 
 export function CampaignPage() {
     const [characterList, setCharacterList] = useState([]);
-    const [campaignInfo, setCampaignInfo] = useState({director_name: "placeholder", campaign_name: "placeholder"});
+    const [campaignInfo, setCampaignInfo] = useState({director_name: "placeholder", campaign_name: "placeholder", players: []});
     const [visibleAddPlayerScreen, setVisibleAddPlayerScreen] = useState(false);
+    const [visibleKickPlayerScreen, setVisibleKickPlayerScreen] = useState(false);
     const [playerId, setPlayerId] = useState("");
     const navigate = useNavigate();
     const location = useLocation();
@@ -30,10 +31,10 @@ export function CampaignPage() {
             getCharacterList();
             unsubscribe();
         });
-        document.addEventListener('mousedown', clickOutsideNewPlayerScreen);
+        document.addEventListener('mousedown', clickOutsidePopupScreen);
 
         return () => {
-            document.removeEventListener('mousedown', clickOutsideNewPlayerScreen);
+            document.removeEventListener('mousedown', clickOutsidePopupScreen);
         }
         // eslint-disable-next-line
     },[location]);
@@ -42,25 +43,42 @@ export function CampaignPage() {
         if (playerId === auth.currentUser.uid) return alert("Cannot add yourself as a player!");
         const player = query(collection(db, "players"), where(documentId(), '==', playerId));
         try {
-            await getCountFromServer(player);
-            alert("Error: player does not exist!")
-        } catch (error) {
-            if (error.message !== "Missing or insufficient permissions.") alert(error);
-            try {
+            const count = await getCountFromServer(player);
+            if (count.data().count === 0) {
+                alert("Error: player does not exist!")
+            } else {
+                const playerDoc = await getDoc(doc(db, "players", playerId))
                 await updateDoc(doc(db, "campaigns", location.pathname.split("/").at(2)), {
-                    canRead: arrayUnion(playerId)
+                    canRead: arrayUnion(playerId),
+                    players: arrayUnion({name: playerDoc.data().name, uid: playerId})
                 });
                 alert("Added player!");
-            } catch (error) {
-                alert(error);
+                getCharacterList();
             }
+        } catch (error) {
+            alert(error);
         }
         setVisibleAddPlayerScreen(false);
     }
 
-    const clickOutsideNewPlayerScreen =(event) => {
+    const handleKickPlayer = async(name, playerId) => {
+        try {
+            await updateDoc(doc(db, "campaigns", location.pathname.split("/").at(2)), {
+                canRead: arrayRemove(playerId),
+                players: arrayRemove({name: name, uid: playerId})
+            });
+            alert("Kicked player!");
+            getCharacterList();
+        } catch (error) {
+            alert(error);
+        }
+        setVisibleKickPlayerScreen(false);
+    }
+
+    const clickOutsidePopupScreen = (event) => {
         if (divRef.current && !divRef.current.contains(event.target)) {
             setVisibleAddPlayerScreen(false);
+            setVisibleKickPlayerScreen(false);
         }
     }
 
@@ -78,10 +96,33 @@ export function CampaignPage() {
             </button>
         )}
         <br/>
+        <button className='CharacterCard' onClick={() => navigate(location.pathname.split("/").at(2) + "/newCharacter")}>
+            New Character
+        </button>
+        <br/>
         <button className='CharacterCard' onClick={() => navigate("/directors/" + location.pathname.split("/").at(2))}>
             Director Mode<br/>
         </button>
         <br/>
+        <div>
+            <h2>Players</h2>
+            {campaignInfo?.players?.map((player, index) => 
+            <div key={index}>
+                {player.name} {`<${player.uid}> `}
+                {campaignInfo?.canWrite?.includes(auth.currentUser.uid) && 
+                <button className="Campaigns-kick-button" onClick={() => setVisibleKickPlayerScreen(true)}>Kick Player</button>}
+                {visibleKickPlayerScreen && <div className="Campaigns-kick-player-div" ref={divRef}>
+                <h3>Are you sure you want to kick this player?</h3>
+                Player: {player.name} {`<${player.uid}> `}<br/>
+                <button className="Campaign-kick-player-button" onClick={() => handleKickPlayer(player.name, player.uid)}>
+                    Yes
+                </button>
+                <button className="Campaign-kick-player-button" onClick={() => setVisibleKickPlayerScreen(false)}>
+                    No
+                </button>
+            </div>}
+            </div>)}
+        </div>
         {campaignInfo?.canWrite?.includes(auth.currentUser.uid) && <>
             <button className='CharacterCard' onClick={() => setVisibleAddPlayerScreen(true)}>
                 Add a Player
@@ -102,8 +143,5 @@ export function CampaignPage() {
                 </button>
             </div>}
         </>}
-        <button className='CharacterCard' onClick={() => navigate(location.pathname.split("/").at(2) + "/newCharacter")}>
-            New Character
-        </button>
     </div>
 }

@@ -2,7 +2,7 @@ import '../styles/NewCharacterPage.scss'
 import { useEffect, useReducer, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { db, auth } from '../utils/firebase';
-import { collection, addDoc, query, where, getDocs, getDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, getDoc, doc } from 'firebase/firestore';
 import { onAuthStateChanged } from "firebase/auth";
 import { CharacterDiceConverter } from './CharacterStatCalculator';
 import { CombatActionList } from './CombatActionList';
@@ -131,6 +131,19 @@ export function NewCharacterPage() {
             ...formData,
             ...newData
         }
+
+        finalData.strength_stat = finalData.strength_stat_allocated
+        finalData.dexterity_stat = finalData.dexterity_stat_allocated
+        finalData.intelligence_stat = finalData.intelligence_stat_allocated
+        finalData.charisma_stat = finalData.charisma_stat_allocated
+        delete finalData.strength_stat_allocated
+        delete finalData.dexterity_stat_allocated
+        delete finalData.intelligence_stat_allocated
+        delete finalData.charisma_stat_allocated
+
+        finalData.skills_and_flaws = []
+
+        finalData.inventory = []
         // console.log(finalData)
 
         console.log("Creating new Character:")

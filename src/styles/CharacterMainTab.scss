@@ -19,11 +19,24 @@
     color: black;
 }
 
+.CharacterMainTab-background {
+    margin-left: 10px;
+    margin-right: 10px;
+    font-size: medium;
+    text-align: left;
+}
+
 .CharacterMainTab-action-points {
     display: flex;
     justify-content: start;
     align-items: center;
     padding-left: 10px;
+    height: 5vh;
+}
+
+.CharacterMainTab-action-body {
+    height: 45vh;
+    overflow-y: auto;
 }
 
 .CharacterMainTab-star {

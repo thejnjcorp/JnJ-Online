@@ -15,7 +15,7 @@ export function TabContainer({tabs}) {
             {tab.tabName}
         </button>)}
         </div>
-        <div>
+        <div className='TabContainer-content'>
             {tabs[selectedTab].content}
         </div>
     </div>

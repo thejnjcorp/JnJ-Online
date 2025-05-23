@@ -16,11 +16,14 @@
         &:hover {
             color: gray;
         }
-
-        
     }
     
     .TabButtonSelected {
         text-decoration: underline;
+    }
+
+    .TabContainer-content {
+        max-height: 50vh;
+        overflow-y: auto;
     }
 }

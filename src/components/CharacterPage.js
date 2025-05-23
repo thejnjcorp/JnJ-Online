@@ -2,7 +2,7 @@ import '../styles/CharacterPage.scss';
 import 'react-tooltip/dist/react-tooltip.css';
 import loadingIcon from '../icons/loading.svg';
 import characterPageLayout from '../CharacterPageLayout.json';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { CharacterPageAbilityScorePanel } from './CharacterPageAbilityScorePanel';
 import { CharacterPageStatsPanel } from './CharacterPageStatsPanel';
 import { CharacterPageNavigation } from './CharacterPageNavigation';
@@ -18,7 +18,6 @@ import { CharacterMainTab } from './CharacterMainTab';
 export function CharacterPage() {
     const [characterPage, setCharacterPage] = useState(characterPageLayout);
     const [loadingScreen, setLoadingScreen] = useState(true);
-    const [isTitleCharacterTitle, setIsTitleCharacterTitle] = useState(false);
     const location = useLocation();
     const pageTheme = 'DefaultCharacterPage';
 
@@ -42,6 +41,7 @@ export function CharacterPage() {
             <div className='CharacterPage-column-div CharacterPage-skills-and-flaws SkillsAndFlawsPanelOverride'>
                 {"\xa0\xa0"}Skills and Flaws<br/>
                 <SkillsAndFlaws characterPage={characterPage}/>
+                
             </div>
             <div className='CharacterPage-column-div CharacterPage-right-content'>
                 <CharacterPageNavigation characterPage={characterPage}/>    
