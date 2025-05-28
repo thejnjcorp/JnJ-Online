@@ -7,7 +7,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { CharacterDiceConverter } from './CharacterStatCalculator';
 import { CombatActionList } from './CombatActionList';
 
-const formReducer = (state, event) => {
+export const formReducer = (state, event) => {
     switch(event.type) {
         case 'SET_FORM_DATA':
         return {

@@ -2,22 +2,24 @@ import '../styles/CharacterPage.scss';
 import 'react-tooltip/dist/react-tooltip.css';
 import loadingIcon from '../icons/loading.svg';
 import characterPageLayout from '../CharacterPageLayout.json';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CharacterPageAbilityScorePanel } from './CharacterPageAbilityScorePanel';
 import { CharacterPageStatsPanel } from './CharacterPageStatsPanel';
 import { CharacterPageNavigation } from './CharacterPageNavigation';
 import { SkillsAndFlaws } from './SkillsAndFlaws';
 import { TabContainer } from './TabContainer';
-import { db } from '../utils/firebase';
+import { auth, db } from '../utils/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import '../styles/CharacterPageStyles/DefaultCharacterPage.scss';
 import '../styles/CharacterPageStyles/AlternativeCharacterPage.scss';
 import { useLocation } from 'react-router-dom';
 import { CharacterMainTab } from './CharacterMainTab';
+import { onAuthStateChanged } from 'firebase/auth';
 
 export function CharacterPage() {
     const [characterPage, setCharacterPage] = useState(characterPageLayout);
     const [loadingScreen, setLoadingScreen] = useState(true);
+    const [userId, setUserId] = useState("");
     const location = useLocation();
     const pageTheme = 'DefaultCharacterPage';
 
@@ -29,18 +31,27 @@ export function CharacterPage() {
         if (docSnap.metadata.hasPendingWrites || loadingScreen) {
             setCharacterPage(prevData => ({
                 ...prevData,
-                ...docSnap.data()
+                ...docSnap.data(),
+                character_id: location.pathname.split("/").at(2)
             }));
             setLoadingScreen(false);
         }
     });
     window.addEventListener('beforeunload', () => unsubscribe());
 
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (!user) return;
+            setUserId(user.uid);
+            unsubscribe();
+        });
+    }, [location])
+
     return <>
         {!loadingScreen && <div className={"CharacterPage " + pageTheme}>
             <div className='CharacterPage-column-div CharacterPage-skills-and-flaws SkillsAndFlawsPanelOverride'>
                 {"\xa0\xa0"}Skills and Flaws<br/>
-                <SkillsAndFlaws characterPage={characterPage}/>
+                <SkillsAndFlaws characterPage={characterPage} userId={userId}/>
                 
             </div>
             <div className='CharacterPage-column-div CharacterPage-right-content'>

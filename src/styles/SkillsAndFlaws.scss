@@ -1,4 +1,4 @@
-.SkillsAndFlaws {
+.SkillsAndFlaws, .SkillsAndFlaws-preview {
     display: flex;
     margin-left: 1vw;
     margin-right: 1vw;
@@ -17,6 +17,14 @@
 
     &:hover {
         filter: brightness(0.5)
+    }
+}
+
+.SkillsAndFlaws-preview {
+    width: 16vw;
+
+    &:hover {
+        filter: none;
     }
 }
 
@@ -42,4 +50,27 @@
 .SkillsAndFlaws-trigger {
     display: flex;
     justify-content: space-between;
+}
+
+.SkillsAndFlaws-button {
+    width: 8vw;
+    height: 3vh;
+    margin-left: 0.5vw;
+    margin-right: 0.5vw;
+    background-color: rgb(44, 44, 44);
+    border-color: white;
+    border-style: solid;
+    border-radius: 10px;
+    color: white;
+
+    &:hover {
+        background-color: rgb(105, 105, 105);
+    }
+}
+
+.SkillsAndFlaws-button-container {
+    position: relative;
+    width: 20vw;
+    align-items: center;
+    height: 3vh;
 }
