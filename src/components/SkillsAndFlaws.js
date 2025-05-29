@@ -104,9 +104,10 @@ export function SkillsAndFlaws({characterPage, userId}) {
             <button className='SkillsAndFlaws-button SkillFlawButtonOverride' onClick={() => setConfirmRemoveSkillFlaw(false)}>No</button>
         </div>}
         </>}
-        {characterPage.skills_and_flaws.map((skill_or_flaw, index, isOpen=false) => 
+        {characterPage.skills_and_flaws.map((skill_or_flaw, index) => 
             <Collapsible 
-                key={index}
+                key={skill_or_flaw.name + index}
+                id={skill_or_flaw.name + index}
                 trigger={<>{skill_or_flaw.name}
                 <span>
                     {Array.from({ length: skill_or_flaw.degree }, (_, index) => (
@@ -127,7 +128,7 @@ export function SkillsAndFlaws({characterPage, userId}) {
                 triggerClassName='SkillsAndFlaws-trigger'
                 triggerOpenedClassName='SkillsAndFlaws-trigger'
                 transitionTime={100}
-                open={isOpen}
+                open={false}
             >
                 <p style={{margin: 0}}>
                     {skill_or_flaw.description}

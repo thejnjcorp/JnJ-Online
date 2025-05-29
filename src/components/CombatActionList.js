@@ -2,9 +2,15 @@ import '../styles/CombatActionList.scss';
 import starFilledIcon from '../icons/star_filled.svg';
 import { useState } from 'react';
 import { CharacterStatCalculator } from './CharacterStatCalculator';
+import { updateDoc, doc } from 'firebase/firestore';
+import { db } from '../utils/firebase';
 
-export function CombatActionList({actions, experience_points, baseArmorClass, baseHitModifier, baseDamageModifier, baseDamageDice, baseDamageDiceType, baseHealingDiceType, canUseActions = false, characterPage, setCharacterPage, lowerUseActionButton=false}) {
+export function CombatActionList({actions, experience_points, baseArmorClass, baseHitModifier, baseDamageModifier, baseDamageDice, baseDamageDiceType, baseHealingDiceType, canUseActions = false, characterPage, lowerUseActionButton=false}) {
     const [visibleActions, setVisibleActions] = useState(Array(actions.length).fill(false))
+
+    function containsReaction(action){
+        return action.tags !== undefined && action.tags.some(tag => tag.tagInfo === "Reaction");
+    }
 
     function toHitInterperlator(toHit) {
         const characterStats = CharacterStatCalculator(experience_points, baseArmorClass, baseHitModifier, baseDamageModifier, baseDamageDice, baseDamageDiceType, baseHealingDiceType);
@@ -41,11 +47,14 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
                 {canUseActions && lowerUseActionButton && <br/>}
                 {canUseActions && <button className='CombatActionList-use-action-button' onClick={(e) => {
                     e.stopPropagation();
-                    setCharacterPage({
-                        ...characterPage,
-                        action_points: characterPage.action_points - action.actionCost
-                    });
-                }}>Use Action</button>}
+                    try {
+                        updateDoc(doc(db, "characters", characterPage.character_id), {
+                            action_points: characterPage.action_points - action.actionCost
+                        })
+                    } catch (e) {
+                        alert(e);
+                    }
+                }}>Use { containsReaction(action) ? "Reaction" : "Action"}</button>}
                 <br/>
                 {visibleActions[index] && <div className='CombatActionListDescription' onClick={(e) => e.stopPropagation()}>
                     {action.tags !== undefined && <>{action.tags.map((tag, index) => {

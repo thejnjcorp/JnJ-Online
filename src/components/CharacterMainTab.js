@@ -4,13 +4,22 @@ import Collapsible from "react-collapsible";
 import starIcon from '../icons/star.svg';
 import starFilledIcon from '../icons/star_filled.svg';
 import '../styles/CharacterMainTab.scss';
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "../utils/firebase";
 
 export function CharacterMainTab(characterPage, setCharacterPage) {
+    function isPassive(action) {
+        return action.tags !== undefined && action.tags.some(tag => tag.tagInfo === "Passive")
+    }
+
     function setActionPoints(actionPoints) {
-        setCharacterPage(prevState => ({
-            ...prevState,
-            action_points: actionPoints
-        }));
+        try {
+            updateDoc(doc(db, "characters", characterPage.character_id), {
+                action_points: actionPoints
+            });
+        } catch (e) {
+            alert(e);
+        }
     }
 
     function generateDraggableInventory(inventory) {
@@ -74,9 +83,22 @@ export function CharacterMainTab(characterPage, setCharacterPage) {
                     <img src={starIcon} alt='star' className="CharacterMainTab-star" width={30} onClick={() => setActionPoints(4)}/>}
                 </div>
                 <div className="CharacterMainTab-action-body">
+                    <span className="CharacterMainTab-header-left-align">Passives:</span>
+                    <CombatActionList 
+                        actions={characterPage.actions.filter(action => isPassive(action))}
+                        experience_points={characterPage.experience_points}
+                        baseArmorClass={characterPage.base_armor_class}
+                        baseHitModifier={characterPage.base_hit_modifier}
+                        baseDamageModifier={characterPage.base_damage_modifier}
+                        baseDamageDice={characterPage.base_damage_dice}
+                        baseDamageDiceType={characterPage.base_damage_dice_type}
+                        baseHealingDiceType={characterPage.base_healing_dice_type}
+                        canUseActions={false}
+                        characterPage={characterPage}
+                    />
                     <span className="CharacterMainTab-header-left-align">Available Actions:</span>
                     <CombatActionList 
-                        actions={characterPage.actions.filter(action => action.actionCost <= characterPage.action_points)}
+                        actions={characterPage.actions.filter(action => action.actionCost <= characterPage.action_points).filter(action => !isPassive(action))}
                         experience_points={characterPage.experience_points}
                         baseArmorClass={characterPage.base_armor_class}
                         baseHitModifier={characterPage.base_hit_modifier}
@@ -86,7 +108,6 @@ export function CharacterMainTab(characterPage, setCharacterPage) {
                         baseHealingDiceType={characterPage.base_healing_dice_type}
                         canUseActions={true}
                         characterPage={characterPage}
-                        setCharacterPage={setCharacterPage}
                     />
                     <span className="CharacterMainTab-header-left-align">Unavailable Actions:</span>
                     <CombatActionList 

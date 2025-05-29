@@ -47,15 +47,20 @@ export function CharacterPage() {
         });
     }, [location])
 
+    useEffect(() => {
+        const handler = e => console.log('Global click:', e.target);
+        document.addEventListener('click', handler);
+        return () => document.removeEventListener('click', handler);
+    }, []);
+
     return <>
         {!loadingScreen && <div className={"CharacterPage " + pageTheme}>
             <div className='CharacterPage-column-div CharacterPage-skills-and-flaws SkillsAndFlawsPanelOverride'>
                 {"\xa0\xa0"}Skills and Flaws<br/>
                 <SkillsAndFlaws characterPage={characterPage} userId={userId}/>
-                
             </div>
             <div className='CharacterPage-column-div CharacterPage-right-content'>
-                <CharacterPageNavigation characterPage={characterPage}/>    
+                <CharacterPageNavigation characterPage={characterPage}/>
                 <CharacterPageAbilityScorePanel characterPageLayoutLive={characterPage}/>
                 <CharacterPageStatsPanel characterPageLayoutLive={characterPage}/>
                 <TabContainer tabs={CharacterMainTab(characterPage, setCharacterPage)}/>
