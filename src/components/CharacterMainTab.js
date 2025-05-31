@@ -7,7 +7,9 @@ import '../styles/CharacterMainTab.scss';
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../utils/firebase";
 
-export function CharacterMainTab(characterPage, setCharacterPage) {
+export function CharacterMainTab(characterPage, setCharacterPage, userId) {
+    const hasWritePermissions = userId ? (characterPage.userId === userId || characterPage.canWrite.includes(userId)) : false;
+
     function isPassive(action) {
         return action.tags !== undefined && action.tags.some(tag => tag.tagInfo === "Passive")
     }
@@ -73,14 +75,14 @@ export function CharacterMainTab(characterPage, setCharacterPage) {
                 
                 <div className="CharacterMainTab-action-points">
                     Action Points:{"\xa0\xa0\xa0"}
-                    {characterPage.action_points > 0 ? <img src={starFilledIcon} alt='starFilled' className="CharacterMainTab-star" width={30} onClick={() => setActionPoints(1)}/> :
-                    <img src={starIcon} alt='star' className="CharacterMainTab-star" width={30} onClick={() => setActionPoints(1)}/>}
-                    {characterPage.action_points > 1 ? <img src={starFilledIcon} alt='starFilled' className="CharacterMainTab-star" width={30} onClick={() => setActionPoints(2)}/> :
-                    <img src={starIcon} alt='star' className="CharacterMainTab-star" width={30} onClick={() => setActionPoints(2)}/>}
-                    {characterPage.action_points > 2 ? <img src={starFilledIcon} alt='starFilled' className="CharacterMainTab-star" width={30} onClick={() => setActionPoints(3)}/> :
-                    <img src={starIcon} alt='star' className="CharacterMainTab-star" width={30} onClick={() => setActionPoints(3)}/>}
-                    {characterPage.action_points > 3 ? <img src={starFilledIcon} alt='starFilled' className="CharacterMainTab-star" width={30} onClick={() => setActionPoints(4)}/> :
-                    <img src={starIcon} alt='star' className="CharacterMainTab-star" width={30} onClick={() => setActionPoints(4)}/>}
+                    {characterPage.action_points > 0 ? <img src={starFilledIcon} alt='starFilled' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(1) : undefined}/> :
+                    <img src={starIcon} alt='star' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(1) : undefined}/>}
+                    {characterPage.action_points > 1 ? <img src={starFilledIcon} alt='starFilled' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(2) : undefined}/> :
+                    <img src={starIcon} alt='star' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(2) : undefined}/>}
+                    {characterPage.action_points > 2 ? <img src={starFilledIcon} alt='starFilled' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(3) : undefined}/> :
+                    <img src={starIcon} alt='star' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(3) : undefined}/>}
+                    {characterPage.action_points > 3 ? <img src={starFilledIcon} alt='starFilled' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(4) : undefined}/> :
+                    <img src={starIcon} alt='star' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(4) : undefined}/>}
                 </div>
                 <div className="CharacterMainTab-action-body">
                     <span className="CharacterMainTab-header-left-align">Passives:</span>
@@ -108,6 +110,7 @@ export function CharacterMainTab(characterPage, setCharacterPage) {
                         baseHealingDiceType={characterPage.base_healing_dice_type}
                         canUseActions={true}
                         characterPage={characterPage}
+                        userId={userId}
                     />
                     <span className="CharacterMainTab-header-left-align">Unavailable Actions:</span>
                     <CombatActionList 

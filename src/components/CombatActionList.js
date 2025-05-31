@@ -5,8 +5,10 @@ import { CharacterStatCalculator } from './CharacterStatCalculator';
 import { updateDoc, doc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 
-export function CombatActionList({actions, experience_points, baseArmorClass, baseHitModifier, baseDamageModifier, baseDamageDice, baseDamageDiceType, baseHealingDiceType, canUseActions = false, characterPage, lowerUseActionButton=false}) {
+export function CombatActionList({actions, experience_points, baseArmorClass, baseHitModifier, baseDamageModifier, baseDamageDice, baseDamageDiceType, baseHealingDiceType, canUseActions = false, characterPage, userId, lowerUseActionButton=false}) {
     const [visibleActions, setVisibleActions] = useState(Array(actions.length).fill(false))
+
+    const hasWritePermissions = userId ? (characterPage.userId === userId || characterPage.canWrite.includes(userId)) : false;
 
     function containsReaction(action){
         return action.tags !== undefined && action.tags.some(tag => tag.tagInfo === "Reaction");
@@ -44,8 +46,8 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
                 {"\xa0\xa0\xa0\xa0"}
                 {action.toHitBool ? "+" + toHitInterperlator(action.toHit) + " to hit" : DifficultyClassInterperlator(action.difficultyClass)}
                 {"\xa0\xa0\xa0\xa0" + action.range}
-                {canUseActions && lowerUseActionButton && <br/>}
-                {canUseActions && <button className='CombatActionList-use-action-button' onClick={(e) => {
+                {canUseActions && hasWritePermissions && lowerUseActionButton && <br/>}
+                {canUseActions && hasWritePermissions && <button className='CombatActionList-use-action-button' onClick={(e) => {
                     e.stopPropagation();
                     try {
                         updateDoc(doc(db, "characters", characterPage.character_id), {

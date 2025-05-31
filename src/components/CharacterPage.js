@@ -47,12 +47,6 @@ export function CharacterPage() {
         });
     }, [location])
 
-    useEffect(() => {
-        const handler = e => console.log('Global click:', e.target);
-        document.addEventListener('click', handler);
-        return () => document.removeEventListener('click', handler);
-    }, []);
-
     return <>
         {!loadingScreen && <div className={"CharacterPage " + pageTheme}>
             <div className='CharacterPage-column-div CharacterPage-skills-and-flaws SkillsAndFlawsPanelOverride'>
@@ -61,9 +55,9 @@ export function CharacterPage() {
             </div>
             <div className='CharacterPage-column-div CharacterPage-right-content'>
                 <CharacterPageNavigation characterPage={characterPage}/>
-                <CharacterPageAbilityScorePanel characterPageLayoutLive={characterPage}/>
-                <CharacterPageStatsPanel characterPageLayoutLive={characterPage}/>
-                <TabContainer tabs={CharacterMainTab(characterPage, setCharacterPage)}/>
+                <CharacterPageAbilityScorePanel characterPageLayoutLive={characterPage} userId={userId}/>
+                <CharacterPageStatsPanel characterPageLayoutLive={characterPage} userId={userId}/>
+                <TabContainer tabs={CharacterMainTab(characterPage, setCharacterPage, userId)}/>
             </div>
     </div>}
     {loadingScreen && <img src={loadingIcon} alt="loading" className='CharacterPage-loading-icon'/>}
