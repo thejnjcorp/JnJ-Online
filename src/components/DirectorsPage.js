@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import '../styles/CharacterPageStyles/DefaultCharacterPage.scss';
 import '../styles/DirectorsPage.scss';
 import '../styles/CharacterMainTab.scss';
 import { useLocation } from 'react-router-dom';
-import { db } from '../utils/firebase';
-import { doc, query, collection, where, onSnapshot } from 'firebase/firestore';
+import { db, auth } from '../utils/firebase';
+import { doc, query, collection, where, onSnapshot, updateDoc } from 'firebase/firestore';
 import { SkillsAndFlaws } from './SkillsAndFlaws';
 import Collapsible from 'react-collapsible';
 import characterPageLayout from '../CharacterPageLayout.json';
@@ -13,6 +13,7 @@ import { TabContainer } from './TabContainer';
 import { CharacterPageAbilityScorePanel } from './CharacterPageAbilityScorePanel';
 import { CharacterPageStatsPanel } from './CharacterPageStatsPanel';
 import { CombatActionList } from './CombatActionList';
+import { onAuthStateChanged } from 'firebase/auth';
 import starIcon from '../icons/star.svg';
 import starFilledIcon from '../icons/star_filled.svg';
 import { CombatTracker } from './CombatTracker';
@@ -21,6 +22,7 @@ export function DirectorsPage() {
     const location = useLocation();
     const pageTheme = 'DefaultCharacterPage';
     const [isLoaded, setIsLoaded] = useState(false);
+    const [userId, setUserId] = useState("");
     const [campaignInfo, setCampaignInfo] = useState({
         "campaign_name":"placeholder", 
         "director_name":"placeholder", 
@@ -43,13 +45,21 @@ export function DirectorsPage() {
             setIsLoaded(true);
         }
     });
-    const charactersQuery = query(collection(db, "characters"), where("campaigns", "array-contains", location.pathname.split("/").at(2)));
+    const charactersQuery = query(collection(db, "characters"), where("campaign", "==", location.pathname.split("/").at(2)));
     // eslint-disable-next-line
     const characterQuerySnap = onSnapshot(charactersQuery, { includeMetadataChanges: true }, (querySnapshot) => {
         if (querySnapshot.metadata.hasPendingWrites || !isLoaded) {
-            setCharacterList(querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
+            setCharacterList(querySnapshot.docs.map(doc => ({character_id: doc.id, ...doc.data()})));
         }
     });
+    
+        useEffect(() => {
+            const unsubscribe = onAuthStateChanged(auth, (user) => {
+                if (!user) return;
+                setUserId(user.uid);
+                unsubscribe();
+            });
+    }, [location])
 
     return <div className="DirectorsPage">
         <div className={'DirectorsPage-SkillsTab ' + pageTheme}>
@@ -71,7 +81,7 @@ export function DirectorsPage() {
             })}
         </div>
         <div className='DirectorsPage-MainBody'>
-            <TabContainer tabs={[
+            <TabContainer container_height={"90vh"} content_height={"90vh"} tabs={[
                 {tabName: "Roleplay", content: <>
                     hi
                 </>}, 
@@ -80,12 +90,15 @@ export function DirectorsPage() {
                         Player Stats<br/>
                         {characterList.map((character, index) => {
                             const actualCharacter = { ...characterPageLayout, ...character } 
-                            const setActionPoints = function(actionPoints) {
-                                setCharacterList(prevState => 
-                                    prevState.map((originalCharacter, i) =>
-                                        i === index ? { ...originalCharacter, action_points: actionPoints } : originalCharacter
-                                    )
-                                );
+                            const hasWritePermissions = userId ? (actualCharacter.userId === userId || actualCharacter.canWrite.includes(userId)) : false;
+                            function setActionPoints(actionPoints) {
+                                try {
+                                    updateDoc(doc(db, "characters", actualCharacter.character_id), {
+                                        action_points: actionPoints
+                                    });
+                                } catch (e) {
+                                    alert(e);
+                                }
                             }
                             return <Collapsible
                                 key={index}
@@ -99,44 +112,20 @@ export function DirectorsPage() {
                                 open={true}
                             >
                                 <div className='DirectorsPageCharacterStatsOverride'>
-                                    <CharacterPageAbilityScorePanel characterPageLayoutLive={actualCharacter}/>
-                                    <CharacterPageStatsPanel characterPageLayoutLive={actualCharacter}/>
+                                    <CharacterPageAbilityScorePanel characterPageLayoutLive={actualCharacter} userId={userId}/>
+                                    <CharacterPageStatsPanel characterPageLayoutLive={actualCharacter} userId={userId}/>
                                 </div>
                                 <Collapsible
                                     trigger={<div className="CharacterMainTab-action-points">
                                         Action Points:{"\xa0\xa0\xa0"}
-                                        {actualCharacter.action_points > 0 ? <img src={starFilledIcon} alt='starFilled' className="CharacterMainTab-star" width={30} onClick={(e) => {
-                                            e.stopPropagation();
-                                            setActionPoints(1);
-                                        }}/> :
-                                        <img src={starIcon} alt='star' className="CharacterMainTab-star" width={30} onClick={(e) => {
-                                            e.stopPropagation();
-                                            setActionPoints(1);
-                                        }}/>}
-                                        {actualCharacter.action_points > 1 ? <img src={starFilledIcon} alt='starFilled' className="CharacterMainTab-star" width={30} onClick={(e) => {
-                                            e.stopPropagation();
-                                            setActionPoints(2);
-                                        }}/> :
-                                        <img src={starIcon} alt='star' className="CharacterMainTab-star" width={30} onClick={(e) => {
-                                            e.stopPropagation();
-                                            setActionPoints(2);
-                                        }}/>}
-                                        {actualCharacter.action_points > 2 ? <img src={starFilledIcon} alt='starFilled' className="CharacterMainTab-star" width={30} onClick={(e) => {
-                                            e.stopPropagation();
-                                            setActionPoints(3);
-                                        }}/> :
-                                        <img src={starIcon} alt='star' className="CharacterMainTab-star" width={30} onClick={(e) => {
-                                            e.stopPropagation();
-                                            setActionPoints(3);
-                                        }}/>}
-                                        {actualCharacter.action_points > 3 ? <img src={starFilledIcon} alt='starFilled' className="CharacterMainTab-star" width={30} onClick={(e) => {
-                                            e.stopPropagation();
-                                            setActionPoints(4);
-                                        }}/> :
-                                        <img src={starIcon} alt='star' className="CharacterMainTab-star" width={30} onClick={(e) => {
-                                            e.stopPropagation();
-                                            setActionPoints(4);
-                                        }}/>}
+                                        {actualCharacter.action_points > 0 ? <img src={starFilledIcon} alt='starFilled' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(1) : undefined}/> :
+                                        <img src={starIcon} alt='star' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(1) : undefined}/>}
+                                        {actualCharacter.action_points > 1 ? <img src={starFilledIcon} alt='starFilled' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(2) : undefined}/> :
+                                        <img src={starIcon} alt='star' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(2) : undefined}/>}
+                                        {actualCharacter.action_points > 2 ? <img src={starFilledIcon} alt='starFilled' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(3) : undefined}/> :
+                                        <img src={starIcon} alt='star' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(3) : undefined}/>}
+                                        {actualCharacter.action_points > 3 ? <img src={starFilledIcon} alt='starFilled' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(4) : undefined}/> :
+                                        <img src={starIcon} alt='star' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(4) : undefined}/>}
                                     </div>}
                                     className="DirectorsPage-player-stats-dropdown"
                                     openedClassName="DirectorsPage-player-stats-dropdown-open"

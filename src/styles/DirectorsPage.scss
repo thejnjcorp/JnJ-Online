@@ -188,6 +188,11 @@
                 color: white;
                 font-size: inherit;
                 padding: 0;
+
+                &::-webkit-outer-spin-button, &::-webkit-inner-spin-button {
+                    -webkit-appearance: none;
+                    margin: 0;
+                }
             }
 
             .CharaterPage-hp-divider {
@@ -221,6 +226,11 @@
         border-radius: 8px;
         color: white;
         font-size: inherit;
+
+        &::-webkit-outer-spin-button, &::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
     }
 
     .CharacterPage-xp {
@@ -295,5 +305,10 @@
         font-size: inherit;
         padding: 0;
         margin-top: 20px;
+
+        &::-webkit-outer-spin-button, &::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
     }
 }
