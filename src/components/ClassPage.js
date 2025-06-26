@@ -243,7 +243,10 @@ export function ClassPage() {
                 alert(`Failed to update class: ${error.message}`)
             }
         } else {
-            const docRef = await addDoc(collection(db, "classes"), formData);
+            const docRef = await addDoc(collection(db, "classes"), {
+                ...formData,
+                canWrite: [auth.currentUser.uid]
+            });
             navigate(docRef.id);
             alert("sucessfully created the class")
         }

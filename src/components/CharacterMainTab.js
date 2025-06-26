@@ -1,5 +1,6 @@
 import { CombatActionList } from "./CombatActionList";
 import DraggableLayout from "react-draggable-layout";
+import { PostListContent } from "../utils/DraggableElements/PostListContent.tsx";
 import Collapsible from "react-collapsible";
 import starIcon from '../icons/star.svg';
 import starFilledIcon from '../icons/star_filled.svg';
@@ -132,6 +133,12 @@ export function CharacterMainTab(characterPage, setCharacterPage, userId) {
                 <DraggableLayout components={generateDraggableInventory(characterPage.inventory)} columns={3} mainColumnIndex={-1} onChange={handleDragItemChange} draggable={true} />
                 <div className='CharacterMainTab-inventory-item' onClick={handleNewItem}>Add Item</div>
             </>
+        },
+        {
+            tabName: "Combat Map",
+            content: <div className="CharacterMainTab-combat-map">
+                <PostListContent inputStatuses={["Zone 0", "Zone 1", "Zone 2", "Special Zone"]}/>
+            </div>
         }
     ]
 }

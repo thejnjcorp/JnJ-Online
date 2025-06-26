@@ -7,11 +7,12 @@ export function AccountPage({userInfo, setUserInfo}) {
     const [accountInfo, setAccountInfo] = useState([]);
 
     useEffect(() => {
-           const unsubscribe = onAuthStateChanged(auth, (user) => {
-                if (!user) return;
-                getAccountInfo(user);
-                unsubscribe();
-            });
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (!user) return;
+            getAccountInfo(user);
+            unsubscribe();
+        });
+        // eslint-disable-next-line
     },[]);
 
     async function getAccountInfo(user) {

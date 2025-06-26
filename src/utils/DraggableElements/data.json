@@ -1,0 +1,46 @@
+{
+  "posts": [
+    {
+      "id": 0,
+      "title": "Kifo",
+      "content": "smol mage boi",
+      "status": "Zone 0",
+      "index": 0
+    },
+    {
+      "id": 1,
+      "title": "Kodi",
+      "content": "smol shield boi",
+      "status": "Zone 1",
+      "index": 0
+    },
+    {
+      "id": 2,
+      "title": "Mr. Denti",
+      "content": "big boi",
+      "status": "Zone 2",
+      "index": 0
+    },
+    {
+      "id": 3,
+      "title": "Crocodile 1",
+      "content": "big croc",
+      "status": "Zone SP1",
+      "index": 1
+    },
+    {
+      "id": 4,
+      "title": "Crocodile 2",
+      "content": "even bigger croc",
+      "status": "Zone SP2",
+      "index": 1
+    },
+    {
+      "id": 5,
+      "title": "Fly boi",
+      "content": "boi with wings",
+      "status": "Zone 0",
+      "index": 1
+    }
+  ]
+}

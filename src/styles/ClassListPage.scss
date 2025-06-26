@@ -25,6 +25,8 @@
 .ClassListPage {
     width: 100vw;
     height: 90vh;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .ClassListPage-title {
