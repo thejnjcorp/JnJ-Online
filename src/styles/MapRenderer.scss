@@ -1,0 +1,155 @@
+.MapRenderer {
+    background-color: green;
+    width: min-content;
+    height: min-content;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.MapRenderer-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+.MapRenderer-color-picker-button, .MapRenderer-button {
+    width: 50px;
+    height: 30px;
+    border-color: rgba(0, 0, 0, 0);
+    border-radius: 5px;
+    border-style: solid;
+    margin-left: 20px;
+    margin-right: 20px;
+    background: rgba(0, 0, 0, 0.3);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: row;
+
+    &:hover {
+        border-color: white;
+    }
+}
+
+.MapRenderer-colorpicker {
+    width: 25px;
+    filter: invert(1) sepia(1);
+}
+
+.MapRenderer-colorpicker-panel {
+    position: absolute;
+    z-index: 1000;
+    top: 20px;
+    right: 0px;
+    background-color: rgba(198, 239, 255, 0.514);
+    margin: 20px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.MapRenderer-colorpicker-quick-select-button {
+    margin: 10px;
+    margin-bottom: 0px;
+    width: 20px;
+    height: 20px;
+    border-radius: 10px;
+}
+
+.MapRenderer-colorpicker-select-button {
+    background-color: rgba(68, 68, 68, 0.363);
+    margin: 5px;
+    border-radius: 10px;
+    width: 200px;
+    border-style: none;
+    color: white;
+
+    &:hover {
+        background-color: rgba(0, 0, 0, 0.363);
+    }
+}
+
+.MapRenderer-colorpicker-actual {
+    padding: 10px;
+}
+
+.MapRenderer-zone {
+    position: absolute;
+    border-width: 2px;
+    border-style: solid;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .resizer {
+        width: 10px;
+        height: 10px;
+        background: darkred;
+        position: absolute;
+
+        &.right {
+            right: 0;
+            top: 50%;
+            cursor: ew-resize;
+            transform: translateY(-50%);
+        }
+
+        &.left {
+            left: 0;
+            top: 50%;
+            cursor: ew-resize;
+            transform: translateY(-50%);
+        }
+
+        &.bottom {
+            bottom: 0;
+            left: 50%;
+            cursor: ns-resize;
+            transform: translateX(-50%);
+        }
+
+        &.top {
+            top: 0;
+            left: 50%;
+            cursor: ns-resize;
+            transform: translateX(-50%);
+        }
+
+        &.bottom-right {
+            right: 0;
+            bottom: 0;
+            cursor: nwse-resize;
+        }
+
+        &.bottom-left {
+            left: 0;
+            bottom: 0;
+            cursor: nesw-resize;
+        }
+
+        &.top-right {
+            right: 0;
+            top: 0;
+            cursor: nesw-resize;
+        }
+
+        &.top-left {
+            left: 0;
+            top: 0;
+            cursor: nwse-resize;
+        }
+    }
+}
+
+.MapRenderer-zone-name {
+    display: flex;
+    background-color: transparent;
+    color: white;
+    mix-blend-mode: difference;
+    text-align: center;
+    border: none;
+}

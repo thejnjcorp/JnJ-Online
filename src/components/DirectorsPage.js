@@ -4,7 +4,7 @@ import '../styles/DirectorsPage.scss';
 import '../styles/CharacterMainTab.scss';
 import { useLocation } from 'react-router-dom';
 import { db, auth } from '../utils/firebase';
-import { doc, query, collection, where, onSnapshot, updateDoc } from 'firebase/firestore';
+import { doc, query, collection, where, onSnapshot, updateDoc, documentId, addDoc } from 'firebase/firestore';
 import { SkillsAndFlaws } from './SkillsAndFlaws';
 import Collapsible from 'react-collapsible';
 import characterPageLayout from '../CharacterPageLayout.json';
@@ -13,10 +13,12 @@ import { TabContainer } from './TabContainer';
 import { CharacterPageAbilityScorePanel } from './CharacterPageAbilityScorePanel';
 import { CharacterPageStatsPanel } from './CharacterPageStatsPanel';
 import { CombatActionList } from './CombatActionList';
+import { uploadImageToImgur } from '../utils/imgurUploader';
 import { onAuthStateChanged } from 'firebase/auth';
 import starIcon from '../icons/star.svg';
 import starFilledIcon from '../icons/star_filled.svg';
 import { CombatTracker } from './CombatTracker';
+import { MapRenderer } from './MapRenderer';
 
 export function DirectorsPage() {
     const location = useLocation();
@@ -29,10 +31,12 @@ export function DirectorsPage() {
         "enemy_list":[], 
         "ally_combat_npc_list":[], 
         "neutral_combat_npc_list":[],
-        "conbat_tracker": {
+        "combat_tracker": {
             "zones":[]
-        }
+        },
+        "maps": [],
     });
+    const [maps, setMaps] = useState([]);
     const [characterList, setCharacterList] = useState([]);
     const campaignDoc = doc(db, "campaigns", location.pathname.split("/").at(2));
     // eslint-disable-next-line
@@ -52,14 +56,56 @@ export function DirectorsPage() {
             setCharacterList(querySnapshot.docs.map(doc => ({character_id: doc.id, ...doc.data()})));
         }
     });
-    
-        useEffect(() => {
-            const unsubscribe = onAuthStateChanged(auth, (user) => {
-                if (!user) return;
-                setUserId(user.uid);
-                unsubscribe();
+
+    const uploadNewMapToCampaign = async (mapFile) => {
+        if (!mapFile) {
+            alert("Please select an image to upload.");
+            return;
+        }
+        try {
+            const imageLink = await uploadImageToImgur(mapFile);
+            const docRef = await addDoc(collection(db, "maps"), {
+                canWrite: [userId],
+                link: imageLink,
+                zones: [],
             });
-    }, [location])
+            console.log("Map uploaded successfully:", docRef.id);
+            await updateDoc(campaignDoc, {
+                maps: [...campaignInfo.maps, docRef.id]
+            });
+            alert("Map added to campaign successfully!");
+        } catch (error) {
+            console.error("Error uploading map:", error);
+            alert("Failed to upload map. Please try again.");
+        }
+    }
+
+    const [mapFile, setMapFile] = useState();
+    const onMapFileChange = (event) => {
+        setMapFile(event.target.files[0]);
+    };
+    
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (!user) return;
+            setUserId(user.uid);
+            unsubscribe();
+        });
+    }, [location]);
+
+    useEffect(() => {
+        if (campaignInfo.maps.length !== 0) {
+            const mapsQuery = query(collection(db, "maps"), where(documentId(), "in", campaignInfo.maps));
+            // eslint-disable-next-line
+            const mapsQuerySnap = onSnapshot(mapsQuery, { includeMetadataChanges: true }, (querySnapshot) => {
+                // eslint-disable-next-line
+                if (querySnapshot.metadata.hasPendingWrites || !maps.length) {
+                    setMaps(querySnapshot.docs.map(doc => ({map_id: doc.id, ...doc.data()})));
+                }
+            });
+        }
+        // eslint-disable-next-line
+    }, [campaignInfo]);
 
     return <div className="DirectorsPage">
         <div className={'DirectorsPage-SkillsTab ' + pageTheme}>
@@ -256,7 +302,25 @@ export function DirectorsPage() {
                 </div>},
                 {
                     tabName: "Maps",
-                    content: <>map</>
+                    content: <div>
+                        <input
+                            name="file"
+                            type="file"
+                            onChange={onMapFileChange}
+                        />
+                        <button onClick={() => uploadNewMapToCampaign(mapFile)} disabled={mapFile === undefined}>Upload</button>
+                        {mapFile && <div>
+                            Preview:<br/>
+                            <img src={URL.createObjectURL(mapFile)} alt="Map Preview" className='DirectorsPage-map-preview'/>
+                        </div>}
+                        <div className='DirectorsPage-maps-list'>
+                            {maps.map((map, index) => {
+                                return <div key={index} className='DirectorsPage-map-item'>
+                                    <MapRenderer map={map} userId={userId}/>
+                                </div>
+                            })}
+                        </div>
+                    </div>
                 }
             ]}/>
         </div>
