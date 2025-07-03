@@ -7,7 +7,6 @@ import { CharacterPageAbilityScorePanel } from './CharacterPageAbilityScorePanel
 import { CharacterPageStatsPanel } from './CharacterPageStatsPanel';
 import { CharacterPageNavigation } from './CharacterPageNavigation';
 import { SkillsAndFlaws } from './SkillsAndFlaws';
-import { TabContainer } from './TabContainer';
 import { auth, db } from '../utils/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import '../styles/CharacterPageStyles/DefaultCharacterPage.scss';
@@ -57,7 +56,7 @@ export function CharacterPage() {
                 <CharacterPageNavigation characterPage={characterPage}/>
                 <CharacterPageAbilityScorePanel characterPageLayoutLive={characterPage} userId={userId}/>
                 <CharacterPageStatsPanel characterPageLayoutLive={characterPage} userId={userId}/>
-                <TabContainer tabs={CharacterMainTab(characterPage, setCharacterPage, userId)}/>
+                <CharacterMainTab characterPage={characterPage} setCharacterPage={setCharacterPage} userId={userId}/>
             </div>
     </div>}
     {loadingScreen && <img src={loadingIcon} alt="loading" className='CharacterPage-loading-icon'/>}

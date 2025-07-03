@@ -2,14 +2,56 @@ import { CombatActionList } from "./CombatActionList";
 import DraggableLayout from "react-draggable-layout";
 import { PostListContent } from "../utils/DraggableElements/PostListContent.tsx";
 import Collapsible from "react-collapsible";
+import TextareaAutosize from "react-textarea-autosize";
 import starIcon from '../icons/star.svg';
 import starFilledIcon from '../icons/star_filled.svg';
 import '../styles/CharacterMainTab.scss';
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../utils/firebase";
+import { useRef, useState, useEffect } from "react";
+import { TabContainer } from "./TabContainer.js";
 
-export function CharacterMainTab(characterPage, setCharacterPage, userId) {
+export function CharacterMainTab({ characterPage, setCharacterPage, userId }) {
     const hasWritePermissions = userId ? (characterPage.userId === userId || characterPage.canWrite.includes(userId)) : false;
+    const debounceRef = useRef({});
+    const [localValues, setLocalValues] = useState({
+        description: characterPage.description ? characterPage.description : characterPage.class_description,
+        notes: characterPage.notes ? characterPage.notes : ""
+    });
+
+    useEffect(() => {
+        setLocalValues({
+            description: characterPage.description ? characterPage.description : characterPage.class_description,
+            notes: characterPage.notes ? characterPage.notes : ""
+        });
+    }, [
+        characterPage.description,
+        characterPage.class_description,
+        characterPage.notes
+    ]);
+
+    const handleChange = event => {
+        const { name, type, value } = event.target;
+        const parsedValue = type === 'number' && value !== '' ? Number(value) : value;
+
+        setLocalValues(prev => ({
+            ...prev,
+            [name]: value
+        }));
+
+        if (debounceRef.current[name]) {
+            clearTimeout(debounceRef.current[name]);
+        }
+        debounceRef.current[name] = setTimeout(() => {
+            if (value !== '') {
+                updateDoc(doc(db, "characters", characterPage.character_id), {
+                    [name]: parsedValue
+                }).catch(e => {
+                    alert(e);
+                });
+            }
+        }, 1000);
+    };
 
     function isPassive(action) {
         return action.tags !== undefined && action.tags.some(tag => tag.tagInfo === "Passive")
@@ -60,13 +102,31 @@ export function CharacterMainTab(characterPage, setCharacterPage, userId) {
         // finish this later
     }
     
-    return [
+    const tabs = [
         {
             tabName: "Roleplay Mode",
             content: <>
             <div className="CharacterMainTab-background">
                 <h2>Background:</h2>
-                {characterPage.class_description}
+                <TextareaAutosize
+                    className="CharacterMainTab-background-description"
+                    minRows={3}
+                    value={localValues.description}
+                    name="description"
+                    disabled={!hasWritePermissions}
+                    onChange={handleChange}
+                />
+            </div>
+            <div className="CharacterMainTab-notes">
+                <h2>Notes:</h2>
+                <TextareaAutosize
+                    className="CharacterMainTab-notes-description"
+                    minRows={3}
+                    value={localValues.notes}
+                    name="notes"
+                    disabled={!hasWritePermissions}
+                    onChange={handleChange}
+                />
             </div>
             </>
         },
@@ -140,5 +200,7 @@ export function CharacterMainTab(characterPage, setCharacterPage, userId) {
                 <PostListContent inputStatuses={["Zone 0", "Zone 1", "Zone 2", "Special Zone"]}/>
             </div>
         }
-    ]
+    ];
+
+    return <TabContainer tabs={tabs}/>
 }
