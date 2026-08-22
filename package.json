@@ -5,7 +5,6 @@
   "private": true,
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
-    "@googleapis/drive": "^8.14.0",
     "@hello-pangea/dnd": "^18.0.1",
     "@maxim_mazurok/gapi.client.drive-v3": "^0.0.20250210",
     "@mui/material": "^7.1.1",
@@ -22,18 +21,15 @@
     "firebase": "^11.3.1",
     "google-api-javascript-client": "^0.1.0",
     "google-spreadsheet": "^4.1.4",
-    "jest-config": "^29.7.0",
     "lodash": "^4.17.21",
     "markdown-to-jsx": "^7.6.0",
-    "node-sass": "^9.0.0",
-    "npm": "^10.9.0",
     "react": "^18.3.1",
     "react-admin": "^5.8.3",
     "react-collapsible": "^2.10.0",
     "react-colorful": "^5.6.1",
     "react-dom": "^18.3.1",
     "react-draggable": "^4.5.0",
-    "react-router-dom": "^6.28.0",
+    "react-router-dom": "^7.18.2",
     "react-textarea-autosize": "^8.5.9",
     "react-tooltip": "^5.28.0",
     "web-vitals": "^2.1.4"
@@ -52,6 +48,11 @@
       "react-app/jest"
     ]
   },
+  "jest": {
+    "moduleNameMapper": {
+      "^react-router/dom$": "react-router/dist/development/dom-export.js"
+    }
+  },
   "browserslist": {
     "production": [
       ">0.2%",
@@ -67,6 +68,10 @@
   "devDependencies": {
     "@testing-library/react": "^13.4.0",
     "gh-pages": "^6.2.0",
-    "react-scripts": "^5.0.1"
+    "react-scripts": "^5.0.1",
+    "sass": "^1.83.0"
+  },
+  "overrides": {
+    "sass-loader": "^16.0.8"
   }
 }
