@@ -41,7 +41,12 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "firebase:emulators": "firebase emulators:start --config firebase/firebase.json --project jnj-online",
+    "firebase:test:rules": "firebase emulators:exec --only firestore --config firebase/firebase.json --project jnj-online \"node firebase/test/firestore.rules.test.js\"",
+    "firebase:deploy:rules": "firebase deploy --only firestore:rules,firestore:indexes --config firebase/firebase.json --project jnj-online",
+    "firebase:purge:test": "firebase emulators:exec --only firestore --config firebase/firebase.json --project jnj-online \"node firebase/test/purge-campaigns.test.js\"",
+    "firebase:purge": "node firebase/scripts/purge-campaigns.js"
   },
   "eslintConfig": {
     "extends": [
@@ -67,7 +72,10 @@
     ]
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
     "@testing-library/react": "^13.4.0",
+    "firebase-admin": "^14.3.0",
+    "firebase-tools": "^15.28.1",
     "gh-pages": "^6.2.0",
     "patch-package": "^8.0.1",
     "react-scripts": "^5.0.1",

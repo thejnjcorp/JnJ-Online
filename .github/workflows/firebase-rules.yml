@@ -1,0 +1,61 @@
+name: Firestore Rules
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'firebase/**'
+  pull_request:
+    paths:
+      - 'firebase/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Firestore rules tests against the local emulator
+        run: npm run firebase:test:rules
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Write service account credentials
+        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > /tmp/firebase-service-account.json
+
+      - name: Deploy Firestore rules and indexes
+        run: npm run firebase:deploy:rules
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/firebase-service-account.json
+
+      - name: Clean up credentials
+        if: always()
+        run: rm -f /tmp/firebase-service-account.json

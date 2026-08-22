@@ -1,33 +1,80 @@
 .NewCampaignPage {
-    width: 100vw;
-    height: 90vh;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 480px;
+    height: calc(100vh - var(--jnj-nav-height));
+    margin: 0 auto;
+    padding: var(--jnj-space-7) var(--jnj-space-5);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-5);
+    text-align: left;
+}
+
+.NewCampaignPage-title {
+    font-family: var(--jnj-font-display);
+    font-size: var(--jnj-text-3xl);
+    color: var(--jnj-color-text);
+    margin: 0;
+}
+
+.NewCampaignPage-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-2);
+}
+
+.NewCampaignPage-label {
+    font-size: var(--jnj-text-sm);
+    font-weight: 600;
+    color: var(--jnj-color-text-muted);
 }
 
 .NewCampaignPage-input {
-    font-size: 24px;
+    padding: var(--jnj-space-3) var(--jnj-space-4);
+    background-color: var(--jnj-color-bg-sunken);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-md);
+    color: var(--jnj-color-text);
+    font-family: inherit;
+    font-size: var(--jnj-text-base);
+
+    &::placeholder {
+        color: var(--jnj-color-text-faint);
+    }
+
+    &:focus {
+        outline: none;
+        border-color: var(--jnj-color-accent);
+    }
 }
 
-.NewCampaignPage-input-box {
-    font-size: 18px;
-    position: relative;
-    bottom: 2px;
-    margin-left: 10px;
+.NewCampaignPage-director-name {
+    padding: var(--jnj-space-3) var(--jnj-space-4);
+    color: var(--jnj-color-text);
+    font-size: var(--jnj-text-base);
 }
 
 .NewCampaignPage-submit-button {
-    font-size: 18px;
-    padding-left: 10px;
-    padding-right: 10px;
-    padding-top: 5px;
-    padding-bottom: 5px;
-    border-radius: 10px;
-    border-style: solid;
-    border-color: white;
-    background-color: rgba(0, 0, 0, 0);
-    color: white;
+    padding: var(--jnj-space-3) var(--jnj-space-5);
+    border: none;
+    border-radius: var(--jnj-radius-pill);
+    background-color: var(--jnj-color-accent);
+    color: var(--jnj-color-on-accent);
+    font-family: inherit;
+    font-size: var(--jnj-text-base);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color var(--jnj-transition);
 
-    &:hover {
-        background-color: white;
-        color: #282c34;
+    &:hover:not(:disabled) {
+        background-color: var(--jnj-color-accent-hover);
+    }
+
+    &:disabled {
+        background-color: var(--jnj-color-bg-hover);
+        color: var(--jnj-color-text-faint);
+        cursor: not-allowed;
     }
 }

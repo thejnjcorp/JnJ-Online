@@ -1,0 +1,138 @@
+/* Same height-capped, internally-scrolling idiom as every other list page -
+   see the note on .Homepage in styles/Homepage.scss. */
+.Campaigns-page {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: var(--jnj-content-max);
+    height: calc(100vh - var(--jnj-nav-height));
+    margin: 0 auto;
+    padding: var(--jnj-space-6) var(--jnj-space-5);
+    overflow-y: auto;
+    text-align: left;
+}
+
+.Campaigns-title {
+    font-family: var(--jnj-font-display);
+    font-size: var(--jnj-text-3xl);
+    letter-spacing: var(--jnj-tracking-display);
+    color: var(--jnj-color-text);
+    padding-bottom: var(--jnj-space-4);
+    margin-bottom: var(--jnj-space-5);
+    border-bottom: 1px solid var(--jnj-color-border);
+}
+
+.Campaigns-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: var(--jnj-space-4);
+}
+
+.CampaignCard {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--jnj-space-2);
+    padding: var(--jnj-space-4) var(--jnj-space-5);
+    text-align: left;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: var(--jnj-text-lg);
+    color: var(--jnj-color-text);
+    background-color: var(--jnj-color-bg-raised);
+    border: 1px solid var(--jnj-color-border);
+    border-top: 4px solid var(--jnj-color-arcane);
+    border-radius: var(--jnj-radius-md);
+    cursor: pointer;
+    transition: border-color var(--jnj-transition), background-color var(--jnj-transition), transform var(--jnj-transition);
+
+    &:hover {
+        background-color: var(--jnj-color-bg-hover);
+        border-color: var(--jnj-color-border-strong);
+        border-top-color: var(--jnj-color-arcane);
+        transform: translateY(-2px);
+    }
+}
+
+.CampaignCard-name {
+    color: var(--jnj-color-text);
+}
+
+.CampaignCard-small-text {
+    font-size: var(--jnj-text-sm);
+    font-weight: 400;
+    color: var(--jnj-color-text-muted);
+}
+
+.CampaignCard-create {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    border-top-color: var(--jnj-color-border);
+    border-style: dashed;
+    background-color: transparent;
+    color: var(--jnj-color-accent);
+    font-weight: 600;
+
+    &:hover {
+        border-color: var(--jnj-color-accent);
+        border-style: dashed;
+        background-color: var(--jnj-color-accent-soft);
+        color: var(--jnj-color-accent-hover);
+    }
+}
+
+.Campaigns-empty-state {
+    padding: var(--jnj-space-6) 0;
+    font-size: var(--jnj-text-base);
+    color: var(--jnj-color-text-faint);
+}
+
+.Campaigns-empty-state-grid {
+    grid-column: 1 / -1;
+    padding: var(--jnj-space-4) 0;
+}
+
+.Campaigns-loading-icon {
+    height: 40px;
+    width: 40px;
+    margin-top: var(--jnj-space-6);
+    animation: App-logo-spin infinite 1.4s linear;
+}
+
+/* --- Archived section -------------------------------------------------------*/
+.Campaigns-archived-section {
+    margin-top: var(--jnj-space-6);
+    padding-top: var(--jnj-space-5);
+    border-top: 1px solid var(--jnj-color-border);
+}
+
+.Campaigns-archived-toggle {
+    padding: var(--jnj-space-2) var(--jnj-space-4);
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-pill);
+    background-color: transparent;
+    color: var(--jnj-color-text-muted);
+    font-size: var(--jnj-text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color var(--jnj-transition), color var(--jnj-transition);
+
+    &:hover {
+        border-color: var(--jnj-color-accent);
+        color: var(--jnj-color-accent-hover);
+    }
+}
+
+.Campaigns-archived-grid {
+    margin-top: var(--jnj-space-4);
+}
+
+.CampaignCard-archived {
+    opacity: 0.7;
+    border-top-color: var(--jnj-color-text-faint);
+
+    &:hover {
+        opacity: 1;
+    }
+}

@@ -1,98 +1,374 @@
-.CampaignCard {
-    border-width: 2px;
-    border-radius: 10px;
-    width: calc(30vw);
-    height: 120px;
-    border-style: hidden;
-    font-weight: bold;
-    font-size: 36px;
-    margin: 20px;
-    padding-top: 20px;
-    padding-bottom: 20px;
-    color: white;
-    background: rgba(161, 244, 255, 0.541);
-
-    &:hover {
-        background: rgba(123, 186, 194, 0.541);
-        color: cyan;
-    }
-}
-
 .CampaignPage {
-    width: 100vw;
-    height: 90vh;
-}
-
-.Campaign-shift-up {
-    position: relative;
-    top: -17px;
-}
-
-.CampaignCard-small-text {
-    font-size: 24px;
-    font-weight: 100;
-}
-
-.Campaigns-title {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: var(--jnj-content-max);
+    height: calc(100vh - var(--jnj-nav-height));
+    margin: 0 auto;
+    padding: var(--jnj-space-6) var(--jnj-space-5);
+    overflow-y: auto;
     display: flex;
-    flex-wrap: wrap;
-    width: 90vw;
+    flex-direction: column;
+    gap: var(--jnj-space-5);
+    text-align: left;
+}
+
+.CampaignPage-title {
+    font-family: var(--jnj-font-display);
+    font-size: var(--jnj-text-3xl);
+    letter-spacing: var(--jnj-tracking-display);
+    color: var(--jnj-color-text);
+    padding-bottom: var(--jnj-space-4);
+    border-bottom: 1px solid var(--jnj-color-border);
+}
+
+.CampaignPage-empty-state {
+    display: flex;
+    align-items: center;
     justify-content: center;
-    align-content: center;
-    font-size: 48px;
-    font-weight: bold;
-    letter-spacing: 1px;
-    padding-bottom: 10px;
-    margin-left: 5vw;
-    margin-right: 5vw;
-    margin-bottom: 30px;
-    border: 0px;
-    border-bottom: 2px;
-    border-color: white;
-    border-style: solid;
+    height: calc(100vh - var(--jnj-nav-height));
+    font-size: var(--jnj-text-base);
+    color: var(--jnj-color-text-faint);
+    text-align: center;
 }
 
-.Campaigns-new-player-div, .Campaigns-kick-player-div {
-    width: 40vw;
-    height: 200px;
-    top: 20vh;
-    left: 30vw;
-    background-color: rgb(0, 109, 42);
-    border-radius: 20px;
-    position: fixed;
+.CampaignPage-loading-icon {
+    display: block;
+    height: 40px;
+    width: 40px;
+    margin: var(--jnj-space-7) auto;
+    animation: App-logo-spin infinite 1.4s linear;
 }
 
-.Campaign-new-player-input {
-    font-size: 24px;
+/* --- Character roster ----------------------------------------------------*/
+.CampaignPage-character-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--jnj-space-3);
 }
 
-.Campaign-new-player-button, .Campaign-kick-player-button {
-    font-size: 24px;
-    background-color: rgb(153, 94, 94);
-    color: white;
-    border-color: white;
-    
+/* .CharacterCard/.CharacterCard-name/.CharacterCard-small-text/
+   .CharacterCard-create are defined in Characters.scss and shared globally -
+   reused here so a campaign's roster reads visually identical to "Your
+   Characters" everywhere else in the app. */
+
+.CampaignPage-actions {
+    display: flex;
+    gap: var(--jnj-space-3);
+}
+
+.CampaignPage-secondary-button {
+    padding: var(--jnj-space-2) var(--jnj-space-5);
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-pill);
+    background-color: transparent;
+    color: var(--jnj-color-text);
+    font-size: var(--jnj-text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color var(--jnj-transition), color var(--jnj-transition);
+
     &:hover {
-        background-color: #3a1e1e;
-        color: wheat;
-        border-color: wheat;
+        border-color: var(--jnj-color-accent);
+        color: var(--jnj-color-accent-hover);
     }
 }
 
-.Campaigns-kick-button {
-    font-size: 16px;
-    background-color: rgba(0, 0, 0, 0);
-    border-color: red;
-    color: white;
-    border-radius: 10px;
-    padding-top: 5px;
-    padding-bottom: 5px;
-    padding-left: 10px;
-    padding-right: 10px;
-    position: relative;
-    top: -4px;
+/* --- Players --------------------------------------------------------------*/
+.CampaignPage-players {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-3);
+    padding: var(--jnj-space-5);
+    background-color: var(--jnj-color-bg-raised);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-lg);
+}
+
+.CampaignPage-players-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+
+    h2 {
+        margin: 0;
+        font-family: var(--jnj-font-display);
+        font-size: var(--jnj-text-xl);
+        color: var(--jnj-color-text);
+    }
+}
+
+.CampaignPage-add-player-button {
+    padding: var(--jnj-space-1) var(--jnj-space-4);
+    border: none;
+    border-radius: var(--jnj-radius-pill);
+    background-color: var(--jnj-color-accent);
+    color: var(--jnj-color-on-accent);
+    font-size: var(--jnj-text-sm);
+    font-weight: 600;
+    cursor: pointer;
 
     &:hover {
-        color: red;
+        background-color: var(--jnj-color-accent-hover);
+    }
+}
+
+.CampaignPage-players-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-1);
+}
+
+.CampaignPage-player-row {
+    display: flex;
+    align-items: center;
+    gap: var(--jnj-space-3);
+    padding: var(--jnj-space-2) var(--jnj-space-3);
+    border-radius: var(--jnj-radius-sm);
+
+    &:hover {
+        background-color: var(--jnj-color-bg-sunken);
+    }
+}
+
+.CampaignPage-player-name {
+    font-weight: 600;
+    color: var(--jnj-color-text);
+}
+
+.CampaignPage-player-id {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--jnj-font-mono);
+    font-size: var(--jnj-text-xs);
+    color: var(--jnj-color-text-faint);
+}
+
+.CampaignPage-player-legacy-note {
+    flex-shrink: 0;
+    padding: var(--jnj-space-1) var(--jnj-space-3);
+    border-radius: var(--jnj-radius-pill);
+    background-color: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text-faint);
+    font-size: var(--jnj-text-xs);
+    cursor: help;
+}
+
+.CampaignPage-kick-button {
+    padding: var(--jnj-space-1) var(--jnj-space-3);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-pill);
+    background-color: transparent;
+    color: var(--jnj-color-text-muted);
+    font-size: var(--jnj-text-xs);
+    cursor: pointer;
+    transition: border-color var(--jnj-transition), color var(--jnj-transition);
+
+    &:hover {
+        border-color: var(--jnj-color-danger);
+        color: var(--jnj-color-danger);
+    }
+}
+
+.CampaignPage-empty-text {
+    margin: 0;
+    font-size: var(--jnj-text-sm);
+    color: var(--jnj-color-text-faint);
+}
+
+/* --- Dialogs (add player / kick player) -----------------------------------
+   Same scrim + centered card idiom as Navigation.scss's new-player dialog. */
+.CampaignPage-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background-color: rgba(0, 0, 0, 0.6);
+}
+
+.CampaignPage-dialog {
+    position: fixed;
+    z-index: 31;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(420px, calc(100vw - var(--jnj-space-6)));
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-4);
+    padding: var(--jnj-space-6);
+    text-align: left;
+    background-color: var(--jnj-color-bg-raised);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-lg);
+    box-shadow: var(--jnj-shadow-lg);
+
+    h3 {
+        margin: 0;
+        font-family: var(--jnj-font-display);
+        font-size: var(--jnj-text-xl);
+        color: var(--jnj-color-text);
+    }
+}
+
+.CampaignPage-dialog-help {
+    margin: 0;
+    font-size: var(--jnj-text-sm);
+    color: var(--jnj-color-text-muted);
+}
+
+.CampaignPage-dialog-input {
+    padding: var(--jnj-space-3) var(--jnj-space-4);
+    background-color: var(--jnj-color-bg-sunken);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-md);
+    color: var(--jnj-color-text);
+    font-family: var(--jnj-font-mono);
+    font-size: var(--jnj-text-sm);
+
+    &::placeholder {
+        color: var(--jnj-color-text-faint);
+        font-family: var(--jnj-font-body);
+    }
+
+    &:focus {
+        outline: none;
+        border-color: var(--jnj-color-accent);
+    }
+}
+
+.CampaignPage-dialog-actions {
+    display: flex;
+    gap: var(--jnj-space-3);
+}
+
+.CampaignPage-dialog-button {
+    flex: 1;
+    padding: var(--jnj-space-3);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-md);
+    background-color: transparent;
+    color: var(--jnj-color-text);
+    font-family: inherit;
+    font-size: var(--jnj-text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color var(--jnj-transition), color var(--jnj-transition), background-color var(--jnj-transition);
+
+    &:hover {
+        border-color: var(--jnj-color-border-strong);
+    }
+
+    &:disabled {
+        color: var(--jnj-color-text-faint);
+        cursor: not-allowed;
+    }
+}
+
+.CampaignPage-dialog-button-primary {
+    border-color: transparent;
+    background-color: var(--jnj-color-accent);
+    color: var(--jnj-color-on-accent);
+
+    &:hover:not(:disabled) {
+        background-color: var(--jnj-color-accent-hover);
+        border-color: transparent;
+    }
+
+    &:disabled {
+        background-color: var(--jnj-color-bg-hover);
+    }
+}
+
+.CampaignPage-dialog-button-danger {
+    border-color: transparent;
+    background-color: var(--jnj-color-danger);
+    color: white;
+
+    &:hover {
+        filter: brightness(0.88);
+    }
+}
+
+/* --- Archived banner -------------------------------------------------------*/
+.CampaignPage-archived-banner {
+    padding: var(--jnj-space-3) var(--jnj-space-4);
+    background-color: var(--jnj-color-bg-sunken);
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-md);
+    color: var(--jnj-color-text-muted);
+    font-size: var(--jnj-text-sm);
+}
+
+/* --- Danger zone (archive / schedule deletion) ----------------------------*/
+.CampaignPage-danger-zone {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-3);
+    padding: var(--jnj-space-5);
+    background-color: var(--jnj-color-bg-raised);
+    border: 1px solid var(--jnj-color-danger);
+    border-radius: var(--jnj-radius-lg);
+
+    h2 {
+        margin: 0;
+        font-family: var(--jnj-font-display);
+        font-size: var(--jnj-text-xl);
+        color: var(--jnj-color-text);
+    }
+}
+
+.CampaignPage-danger-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--jnj-space-4);
+    padding: var(--jnj-space-3) 0;
+    border-top: 1px solid var(--jnj-color-border);
+
+    &:first-of-type {
+        border-top: none;
+        padding-top: 0;
+    }
+}
+
+.CampaignPage-danger-title {
+    font-weight: 600;
+    color: var(--jnj-color-text);
+}
+
+.CampaignPage-danger-help {
+    margin: 2px 0 0;
+    max-width: 46ch;
+    font-size: var(--jnj-text-sm);
+    color: var(--jnj-color-text-muted);
+}
+
+.CampaignPage-danger-button {
+    flex-shrink: 0;
+    padding: var(--jnj-space-2) var(--jnj-space-4);
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-pill);
+    background-color: transparent;
+    color: var(--jnj-color-text);
+    font-size: var(--jnj-text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color var(--jnj-transition), color var(--jnj-transition);
+
+    &:hover {
+        border-color: var(--jnj-color-accent);
+        color: var(--jnj-color-accent-hover);
+    }
+}
+
+.CampaignPage-danger-button-severe {
+    border-color: var(--jnj-color-danger);
+    color: var(--jnj-color-danger);
+
+    &:hover {
+        background-color: var(--jnj-color-danger);
+        color: white;
     }
 }

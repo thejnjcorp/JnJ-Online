@@ -1,0 +1,39 @@
+name: Purge Deleted Campaigns
+
+on:
+  schedule:
+    # Daily at 06:00 UTC. Only campaigns whose 30-day grace period (set via
+    # CampaignPage.js's "Schedule Deletion") has actually elapsed are ever
+    # touched - a daily cadence is more than precise enough for a 30-day
+    # policy.
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Write service account credentials
+        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > /tmp/firebase-service-account.json
+
+      - name: Purge campaigns past their scheduled deletion date
+        run: npm run firebase:purge
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/firebase-service-account.json
+
+      - name: Clean up credentials
+        if: always()
+        run: rm -f /tmp/firebase-service-account.json

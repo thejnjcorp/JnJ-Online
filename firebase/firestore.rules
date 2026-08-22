@@ -1,0 +1,88 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if uid() == "wmJQbIlzX9RydXFmh3DzSBpIqHa2";
+    }
+
+    match /players/{userId} {
+    	allow read, write: if isSignedIn() && uid() == userId;
+
+      allow read: if isSignedIn();
+    }
+
+    match /campaigns/{campaignId} {
+    	allow read: if isSignedIn() && uid() in canReadField();
+
+      allow read, write: if isSignedIn() && uid() in canWriteField();
+
+      allow read, write: if isSignedIn() && uid() == resource.data.director_uid;
+
+      allow create: if isSignedIn() && !documentExists("campaigns", campaignId);
+    }
+
+    match /characters/{characterId} {
+    	allow read, write: if isSignedIn() && uid() == resource.data.playerId;
+
+      allow read: if isSignedIn() && uid() in canReadField();
+
+      allow read: if isSignedIn() && inCampaign();
+
+      allow read, write: if isSignedIn() && uid() in canWriteField();
+
+      allow create: if isSignedIn() && !documentExists("characters", characterId);
+    }
+
+    match /classes/{classId} {
+    	allow read: if isSignedIn();
+
+    	allow read, write: if isSignedIn() && uid() in canWriteField();
+
+      allow create: if isSignedIn() && !documentExists("classes", classId);
+    }
+
+    match /races/{raceId} {
+    	allow read: if isSignedIn();
+
+      allow read, write: if isSignedIn() && uid() in canWriteField();
+
+      allow create: if isSignedIn() && !documentExists("races", raceId);
+    }
+
+    match /maps/{mapId} {
+    	allow read: if isSignedIn();
+
+      allow read, write: if isSignedIn() && uid() in canWriteField();
+
+      allow create: if isSignedIn() && !documentExists("maps", mapId);
+    }
+
+    // Functions \\
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function uid() {
+    	return request.auth.uid;
+    }
+
+    function canWriteField() {
+    	return resource.data.canWrite;
+    }
+
+    function canReadField() {
+    	return resource.data.canRead;
+    }
+
+    function documentExists(docName, documentId) {
+    	return exists(/databases/$(database)/documents/$(docName)/$(documentId));
+    }
+
+    function inCampaign() {
+    	let campaign = get(/databases/$(database)/documents/campaigns/$(resource.data.campaign));
+      return uid() in campaign.data.canRead || uid() in campaign.data.canWrite;
+    }
+  }
+}

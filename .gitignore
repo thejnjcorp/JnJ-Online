@@ -25,3 +25,10 @@ yarn-error.log*
 
 documents.txt
 jnj-online-547784fff353.json
+jnj-online-982189129fc3.json
+
+# Firebase local emulator artifacts
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.firebase/
