@@ -1,0 +1,59 @@
+/*
+ * DarkArcane - the default site theme.
+ *
+ * Ink-black surfaces, brass-gold primary accent, an arcane violet secondary and
+ * an ember warm. Reference implementation of the contract in BaseTheme.scss:
+ * it redeclares tokens only, so nothing here is coupled to a component's markup.
+ *
+ * Applied by components/App.js via `siteTheme`, the same way the character
+ * sheet applies `pageTheme`.
+ */
+
+.Theme-DarkArcane {
+  /* --- Surfaces ------------------------------------------------------ */
+  --jnj-color-bg: #16161a;
+  --jnj-color-bg-sunken: #101013;
+  --jnj-color-bg-raised: #1f1f25;
+  --jnj-color-bg-hover: #2a2a33;
+
+  /* --- Lines --------------------------------------------------------- */
+  --jnj-color-border: #34343f;
+  --jnj-color-border-strong: #4d4d5c;
+
+  /* --- Text ---------------------------------------------------------- */
+  --jnj-color-text: #ece8e1;
+  --jnj-color-text-muted: #a09a90;
+  --jnj-color-text-faint: #6f6a63;
+  --jnj-color-on-accent: #16161a;
+
+  /* --- Accents ------------------------------------------------------- */
+  --jnj-color-accent: #c8a24a;          /* brass */
+  --jnj-color-accent-hover: #e0bc63;
+  --jnj-color-accent-soft: rgba(200, 162, 74, 0.13);
+  --jnj-color-arcane: #7c4dff;
+  --jnj-color-ember: #d4622a;
+
+  /* --- Status -------------------------------------------------------- */
+  --jnj-color-danger: #c9453f;
+  --jnj-color-success: #5c9a6b;
+
+  /* --- Navigation ---------------------------------------------------- */
+  --jnj-color-nav-bg: #0d0d10;
+  --jnj-color-nav-text: #cfc9c0;
+  --jnj-color-nav-text-active: var(--jnj-color-accent);
+  --jnj-color-nav-hover-bg: rgba(200, 162, 74, 0.10);
+  --jnj-color-nav-border: #2b2b33;
+
+  /* --- Type ---------------------------------------------------------- */
+  /* Cinzel is loaded in public/index.html; the stack degrades to a serif if
+     the webfont is blocked or offline. */
+  --jnj-font-display: 'Cinzel', 'Georgia', 'Times New Roman', serif;
+  --jnj-font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    'Roboto', 'Helvetica Neue', sans-serif;
+
+  /* --- Elevation ----------------------------------------------------- */
+  /* Deeper than base: the darker ground needs more separation to read. */
+  --jnj-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.55);
+  --jnj-shadow-md: 0 6px 18px rgba(0, 0, 0, 0.55);
+  --jnj-shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.65);
+}

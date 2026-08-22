@@ -1,59 +1,352 @@
+/* The bar itself is laid out by .App-header (styles/App.scss), which owns the
+   height and the sticky positioning. This file only styles what's inside it. */
 .Navigation {
-    align-items: left;
-    justify-content: left;
+    display: flex;
+    align-items: center;
+    gap: var(--jnj-space-5);
+    height: 100%;
+    padding: 0 var(--jnj-space-5);
+    font-family: var(--jnj-font-body);
+}
+
+/* --- Brand ------------------------------------------------------------ */
+.Navigation-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--jnj-space-3);
+    text-decoration: none;
+    flex-shrink: 0;
+}
+
+.Navigation-brand-mark {
+    height: clamp(28px, 4.5vh, 40px);
+    width: clamp(28px, 4.5vh, 40px);
+    object-fit: cover;
+    border-radius: var(--jnj-radius-sm);
+    border: 1px solid var(--jnj-color-border);
+}
+
+.Navigation-brand-name {
+    font-family: var(--jnj-font-display);
+    font-size: clamp(1rem, 2.2vh, 1.375rem);
+    font-weight: 700;
+    letter-spacing: var(--jnj-tracking-display);
+    color: var(--jnj-color-nav-text);
+    white-space: nowrap;
+}
+
+.Navigation-brand-name-accent {
+    color: var(--jnj-color-accent);
+    margin-left: 0.35ch;
+}
+
+/* --- Primary links ---------------------------------------------------- */
+.Navigation-links {
+    display: flex;
+    align-items: center;
+    gap: var(--jnj-space-1);
+    flex: 1;
+    min-width: 0;
 }
 
 .Navigation-button {
-    background-color: #000000;
-    padding-left: 0.5vw;
-    padding-right: 0.5vw;
-    padding-top: calc(6vh - calc(10px + 2vmin));
-    padding-bottom: calc(6vh - calc(10px + 2vmin));
-    color: #61dafb;
-    font-size: calc(10px + 2vmin);
-    transition-duration: 0.4s;
+    position: relative;
+    padding: var(--jnj-space-2) var(--jnj-space-4);
+    border-radius: var(--jnj-radius-md);
+    border: none;
+    background-color: transparent;
+    color: var(--jnj-color-nav-text);
+    font-family: inherit;
+    font-size: clamp(0.875rem, 1.9vh, 1rem);
+    font-weight: 500;
     text-decoration: none;
-    border-style: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color var(--jnj-transition), color var(--jnj-transition);
 
     &:hover {
-        background-color: #9c9c9c;
-        color: #9be9ff;
+        background-color: var(--jnj-color-nav-hover-bg);
+        color: var(--jnj-color-accent-hover);
+    }
+}
+
+.Navigation-button-active {
+    color: var(--jnj-color-nav-text-active);
+
+    /* Underline rather than a filled pill: it marks position without
+       competing with the Sign In button for "this is the action". */
+    &::after {
+        content: '';
+        position: absolute;
+        left: var(--jnj-space-4);
+        right: var(--jnj-space-4);
+        bottom: 0;
+        height: 2px;
+        border-radius: var(--jnj-radius-pill);
+        background-color: var(--jnj-color-accent);
+    }
+}
+
+/* --- Account cluster -------------------------------------------------- */
+.Navigation-account {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--jnj-space-2);
+    flex-shrink: 0;
+}
+
+.Navigation-signin {
+    padding: var(--jnj-space-2) var(--jnj-space-5);
+    border: none;
+    border-radius: var(--jnj-radius-pill);
+    background-color: var(--jnj-color-accent);
+    color: var(--jnj-color-on-accent);
+    font-family: inherit;
+    font-size: clamp(0.875rem, 1.9vh, 1rem);
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color var(--jnj-transition);
+
+    &:hover {
+        background-color: var(--jnj-color-accent-hover);
+    }
+}
+
+.Navigation-avatar-button {
+    display: flex;
+    align-items: center;
+    gap: var(--jnj-space-2);
+    padding: var(--jnj-space-1) var(--jnj-space-2);
+    border: 1px solid transparent;
+    border-radius: var(--jnj-radius-pill);
+    background-color: transparent;
+    color: var(--jnj-color-nav-text);
+    font-family: inherit;
+    font-size: var(--jnj-text-sm);
+    cursor: pointer;
+    transition: background-color var(--jnj-transition), border-color var(--jnj-transition);
+
+    &:hover {
+        background-color: var(--jnj-color-nav-hover-bg);
+        border-color: var(--jnj-color-border);
     }
 }
 
 .Navigation-user-icon {
-    border-radius: calc(10px + 2vmin);
-    border-color: white;
-    border-style: solid;
-    border-width: 3px;
-    margin-left: 10px;
-    height: calc(10px + 2vmin);
+    height: clamp(26px, 4vh, 34px);
+    width: clamp(26px, 4vh, 34px);
+    object-fit: cover;
+    border-radius: var(--jnj-radius-pill);
+    border: 2px solid var(--jnj-color-border-strong);
+}
+
+.Navigation-avatar-name {
+    max-width: 12ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* --- Account dropdown ------------------------------------------------- */
+.Navigation-menu {
+    position: absolute;
+    top: calc(100% + var(--jnj-space-2));
+    right: 0;
+    z-index: 20;
+    min-width: 240px;
+    padding: var(--jnj-space-2);
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    background-color: var(--jnj-color-bg-raised);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-md);
+    box-shadow: var(--jnj-shadow-lg);
+}
+
+.Navigation-menu-header {
+    padding: var(--jnj-space-3);
+    border-bottom: 1px solid var(--jnj-color-border);
+    margin-bottom: var(--jnj-space-2);
+}
+
+.Navigation-menu-name {
+    font-family: var(--jnj-font-display);
+    font-size: var(--jnj-text-base);
+    color: var(--jnj-color-text);
+}
+
+.Navigation-menu-email {
+    font-size: var(--jnj-text-xs);
+    color: var(--jnj-color-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.Navigation-menu-item {
+    padding: var(--jnj-space-3);
+    border: none;
+    border-radius: var(--jnj-radius-sm);
+    background-color: transparent;
+    color: var(--jnj-color-text);
+    font-family: inherit;
+    font-size: var(--jnj-text-sm);
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color var(--jnj-transition);
+
+    &:hover {
+        background-color: var(--jnj-color-bg-hover);
+    }
+}
+
+.Navigation-menu-item-danger:hover {
+    color: var(--jnj-color-danger);
+}
+
+/* --- Mobile ----------------------------------------------------------- */
+.Navigation-hamburger {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 40px;
+    height: 40px;
+    padding: 0 var(--jnj-space-2);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-md);
+    background-color: transparent;
+    cursor: pointer;
+
+    span {
+        display: block;
+        height: 2px;
+        border-radius: var(--jnj-radius-pill);
+        background-color: var(--jnj-color-nav-text);
+    }
+}
+
+.Navigation-drawer {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: var(--jnj-space-2);
+    background-color: var(--jnj-color-nav-bg);
+    border-bottom: 1px solid var(--jnj-color-border);
+    box-shadow: var(--jnj-shadow-lg);
+
+    .Navigation-button {
+        text-align: left;
+        padding: var(--jnj-space-4);
+    }
+
+    .Navigation-button-active::after {
+        display: none;
+    }
+}
+
+@media (max-width: 860px) {
+    .Navigation {
+        gap: var(--jnj-space-3);
+        padding: 0 var(--jnj-space-4);
+    }
+
+    .Navigation-links {
+        display: none;
+    }
+
+    .Navigation-hamburger {
+        display: flex;
+    }
+
+    .Navigation-avatar-name {
+        display: none;
+    }
+}
+
+/* --- New player dialog ------------------------------------------------ */
+.Navigation-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background-color: rgba(0, 0, 0, 0.6);
 }
 
 .Navigation-new-player {
-    z-index: 1;
-    position: absolute;
-    width: 40vw;
-    height: 300px;
-    background-color: #492100;
-    border-radius: 10px;
-    top: 15vh;
-    left: 30vw;
+    position: fixed;
+    z-index: 31;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(440px, calc(100vw - var(--jnj-space-6)));
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-4);
+    padding: var(--jnj-space-6);
+    text-align: left;
+    background-color: var(--jnj-color-bg-raised);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-lg);
+    box-shadow: var(--jnj-shadow-lg);
+
+    h1 {
+        font-size: var(--jnj-text-2xl);
+        color: var(--jnj-color-text);
+    }
+}
+
+.Navigation-new-player-help {
+    margin: 0;
+    font-size: var(--jnj-text-sm);
+    color: var(--jnj-color-text-muted);
 }
 
 .Navigation-new-player-input {
-    font-size: 24px;
+    padding: var(--jnj-space-3) var(--jnj-space-4);
+    background-color: var(--jnj-color-bg-sunken);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-md);
+    color: var(--jnj-color-text);
+    font-family: inherit;
+    font-size: var(--jnj-text-base);
+
+    &::placeholder {
+        color: var(--jnj-color-text-faint);
+    }
+
+    &:focus {
+        outline: none;
+        border-color: var(--jnj-color-accent);
+    }
 }
 
 .Navigation-new-player-button {
-    font-size: 24px;
-    background-color: rgb(153, 94, 94);
-    color: white;
-    border-color: white;
-    
-    &:hover {
-        background-color: #3a1e1e;
-        color: wheat;
-        border-color: wheat;
+    padding: var(--jnj-space-3) var(--jnj-space-5);
+    border: none;
+    border-radius: var(--jnj-radius-md);
+    background-color: var(--jnj-color-accent);
+    color: var(--jnj-color-on-accent);
+    font-family: inherit;
+    font-size: var(--jnj-text-base);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color var(--jnj-transition);
+
+    &:hover:not(:disabled) {
+        background-color: var(--jnj-color-accent-hover);
+    }
+
+    &:disabled {
+        background-color: var(--jnj-color-bg-hover);
+        color: var(--jnj-color-text-faint);
+        cursor: not-allowed;
     }
 }

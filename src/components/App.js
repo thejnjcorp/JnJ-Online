@@ -14,6 +14,12 @@ import { ClassPage } from './ClassPage.js';
 import { ClassListPage } from './ClassListPage.js';
 import { auth } from '../utils/firebase.js';
 
+// The site shell (nav + home) reads its palette from a theme class - see
+// styles/themes/BaseTheme.scss for the token contract and DarkArcane.scss for
+// this theme's values. Swapping themes is a matter of pointing this at a
+// different class name.
+const siteTheme = 'Theme-DarkArcane';
+
 function App() {
   const [markdowns, setMarkdowns] = useState([]);
   const [userInfo, setUserInfo] = useState(null);
@@ -31,6 +37,15 @@ function App() {
     const unsubscribe = auth.onAuthStateChanged((currentUser) => setUserInfo(currentUser));
     return () => unsubscribe();
   },[]);
+
+  // The theme class has to live on <html>, not on an element inside <body>:
+  // CSS custom properties only cascade to descendants, and index.scss styles
+  // `body` itself (background, font). A class on .App would leave body's own
+  // rules stuck reading BaseTheme's fallback values instead of this theme's.
+  useEffect(() => {
+    document.documentElement.classList.add(siteTheme);
+    return () => document.documentElement.classList.remove(siteTheme);
+  }, []);
   
   const routeMarkdownFiles = markdowns.map((file, index) =>
     <Route key={index} path={"blog/" + file} element={ <BlogPages post={file} /> } />

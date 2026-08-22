@@ -1,0 +1,342 @@
+/* The Homepage opts out of .App-body's centering column (see the note in
+   App.scss) so its sections can each control their own width and alignment.
+
+   height (not min-height) caps it at exactly the space left under the nav, so
+   nav + body always sum to 100vh - matching the height:90vh + overflow-y:auto
+   idiom every other page (Characters, ClassListPage, ...) already uses.
+   Content taller than that (a long hero on a short screen, a dashboard with
+   many characters/campaigns) scrolls inside the page instead of stretching
+   the whole document past the viewport. */
+.Homepage {
+    box-sizing: border-box;
+    width: 100%;
+    height: calc(100vh - var(--jnj-nav-height));
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    font-size: var(--jnj-text-base);
+    text-align: left;
+}
+
+/* --- Shared section rhythm --------------------------------------------- */
+.Homepage-hero,
+.Homepage-features,
+.Homepage-cta,
+.Homepage-dashboard-header,
+.Homepage-dashboard-grid,
+.Homepage-quick-links {
+    width: 100%;
+    max-width: var(--jnj-content-max);
+    margin: 0 auto;
+    padding: var(--jnj-space-7) var(--jnj-space-5);
+    box-sizing: border-box;
+}
+
+/* --- Hero ---------------------------------------------------------------*/
+.Homepage-hero {
+    display: flex;
+    justify-content: center;
+    text-align: center;
+    padding-top: var(--jnj-space-8);
+    padding-bottom: var(--jnj-space-7);
+    background:
+        radial-gradient(ellipse at top, var(--jnj-color-accent-soft), transparent 60%),
+        var(--jnj-color-bg);
+}
+
+.Homepage-hero-content {
+    max-width: 720px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--jnj-space-4);
+}
+
+.Homepage-eyebrow {
+    font-size: var(--jnj-text-sm);
+    font-weight: 600;
+    letter-spacing: var(--jnj-tracking-caps);
+    text-transform: uppercase;
+    color: var(--jnj-color-accent);
+}
+
+.Homepage-hero-title {
+    font-family: var(--jnj-font-display);
+    font-size: var(--jnj-text-4xl);
+    line-height: 1.1;
+    color: var(--jnj-color-text);
+}
+
+.Homepage-hero-subtitle {
+    margin: 0;
+    max-width: 560px;
+    font-size: var(--jnj-text-lg);
+    line-height: 1.6;
+    color: var(--jnj-color-text-muted);
+}
+
+.Homepage-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--jnj-space-3);
+    margin-top: var(--jnj-space-2);
+}
+
+.Homepage-button {
+    padding: var(--jnj-space-3) var(--jnj-space-6);
+    border-radius: var(--jnj-radius-pill);
+    font-size: var(--jnj-text-base);
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color var(--jnj-transition), color var(--jnj-transition), border-color var(--jnj-transition);
+}
+
+.Homepage-button-primary {
+    background-color: var(--jnj-color-accent);
+    color: var(--jnj-color-on-accent);
+    border: 1px solid transparent;
+
+    &:hover {
+        background-color: var(--jnj-color-accent-hover);
+    }
+}
+
+.Homepage-button-secondary {
+    background-color: transparent;
+    color: var(--jnj-color-text);
+    border: 1px solid var(--jnj-color-border-strong);
+
+    &:hover {
+        border-color: var(--jnj-color-accent);
+        color: var(--jnj-color-accent-hover);
+    }
+}
+
+/* --- Feature grid --------------------------------------------------------*/
+.Homepage-features {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--jnj-space-5);
+    padding-top: 0;
+}
+
+.Homepage-feature-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--jnj-space-3);
+    padding: var(--jnj-space-5);
+    background-color: var(--jnj-color-bg-raised);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-lg);
+}
+
+.Homepage-feature-icon {
+    height: 32px;
+    width: 32px;
+    padding: var(--jnj-space-2);
+    box-sizing: content-box;
+    background-color: var(--jnj-color-accent-soft);
+    border-radius: var(--jnj-radius-md);
+}
+
+.Homepage-feature-title {
+    margin: 0;
+    font-family: var(--jnj-font-display);
+    font-size: var(--jnj-text-lg);
+    color: var(--jnj-color-text);
+}
+
+.Homepage-feature-body {
+    margin: 0;
+    font-size: var(--jnj-text-sm);
+    line-height: 1.55;
+    color: var(--jnj-color-text-muted);
+}
+
+/* --- CTA band -------------------------------------------------------------*/
+.Homepage-cta {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--jnj-space-2);
+    border-top: 1px solid var(--jnj-color-border);
+
+    h2 {
+        font-family: var(--jnj-font-display);
+        font-size: var(--jnj-text-2xl);
+        color: var(--jnj-color-text);
+    }
+
+    p {
+        margin: 0;
+        color: var(--jnj-color-text-muted);
+    }
+}
+
+/* --- Signed-in dashboard --------------------------------------------------*/
+.Homepage-dashboard-header {
+    padding-bottom: var(--jnj-space-3);
+
+    h1 {
+        font-family: var(--jnj-font-display);
+        font-size: var(--jnj-text-3xl);
+        color: var(--jnj-color-text);
+    }
+
+    p {
+        margin: var(--jnj-space-2) 0 0;
+        color: var(--jnj-color-text-muted);
+    }
+}
+
+.Homepage-dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--jnj-space-5);
+    padding-top: var(--jnj-space-3);
+    padding-bottom: var(--jnj-space-4);
+}
+
+.Homepage-dashboard-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-3);
+    padding: var(--jnj-space-5);
+    background-color: var(--jnj-color-bg-raised);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-lg);
+}
+
+.Homepage-dashboard-section-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+
+    h2 {
+        font-family: var(--jnj-font-display);
+        font-size: var(--jnj-text-xl);
+        color: var(--jnj-color-text);
+    }
+}
+
+.Homepage-dashboard-section-viewall {
+    font-size: var(--jnj-text-sm);
+    color: var(--jnj-color-accent);
+    text-decoration: none;
+
+    &:hover {
+        color: var(--jnj-color-accent-hover);
+    }
+}
+
+.Homepage-dashboard-section-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-2);
+    min-height: 40px;
+}
+
+.Homepage-dashboard-empty {
+    margin: 0;
+    padding: var(--jnj-space-3) 0;
+    font-size: var(--jnj-text-sm);
+    color: var(--jnj-color-text-faint);
+}
+
+.Homepage-entity-card {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--jnj-space-3) var(--jnj-space-4);
+    background-color: var(--jnj-color-bg-sunken);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-md);
+    text-decoration: none;
+    transition: border-color var(--jnj-transition), background-color var(--jnj-transition);
+
+    &:hover {
+        border-color: var(--jnj-color-accent);
+        background-color: var(--jnj-color-bg-hover);
+    }
+}
+
+.Homepage-entity-card-title {
+    font-weight: 600;
+    color: var(--jnj-color-text);
+}
+
+.Homepage-entity-card-meta {
+    font-size: var(--jnj-text-xs);
+    color: var(--jnj-color-text-muted);
+}
+
+.Homepage-dashboard-section-create {
+    align-self: flex-start;
+    font-size: var(--jnj-text-sm);
+    font-weight: 600;
+    color: var(--jnj-color-accent);
+    text-decoration: none;
+
+    &:hover {
+        color: var(--jnj-color-accent-hover);
+    }
+}
+
+/* --- Quick links ---------------------------------------------------------*/
+.Homepage-quick-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--jnj-space-3);
+    padding-top: 0;
+}
+
+.Homepage-quick-link {
+    display: flex;
+    align-items: center;
+    gap: var(--jnj-space-2);
+    padding: var(--jnj-space-3) var(--jnj-space-5);
+    background-color: var(--jnj-color-bg-raised);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-pill);
+    color: var(--jnj-color-text);
+    font-size: var(--jnj-text-sm);
+    font-weight: 500;
+    text-decoration: none;
+    transition: border-color var(--jnj-transition), color var(--jnj-transition);
+
+    &:hover {
+        border-color: var(--jnj-color-accent);
+        color: var(--jnj-color-accent-hover);
+    }
+}
+
+.Homepage-quick-link-icon {
+    height: 18px;
+    width: 18px;
+}
+
+/* --- Responsive ------------------------------------------------------------*/
+@media (max-width: 960px) {
+    .Homepage-features {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .Homepage-dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 560px) {
+    .Homepage-features {
+        grid-template-columns: 1fr;
+    }
+
+    .Homepage-hero-title {
+        font-size: var(--jnj-text-3xl);
+    }
+}

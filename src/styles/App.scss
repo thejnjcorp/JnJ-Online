@@ -1,42 +1,46 @@
 .App {
   text-align: center;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+  background-color: var(--jnj-color-bg);
+  color: var(--jnj-color-text);
+  min-height: 100vh;
 }
 
 .App-header {
-  background-color: #000000;
-  height: 10vh;
+  /* border-box so the border-bottom below is absorbed into `height` rather
+     than added on top of it - otherwise every page runs 1px taller than
+     100vh and picks up a stray scrollbar. */
+  box-sizing: border-box;
+  background-color: var(--jnj-color-nav-bg);
+  height: var(--jnj-nav-height);
+  min-height: var(--jnj-nav-height-min);
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  color: var(--jnj-color-nav-text);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-bottom: 1px solid var(--jnj-color-nav-border);
 }
 
+/* Left as a centering column: every existing page (Characters, ClassList,
+   CampaignPage, ...) is a 90vh block that relies on being centred here.
+   Pages that want the full width opt out by stretching themselves - see
+   .Homepage. */
 .App-body {
-  background-color: #282c34;
-  min-height: 90vh;
+  background-color: var(--jnj-color-bg);
+  min-height: calc(100vh - var(--jnj-nav-height));
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   font-size: calc(10px + 2vmin);
-  color: white;
+  color: var(--jnj-color-text);
 }
 
 .App-link {
-  color: #61dafb;
+  color: var(--jnj-color-accent);
 }
 
 .App-banner {

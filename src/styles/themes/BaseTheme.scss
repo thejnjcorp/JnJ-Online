@@ -1,0 +1,111 @@
+/*
+ * BaseTheme.scss - the site-wide theme contract.
+ *
+ * Every value the app shell (navigation + home page) paints with is declared
+ * here as a custom property. A theme is then just a class that redeclares some
+ * or all of these, exactly like the .DefaultCharacterPage /
+ * .AlternativeCharacterPage pair does for the character sheet - see
+ * styles/themes/DarkArcane.scss for the reference implementation.
+ *
+ * Two rules keep this workable as more themes get added:
+ *   1. Components only ever read tokens (var(--jnj-...)). They never hardcode a
+ *      color, a font, or a step off the spacing/type scale.
+ *   2. The values below are the fallbacks. A theme that only defines half the
+ *      tokens still renders - it just inherits the rest from here, so a new
+ *      theme can start small and grow.
+ *
+ * To add a theme: copy DarkArcane.scss, rename the class, change the values,
+ * import it in styles/index.scss, and point `siteTheme` in components/App.js at
+ * the new class name.
+ */
+
+:root {
+  /* --- Surfaces ------------------------------------------------------ */
+  --jnj-color-bg: #282c34;            /* page background                 */
+  --jnj-color-bg-sunken: #21242b;     /* wells, insets, code blocks      */
+  --jnj-color-bg-raised: #31353f;     /* cards and panels above the page */
+  --jnj-color-bg-hover: #3b404b;      /* raised surface, hovered         */
+
+  /* --- Lines --------------------------------------------------------- */
+  --jnj-color-border: #454b57;        /* default hairline                */
+  --jnj-color-border-strong: #626a79; /* emphasised divider / focus ring */
+
+  /* --- Text ---------------------------------------------------------- */
+  --jnj-color-text: #eaeaee;          /* body copy                       */
+  --jnj-color-text-muted: #a3a9b5;    /* captions, metadata, help text   */
+  --jnj-color-text-faint: #7b8290;    /* placeholders, disabled          */
+  --jnj-color-on-accent: #1b1b1f;     /* text sitting on an accent fill  */
+
+  /* --- Accents ------------------------------------------------------- */
+  --jnj-color-accent: #61dafb;        /* primary actions, active nav     */
+  --jnj-color-accent-hover: #9be9ff;
+  --jnj-color-accent-soft: rgba(97, 218, 251, 0.14); /* tinted fill      */
+  --jnj-color-arcane: #6600cc;        /* secondary/magic accent          */
+  --jnj-color-ember: #c05621;         /* warm highlight                  */
+
+  /* --- Status -------------------------------------------------------- */
+  --jnj-color-danger: #d9534f;
+  --jnj-color-success: #4f9d69;
+
+  /* --- Navigation ---------------------------------------------------- */
+  /* Split out from the accents so a theme can give the bar its own
+     identity without dragging the rest of the palette with it. */
+  --jnj-color-nav-bg: #000000;
+  --jnj-color-nav-text: #eaeaee;
+  --jnj-color-nav-text-active: var(--jnj-color-accent);
+  --jnj-color-nav-hover-bg: rgba(255, 255, 255, 0.08);
+  --jnj-color-nav-border: transparent;
+
+  /* --- Type ---------------------------------------------------------- */
+  --jnj-font-display: 'Georgia', 'Times New Roman', serif;
+  --jnj-font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
+    'Helvetica Neue', sans-serif;
+  --jnj-font-mono: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+
+  --jnj-text-xs: 0.75rem;
+  --jnj-text-sm: 0.875rem;
+  --jnj-text-base: 1rem;
+  --jnj-text-lg: 1.125rem;
+  --jnj-text-xl: 1.375rem;
+  --jnj-text-2xl: 1.75rem;
+  --jnj-text-3xl: 2.25rem;
+  --jnj-text-4xl: clamp(2.5rem, 5vw, 3.75rem); /* hero only */
+
+  --jnj-tracking-display: 0.02em;
+  --jnj-tracking-caps: 0.14em;
+
+  /* --- Spacing (4px scale) ------------------------------------------- */
+  --jnj-space-1: 4px;
+  --jnj-space-2: 8px;
+  --jnj-space-3: 12px;
+  --jnj-space-4: 16px;
+  --jnj-space-5: 24px;
+  --jnj-space-6: 32px;
+  --jnj-space-7: 48px;
+  --jnj-space-8: 64px;
+
+  /* --- Radii --------------------------------------------------------- */
+  --jnj-radius-sm: 4px;
+  --jnj-radius-md: 8px;
+  --jnj-radius-lg: 14px;
+  --jnj-radius-pill: 999px;
+
+  /* --- Elevation ----------------------------------------------------- */
+  --jnj-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --jnj-shadow-md: 0 4px 14px rgba(0, 0, 0, 0.4);
+  --jnj-shadow-lg: 0 12px 34px rgba(0, 0, 0, 0.5);
+
+  /* --- Layout -------------------------------------------------------- */
+  /* NOTE: the nav is 10vh because a dozen existing pages are sized 90vh to
+     sit under it (Characters, Campaigns, ClassList, CharacterPage, ...).
+     Migrating those to calc(100vh - var(--jnj-nav-height)) is the follow-up
+     that lets this become a fixed pixel height. */
+  --jnj-nav-height: 10vh;
+  --jnj-nav-height-min: 52px;
+  --jnj-content-max: 1200px;
+
+  /* --- Motion -------------------------------------------------------- */
+  --jnj-transition: 160ms ease;
+  --jnj-transition-slow: 320ms ease;
+}
