@@ -16,11 +16,27 @@ export function MapRenderer({ map, userId }) {
 
     const [showColorpicker, setShowColorPicker] = useState(false);
     const [selectedColor, setSelectedColor] = useState(map?.borderColor || "red");
+    const [zoneTextColor, setZoneTextColor] = useState(map?.zoneTextColor || "white");
+    const [showTextColorPicker, setShowTextColorPicker] = useState(false);
+    const [selectedTextColor, setSelectedTextColor] = useState(map?.zoneTextColor || "white");
     const nodeRefs = useRef([]);
+
+    // monotonic, never reused even across clear/remove - avoids naming a new zone
+    // the same as one that still exists elsewhere in the array, since "Zone " + length
+    // only reflects the current count, not what names are actually taken
+    const zoneCounterRef = useRef((map?.zones || []).reduce((max, zone) => {
+        const match = /^Zone (\d+)$/.exec(zone.name);
+        return match ? Math.max(max, parseInt(match[1], 10)) : max;
+    }, 0));
 
     function changeColor() {
         setMapBorderColor(selectedColor);
         setShowColorPicker(false);
+    }
+
+    function changeTextColor() {
+        setZoneTextColor(selectedTextColor);
+        setShowTextColorPicker(false);
     }
 
     const startResizing = (e, index, direction) => {
@@ -71,28 +87,40 @@ export function MapRenderer({ map, userId }) {
     return <div className="MapRenderer">
         <div className="MapRenderer-header">
             {canEdit && <button className="MapRenderer-button" onClick={() => setIsEditing(!isEditing)}>{isEditing ? "Stop Editing" : "Edit"}</button>}
-            {isEditing && <button className="MapRenderer-button" onClick={() => setZones(prev => [
-                ...prev,
-                {
-                    name: "Zone " + (prev.length + 1),
-                    x: 10,
-                    y: 10,
-                    width: 100,
-                    height: 100
-                }
-            ])}>Add Zone</button>}
+            {isEditing && <button className="MapRenderer-button" onClick={() => {
+                zoneCounterRef.current += 1;
+                setZones(prev => [
+                    ...prev,
+                    {
+                        name: "Zone " + zoneCounterRef.current,
+                        x: 10,
+                        y: 10,
+                        width: 100,
+                        height: 100
+                    }
+                ]);
+            }}>Add Zone</button>}
             {isEditing && <button className="MapRenderer-button" onClick={() => {
                 if (selectedZone !== null) {
                     setZones(prev => prev.filter((_, index) => index !== selectedZone));
                     setSelectedZone(null);
                 }
             }}>Remove Zone</button>}
-            {isEditing && <button className="MapRenderer-color-picker-button" onClick={() => setShowColorPicker(!showColorpicker)}>
-                <img src={colorpickerIcon} className="MapRenderer-colorpicker" alt="colorpicker.svg"/> 
+            {isEditing && zones.length > 0 && <button className="MapRenderer-button" onClick={() => {
+                if (window.confirm("Clear all zones on this map? This isn't saved until you hit Save Map.")) {
+                    setZones([]);
+                    setSelectedZone(null);
+                }
+            }}>Clear Zones</button>}
+            {isEditing && <button className="MapRenderer-color-picker-button" onClick={() => {
+                setShowColorPicker(!showColorpicker);
+                setShowTextColorPicker(false);
+            }}>
+                <img src={colorpickerIcon} className="MapRenderer-colorpicker" alt="colorpicker.svg"/>
             </button>}
             {isEditing && showColorpicker && <div className="MapRenderer-colorpicker-panel">
                 <div>
-                    <button className="MapRenderer-colorpicker-quick-select-button" 
+                    <button className="MapRenderer-colorpicker-quick-select-button"
                     style={{background: map?.borderColor || "red"}}
                     onClick={() => setSelectedColor(map?.borderColor || "red")}/>
                 </div>
@@ -100,8 +128,22 @@ export function MapRenderer({ map, userId }) {
                 <button className="MapRenderer-colorpicker-select-button" onClick={() => changeColor()}>set color</button>
             </div>}
             {isEditing && <button className="MapRenderer-button" onClick={() => {
+                setShowTextColorPicker(!showTextColorPicker);
+                setShowColorPicker(false);
+            }}>Text Color</button>}
+            {isEditing && showTextColorPicker && <div className="MapRenderer-colorpicker-panel">
+                <div>
+                    <button className="MapRenderer-colorpicker-quick-select-button"
+                    style={{background: map?.zoneTextColor || "white"}}
+                    onClick={() => setSelectedTextColor(map?.zoneTextColor || "white")}/>
+                </div>
+                <HexColorPicker className="MapRenderer-colorpicker-actual" color={selectedTextColor} onChange={setSelectedTextColor}/>
+                <button className="MapRenderer-colorpicker-select-button" onClick={() => changeTextColor()}>set color</button>
+            </div>}
+            {isEditing && <button className="MapRenderer-button" onClick={() => {
                 updateDoc(doc(db, "maps", map.map_id), {
                     borderColor: mapBorderColor,
+                    zoneTextColor: zoneTextColor,
                     zones: zones
                 }).then(() => {
                     alert("Map saved successfully!");
@@ -113,6 +155,7 @@ export function MapRenderer({ map, userId }) {
             }}>Save Map</button>}
         </div>
 
+        <div className="MapRenderer-canvas">
         <img src={map.link} alt="map" width={500}/>
         {zones.map((zone, index) => {
             if (!nodeRefs.current[index]) nodeRefs.current[index] = createRef();
@@ -146,7 +189,7 @@ export function MapRenderer({ map, userId }) {
                 >
                     <input
                         className="MapRenderer-zone-name"
-                        style={{ width: zone.width - 10, height: zone.height - 10 }}
+                        style={{ width: zone.width - 10, height: zone.height - 10, color: zoneTextColor }}
                         type="text"
                         value={zone.name}
                         onChange={(e) => {
@@ -173,5 +216,6 @@ export function MapRenderer({ map, userId }) {
                 </div>
             </Draggable>
         })}
+        </div>
     </div>
 }

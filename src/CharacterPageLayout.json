@@ -23,67 +23,12 @@
 
     "action_points": 3,
 
-    "skills_and_flaws": [
-        {
-            "isSkill": true,
-            "degree": 1,
-            "name": "Skill Name",
-            "description": "description",
-            "isVisible": false
-        },
-        {
-            "isSkill": false,
-            "degree": 1,
-            "name": "Flaw Name",
-            "description": "description",
-            "isVisible": false
-        }
-    ],
+    "skills_and_flaws": [],
 
-    "actions": [
-        {
-            "actionName": "action 1",
-            "actionCost": 3,
-            "range": "Zone 0, AOE",
-            "toHitBool": true,
-            "toHit": "1",
-            "difficultyClass": "",
-            "description": "This is where an action description would go. You would just have a string of characters here explaining what it does and then maybe some flavor later, sue me.",
-            "tags": [{"tagInfo": "red tag", "tagColor":"#A84646", "textColor": "#FAF6F6", "tagDescription": "this tag is red."}, {"tagInfo": "blue tag", "tagColor":"#248AE4", "textColor": "#FAF6F6"}]
-        },
-        {
-            "actionName": "action 2",
-            "actionCost": 1,
-            "range": "1 Zone",
-            "toHitBool": false,
-            "toHit": "",
-            "difficultyClass": "Dex,0",
-            "description": "This is where an action description would go. You would just have a string of characters here explaining what it does and then maybe some flavor later, sue me. This is indeed different from the other action description, you are not paranoid."
-        }
-    ],
+    "actions": [],
 
-    "inventory": [
-        {
-            "itemName": "Plate",
-            "description": "A singular, white plate",
-            "colNum": 0
-        },
-        {
-            "itemName": "Chef Knife",
-            "description": "Used for cooking.",
-            "colNum": 1
-        },
-        {
-            "itemName": "Chef Hat",
-            "description": "White chef hat.",
-            "colNum": 2
-        },
-        {
-            "itemName": "Scales of Sound and Light",
-            "description": "Rarity: Uncommon\nTags: [Equipment: Single-Handed Gauntlet] [Active] [Magical][Damaging][Passive Stat Increase]\nRequires Attunement:\nWhile Attuned gain +1 to intelligence.\nUses: Once per long rest\nCrafted from thin, flexible, plana-infused steel, this gauntlet feels as if you’re wearing nothing at all.\nJudgment of Balance\nFor 3 actions, snap your fingers with the gauntlet-worn hand, causing a spectral steel balance scale to manifest in your grasp. Choose yourself and one other creature up to 1 zone away—you decide who will embody Light and who will embody Sound.\nThe Creature of Sound becomes deafened, mute, and encumbered.\nThe Creature of Light becomes blinded.\nThis effect lasts until the end of the next round.\nJust before Judgment of Balance ends both creatures must then make a contested Intelligence check. The winner tips the scales in their favor, causing the loser to suffer 3d8 psychic damage.",
-            "colNum": 0
-        }
-    ],
+    "inventory": [],
+    "inventory_pocket": [],
     
     "tooltips": true,
     "background_color": "#a9a9a9",

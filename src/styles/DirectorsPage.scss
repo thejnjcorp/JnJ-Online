@@ -73,8 +73,10 @@
     background-color: rgb(116, 85, 0);
     border-radius: 10px;
     margin-top: 1vh;
-    overflow-y: auto;
-    overflow-x: auto;
+    // intentionally not scrollable: each zone box (.CombatMap-zone-body) scrolls
+    // on its own, and @hello-pangea/dnd doesn't support a Droppable nested inside
+    // two scroll containers at once - having both broke drag-and-drop entirely
+    overflow: visible;
 }
 
 .DirectorsPage-CombatEnemyStats {
@@ -315,4 +317,46 @@
 
 .DirectorsPage-map-preview {
     width: 500px;
+}
+
+.DirectorsPage-maps-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.DirectorsPage-map-item {
+    display: flex;
+    flex-direction: column;
+    width: min-content;
+    margin-bottom: 20px;
+}
+
+.DirectorsPage-set-active-map-button {
+    width: 500px;
+    margin-top: 5px;
+    border-radius: 5px;
+    border-style: none;
+    background: rgba(0, 151, 25, 0.6);
+    color: white;
+
+    &:hover:not(:disabled) {
+        background: rgba(0, 151, 25, 0.9);
+    }
+
+    &:disabled {
+        background: rgba(0, 0, 0, 0.3);
+    }
+}
+
+.DirectorsPage-delete-map-button {
+    width: 500px;
+    margin-top: 5px;
+    border-radius: 5px;
+    border-style: none;
+    background: rgba(153, 50, 50, 0.6);
+    color: white;
+
+    &:hover {
+        background: rgba(153, 50, 50, 0.9);
+    }
 }

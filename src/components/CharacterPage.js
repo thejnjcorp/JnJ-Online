@@ -2,13 +2,13 @@ import '../styles/CharacterPage.scss';
 import 'react-tooltip/dist/react-tooltip.css';
 import loadingIcon from '../icons/loading.svg';
 import characterPageLayout from '../CharacterPageLayout.json';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CharacterPageAbilityScorePanel } from './CharacterPageAbilityScorePanel';
 import { CharacterPageStatsPanel } from './CharacterPageStatsPanel';
 import { CharacterPageNavigation } from './CharacterPageNavigation';
 import { SkillsAndFlaws } from './SkillsAndFlaws';
 import { auth, db } from '../utils/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, query, collection, where } from 'firebase/firestore';
 import '../styles/CharacterPageStyles/DefaultCharacterPage.scss';
 import '../styles/CharacterPageStyles/AlternativeCharacterPage.scss';
 import { useLocation } from 'react-router-dom';
@@ -17,26 +17,74 @@ import { onAuthStateChanged } from 'firebase/auth';
 
 export function CharacterPage() {
     const [characterPage, setCharacterPage] = useState(characterPageLayout);
+    const [campaignId, setCampaignId] = useState("placeholder");
+    const [campaignInfo, setCampaignInfo] = useState({});
+    const [characterList, setCharacterList] = useState([]);
     const [loadingScreen, setLoadingScreen] = useState(true);
     const [userId, setUserId] = useState("");
     const location = useLocation();
     const pageTheme = 'DefaultCharacterPage';
 
-    const docQuery = doc(db, "characters", location.pathname.split("/").at(2));
+    const docQuery = useMemo(() => doc(db, "characters", location.pathname.split("/").at(2)), [location.pathname]);
+    const campaignDocQuery = useMemo(() => doc(db, "campaigns", campaignId), [campaignId]);
+    const charactersQuery = useMemo(() => query(collection(db, "characters"), where("campaign", "==", campaignId)), [campaignId]);
     
-    // eslint-disable-next-line
-    const unsubscribe = onSnapshot(docQuery, { includeMetadataChanges: true }, (docSnap) => {
-        if (document.title !== docSnap.data().character_name) document.title = docSnap.data().character_name;
-        if (docSnap.metadata.hasPendingWrites || loadingScreen) {
-            setCharacterPage(prevData => ({
-                ...prevData,
-                ...docSnap.data(),
-                character_id: location.pathname.split("/").at(2)
-            }));
-            setLoadingScreen(false);
+    useEffect(() => {
+        // eslint-disable-next-line
+        const unsubscribe = onSnapshot(docQuery, { includeMetadataChanges: true }, (docSnap) => {
+            if (document.title !== docSnap.data().character_name) document.title = docSnap.data().character_name;
+            if (docSnap.metadata.hasPendingWrites || loadingScreen) {
+                setCharacterPage(prevData => ({
+                    ...prevData,
+                    ...docSnap.data(),
+                    character_id: location.pathname.split("/").at(2)
+                }));
+                setCampaignId(docSnap.data().campaign);
+                setLoadingScreen(false);
+            }
+        });
+        return () => unsubscribe();
+        // eslint-disable-next-line
+    }, [docQuery, location.pathname]);
+
+    useEffect(() => {
+        if (campaignId !== "placeholder") {
+            // eslint-disable-next-line
+            const unsubscribe = onSnapshot(campaignDocQuery, (docSnap) => {
+                if (docSnap.metadata.hasPendingWrites || campaignInfo !== docSnap.data()) {
+                    setCampaignInfo(docSnap.data());
+                }
+            });
+            return () => unsubscribe();
         }
-    });
-    window.addEventListener('beforeunload', () => unsubscribe());
+        // eslint-disable-next-line
+    }, [campaignDocQuery]);
+
+    useEffect(() => {
+        if (campaignId !== "placeholder") {
+            // eslint-disable-next-line
+            const unsubscribe = onSnapshot(campaignDocQuery, (docSnap) => {
+                if (docSnap.metadata.hasPendingWrites || campaignInfo !== docSnap.data()) {
+                    setCampaignInfo(docSnap.data());
+                }
+            });
+            return () => unsubscribe();
+        }
+        // eslint-disable-next-line
+    }, [campaignDocQuery]);
+
+    useEffect(() => {
+        if (campaignId !== "placeholder") {
+            // eslint-disable-next-line
+            const unsubscribe = onSnapshot(charactersQuery, (querySnapshot) => {
+                if (querySnapshot.metadata.hasPendingWrites || characterList.length === 0) {
+                    setCharacterList(querySnapshot.docs.map(doc => ({character_id: doc.id, ...doc.data()})));
+                }
+            });
+            return () => unsubscribe();
+        }
+        // eslint-disable-next-line
+    }, [charactersQuery]);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -56,7 +104,7 @@ export function CharacterPage() {
                 <CharacterPageNavigation characterPage={characterPage}/>
                 <CharacterPageAbilityScorePanel characterPageLayoutLive={characterPage} userId={userId}/>
                 <CharacterPageStatsPanel characterPageLayoutLive={characterPage} userId={userId}/>
-                <CharacterMainTab characterPage={characterPage} setCharacterPage={setCharacterPage} userId={userId}/>
+                <CharacterMainTab characterPage={characterPage} userId={userId} characterList={characterList} />
             </div>
     </div>}
     {loadingScreen && <img src={loadingIcon} alt="loading" className='CharacterPage-loading-icon'/>}

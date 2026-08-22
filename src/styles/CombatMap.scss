@@ -1,0 +1,74 @@
+.CombatMap-zone-body {
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.25);
+    // not scrollable: @hello-pangea/dnd only supports one scroll container in a
+    // Droppable's ancestor chain, and .TabContainer-content already claims that
+    // role for the whole tab. A crowded zone overflows visually instead.
+    overflow: visible;
+    box-sizing: border-box;
+    padding: 2px;
+}
+
+.CombatMap-zone-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    font-size: 11px;
+    font-weight: bold;
+    color: #fff;
+    text-align: center;
+    text-shadow: 0 0 3px #000;
+    pointer-events: none;
+}
+
+.CombatMap-zone {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    height: 100%;
+    padding-top: 14px;
+    box-sizing: border-box;
+
+    // this is the class @hello-pangea/dnd actually toggles on the droppable
+    // element itself - it was previously (incorrectly) styled on the outer
+    // .CombatMap-zone-body wrapper, so the highlight never showed up
+    &.isDraggingOver {
+        background: rgba(255, 220, 0, 0.35);
+    }
+}
+
+.CombatMap-tile-box {
+    background: #4c4c4c;
+    border-radius: 4px;
+    padding: 2px 4px;
+    margin-bottom: 2px;
+
+    &.isDragging {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    &:hover {
+        background: #636363;
+    }
+}
+
+.CombatMap-tile-title {
+    font-size: 11px;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.CombatMap-tile-content {
+    display: none;
+}
+
+.CombatMap-no-active-map {
+    color: white;
+    padding: 20px;
+    text-align: center;
+}

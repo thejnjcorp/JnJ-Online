@@ -1,7 +1,5 @@
 import { CombatActionList } from "./CombatActionList";
-import DraggableLayout from "react-draggable-layout";
-import { PostListContent } from "../utils/DraggableElements/PostListContent.tsx";
-import Collapsible from "react-collapsible";
+// import Collapsible from "react-collapsible";
 import TextareaAutosize from "react-textarea-autosize";
 import starIcon from '../icons/star.svg';
 import starFilledIcon from '../icons/star_filled.svg';
@@ -10,8 +8,12 @@ import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../utils/firebase";
 import { useRef, useState, useEffect } from "react";
 import { TabContainer } from "./TabContainer.js";
+// import { PostListContentLocal } from "../utils/DraggableElements/PostListLocal.tsx";
+import { PostListContentInventory } from "../utils/DraggableElements/PostListInventory.tsx";
+import { PostListContentInventoryPocket } from "../utils/DraggableElements/PostListInventoryPocket.tsx";
+import { PostListContentCombat } from "../utils/DraggableElements/PostListCombat.tsx";
 
-export function CharacterMainTab({ characterPage, setCharacterPage, userId }) {
+export function CharacterMainTab({ characterPage, userId, characterList =[] }) {
     const hasWritePermissions = userId ? (characterPage.userId === userId || characterPage.canWrite.includes(userId)) : false;
     const debounceRef = useRef({});
     const [localValues, setLocalValues] = useState({
@@ -65,41 +67,6 @@ export function CharacterMainTab({ characterPage, setCharacterPage, userId }) {
         } catch (e) {
             alert(e);
         }
-    }
-
-    function generateDraggableInventory(inventory) {
-        return inventory.map((item, key) => {
-            return { col: item.colNum, id: key, component: <Collapsible 
-                className="CharacterMainTab-inventory-item"
-                openedClassName="CharacterMainTab-inventory-item-opened"
-                contentInnerClassName="CharacterMainTab-inventory-item-description"
-                contentOuterClassName="CharacterMainTab-inventory-item-description"
-                trigger={item.itemName}
-            >
-                <p>
-                    {item.description}
-                </p>
-            </Collapsible> };
-        })
-    }
-
-    const handleDragItemChange = (c) => {
-        // console.log("onChange()", c);
-        const newMapping = c.map(item => {
-            return {
-                itemName: item.component.props.trigger,
-                description: item.component.props.children.props.children,
-                colNum: item.col
-            }
-        });
-        setCharacterPage(prevState => ({
-            ...prevState,
-            inventory: [...prevState.inventory, newMapping]
-        }));
-    }
-
-    const handleNewItem = () => {
-        // finish this later
     }
     
     const tabs = [
@@ -189,15 +156,47 @@ export function CharacterMainTab({ characterPage, setCharacterPage, userId }) {
         },
         {
             tabName: "Inventory",
-            content: <>
-                <DraggableLayout components={generateDraggableInventory(characterPage.inventory)} columns={3} mainColumnIndex={-1} onChange={handleDragItemChange} draggable={true} />
-                <div className='CharacterMainTab-inventory-item' onClick={handleNewItem}>Add Item</div>
-            </>
+            content: <div className="CharacterMainTab-inventory">
+                <div style={{ width: "50%" }}>
+                    <PostListContentInventory 
+                        inputStatuses={[["Relic 1", "Relic 2", "Relic 3", "Relic 4"], 
+                                        ["1", "2", "3", "4"], 
+                                        ["5", "6", "7", "8"]]}
+                        characterId={characterPage.character_id}
+                        className={{
+                            postColumn: "CharacterMainTab-PostColumn-inventory",
+                            postColumnHeader: "CharacterMainTab-PostColumn-header-inventory",
+                            postColumnBody: "CharacterMainTab-PostColumn-body-inventory",
+                            postCardTitle: "CharacterMainTab-PostCardTitle-inventory",
+                            postCardContent: "CharacterMainTab-PostCardContent-inventory",
+                            postCardBox: "CharacterMainTab-PostCardBox-inventory"
+                        }}
+                        campaignCharacterList={characterList || []}
+                    />
+                </div>
+                <div style={{ width: "50%" }}>
+                    <PostListContentInventoryPocket
+                        inputStatuses={["Pocket"]}
+                        characterId={characterPage.character_id}
+                        className={{
+                            postColumn: "CharacterMainTab-PostColumn-inventory-pocket",
+                            postColumnHeader: "CharacterMainTab-PostColumn-header-inventory-pocket",
+                            postColumnBody: "CharacterMainTab-PostColumn-body-inventory-pocket",
+                            postCardTitle: "CharacterMainTab-PostCardTitle-inventory-pocket",
+                            postCardContent: "CharacterMainTab-PostCardContent-inventory-pocket",
+                            postCardBox: "CharacterMainTab-PostCardBox-inventory-pocket"
+                        }}
+                    />
+                </div>
+            </div>
         },
         {
             tabName: "Combat Map",
             content: <div className="CharacterMainTab-combat-map">
-                <PostListContent inputStatuses={["Zone 0", "Zone 1", "Zone 2", "Special Zone"]}/>
+                <PostListContentCombat
+                    inputStatuses={["Zone 0", "Zone 1", "Zone 2", "Zone 3", "Zone 4"]}
+                    campaignId={characterPage.campaign}
+                />
             </div>
         }
     ];

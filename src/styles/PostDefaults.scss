@@ -1,0 +1,53 @@
+.PostColumn-default {
+    background: #eaeaee;
+    padding: 5px;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    height: calc(100% - max(10%, 40px));
+
+    &.isDraggingOver {
+        background-color: #777;
+    }
+}
+
+.PostColumn-header-default {
+    color: #000;
+    font-weight: bold;
+    font-size: 30px;
+    height: calc(max(10%, 40px));
+}
+
+.PostColumn-body-default {
+    padding-top: 8px;
+    padding-bottom: 16px;
+    background: #eaeaee;
+}
+
+.PostCardTitle-default {
+    font-size: 20px;
+    color: #ffffff;
+    font-weight: bold;
+}
+
+.PostCardContent-default {
+    font-size: 16px;
+    color: #bbbbbb;
+}
+
+.PostCardBox-default {
+    background: #4c4c4c;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 10px;
+    padding: 10px;
+
+    &.isDragging {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        transform: rotate(1deg);
+    }
+
+    &:hover {
+        background: #636363;
+    }
+}

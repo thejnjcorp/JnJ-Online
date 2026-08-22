@@ -62,3 +62,124 @@
     font-family: inherit;
     font-size: inherit;
 }
+
+.CharacterMainTab-inventory {
+    display: flex;
+    flex-direction: row;
+}
+
+// Post Column Styles for Inventory
+.CharacterMainTab-PostColumn-inventory {
+    background: #6c6c75;
+    padding: 5px;
+    border-radius: 15px;
+    display: flex;
+    flex-direction: column;
+    height: calc(100% - max(10%, 40px));
+
+    &.isDraggingOver {
+        background-color: #777;
+    }
+}
+
+.CharacterMainTab-PostColumn-header-inventory {
+    color: #ffffff;
+    font-weight: bold;
+    font-size: 30px;
+    height: calc(max(10%, 40px));
+}
+
+.CharacterMainTab-PostColumn-body-inventory {
+    margin-bottom: 24px;
+    margin-left: 12px;
+    margin-right: 12px;
+    background: #6c6c75;
+    height: 14vh;
+    border-radius: 15px;
+}
+
+.CharacterMainTab-PostCardTitle-inventory {
+    font-size: 20px;
+    color: #ffffff;
+    font-weight: bold;
+}
+
+.CharacterMainTab-PostCardContent-inventory {
+    font-size: 16px;
+    color: #bbbbbb;
+}
+
+.CharacterMainTab-PostCardBox-inventory {
+    background: #4c4c4c;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 10px;
+    padding: 10px;
+
+    &.isDragging {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        transform: rotate(1deg);
+    }
+
+    &:hover {
+        background: #636363;
+    }
+}
+
+// Post Column Styles for Inventory Pocket
+.CharacterMainTab-PostColumn-inventory-pocket {
+    background: #dedede;
+    padding: 5px;
+    border-radius: 15px;
+    display: flex;
+    flex-direction: column;
+    height: calc(100% - max(10%, 40px));
+
+    &.isDraggingOver {
+        background-color: #777;
+    }
+}
+
+.CharacterMainTab-PostColumn-header-inventory-pocket {
+    color: #000000;
+    font-weight: bold;
+    font-size: 30px;
+    height: calc(max(10%, 40px));
+}
+
+.CharacterMainTab-PostColumn-body-inventory-pocket {
+    margin-bottom: 24px;
+    background: #dedede;
+    height: calc(28vh + 24px);
+    border-radius: 15px;
+    width: calc(100% - 12px) !important;
+    margin-right: 12px;
+}
+
+.CharacterMainTab-PostCardTitle-inventory-pocket {
+    font-size: 20px;
+    color: #ffffff;
+    font-weight: bold;
+}
+
+.CharacterMainTab-PostCardContent-inventory-pocket {
+    font-size: 16px;
+    color: #bbbbbb;
+}
+
+.CharacterMainTab-PostCardBox-inventory-pocket {
+    background: #4c4c4c;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 10px;
+    padding: 10px;
+
+    &.isDragging {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        transform: rotate(1deg);
+    }
+
+    &:hover {
+        background: #636363;
+    }
+}

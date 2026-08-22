@@ -5,7 +5,10 @@
     margin: 10px;
     border-radius: 15px;
     max-height: 50vh;
-    overflow-y: auto;
+    // scrolling lives on .TabContainer-content below - having both nested here
+    // was a redundant double scroll container, which @hello-pangea/dnd (used by
+    // the Combat Tracker inside this tab) explicitly does not support
+    overflow: visible;
 
     .TabButton {
         font-size: 24px;

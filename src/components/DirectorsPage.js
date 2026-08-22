@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import '../styles/CharacterPageStyles/DefaultCharacterPage.scss';
 import '../styles/DirectorsPage.scss';
 import '../styles/CharacterMainTab.scss';
 import { useLocation } from 'react-router-dom';
 import { db, auth } from '../utils/firebase';
-import { doc, query, collection, where, onSnapshot, updateDoc, documentId, addDoc } from 'firebase/firestore';
+import { doc, query, collection, where, onSnapshot, updateDoc, documentId, addDoc, deleteDoc } from 'firebase/firestore';
 import { SkillsAndFlaws } from './SkillsAndFlaws';
 import Collapsible from 'react-collapsible';
 import characterPageLayout from '../CharacterPageLayout.json';
@@ -17,7 +17,7 @@ import { uploadImageToImgur } from '../utils/imgurUploader';
 import { onAuthStateChanged } from 'firebase/auth';
 import starIcon from '../icons/star.svg';
 import starFilledIcon from '../icons/star_filled.svg';
-import { CombatTracker } from './CombatTracker';
+import { PostListContentCombatMap } from '../utils/DraggableElements/PostListCombatMap.tsx';
 import { MapRenderer } from './MapRenderer';
 
 export function DirectorsPage() {
@@ -31,9 +31,8 @@ export function DirectorsPage() {
         "enemy_list":[], 
         "ally_combat_npc_list":[], 
         "neutral_combat_npc_list":[],
-        "combat_tracker": {
-            "zones":[]
-        },
+        "combat_tracker": [],
+        "active_map": null,
         "maps": [],
     });
     const [maps, setMaps] = useState([]);
@@ -84,6 +83,29 @@ export function DirectorsPage() {
     const onMapFileChange = (event) => {
         setMapFile(event.target.files[0]);
     };
+
+    const deleteMap = async (map) => {
+        if (!window.confirm("Delete this map? This cannot be undone.")) return;
+        try {
+            await updateDoc(campaignDoc, {
+                maps: campaignInfo.maps.filter((mapId) => mapId !== map.map_id),
+                ...(campaignInfo.active_map === map.map_id ? { active_map: null } : {})
+            });
+            await deleteDoc(doc(db, "maps", map.map_id));
+        } catch (error) {
+            console.error("Error deleting map:", error);
+            alert("Failed to delete map: " + error.message);
+        }
+    };
+
+    const activeMap = maps.find((map) => map.map_id === campaignInfo.active_map);
+
+    const combatEntities = useMemo(() => [
+        ...characterList.map((character) => ({ id: "character:" + character.character_id, title: character.character_name })),
+        ...campaignInfo.ally_combat_npc_list.map((npc) => ({ id: "npc:" + npc.id, title: npc.enemy_name })),
+        ...campaignInfo.enemy_list.map((npc) => ({ id: "npc:" + npc.id, title: npc.enemy_name })),
+        ...campaignInfo.neutral_combat_npc_list.map((npc) => ({ id: "npc:" + npc.id, title: npc.enemy_name })),
+    ], [characterList, campaignInfo.ally_combat_npc_list, campaignInfo.enemy_list, campaignInfo.neutral_combat_npc_list]);
     
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -196,11 +218,12 @@ export function DirectorsPage() {
                     </div>
                     <div className='DirectorsPage-CombatTracker'>
                         Combat Tracker<br/>
-                        {/*<CombatTracker 
-                            entityList={campaignInfo.ally_combat_npc_list.concat(campaignInfo.enemy_list, campaignInfo.neutral_combat_npc_list)}
-                            zoneList={campaignInfo.conbat_tracker.zones}
-                        />*/}
-                        <CombatTracker/>
+                        <PostListContentCombatMap
+                            key={activeMap?.map_id || "no-active-map"}
+                            campaignId={location.pathname.split("/").at(2)}
+                            activeMap={activeMap}
+                            entities={combatEntities}
+                        />
                     </div>
                     <div className='DirectorsPage-CombatEnemyStats'>
                         Enemy Stats<br/>
@@ -314,9 +337,23 @@ export function DirectorsPage() {
                             <img src={URL.createObjectURL(mapFile)} alt="Map Preview" className='DirectorsPage-map-preview'/>
                         </div>}
                         <div className='DirectorsPage-maps-list'>
-                            {maps.map((map, index) => {
-                                return <div key={index} className='DirectorsPage-map-item'>
+                            {maps.map((map) => {
+                                const isActive = campaignInfo.active_map === map.map_id;
+                                return <div key={map.map_id} className='DirectorsPage-map-item'>
                                     <MapRenderer map={map} userId={userId}/>
+                                    <button
+                                        className='DirectorsPage-set-active-map-button'
+                                        disabled={isActive}
+                                        onClick={() => updateDoc(campaignDoc, { active_map: map.map_id })}
+                                    >
+                                        {isActive ? "Active Map" : "Set as Active"}
+                                    </button>
+                                    <button
+                                        className='DirectorsPage-delete-map-button'
+                                        onClick={() => deleteMap(map)}
+                                    >
+                                        Delete Map
+                                    </button>
                                 </div>
                             })}
                         </div>

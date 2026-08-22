@@ -144,6 +144,8 @@ export function NewCharacterPage() {
         finalData.skills_and_flaws = []
 
         finalData.inventory = []
+        finalData.inventory_pocket = []
+        finalData.trading_metadata ={}
         // console.log(finalData)
 
         console.log("Creating new Character:")

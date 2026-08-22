@@ -14,6 +14,14 @@
     justify-content: center;
 }
 
+.MapRenderer-canvas {
+    position: relative;
+    width: min-content;
+    // zones can be resized past the image's edge (no bound check on resize);
+    // clip here so an oversized zone doesn't bleed into whatever follows the map
+    overflow: hidden;
+}
+
 .MapRenderer-color-picker-button, .MapRenderer-button {
     width: 50px;
     height: 30px;
@@ -79,6 +87,13 @@
 
 .MapRenderer-zone {
     position: absolute;
+    // fix the pre-transform origin at the canvas's top-left corner. Without this,
+    // each zone's untransformed position falls back to its place in normal document
+    // flow (stacking below every earlier zone's height), so react-draggable's
+    // translate(x, y) ends up measuring from a different, drifting baseline per zone
+    // instead of a shared one — that's what caused the compounding positional drift.
+    top: 0;
+    left: 0;
     border-width: 2px;
     border-style: solid;
     display: flex;
@@ -149,7 +164,6 @@
     display: flex;
     background-color: transparent;
     color: white;
-    mix-blend-mode: difference;
     text-align: center;
     border: none;
 }

@@ -1,0 +1,97 @@
+.PostCardMenu-default {
+    display: flex;
+    flex-direction: column;
+    background-color: none;
+    height: 9vh;
+    z-index: 200000;
+    width: 100%;
+}
+
+.PostCardMenuButton-default, .PostCardSendMenu-default {
+    height: 3vh;
+    width: 100%;
+}
+
+.PostCardSendMenu-default {
+    left: 100%;
+    top: -9vh;
+    position: relative;
+}
+
+.PostCardTradeMenu-default {
+    position: fixed;
+    height: 60vh;
+    width: 80vw;
+    z-index: 5;
+    top: 20vh;
+    left: 10vw;
+    border-radius: 15px;
+    background-color: rgb(33, 33, 33);
+    display: flex;
+    flex-direction: column;
+}
+
+.PostCardTradeMenuSelect {
+    width: 15vw;
+    height: 36px;
+    background-color: rgb(66, 66, 66);
+    color: white;
+    border-radius: 15px;
+    font-size: 24px;
+    padding-left: 10px;
+    margin-left: 10px;
+
+    &:open {
+        border-bottom-left-radius: 0px;
+        border-bottom-right-radius: 0px;
+    }
+}
+
+.PostCardTradeMenuCloseButton {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 5vw;
+    height: 40px;
+    background-color: inherit;
+    color: white;
+    border-style: none;
+    border-top-right-radius: 15px;
+    font-size: 24px;
+    cursor: pointer;
+
+    &:hover {
+        background-color: rgb(255, 0, 0);
+    }
+}
+
+.PostCardTradeMenuContent {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.PostCardTradeWindow {
+    width: calc(38vw - 20px);
+    height: calc(100% - 20px);
+    border-radius: 15px;
+    display: flex;
+    flex-direction: column;
+    background-color: rgb(66, 66, 66);
+    margin: 10px;
+}
+
+.PostCardTradeActions {
+    display: flex;
+    flex-direction: column;
+    width: 4vw;
+    height: 100%;
+}
+
+.PostCardTradeDoubleArrow {
+    width: 4vw;
+    filter: invert(100%);
+}
+
