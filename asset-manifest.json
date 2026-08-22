@@ -1,30 +1,29 @@
 {
   "files": {
-    "main.css": "/JnJ-Online/static/css/main.f659303c.css",
-    "main.js": "/JnJ-Online/static/js/main.fda2a880.js",
+    "main.css": "/JnJ-Online/static/css/main.c605cde2.css",
+    "main.js": "/JnJ-Online/static/js/main.a44ba4e3.js",
     "static/js/540.5d774e05.chunk.js": "/JnJ-Online/static/js/540.5d774e05.chunk.js",
     "static/js/453.148b0809.chunk.js": "/JnJ-Online/static/js/453.148b0809.chunk.js",
     "static/media/JnJ_Ruleset.md": "/JnJ-Online/static/media/JnJ_Ruleset.9df09b62121aede80876.md",
     "static/media/strength.svg": "/JnJ-Online/static/media/strength.45131f355faa8d2ad58375a6bfb0af74.svg",
-    "static/media/logo.svg": "/JnJ-Online/static/media/logo.6ce24c58023cc2f8fd88fe9d219db6c6.svg",
     "static/media/star_filled.svg": "/JnJ-Online/static/media/star_filled.990898879b39ca939542fa3b99a92a3b.svg",
     "static/media/star.svg": "/JnJ-Online/static/media/star.e65bb636aa16de47b2b54f5060dd5db8.svg",
     "static/media/dexterity.svg": "/JnJ-Online/static/media/dexterity.a5617fd1b11fec33b7b285b019e5252e.svg",
+    "index.html": "/JnJ-Online/index.html",
     "static/media/colorpicker.svg": "/JnJ-Online/static/media/colorpicker.c6ad43261a3c0de20fba2991d942552e.svg",
     "static/media/intelligence.svg": "/JnJ-Online/static/media/intelligence.0762515db546f70338a8cc08e7473d31.svg",
-    "index.html": "/JnJ-Online/index.html",
     "static/media/double_arrow.svg": "/JnJ-Online/static/media/double_arrow.44adf0ff4d97c634c2ee484d2fea56a6.svg",
     "static/media/trash_can.svg": "/JnJ-Online/static/media/trash_can.e68e4a9bff0f80224cfeef3fb17e049e.svg",
     "static/media/default_profile.svg": "/JnJ-Online/static/media/default_profile.bfa6b1bf0bb79cddcb1583911fc58628.svg",
     "static/media/shield.svg": "/JnJ-Online/static/media/shield.4864cb36a836c83fc600695b01d914d8.svg",
     "static/media/charisma.svg": "/JnJ-Online/static/media/charisma.1d37201f2910fa9c89fbcc9aafe119e5.svg",
     "static/media/loading.svg": "/JnJ-Online/static/media/loading.d0eb5ef18157850cbf97f4481df38b36.svg",
-    "main.f659303c.css.map": "/JnJ-Online/static/css/main.f659303c.css.map",
-    "main.fda2a880.js.map": "/JnJ-Online/static/js/main.fda2a880.js.map",
+    "main.c605cde2.css.map": "/JnJ-Online/static/css/main.c605cde2.css.map",
+    "main.a44ba4e3.js.map": "/JnJ-Online/static/js/main.a44ba4e3.js.map",
     "453.148b0809.chunk.js.map": "/JnJ-Online/static/js/453.148b0809.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.f659303c.css",
-    "static/js/main.fda2a880.js"
+    "static/css/main.c605cde2.css",
+    "static/js/main.a44ba4e3.js"
   ]
 }
