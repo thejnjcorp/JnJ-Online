@@ -13,7 +13,7 @@ export function PostListContentCombat({ inputStatuses, campaignId }) {
         // eslint-disable-next-line
         const unsubscribe = onSnapshot(docQuery, (docSnap) => {
             if (docSnap.metadata.hasPendingWrites || loading) {
-                setPosts(docSnap.data()?.combat_tracker as unknown as Post[]);
+                setPosts((docSnap.data()?.combat_tracker as unknown as Post[]) ?? []);
                 setLoading(false);
             }
         });

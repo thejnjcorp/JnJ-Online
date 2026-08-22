@@ -15,7 +15,7 @@ export function CharacterPageStatsPanel({characterPageLayoutLive, userId}) {
         characterPageLayoutLive.base_damage_dice_type, 
         characterPageLayoutLive.base_healing_dice_type);
 
-    const hasWritePermissions = userId ? (characterPageLayoutLive.userId === userId || characterPageLayoutLive.canWrite.includes(userId)) : false;
+    const hasWritePermissions = userId ? (characterPageLayoutLive.userId === userId || characterPageLayoutLive.canWrite?.includes(userId)) : false;
     const debounceRef = useRef({});
     const [localScores, setLocalScores] = useState({
         current_health: characterPageLayoutLive.current_health,

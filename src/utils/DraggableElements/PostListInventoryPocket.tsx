@@ -13,7 +13,7 @@ export function PostListContentInventoryPocket({ inputStatuses, characterId, cla
         // eslint-disable-next-line
         const unsubscribe = onSnapshot(docQuery, (docSnap) => {
             if (docSnap.metadata.hasPendingWrites || loading) {
-                setPosts(docSnap.data()?.inventory_pocket as unknown as Post[]);
+                setPosts((docSnap.data()?.inventory_pocket as unknown as Post[]) ?? []);
                 setLoading(false);
             }
         });

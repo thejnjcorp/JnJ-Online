@@ -1,47 +1,105 @@
-.CharacterCard {
-    border-width: 2px;
-    border-radius: 10px;
-    width: calc(30vw);
-    border-style: hidden;
-    font-weight: bold;
-    font-size: 36px;
-    margin: 20px;
-    padding-top: 20px;
-    padding-bottom: 20px;
-    color: white;
-    background: rgba(161, 244, 255, 0.541);
-
-    &:hover {
-        background: rgba(123, 186, 194, 0.541);
-        color: cyan;
-    }
-}
-
-.CharacterCard-small-text {
-    font-size: 24px;
-    font-weight: 100;
-}
-
+/* Same height-capped, internally-scrolling idiom as Homepage/AccountPage/
+   ClassListPage - see the note on .Homepage in styles/Homepage.scss. */
 .Character-page {
-    width: 100vw;
-    height: 90vh;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: var(--jnj-content-max);
+    height: calc(100vh - var(--jnj-nav-height));
+    margin: 0 auto;
+    padding: var(--jnj-space-6) var(--jnj-space-5);
+    overflow-y: auto;
+    text-align: left;
 }
 
 .Characters-title {
+    font-family: var(--jnj-font-display);
+    font-size: var(--jnj-text-3xl);
+    letter-spacing: var(--jnj-tracking-display);
+    color: var(--jnj-color-text);
+    padding-bottom: var(--jnj-space-4);
+    margin-bottom: var(--jnj-space-5);
+    border-bottom: 1px solid var(--jnj-color-border);
+}
+
+.Characters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: var(--jnj-space-4);
+}
+
+.CharacterCard {
+    box-sizing: border-box;
     display: flex;
-    flex-wrap: wrap;
-    width: 90vw;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--jnj-space-2);
+    padding: var(--jnj-space-4) var(--jnj-space-5);
+    text-align: left;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: var(--jnj-text-lg);
+    color: var(--jnj-color-text);
+    background-color: var(--jnj-color-bg-raised);
+    border: 1px solid var(--jnj-color-border);
+    /* Personalizes the card with the character's own sheet accent color
+       (CharacterPageNavigation uses the same navigation_color field), with a
+       sane fallback for characters that haven't set one. */
+    border-top: 4px solid var(--character-accent, var(--jnj-color-accent));
+    border-radius: var(--jnj-radius-md);
+    cursor: pointer;
+    transition: border-color var(--jnj-transition), background-color var(--jnj-transition), transform var(--jnj-transition);
+
+    &:hover {
+        background-color: var(--jnj-color-bg-hover);
+        border-color: var(--jnj-color-border-strong);
+        border-top-color: var(--character-accent, var(--jnj-color-accent));
+        transform: translateY(-2px);
+    }
+}
+
+.CharacterCard-name {
+    color: var(--jnj-color-text);
+}
+
+.CharacterCard-small-text {
+    font-size: var(--jnj-text-sm);
+    font-weight: 400;
+    line-height: 1.6;
+    color: var(--jnj-color-text-muted);
+}
+
+.CharacterCard-create {
+    align-items: center;
     justify-content: center;
-    align-content: center;
-    font-size: 48px;
-    font-weight: bold;
-    letter-spacing: 1px;
-    padding-bottom: 10px;
-    margin-left: 5vw;
-    margin-right: 5vw;
-    margin-bottom: 30px;
-    border: 0px;
-    border-bottom: 2px;
-    border-color: white;
-    border-style: solid;
+    text-align: center;
+    border-top-color: var(--jnj-color-border);
+    border-style: dashed;
+    background-color: transparent;
+    color: var(--jnj-color-accent);
+    font-weight: 600;
+
+    &:hover {
+        border-color: var(--jnj-color-accent);
+        border-style: dashed;
+        background-color: var(--jnj-color-accent-soft);
+        color: var(--jnj-color-accent-hover);
+    }
+}
+
+.Characters-empty-state {
+    padding: var(--jnj-space-6) 0;
+    font-size: var(--jnj-text-base);
+    color: var(--jnj-color-text-faint);
+}
+
+.Characters-empty-state-grid {
+    grid-column: 1 / -1;
+    padding: var(--jnj-space-4) 0;
+}
+
+.Characters-loading-icon {
+    height: 40px;
+    width: 40px;
+    margin-top: var(--jnj-space-6);
+    animation: App-logo-spin infinite 1.4s linear;
 }

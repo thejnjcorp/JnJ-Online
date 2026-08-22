@@ -219,3 +219,26 @@
         background: #636363;
     }
 }
+.CharacterMainTab-no-campaign {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--jnj-space-3);
+    height: 45vh;
+    text-align: center;
+    color: var(--jnj-color-text-muted);
+}
+
+.CharacterMainTab-no-campaign-link {
+    padding: var(--jnj-space-2) var(--jnj-space-5);
+    border-radius: var(--jnj-radius-pill);
+    background-color: var(--jnj-color-accent);
+    color: var(--jnj-color-on-accent);
+    font-weight: 600;
+    text-decoration: none;
+
+    &:hover {
+        background-color: var(--jnj-color-accent-hover);
+    }
+}

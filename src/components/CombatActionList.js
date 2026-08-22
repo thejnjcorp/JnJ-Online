@@ -8,7 +8,7 @@ import { db } from '../utils/firebase';
 export function CombatActionList({actions, experience_points, baseArmorClass, baseHitModifier, baseDamageModifier, baseDamageDice, baseDamageDiceType, baseHealingDiceType, canUseActions = false, characterPage, userId, lowerUseActionButton=false}) {
     const [visibleActions, setVisibleActions] = useState(Array(actions.length).fill(false))
 
-    const hasWritePermissions = userId ? (characterPage.userId === userId || characterPage.canWrite.includes(userId)) : false;
+    const hasWritePermissions = userId ? (characterPage.userId === userId || characterPage.canWrite?.includes(userId)) : false;
 
     function containsReaction(action){
         return action.tags !== undefined && action.tags.some(tag => tag.tagInfo === "Reaction");

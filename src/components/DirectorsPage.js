@@ -138,7 +138,7 @@ export function DirectorsPage() {
                         Player Stats<br/>
                         {characterList.map((character, index) => {
                             const actualCharacter = { ...characterPageLayout, ...character } 
-                            const hasWritePermissions = userId ? (actualCharacter.userId === userId || actualCharacter.canWrite.includes(userId)) : false;
+                            const hasWritePermissions = userId ? (actualCharacter.userId === userId || actualCharacter.canWrite?.includes(userId)) : false;
                             function setActionPoints(actionPoints) {
                                 try {
                                     updateDoc(doc(db, "characters", actualCharacter.character_id), {

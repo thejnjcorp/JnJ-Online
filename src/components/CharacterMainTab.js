@@ -1,5 +1,6 @@
 import { CombatActionList } from "./CombatActionList";
 // import Collapsible from "react-collapsible";
+import { Link } from "react-router-dom";
 import TextareaAutosize from "react-textarea-autosize";
 import starIcon from '../icons/star.svg';
 import starFilledIcon from '../icons/star_filled.svg';
@@ -32,7 +33,12 @@ const COMBAT_MAP_HEIGHT_OFFSET =
     `${CHARACTER_PAGE_NAV_HEIGHT + ABILITY_STATS_ROW_HEIGHT + TAB_CONTAINER_MARGIN + TAB_BUTTON_ROW_AND_SLACK}px`;
 
 export function CharacterMainTab({ characterPage, userId, characterList = [], campaignInfo = {} }) {
-    const hasWritePermissions = userId ? (characterPage.userId === userId || characterPage.canWrite.includes(userId)) : false;
+    const hasWritePermissions = userId ? (characterPage.userId === userId || characterPage.canWrite?.includes(userId)) : false;
+    // The Combat Map tab operates on the character's campaign (the combat
+    // tracker, the active map) - a character with no campaign field has none
+    // of that to show, and campaignId="" collapsing to "no campaign" makes
+    // that a resolvable state now rather than a crash (see CharacterPage.js).
+    const hasCampaign = Boolean(characterPage.campaign);
     const { activeMap } = useCampaignMaps(campaignInfo);
     const combatEntities = useCombatEntities(characterList, campaignInfo);
     const combatView = characterPage.combat_view ?? "line";
@@ -225,8 +231,11 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
             tabName: "Combat Map",
             // Only .TabContainer-content needs an explicit height here - see the
             // comment in TabContainer.js on why .TabContainer itself doesn't.
-            contentHeight: combatView === "map" ? `calc(90vh - ${COMBAT_MAP_HEIGHT_OFFSET})` : undefined,
-            content: <div className="CharacterMainTab-combat-map">
+            contentHeight: (hasCampaign && combatView === "map") ? `calc(90vh - ${COMBAT_MAP_HEIGHT_OFFSET})` : undefined,
+            content: !hasCampaign ? <div className="CharacterMainTab-no-campaign">
+                <p>This character isn't part of a campaign yet.</p>
+                <Link to="/campaigns" className="CharacterMainTab-no-campaign-link">Join or create a campaign</Link>
+            </div> : <div className="CharacterMainTab-combat-map">
                 <div className="CharacterMainTab-view-toggle">
                     <button
                         className={combatView === "line" ? "CharacterMainTab-view-toggle-active" : ""}

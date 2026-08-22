@@ -32,9 +32,17 @@ export function CharacterPage() {
     const pageTheme = 'DefaultCharacterPage';
 
     const docQuery = useMemo(() => doc(db, "characters", location.pathname.split("/").at(2)), [location.pathname]);
-    const campaignDocQuery = useMemo(() => doc(db, "campaigns", campaignId), [campaignId]);
-    const charactersQuery = useMemo(() => query(collection(db, "characters"), where("campaign", "==", campaignId)), [campaignId]);
-    
+    // campaignId is "placeholder" until the character doc loads, then either a
+    // real campaign ID or null (a character with no campaign field, e.g.
+    // created before that field existed). doc()/query() below must not run for
+    // either "not loaded yet" or "confirmed none" - doc(db, "campaigns", null)
+    // throws synchronously (Firestore rejects an empty path segment), which
+    // would crash the whole page before a "join a campaign" prompt ever had a
+    // chance to render.
+    const hasCampaign = campaignId !== "placeholder" && campaignId !== null;
+    const campaignDocQuery = useMemo(() => hasCampaign ? doc(db, "campaigns", campaignId) : null, [campaignId, hasCampaign]);
+    const charactersQuery = useMemo(() => hasCampaign ? query(collection(db, "characters"), where("campaign", "==", campaignId)) : null, [campaignId, hasCampaign]);
+
     useEffect(() => {
         // eslint-disable-next-line
         const unsubscribe = onSnapshot(docQuery, { includeMetadataChanges: true }, (docSnap) => {
@@ -45,7 +53,7 @@ export function CharacterPage() {
                     ...docSnap.data(),
                     character_id: location.pathname.split("/").at(2)
                 }));
-                setCampaignId(docSnap.data().campaign);
+                setCampaignId(docSnap.data().campaign || null);
                 setLoadingScreen(false);
             }
         });
@@ -54,41 +62,26 @@ export function CharacterPage() {
     }, [docQuery, location.pathname]);
 
     useEffect(() => {
-        if (campaignId !== "placeholder") {
-            // eslint-disable-next-line
-            const unsubscribe = onSnapshot(campaignDocQuery, (docSnap) => {
-                if (docSnap.metadata.hasPendingWrites || campaignInfo !== docSnap.data()) {
-                    setCampaignInfo(docSnap.data());
-                }
-            });
-            return () => unsubscribe();
-        }
+        if (!campaignDocQuery) return;
+        // eslint-disable-next-line
+        const unsubscribe = onSnapshot(campaignDocQuery, (docSnap) => {
+            if (docSnap.metadata.hasPendingWrites || campaignInfo !== docSnap.data()) {
+                setCampaignInfo(docSnap.data());
+            }
+        });
+        return () => unsubscribe();
         // eslint-disable-next-line
     }, [campaignDocQuery]);
 
     useEffect(() => {
-        if (campaignId !== "placeholder") {
-            // eslint-disable-next-line
-            const unsubscribe = onSnapshot(campaignDocQuery, (docSnap) => {
-                if (docSnap.metadata.hasPendingWrites || campaignInfo !== docSnap.data()) {
-                    setCampaignInfo(docSnap.data());
-                }
-            });
-            return () => unsubscribe();
-        }
+        if (!charactersQuery) return;
         // eslint-disable-next-line
-    }, [campaignDocQuery]);
-
-    useEffect(() => {
-        if (campaignId !== "placeholder") {
-            // eslint-disable-next-line
-            const unsubscribe = onSnapshot(charactersQuery, (querySnapshot) => {
-                if (querySnapshot.metadata.hasPendingWrites || characterList.length === 0) {
-                    setCharacterList(querySnapshot.docs.map(doc => ({character_id: doc.id, ...doc.data()})));
-                }
-            });
-            return () => unsubscribe();
-        }
+        const unsubscribe = onSnapshot(charactersQuery, (querySnapshot) => {
+            if (querySnapshot.metadata.hasPendingWrites || characterList.length === 0) {
+                setCharacterList(querySnapshot.docs.map(doc => ({character_id: doc.id, ...doc.data()})));
+            }
+        });
+        return () => unsubscribe();
         // eslint-disable-next-line
     }, [charactersQuery]);
 

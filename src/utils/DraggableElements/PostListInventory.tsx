@@ -16,7 +16,7 @@ export function PostListContentInventory({ inputStatuses, characterId, className
         // eslint-disable-next-line
         const unsubscribe = onSnapshot(docQuery, (docSnap) => {
             if (docSnap.metadata.hasPendingWrites || loading) {
-                setPosts(docSnap.data()?.inventory as unknown as Post[]);
+                setPosts((docSnap.data()?.inventory as unknown as Post[]) ?? []);
                 setLoading(false);
             }
         });

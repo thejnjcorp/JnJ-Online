@@ -11,7 +11,7 @@ export function MapRenderer({ map, userId }) {
     const [isEditing, setIsEditing] = useState(false);
     const [mapBorderColor, setMapBorderColor] = useState(map?.borderColor || "red");
     const [zones, setZones] = useState(map?.zones || []);
-    const canEdit = map?.canWrite.includes(userId);
+    const canEdit = map?.canWrite?.includes(userId);
     const [selectedZone, setSelectedZone] = useState(null);
 
     const [showColorpicker, setShowColorPicker] = useState(false);

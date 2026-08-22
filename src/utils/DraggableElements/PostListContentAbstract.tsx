@@ -8,6 +8,11 @@ import { PostColumn, PostCardComponentType } from "./PostColumn.tsx";
 // zones are authored in MapRenderer against an image rendered at this width
 const MAP_REFERENCE_WIDTH = 500;
 
+// A stable reference (not a fresh [] literal every render) so the
+// [unorderedPosts] effect dependency below only actually changes when real
+// data arrives, not on every render while a usePosts hook is still loading.
+const EMPTY_POSTS: Post[] = [];
+
 export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, grid=false, columnFormat=true, swappableMode=false, className={}, PostCardComponent, backgroundImage, zoneLayout }: {
   inputStatuses,
   usePosts,
@@ -20,10 +25,17 @@ export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, 
   backgroundImage?: string,
   zoneLayout?: { name: string; x: number; y: number; width: number; height: number }[]
 }) => {
-  const { posts: unorderedPosts, loading: isLoading } = usePosts();
+  const { posts: rawPosts, loading: isLoading } = usePosts();
+  // A usePosts producer that reads a Firestore field directly (rather than
+  // via the CharacterPageLayout.json-defaulted merge) can hand back whatever
+  // shape happens to be stored there - e.g. the "Orto" campaign's
+  // combat_tracker is a legacy { zones: [...] } object, not a Post[] array.
+  // `?? []` alone only catches a missing field, not a wrong-shaped one, so
+  // this needs an actual type check to keep every .map/.forEach below safe.
+  const unorderedPosts: Post[] = Array.isArray(rawPosts) ? rawPosts : EMPTY_POSTS;
 
   const foundStatuses: Status[] = Array.from(
-    new Set((unorderedPosts ?? []).map(post => post.status))
+    new Set(unorderedPosts.map(post => post.status))
   );
 
   const flatInputStatuses: Status[] = useMemo(() => {

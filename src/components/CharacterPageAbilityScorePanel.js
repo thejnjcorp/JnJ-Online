@@ -9,7 +9,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 
 export function CharacterPageAbilityScorePanel({characterPageLayoutLive, userId}) {
-    const hasWritePermissions = userId ? (characterPageLayoutLive.userId === userId || characterPageLayoutLive.canWrite.includes(userId)) : false;
+    const hasWritePermissions = userId ? (characterPageLayoutLive.userId === userId || characterPageLayoutLive.canWrite?.includes(userId)) : false;
     const debounceRef = useRef({});
     const [localScores, setLocalScores] = useState({
         strength_stat: characterPageLayoutLive.strength_stat,
