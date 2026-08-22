@@ -1,0 +1,22 @@
+diff --git a/node_modules/jest-environment-jsdom/build/index.js b/node_modules/jest-environment-jsdom/build/index.js
+index 77176ba..e202c07 100644
+--- a/node_modules/jest-environment-jsdom/build/index.js
++++ b/node_modules/jest-environment-jsdom/build/index.js
+@@ -170,9 +170,14 @@ class JSDOMEnvironment {
+       // Do not reset the document before CustomElement disconnectedCallback function has finished running,
+       // document should be accessible within disconnectedCallback.
+ 
+-      Object.defineProperty(this.global, 'document', {
+-        value: null
+-      });
++      try {
++        Object.defineProperty(this.global, 'document', {
++          value: null
++        });
++      } catch {
++        // Newer jsdom versions make `document` non-configurable, so it can't
++        // be redefined here. `this.global.close()` above already disposes it.
++      }
+     }
+ 
+     this.errorEventListener = null; // @ts-expect-error
