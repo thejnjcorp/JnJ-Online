@@ -3,20 +3,40 @@ import { useState } from 'react';
 
 export function TabContainer({tabs, container_height, content_height}) {
     const [selectedTab, setSelectedTab] = useState(0);
+    const activeTab = tabs[selectedTab];
 
-    return <div className='TabContainer' style={container_height ? {maxHeight: container_height} : undefined}>
+    // A per-tab contentHeight (unlike the content_height prop) sets a definite
+    // height on .TabContainer-content, not just a cap - percentage/flex-based
+    // sizing further down the tree (e.g. a combat map fitting to available
+    // height) needs an actual definite height to resolve against, not an auto
+    // height that's merely capped.
+    //
+    // .TabContainer itself is deliberately left to size naturally around its
+    // real content (the tab-button row plus .TabContainer-content) rather than
+    // being forced to match .TabContainer-content's height directly - it's the
+    // parent of both, so forcing it to the same height as one of its two
+    // stacked children is short by the other one's height. Since .TabContainer
+    // uses overflow:visible (see the comment on that rule), a too-small height
+    // wouldn't even clip anything - content would just spill past the box's own
+    // background/rounded corners, which is exactly the bug this replaces.
+    const containerStyle = container_height ? {maxHeight: container_height} : undefined;
+    const contentStyle = activeTab.contentHeight
+        ? {height: activeTab.contentHeight, maxHeight: activeTab.contentHeight}
+        : (content_height ? {maxHeight: content_height} : undefined);
+
+    return <div className='TabContainer' style={containerStyle}>
         <div>
-            {tabs.map((tab, index) => 
-        <button 
-            key={index} 
+            {tabs.map((tab, index) =>
+        <button
+            key={index}
             className={selectedTab !== index ? 'TabButton' : 'TabButton TabButtonSelected'}
             onClick={() => setSelectedTab(index)}
         >
             {tab.tabName}
         </button>)}
         </div>
-        <div className='TabContainer-content' style={content_height ? {maxHeight: content_height} : undefined}>
-            {tabs[selectedTab].content}
+        <div className='TabContainer-content' style={contentStyle}>
+            {activeTab.content}
         </div>
     </div>
 }

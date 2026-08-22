@@ -32,5 +32,6 @@
     
     "tooltips": true,
     "background_color": "#a9a9a9",
-    "navigation_color": "#6600cc"
+    "navigation_color": "#6600cc",
+    "combat_view": "line"
 }

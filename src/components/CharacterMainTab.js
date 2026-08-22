@@ -12,9 +12,40 @@ import { TabContainer } from "./TabContainer.js";
 import { PostListContentInventory } from "../utils/DraggableElements/PostListInventory.tsx";
 import { PostListContentInventoryPocket } from "../utils/DraggableElements/PostListInventoryPocket.tsx";
 import { PostListContentCombat } from "../utils/DraggableElements/PostListCombat.tsx";
+import { PostListContentCombatMap } from "../utils/DraggableElements/PostListCombatMap.tsx";
+import { useCampaignMaps, useCombatEntities } from "../utils/useCampaignCombat";
 
-export function CharacterMainTab({ characterPage, userId, characterList =[] }) {
+// .CharacterPage is capped at 90vh (see CharacterPage.scss), and everything
+// above the Combat Map tab eats into that budget before the map ever gets a
+// chance at it. These mirror the actual fixed-px values from CharacterPage.scss
+// (not vh-relative, so they don't scale with viewport height the way 90vh
+// does - subtracting them out is what makes this work across screen sizes,
+// rather than a flat px offset tuned to one screen).
+const CHARACTER_PAGE_NAV_HEIGHT = 100; // .CharacterPage-navigation { height: 100px }
+const ABILITY_STATS_ROW_HEIGHT = 190 + 2 * 10; // .CharacterPage-abiltyscore-horzontal/.CharacterPage-stats { height: 190px; margin: 10px }
+const TAB_CONTAINER_MARGIN = 2 * 10; // .TabContainer { margin: 10px }
+// Not given an explicit height in TabContainer.scss (sized intrinsically from
+// its 24px-font buttons), plus a little slack for anything else unaccounted
+// for here.
+const TAB_BUTTON_ROW_AND_SLACK = 65;
+const COMBAT_MAP_HEIGHT_OFFSET =
+    `${CHARACTER_PAGE_NAV_HEIGHT + ABILITY_STATS_ROW_HEIGHT + TAB_CONTAINER_MARGIN + TAB_BUTTON_ROW_AND_SLACK}px`;
+
+export function CharacterMainTab({ characterPage, userId, characterList = [], campaignInfo = {} }) {
     const hasWritePermissions = userId ? (characterPage.userId === userId || characterPage.canWrite.includes(userId)) : false;
+    const { activeMap } = useCampaignMaps(campaignInfo);
+    const combatEntities = useCombatEntities(characterList, campaignInfo);
+    const combatView = characterPage.combat_view ?? "line";
+
+    function setCombatView(view) {
+        try {
+            updateDoc(doc(db, "characters", characterPage.character_id), {
+                combat_view: view
+            });
+        } catch (e) {
+            alert(e);
+        }
+    }
     const debounceRef = useRef({});
     const [localValues, setLocalValues] = useState({
         description: characterPage.description ? characterPage.description : characterPage.class_description,
@@ -192,11 +223,35 @@ export function CharacterMainTab({ characterPage, userId, characterList =[] }) {
         },
         {
             tabName: "Combat Map",
+            // Only .TabContainer-content needs an explicit height here - see the
+            // comment in TabContainer.js on why .TabContainer itself doesn't.
+            contentHeight: combatView === "map" ? `calc(90vh - ${COMBAT_MAP_HEIGHT_OFFSET})` : undefined,
             content: <div className="CharacterMainTab-combat-map">
-                <PostListContentCombat
+                <div className="CharacterMainTab-view-toggle">
+                    <button
+                        className={combatView === "line" ? "CharacterMainTab-view-toggle-active" : ""}
+                        disabled={!hasWritePermissions || combatView === "line"}
+                        onClick={() => setCombatView("line")}
+                    >
+                        Line View
+                    </button>
+                    <button
+                        className={combatView === "map" ? "CharacterMainTab-view-toggle-active" : ""}
+                        disabled={!hasWritePermissions || combatView === "map"}
+                        onClick={() => setCombatView("map")}
+                    >
+                        Map View
+                    </button>
+                </div>
+                {combatView === "map" ? <PostListContentCombatMap
+                    campaignId={characterPage.campaign}
+                    activeMap={activeMap}
+                    entities={combatEntities}
+                    noActiveMapMessage="The director hasn't set an active combat map yet."
+                /> : <PostListContentCombat
                     inputStatuses={["Zone 0", "Zone 1", "Zone 2", "Zone 3", "Zone 4"]}
                     campaignId={characterPage.campaign}
-                />
+                />}
             </div>
         }
     ];

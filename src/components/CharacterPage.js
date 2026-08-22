@@ -18,7 +18,13 @@ import { onAuthStateChanged } from 'firebase/auth';
 export function CharacterPage() {
     const [characterPage, setCharacterPage] = useState(characterPageLayout);
     const [campaignId, setCampaignId] = useState("placeholder");
-    const [campaignInfo, setCampaignInfo] = useState({});
+    const [campaignInfo, setCampaignInfo] = useState({
+        enemy_list: [],
+        ally_combat_npc_list: [],
+        neutral_combat_npc_list: [],
+        active_map: null,
+        maps: [],
+    });
     const [characterList, setCharacterList] = useState([]);
     const [loadingScreen, setLoadingScreen] = useState(true);
     const [userId, setUserId] = useState("");
@@ -104,7 +110,7 @@ export function CharacterPage() {
                 <CharacterPageNavigation characterPage={characterPage}/>
                 <CharacterPageAbilityScorePanel characterPageLayoutLive={characterPage} userId={userId}/>
                 <CharacterPageStatsPanel characterPageLayoutLive={characterPage} userId={userId}/>
-                <CharacterMainTab characterPage={characterPage} userId={userId} characterList={characterList} />
+                <CharacterMainTab characterPage={characterPage} userId={userId} characterList={characterList} campaignInfo={campaignInfo} />
             </div>
     </div>}
     {loadingScreen && <img src={loadingIcon} alt="loading" className='CharacterPage-loading-icon'/>}

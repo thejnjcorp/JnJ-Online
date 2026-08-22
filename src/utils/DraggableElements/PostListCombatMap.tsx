@@ -13,7 +13,7 @@ const combatMapClassName = {
     postCardBox: "CombatMap-tile-box",
 };
 
-export function PostListContentCombatMap({ campaignId, activeMap, entities = [] }) {
+export function PostListContentCombatMap({ campaignId, activeMap, entities = [], noActiveMapMessage = "No active map selected. Set one from the Maps tab." }) {
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -65,7 +65,7 @@ export function PostListContentCombatMap({ campaignId, activeMap, entities = [] 
     };
 
     if (!activeMap) {
-        return <div className="CombatMap-no-active-map">No active map selected. Set one from the Maps tab.</div>;
+        return <div className="CombatMap-no-active-map">{noActiveMapMessage}</div>;
     }
 
     return <PostListContentAbstract

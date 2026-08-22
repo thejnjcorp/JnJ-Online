@@ -15,7 +15,12 @@
     top: 0;
     left: 0;
     right: 0;
-    font-size: 11px;
+    // --map-scale (set in PostListContentAbstract.tsx) is the map's actual
+    // rendered width over MAP_REFERENCE_WIDTH, the fixed width zones are
+    // authored against - so labels stay legible whether the map renders
+    // small (a phone-width tab) or large (a wide desktop window), instead of
+    // a flat px size that's only ever right at one specific rendered width.
+    font-size: calc(11px * var(--map-scale, 1));
     font-weight: bold;
     color: #fff;
     text-align: center;
@@ -29,7 +34,9 @@
     flex-direction: column;
     gap: 2px;
     height: 100%;
-    padding-top: 14px;
+    // scales with .CombatMap-zone-header's font-size above so the header
+    // label doesn't start overlapping the first tile as the map grows
+    padding-top: calc(14px * var(--map-scale, 1));
     box-sizing: border-box;
 
     // this is the class @hello-pangea/dnd actually toggles on the droppable
@@ -56,7 +63,7 @@
 }
 
 .CombatMap-tile-title {
-    font-size: 11px;
+    font-size: calc(11px * var(--map-scale, 1));
     color: #fff;
     white-space: nowrap;
     overflow: hidden;

@@ -1,5 +1,5 @@
 import { DragDropContext, OnDragEndResponder, OnDragStartResponder } from "@hello-pangea/dnd";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Post } from "./Post.ts";
 import type { Status } from "./statuses.ts";
 import { PostsByStatus, getPostsByStatus } from "./statuses.ts";
@@ -59,28 +59,72 @@ export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, 
 
   const [draggingId, setDraggingId] = useState<string | null>(null);
 
-  const mapImageRef = useRef<HTMLImageElement | null>(null);
+  // Plain useRef doesn't work for either of these: this component returns
+  // null while isLoading (a check that necessarily comes after all hooks are
+  // declared), so on the render(s) before that resolves, these DOM nodes
+  // don't exist yet. Effects with a useRef.current guard silently no-op on
+  // that first pass and - since [backgroundImage, zoneLayout] hasn't changed
+  // by the time the real content mounts - never get a reason to re-run and
+  // pick up the now-available node. Callback refs (via useState) turn "the
+  // node became available" into a dependency an effect can actually react to.
+  const [mapContainerEl, setMapContainerEl] = useState<HTMLDivElement | null>(null);
   // the image's rendered height at MAP_REFERENCE_WIDTH, derived from its natural
   // aspect ratio once loaded. Zones are then positioned in plain CSS percent
   // (of MAP_REFERENCE_WIDTH / referenceHeight) so the browser scales everything
   // - image and zones alike - together, with no JS remeasuring needed
   const [referenceHeight, setReferenceHeight] = useState<number | null>(null);
+  // CSS's max-width/max-height + width/height:auto doesn't reliably fit an
+  // image to both dimensions of its box at once across browsers, so the
+  // rendered size is computed explicitly instead: given the image's natural
+  // aspect ratio and the actual available box (from a ResizeObserver on the
+  // container), pick whichever of width- or height-constrained sizing is
+  // smaller. Applied as an explicit pixel size to both the image and its
+  // position:relative wrapper, so the zone percentages below stay aligned to
+  // exactly what's visible (a CSS object-fit would letterbox the image
+  // *inside* its box instead, throwing that alignment off).
+  const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
+  const [containerSize, setContainerSize] = useState<{ width: number; height: number } | null>(null);
 
   useEffect(() => {
     if (!backgroundImage || !zoneLayout) return;
     setReferenceHeight(null);
-    const img = mapImageRef.current;
-    if (img && img.complete && img.naturalWidth > 0) {
-      setReferenceHeight(MAP_REFERENCE_WIDTH * (img.naturalHeight / img.naturalWidth));
-    }
+    setNaturalSize(null);
   }, [backgroundImage, zoneLayout]);
 
+  // naturalSize/referenceHeight are otherwise set here, via the native `load`
+  // event - reliable regardless of cache state, since it fires once per <img>
+  // element rather than once per URL, and doesn't depend on refs being ready.
   const handleMapImageLoad: React.ReactEventHandler<HTMLImageElement> = (e) => {
     const img = e.currentTarget;
     if (img.naturalWidth > 0) {
       setReferenceHeight(MAP_REFERENCE_WIDTH * (img.naturalHeight / img.naturalWidth));
+      setNaturalSize({ width: img.naturalWidth, height: img.naturalHeight });
     }
   };
+
+  useEffect(() => {
+    if (!backgroundImage || !zoneLayout || !mapContainerEl) return;
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const { width, height } = entry.contentRect;
+      if (width > 0 && height > 0) {
+        setContainerSize({ width, height });
+      }
+    });
+    observer.observe(mapContainerEl);
+    return () => observer.disconnect();
+  }, [backgroundImage, zoneLayout, mapContainerEl]);
+
+  const renderedSize = useMemo(() => {
+    if (!naturalSize || !containerSize) return null;
+    const widthConstrainedHeight = containerSize.width * (naturalSize.height / naturalSize.width);
+    if (widthConstrainedHeight <= containerSize.height) {
+      return { width: containerSize.width, height: widthConstrainedHeight };
+    }
+    return { width: containerSize.height * (naturalSize.width / naturalSize.height), height: containerSize.height };
+  }, [naturalSize, containerSize]);
 
   useEffect(() => {
     if (unorderedPosts) {
@@ -147,12 +191,30 @@ export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, 
   if (backgroundImage && zoneLayout) {
     return (
       <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
-        <div style={{ position: "relative", width: "100%" }}>
+        {/* flex-basis 0 (not "auto") so this fills whatever space its flex-column
+            parent has left after any siblings, regardless of this element's own
+            content size - the usual pattern for "take remaining space" in a flex
+            column. Outside an actual flex parent (e.g. DirectorsPage's plain
+            block wrapper) `flex` is simply inert, so this falls back to normal
+            width-driven sizing there with no behavior change (renderedSize just
+            never resolves smaller than 100% width in that case). */}
+        <div ref={setMapContainerEl} style={{ width: "100%", flex: "1 1 0%", minHeight: 0, display: "flex", justifyContent: "center", alignItems: "center", overflow: "hidden" }}>
+        {/* sized to exactly match the image's computed renderedSize (see above)
+            so zone percentages below stay pixel-accurate. --map-scale lets
+            zone/tile labels (see CombatMap.scss) size themselves relative to
+            MAP_REFERENCE_WIDTH - the same reference zones are authored
+            against - rather than a fixed px value that looks fine at one
+            rendered size and wrong at every other */}
+        <div style={renderedSize ? {
+          position: "relative",
+          width: renderedSize.width,
+          height: renderedSize.height,
+          "--map-scale": renderedSize.width / MAP_REFERENCE_WIDTH,
+        } as React.CSSProperties : { position: "relative", width: "100%" }}>
           <img
-            ref={mapImageRef}
             src={backgroundImage}
             alt="combat map"
-            style={{ width: "100%", height: "auto", display: "block" }}
+            style={renderedSize ? { width: renderedSize.width, height: renderedSize.height, display: "block" } : { width: "100%", height: "auto", display: "block" }}
             onLoad={handleMapImageLoad}
           />
           {referenceHeight && zoneLayout.map((zone) => (
@@ -171,6 +233,7 @@ export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, 
               overlayHeader
             />
           ))}
+        </div>
         </div>
       </DragDropContext>
     );

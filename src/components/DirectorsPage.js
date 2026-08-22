@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import '../styles/CharacterPageStyles/DefaultCharacterPage.scss';
 import '../styles/DirectorsPage.scss';
 import '../styles/CharacterMainTab.scss';
 import { useLocation } from 'react-router-dom';
 import { db, auth } from '../utils/firebase';
-import { doc, query, collection, where, onSnapshot, updateDoc, documentId, addDoc, deleteDoc } from 'firebase/firestore';
+import { doc, query, collection, where, onSnapshot, updateDoc, addDoc, deleteDoc } from 'firebase/firestore';
 import { SkillsAndFlaws } from './SkillsAndFlaws';
 import Collapsible from 'react-collapsible';
 import characterPageLayout from '../CharacterPageLayout.json';
@@ -19,6 +19,7 @@ import starIcon from '../icons/star.svg';
 import starFilledIcon from '../icons/star_filled.svg';
 import { PostListContentCombatMap } from '../utils/DraggableElements/PostListCombatMap.tsx';
 import { MapRenderer } from './MapRenderer';
+import { useCampaignMaps, useCombatEntities } from '../utils/useCampaignCombat';
 
 export function DirectorsPage() {
     const location = useLocation();
@@ -35,7 +36,6 @@ export function DirectorsPage() {
         "active_map": null,
         "maps": [],
     });
-    const [maps, setMaps] = useState([]);
     const [characterList, setCharacterList] = useState([]);
     const campaignDoc = doc(db, "campaigns", location.pathname.split("/").at(2));
     // eslint-disable-next-line
@@ -98,15 +98,9 @@ export function DirectorsPage() {
         }
     };
 
-    const activeMap = maps.find((map) => map.map_id === campaignInfo.active_map);
+    const { maps, activeMap } = useCampaignMaps(campaignInfo);
+    const combatEntities = useCombatEntities(characterList, campaignInfo);
 
-    const combatEntities = useMemo(() => [
-        ...characterList.map((character) => ({ id: "character:" + character.character_id, title: character.character_name })),
-        ...campaignInfo.ally_combat_npc_list.map((npc) => ({ id: "npc:" + npc.id, title: npc.enemy_name })),
-        ...campaignInfo.enemy_list.map((npc) => ({ id: "npc:" + npc.id, title: npc.enemy_name })),
-        ...campaignInfo.neutral_combat_npc_list.map((npc) => ({ id: "npc:" + npc.id, title: npc.enemy_name })),
-    ], [characterList, campaignInfo.ally_combat_npc_list, campaignInfo.enemy_list, campaignInfo.neutral_combat_npc_list]);
-    
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (!user) return;
@@ -114,20 +108,6 @@ export function DirectorsPage() {
             unsubscribe();
         });
     }, [location]);
-
-    useEffect(() => {
-        if (campaignInfo.maps.length !== 0) {
-            const mapsQuery = query(collection(db, "maps"), where(documentId(), "in", campaignInfo.maps));
-            // eslint-disable-next-line
-            const mapsQuerySnap = onSnapshot(mapsQuery, { includeMetadataChanges: true }, (querySnapshot) => {
-                // eslint-disable-next-line
-                if (querySnapshot.metadata.hasPendingWrites || !maps.length) {
-                    setMaps(querySnapshot.docs.map(doc => ({map_id: doc.id, ...doc.data()})));
-                }
-            });
-        }
-        // eslint-disable-next-line
-    }, [campaignInfo]);
 
     return <div className="DirectorsPage">
         <div className={'DirectorsPage-SkillsTab ' + pageTheme}>
