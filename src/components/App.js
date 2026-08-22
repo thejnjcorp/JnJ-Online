@@ -65,7 +65,7 @@ function App() {
             <Route path="/home" element={ <Homepage/> } />
             <Route path="/characters/*" element={ <Characters/>}/>
             <Route path="/campaigns/*" element={ <Campaigns/> }/>
-            <Route path="/account/*" element={<AccountPage userInfo={userInfo} setUserInfo={setUserInfo}/> }/>
+            <Route path="/account/*" element={<AccountPage setUserInfo={setUserInfo}/> }/>
             <Route path='/directors/*' element={<DirectorsPage/>} />
             <Route path='/classes/*' element={<ClassPage/>} />
             <Route path='/class-list' element={<ClassListPage/>} />

@@ -1,0 +1,252 @@
+/* Same height-capped, internally-scrolling idiom as Homepage/ClassListPage/
+   Characters - see the note on .Homepage in styles/Homepage.scss. */
+.AccountPage {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: var(--jnj-content-max);
+    height: calc(100vh - var(--jnj-nav-height));
+    margin: 0 auto;
+    padding: var(--jnj-space-6) var(--jnj-space-5);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-5);
+    text-align: left;
+}
+
+.AccountPage-loading {
+    background-color: var(--jnj-color-bg);
+}
+
+/* --- Profile card ------------------------------------------------------- */
+.AccountPage-profile {
+    display: flex;
+    align-items: center;
+    gap: var(--jnj-space-5);
+    padding: var(--jnj-space-5);
+    background-color: var(--jnj-color-bg-raised);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-lg);
+}
+
+.AccountPage-avatar {
+    height: 84px;
+    width: 84px;
+    object-fit: cover;
+    border-radius: var(--jnj-radius-pill);
+    border: 2px solid var(--jnj-color-border-strong);
+    flex-shrink: 0;
+}
+
+.AccountPage-profile-details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-2);
+    min-width: 0;
+    flex: 1;
+}
+
+.AccountPage-name-row {
+    display: flex;
+    align-items: center;
+    gap: var(--jnj-space-3);
+}
+
+.AccountPage-name {
+    font-family: var(--jnj-font-display);
+    font-size: var(--jnj-text-2xl);
+    color: var(--jnj-color-text);
+}
+
+.AccountPage-edit-name-button {
+    padding: var(--jnj-space-1) var(--jnj-space-3);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-pill);
+    background-color: transparent;
+    color: var(--jnj-color-text-muted);
+    font-size: var(--jnj-text-xs);
+    cursor: pointer;
+    transition: border-color var(--jnj-transition), color var(--jnj-transition);
+
+    &:hover {
+        border-color: var(--jnj-color-accent);
+        color: var(--jnj-color-accent-hover);
+    }
+}
+
+.AccountPage-name-input {
+    padding: var(--jnj-space-2) var(--jnj-space-3);
+    background-color: var(--jnj-color-bg-sunken);
+    border: 1px solid var(--jnj-color-accent);
+    border-radius: var(--jnj-radius-md);
+    color: var(--jnj-color-text);
+    font-family: var(--jnj-font-display);
+    font-size: var(--jnj-text-lg);
+
+    &:focus {
+        outline: none;
+    }
+}
+
+.AccountPage-save-name-button,
+.AccountPage-cancel-name-button {
+    padding: var(--jnj-space-1) var(--jnj-space-3);
+    border-radius: var(--jnj-radius-pill);
+    font-size: var(--jnj-text-sm);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.AccountPage-save-name-button {
+    border: none;
+    background-color: var(--jnj-color-accent);
+    color: var(--jnj-color-on-accent);
+
+    &:hover:not(:disabled) {
+        background-color: var(--jnj-color-accent-hover);
+    }
+
+    &:disabled {
+        background-color: var(--jnj-color-bg-hover);
+        color: var(--jnj-color-text-faint);
+        cursor: not-allowed;
+    }
+}
+
+.AccountPage-cancel-name-button {
+    border: 1px solid var(--jnj-color-border);
+    background-color: transparent;
+    color: var(--jnj-color-text-muted);
+
+    &:hover {
+        border-color: var(--jnj-color-border-strong);
+        color: var(--jnj-color-text);
+    }
+}
+
+.AccountPage-email {
+    font-size: var(--jnj-text-sm);
+    color: var(--jnj-color-text-muted);
+}
+
+.AccountPage-copy-id-button {
+    align-self: flex-start;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--jnj-color-text-faint);
+    font-family: var(--jnj-font-mono);
+    font-size: var(--jnj-text-xs);
+    cursor: pointer;
+
+    &:hover {
+        color: var(--jnj-color-accent-hover);
+    }
+}
+
+.AccountPage-signout-button {
+    flex-shrink: 0;
+    align-self: flex-start;
+    padding: var(--jnj-space-2) var(--jnj-space-5);
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-pill);
+    background-color: transparent;
+    color: var(--jnj-color-text);
+    font-size: var(--jnj-text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color var(--jnj-transition), color var(--jnj-transition);
+
+    &:hover {
+        border-color: var(--jnj-color-danger);
+        color: var(--jnj-color-danger);
+    }
+}
+
+/* --- Character/campaign sections ----------------------------------------*/
+.AccountPage-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-3);
+    padding: var(--jnj-space-5);
+    background-color: var(--jnj-color-bg-raised);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-lg);
+}
+
+.AccountPage-section-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+
+    h2 {
+        margin: 0;
+        font-family: var(--jnj-font-display);
+        font-size: var(--jnj-text-xl);
+        color: var(--jnj-color-text);
+    }
+}
+
+.AccountPage-section-create {
+    font-size: var(--jnj-text-sm);
+    font-weight: 600;
+    color: var(--jnj-color-accent);
+    text-decoration: none;
+
+    &:hover {
+        color: var(--jnj-color-accent-hover);
+    }
+}
+
+.AccountPage-section-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--jnj-space-3);
+}
+
+.AccountPage-empty {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: var(--jnj-space-3) 0;
+    font-size: var(--jnj-text-sm);
+    color: var(--jnj-color-text-faint);
+}
+
+.AccountPage-entity-card {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--jnj-space-3) var(--jnj-space-4);
+    background-color: var(--jnj-color-bg-sunken);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-md);
+    text-decoration: none;
+    transition: border-color var(--jnj-transition), background-color var(--jnj-transition);
+
+    &:hover {
+        border-color: var(--jnj-color-accent);
+        background-color: var(--jnj-color-bg-hover);
+    }
+}
+
+.AccountPage-entity-card-title {
+    font-weight: 600;
+    color: var(--jnj-color-text);
+}
+
+.AccountPage-entity-card-meta {
+    font-size: var(--jnj-text-xs);
+    color: var(--jnj-color-text-muted);
+}
+
+/* --- Responsive ----------------------------------------------------------*/
+@media (max-width: 640px) {
+    .AccountPage-profile {
+        flex-wrap: wrap;
+    }
+
+    .AccountPage-signout-button {
+        order: 1;
+        width: 100%;
+    }
+}

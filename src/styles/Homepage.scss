@@ -139,8 +139,27 @@
     width: 32px;
     padding: var(--jnj-space-2);
     box-sizing: content-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background-color: var(--jnj-color-accent-soft);
     border-radius: var(--jnj-radius-md);
+}
+
+/* The source SVGs are baked with a black fill/stroke, so they're masked into
+   a silhouette and painted with a token color instead of rendered as an
+   <img> - see the MaskIcon comment in Homepage.js. */
+.Homepage-feature-icon-glyph {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background-color: var(--jnj-color-accent);
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
 }
 
 .Homepage-feature-title {
@@ -316,8 +335,20 @@
 }
 
 .Homepage-quick-link-icon {
+    display: block;
+    flex-shrink: 0;
     height: 18px;
     width: 18px;
+    /* currentColor so the glyph follows .Homepage-quick-link's own color -
+       it's already text-colored at rest and accent on hover, so the icon
+       tracks that transition for free. */
+    background-color: currentColor;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
 }
 
 /* --- Responsive ------------------------------------------------------------*/

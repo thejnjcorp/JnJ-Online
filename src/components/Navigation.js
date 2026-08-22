@@ -12,7 +12,7 @@ const NAV_LINKS = [
     { to: "/characters", label: "Characters" },
     { to: "/campaigns", label: "Campaigns" },
     { to: "/class-list", label: "Classes" },
-    { to: "/blog", label: "Rules" },
+    { to: "/blog/JnJ_Ruleset", label: "Rules" },
 ];
 
 export function Navigation({userInfo, setUserInfo}) {

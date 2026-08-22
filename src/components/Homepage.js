@@ -10,6 +10,19 @@ import dexterityIcon from '../icons/dexterity.svg';
 import intelligenceIcon from '../icons/intelligence.svg';
 import charismaIcon from '../icons/charisma.svg';
 
+// These icons are flat SVGs baked with a hardcoded fill/stroke of #000000
+// (see src/icons/*.svg), so an <img> render of them is invisible against a
+// dark theme - no CSS can recolor pixels inside an external image. Masking
+// instead turns the SVG into a silhouette painted by background-color, so it
+// picks up whatever token or currentColor the caller sets.
+function MaskIcon({src, className}) {
+    return <span
+        aria-hidden="true"
+        className={className}
+        style={{ WebkitMaskImage: `url(${src})`, maskImage: `url(${src})` }}
+    />
+}
+
 const FEATURES = [
     {
         icon: shieldIcon,
@@ -97,7 +110,9 @@ function SignedOutHome() {
         <section className="Homepage-features">
             {FEATURES.map((feature, index) =>
                 <div className="Homepage-feature-card" key={index}>
-                    <img src={feature.icon} alt="" className="Homepage-feature-icon"/>
+                    <div className="Homepage-feature-icon">
+                        <MaskIcon src={feature.icon} className="Homepage-feature-icon-glyph"/>
+                    </div>
                     <h3 className="Homepage-feature-title">{feature.title}</h3>
                     <p className="Homepage-feature-body">{feature.body}</p>
                 </div>
@@ -154,15 +169,15 @@ function SignedInHome({userInfo, characterList, campaignList}) {
 
         <section className="Homepage-quick-links">
             <Link to="/class-list" className="Homepage-quick-link">
-                <img src={charismaIcon} alt="" className="Homepage-quick-link-icon"/>
+                <MaskIcon src={charismaIcon} className="Homepage-quick-link-icon"/>
                 Browse Classes
             </Link>
             <Link to="/blog/JnJ_Ruleset" className="Homepage-quick-link">
-                <img src={dexterityIcon} alt="" className="Homepage-quick-link-icon"/>
+                <MaskIcon src={dexterityIcon} className="Homepage-quick-link-icon"/>
                 Read the Rules
             </Link>
             <Link to="/account" className="Homepage-quick-link">
-                <img src={intelligenceIcon} alt="" className="Homepage-quick-link-icon"/>
+                <MaskIcon src={intelligenceIcon} className="Homepage-quick-link-icon"/>
                 Your Account
             </Link>
         </section>
