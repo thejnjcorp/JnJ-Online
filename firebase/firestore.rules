@@ -101,12 +101,7 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-    	// TEMP: o402 (jtsVHdSjl5gKRIH0864otRL6Yzv1) added alongside the
-    	// original admin account so status defaults can be curated without
-    	// access to that account - remove once no longer needed. Scoped to
-    	// just this helper (used only by the statuses admin-default gate
-    	// below), not the blanket super-admin match at the top of this file.
-    	return uid() in ["wmJQbIlzX9RydXFmh3DzSBpIqHa2", "jtsVHdSjl5gKRIH0864otRL6Yzv1"];
+    	return uid() == "wmJQbIlzX9RydXFmh3DzSBpIqHa2";
     }
 
     function canWriteField() {

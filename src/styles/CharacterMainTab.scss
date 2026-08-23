@@ -210,7 +210,17 @@
     border: 1px solid var(--jnj-color-border);
     border-radius: var(--jnj-radius-lg);
     box-shadow: var(--jnj-shadow-lg);
-    overflow: auto;
+    // PostListContentCombatMap's map-sizing container relies on `flex: 1 1
+    // 0%` (see PostListContentAbstract.tsx's renderedSize computation, which
+    // fits the map image to whichever of width/height is the tighter
+    // constraint) to get a definite height to size against - that `flex`
+    // property is inert unless this is an actual flex container, so without
+    // display:flex here the map just grew to its natural aspect-ratio
+    // height at 100% width, taller than the box, forcing this to scroll.
+    // overflow is now just a safety net, not load-bearing.
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .CharacterMainTab-map-overlay-close {

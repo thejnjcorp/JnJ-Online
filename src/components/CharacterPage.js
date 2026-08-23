@@ -110,7 +110,7 @@ export function CharacterPage() {
                     <SkillsAndFlaws characterPage={characterPage} userId={userId}/>
                 </div>}
             <div className='CharacterPage-right-content'>
-                <CharacterPageNavigation characterPage={characterPage}/>
+                <CharacterPageNavigation characterPage={characterPage} userId={userId}/>
                 <CharacterPageVitalsPanel characterPageLayoutLive={characterPage} userId={userId}/>
                 <CharacterMainTab characterPage={characterPage} userId={userId} characterList={characterList} campaignInfo={campaignInfo} />
             </div>

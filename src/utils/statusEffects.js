@@ -1,4 +1,4 @@
-// Mirrors isAdmin() in firebase/firestore.rules - only these accounts can
+// Mirrors isAdmin() in firebase/firestore.rules - only this account can
 // create/promote a status to isDefault (an admin-curated status every
 // campaign gets automatically, no subscription needed). Everything else a
 // non-admin creates is a "pool" status: still public/browsable, but a
@@ -7,10 +7,7 @@
 // AddStatusDialog.js. This constant only drives which options StatusPage.js
 // shows; the actual enforcement lives in firestore.rules, which a client
 // change here can't bypass.
-// TEMP: o402 added alongside the original admin account so status defaults
-// can be curated without access to that account - remove once no longer
-// needed, matching the same TEMP note on isAdmin() in firestore.rules.
-export const ADMIN_UIDS = ["wmJQbIlzX9RydXFmh3DzSBpIqHa2", "jtsVHdSjl5gKRIH0864otRL6Yzv1"];
+export const ADMIN_UIDS = ["wmJQbIlzX9RydXFmh3DzSBpIqHa2"];
 
 // Shared logic for what an active status actually DOES to a character -
 // used by the character page (effective stat display, granted actions) and

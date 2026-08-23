@@ -95,6 +95,7 @@
     right: -2px;
     width: 26px;
     height: 26px;
+    padding: 0;
     border-radius: 50%;
     background: var(--jnj-color-bg-raised);
     border: 2px solid;
@@ -102,6 +103,17 @@
     align-items: center;
     justify-content: center;
     color: var(--jnj-color-text);
+    cursor: pointer;
+    transition: color var(--jnj-transition);
+
+    &:hover {
+        color: var(--jnj-color-accent);
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: default;
+    }
 }
 
 .CharacterPage-masthead-text {
@@ -151,15 +163,28 @@
     }
 }
 
-/* --- Color picker dropdown (CharacterPageNavigationColorPickerButton.js) --*/
+/* --- Color picker dialog (CharacterPageNavigationColorPickerButton.js) ----
+   Fixed + centered (the scrim+dialog idiom used elsewhere - SkillsAndFlaws,
+   AddStatusDialog, CharacterMainTab's map overlay) rather than a dropdown
+   anchored to the button: .CharacterPage-masthead needs `overflow: hidden`
+   to contain its gradient glow, which clipped an absolutely-positioned
+   dropdown anywhere it would have overflowed the masthead's own bounds. */
+.CharacterPage-colorpicker-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background-color: rgba(0, 0, 0, 0.6);
+}
+
 .CharacterPage-colorpicker-panel {
-    position: absolute;
-    z-index: 20;
-    top: 68px;
-    right: var(--jnj-space-6);
+    position: fixed;
+    z-index: 31;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     background-color: var(--jnj-color-bg-raised);
     border: 1px solid var(--jnj-color-border);
-    padding: var(--jnj-space-3);
+    padding: var(--jnj-space-4);
     border-radius: 10px;
     display: flex;
     flex-direction: column;

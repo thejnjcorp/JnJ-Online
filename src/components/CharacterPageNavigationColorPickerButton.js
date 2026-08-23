@@ -27,11 +27,14 @@ export function CharacterPageNavigationColorPickerButton({characterPageLayoutLiv
         <button className="CharacterPage-masthead-color-button" data-tooltip-id="navigation-color-picker" onClick={() => setShowColorPicker(!showColorpicker)}>
             <PaletteIcon/>
         </button>
-        {showColorpicker && <div className="CharacterPage-colorpicker-panel">
-            <HexColorPicker className="CharacterPage-colorpicker-actual" color={selectedColor} onChange={setSelectedColor}/>
-            <button className="CharacterPage-colorpicker-select-button" onClick={handleSetColor}>Set Color</button>
-            <button className="CharacterPage-colorpicker-cancel-button" onClick={() => setShowColorPicker(false)}>Cancel</button>
-        </div>}
+        {showColorpicker && <>
+            <div className="CharacterPage-colorpicker-scrim" onClick={() => setShowColorPicker(false)}/>
+            <div className="CharacterPage-colorpicker-panel">
+                <HexColorPicker className="CharacterPage-colorpicker-actual" color={selectedColor} onChange={setSelectedColor}/>
+                <button className="CharacterPage-colorpicker-select-button" onClick={handleSetColor}>Set Color</button>
+                <button className="CharacterPage-colorpicker-cancel-button" onClick={() => setShowColorPicker(false)}>Cancel</button>
+            </div>
+        </>}
 
         {characterPageLayoutLive.tooltips && <Tooltip id="navigation-color-picker" place="left" content="Customize color" variant='info'/>}
     </>

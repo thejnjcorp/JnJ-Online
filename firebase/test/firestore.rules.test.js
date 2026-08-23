@@ -293,19 +293,6 @@ async function main() {
     console.log('\nAdmin-only default statuses (isDefault):');
 
     const ADMIN_UID = 'wmJQbIlzX9RydXFmh3DzSBpIqHa2';
-    // TEMP: added alongside ADMIN_UID in isAdmin() (firestore.rules) and
-    // ADMIN_UIDS (statusEffects.js) - remove this test alongside those.
-    const TEMP_ADMIN_UID = 'jtsVHdSjl5gKRIH0864otRL6Yzv1';
-
-    await check('the temporary second admin account can also create a default status', async () => {
-        await testEnv.clearFirestore();
-        const tempAdmin = testEnv.authenticatedContext(TEMP_ADMIN_UID);
-        await assertSucceeds(
-            addDoc(collection(tempAdmin.firestore(), 'statuses'), {
-                name: 'Haste', isDefault: true, public: true, canRead: [], canWrite: [TEMP_ADMIN_UID],
-            })
-        );
-    });
 
     await check('a non-admin cannot create a status with isDefault: true', async () => {
         await testEnv.clearFirestore();
