@@ -20,6 +20,7 @@ import starFilledIcon from '../icons/star_filled.svg';
 import { PostListContentCombatMap } from '../utils/DraggableElements/PostListCombatMap.tsx';
 import { MapRenderer } from './MapRenderer';
 import { useCampaignMaps, useCombatEntities } from '../utils/useCampaignCombat';
+import { advanceTurnStatuses, getEffectiveCharacterStats, getGrantedActions } from '../utils/statusEffects';
 
 export function DirectorsPage() {
     const location = useLocation();
@@ -158,37 +159,22 @@ export function DirectorsPage() {
                                 }
                             }
                             // The only turn-based automation this pass wires up: statuses
-                            // with a structured effect (currently just an action_points
-                            // delta, e.g. Haste +1 / Slowed -1 - see AddStatusDialog.js)
-                            // apply once, then lose a stack; a status already at stacks:0
-                            // (a toggle condition like Blind, not a countdown) passes
+                            // with a turn_start effect (currently just action_points, e.g.
+                            // Haste +1 / Slowed -1 - see statusEffects.js) apply once, then
+                            // lose a stack; anything else (a passive condition like
+                            // Exhaustion, or a purely descriptive one like Wounded) passes
                             // through untouched. Everything else about turn order is still
                             // the GM calling it verbally, per the ruleset - this just saves
                             // the manual math for the handful of statuses that have any.
                             function advanceTurn() {
-                                const statuses = actualCharacter.statuses || [];
-                                let actionPoints = actualCharacter.action_points;
-                                const nextStatuses = [];
-                                statuses.forEach(status => {
-                                    if (status.stacks > 0) {
-                                        if (status.effect?.stat === "action_points") {
-                                            actionPoints = Math.max(0, Math.min(4, actionPoints + status.effect.delta));
-                                        }
-                                        const remainingStacks = status.stacks - 1;
-                                        if (remainingStacks > 0) nextStatuses.push({ ...status, stacks: remainingStacks });
-                                    } else {
-                                        nextStatuses.push(status);
-                                    }
-                                });
                                 try {
-                                    updateDoc(doc(db, "characters", actualCharacter.character_id), {
-                                        action_points: actionPoints,
-                                        statuses: nextStatuses
-                                    });
+                                    updateDoc(doc(db, "characters", actualCharacter.character_id), advanceTurnStatuses(actualCharacter));
                                 } catch (e) {
                                     alert(e);
                                 }
                             }
+                            const effectiveCharacter = getEffectiveCharacterStats(actualCharacter);
+                            const grantedActions = getGrantedActions(actualCharacter);
                             return <Collapsible
                                 key={index}
                                 trigger={<>{character.character_name}</>}
@@ -201,6 +187,11 @@ export function DirectorsPage() {
                                 open={true}
                             >
                                 <div className='DirectorsPageCharacterStatsOverride'>
+                                    {/* Left bound to actualCharacter (raw base values), not
+                                        effectiveCharacter - these inputs write straight back to
+                                        the character doc on change, so showing the
+                                        status-adjusted number here would mean editing it bakes
+                                        the status's bonus permanently into the base stat. */}
                                     <CharacterPageAbilityScorePanel characterPageLayoutLive={actualCharacter} userId={userId}/>
                                     <CharacterPageStatsPanel characterPageLayoutLive={actualCharacter} userId={userId}/>
                                 </div>
@@ -230,12 +221,12 @@ export function DirectorsPage() {
                                     triggerOpenedClassName='DirectorsPage-player-stats-trigger'
                                     transitionTime={100}
                                 >
-                                    <CombatActionList 
-                                        actions={actualCharacter.actions}
+                                    <CombatActionList
+                                        actions={[...actualCharacter.actions, ...grantedActions]}
                                         experience_points={actualCharacter.experience_points}
-                                        baseArmorClass={actualCharacter.base_armor_class}
-                                        baseHitModifier={actualCharacter.base_hit_modifier}
-                                        baseDamageModifier={actualCharacter.base_damage_modifier}
+                                        baseArmorClass={effectiveCharacter.base_armor_class}
+                                        baseHitModifier={effectiveCharacter.base_hit_modifier}
+                                        baseDamageModifier={effectiveCharacter.base_damage_modifier}
                                         baseDamageDice={actualCharacter.base_damage_dice}
                                         baseDamageDiceType={actualCharacter.base_damage_dice_type}
                                         baseHealingDiceType={actualCharacter.base_healing_dice_type}

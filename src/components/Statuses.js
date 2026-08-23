@@ -23,6 +23,24 @@ export function Statuses({characterPage, userId}) {
         }
     }
 
+    // A single whole-array write (rather than an arrayRemove+arrayUnion pair,
+    // which Firestore can't apply as one atomic transform on the same field)
+    // computed from the live characterPage.statuses this component already
+    // has - the same "increase the Exhaustion/Wounded count" use case the
+    // Add Status dialog's stepper covers at add-time, now usable after the
+    // fact too.
+    async function handleStacksChange(status, delta) {
+        const newStacks = Math.max(0, Math.min(9, status.stacks + delta));
+        if (newStacks === status.stacks) return;
+        try {
+            await updateDoc(doc(db, "characters", characterPage.character_id), {
+                statuses: statuses.map(s => s.id === status.id ? { ...s, stacks: newStacks } : s)
+            });
+        } catch (e) {
+            alert(e);
+        }
+    }
+
     return <div className="CharacterPage-vitals-statuses">
         <div className="CharacterPage-vitals-statuses-header">
             <span className="CharacterPage-vitals-label">Statuses</span>
@@ -35,11 +53,21 @@ export function Statuses({characterPage, userId}) {
                         onClick={() => toggleExpanded(status.id)}
                     >
                         <span className="CharacterPage-status-chip-dot"/>
-                        <span>{status.name}</span>
+                        <span className="CharacterPage-status-chip-name">{status.name}</span>
                         {status.stacks > 0 && <span className="CharacterPage-status-chip-badge">{status.stacks}</span>}
                     </button>
                     {expandedIds.includes(status.id) && <div className="CharacterPage-status-detail">
                         <div className="CharacterPage-status-detail-description">{status.description}</div>
+                        <div className="CharacterPage-status-detail-stacks">
+                            <span className="CharacterPage-vitals-label">Stacks</span>
+                            {hasWritePermissions
+                                ? <div className="CharacterPage-status-detail-stepper">
+                                    <button onClick={() => handleStacksChange(status, -1)} disabled={status.stacks <= 0}>&minus;</button>
+                                    <span>{status.stacks}</span>
+                                    <button onClick={() => handleStacksChange(status, 1)} disabled={status.stacks >= 9}>+</button>
+                                </div>
+                                : <span className="CharacterPage-status-detail-stacks-value">{status.stacks}</span>}
+                        </div>
                         {hasWritePermissions && <button className="CharacterPage-status-detail-remove" onClick={() => handleRemove(status)}>Remove</button>}
                     </div>}
                 </div>
@@ -48,6 +76,6 @@ export function Statuses({characterPage, userId}) {
                 + Add Status
             </button>}
         </div>
-        {addDialogOpen && <AddStatusDialog characterPage={characterPage} onClose={() => setAddDialogOpen(false)}/>}
+        {addDialogOpen && <AddStatusDialog characterPage={characterPage} userId={userId} onClose={() => setAddDialogOpen(false)}/>}
     </div>
 }

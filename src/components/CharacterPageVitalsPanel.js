@@ -16,6 +16,21 @@ import { ReactComponent as IntelligenceIcon } from '../icons/intelligence_line.s
 import { ReactComponent as CharismaIcon } from '../icons/charisma_line.svg';
 import { CharacterPortrait } from './CharacterPortrait';
 import { Statuses } from './Statuses';
+import { getEffectiveCharacterStats, getPassiveDelta } from '../utils/statusEffects';
+
+// The editable inputs below (Hardness, ability scores) stay bound to the
+// character's raw base value on purpose - showing the status-adjusted number
+// there instead would mean typing a new value silently bakes whatever
+// temporary bonus/penalty is active into the permanent base stat. This badge
+// surfaces the same information (a temporary Strength buff, Exhaustion's
+// penalties, etc) without touching what the input itself reads/writes.
+function StatusDeltaBadge({characterPage, statKey}) {
+    const delta = getPassiveDelta(characterPage, statKey);
+    if (delta === 0) return null;
+    return <span className={delta > 0 ? "CharacterPage-vitals-delta-badge CharacterPage-vitals-delta-badge-positive" : "CharacterPage-vitals-delta-badge CharacterPage-vitals-delta-badge-negative"}>
+        {delta > 0 ? "+" : ""}{delta}
+    </span>;
+}
 
 const ABILITY_SCORES = [
     { name: 'strength_stat', label: 'Str', Icon: StrengthIcon, tooltip: 'Strength' },
@@ -25,11 +40,16 @@ const ABILITY_SCORES = [
 ];
 
 export function CharacterPageVitalsPanel({characterPageLayoutLive, userId}) {
+    // AC is a read-only computed display (not an input bound to a single
+    // field), so it's safe to feed it status-adjusted base stats directly -
+    // unlike the ability score/hardness inputs below, there's no risk of an
+    // edit silently baking a temporary bonus into the permanent base value.
+    const effectiveStats = getEffectiveCharacterStats(characterPageLayoutLive);
     const characterStats = CharacterStatCalculator(
         characterPageLayoutLive.experience_points,
-        characterPageLayoutLive.base_armor_class,
-        characterPageLayoutLive.base_hit_modifier,
-        characterPageLayoutLive.base_damage_modifier,
+        effectiveStats.base_armor_class,
+        effectiveStats.base_hit_modifier,
+        effectiveStats.base_damage_modifier,
         characterPageLayoutLive.base_damage_dice,
         characterPageLayoutLive.base_damage_dice_type,
         characterPageLayoutLive.base_healing_dice_type);
@@ -176,6 +196,7 @@ export function CharacterPageVitalsPanel({characterPageLayoutLive, userId}) {
                         type="number"
                         onChange={handleChange}
                     />
+                    <StatusDeltaBadge characterPage={characterPageLayoutLive} statKey="hardness"/>
                 </div>
             </div>
         </div>
@@ -196,6 +217,7 @@ export function CharacterPageVitalsPanel({characterPageLayoutLive, userId}) {
                         type="number"
                         onChange={handleChange}
                     />
+                    <StatusDeltaBadge characterPage={characterPageLayoutLive} statKey={name}/>
                     {characterPageLayoutLive.tooltips && <Tooltip id={name} place="top" content={tooltip} variant="info"/>}
                 </div>
             )}

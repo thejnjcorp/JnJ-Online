@@ -489,8 +489,12 @@
 }
 
 .CharacterPage-status-chip-badge {
-    background: currentColor;
-    color: var(--jnj-color-bg-raised);
+    // Deliberately not `background: currentColor` - this element sets its
+    // own `color` (for contrast against the badge itself), and currentColor
+    // would then resolve to that same value instead of the chip's polarity
+    // accent, making the badge one flat color with no visible number. Each
+    // polarity gets its own explicit background below instead.
+    color: var(--jnj-color-on-accent);
     min-width: 16px;
     height: 16px;
     border-radius: var(--jnj-radius-pill);
@@ -521,9 +525,24 @@
 }
 
 .CharacterPage-status-chip-buff, .CharacterPage-status-chip-debuff, .CharacterPage-status-chip-neutral {
-    span {
+    // Scoped to the name specifically - a bare `span` here also matched the
+    // stack-count badge, whose own (deliberately different) text color
+    // needs to win instead.
+    .CharacterPage-status-chip-name {
         color: var(--jnj-color-text);
     }
+}
+
+.CharacterPage-status-chip-buff .CharacterPage-status-chip-badge {
+    background: var(--jnj-color-accent);
+}
+
+.CharacterPage-status-chip-debuff .CharacterPage-status-chip-badge {
+    background: var(--jnj-color-danger);
+}
+
+.CharacterPage-status-chip-neutral .CharacterPage-status-chip-badge {
+    background: var(--jnj-color-arcane);
 }
 
 .CharacterPage-status-detail {
@@ -539,6 +558,51 @@
     font-size: 12.5px;
     line-height: 1.5;
     color: var(--jnj-color-text-muted);
+}
+
+.CharacterPage-status-detail-stacks {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--jnj-space-3);
+    margin-top: 10px;
+}
+
+.CharacterPage-status-detail-stacks-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--jnj-color-text);
+}
+
+.CharacterPage-status-detail-stepper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    button {
+        width: 22px;
+        height: 22px;
+        border-radius: var(--jnj-radius-sm);
+        border: 1px solid var(--jnj-color-border-strong);
+        background: var(--jnj-color-bg-raised);
+        color: var(--jnj-color-text);
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1;
+        cursor: pointer;
+
+        &:disabled {
+            opacity: 0.4;
+            cursor: default;
+        }
+    }
+
+    span {
+        font-size: 13px;
+        font-weight: 700;
+        min-width: 14px;
+        text-align: center;
+    }
 }
 
 .CharacterPage-status-detail-remove {
@@ -671,8 +735,9 @@
 }
 
 .CharacterPage-status-dialog-textarea {
-    min-height: 70px;
-    resize: vertical;
+    // Auto-grows with content (react-textarea-autosize) instead of clipping
+    // it behind a fixed height with a scrollbar.
+    resize: none;
 }
 
 .CharacterPage-status-dialog-stepper {
@@ -848,6 +913,28 @@
         -webkit-appearance: none;
         margin: 0;
     }
+}
+
+/* --- Status delta badge (CharacterPageVitalsPanel.js's StatusDeltaBadge) --
+   Shows the net effect active statuses have on Hardness/ability scores next
+   to their (unmodified) editable input - see the comment on that component
+   for why the input itself never shows the adjusted number. */
+.CharacterPage-vitals-delta-badge {
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: var(--jnj-radius-pill);
+    margin-left: 2px;
+}
+
+.CharacterPage-vitals-delta-badge-positive {
+    background: var(--jnj-color-accent-soft);
+    color: var(--jnj-color-accent);
+}
+
+.CharacterPage-vitals-delta-badge-negative {
+    background: rgba(217, 83, 79, 0.16);
+    color: var(--jnj-color-danger);
 }
 
 .CharacterPage-loading-icon {

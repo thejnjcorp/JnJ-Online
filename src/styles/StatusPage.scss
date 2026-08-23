@@ -1,16 +1,27 @@
+/* Two-element scroll split (outer full-width shell + inner capped column) -
+   see the matching comment on .StatusListPage in StatusListPage.scss for
+   why: capping+centering the scrolling element itself pushes its scrollbar
+   in from the true window edge on any viewport wider than the cap. */
 .StatusPage {
     box-sizing: border-box;
     width: 100%;
-    max-width: 640px;
     height: calc(100vh - var(--jnj-nav-height));
-    margin: 0 auto;
-    padding: var(--jnj-space-6) var(--jnj-space-5);
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--jnj-color-text);
+}
+
+.StatusPage-inner {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 640px;
+    padding: var(--jnj-space-6) var(--jnj-space-5);
     display: flex;
     flex-direction: column;
     gap: var(--jnj-space-5);
     text-align: left;
-    color: var(--jnj-color-text);
 }
 
 .StatusPage-title {
@@ -63,8 +74,10 @@
 }
 
 .StatusPage-textarea {
-    min-height: 90px;
-    resize: vertical;
+    // Auto-grows with content (react-textarea-autosize) instead of clipping
+    // it behind a fixed height with a scrollbar - manual resize would fight
+    // that, so it's left off rather than set to vertical.
+    resize: none;
 }
 
 .StatusPage-chip-row {
@@ -127,8 +140,7 @@
 
 .StatusPage-effect-row {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
+    flex-direction: column;
     gap: 8px;
     padding: var(--jnj-space-3);
     border-radius: var(--jnj-radius-md);
@@ -137,6 +149,81 @@
 
     .StatusPage-hint {
         flex-basis: 100%;
+    }
+}
+
+.StatusPage-effect-row-main, .StatusPage-effect-row-flat {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.StatusPage-mode-toggle {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+}
+
+.StatusPage-effect-table {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: var(--jnj-space-2) 0 0 var(--jnj-space-3);
+    border-left: 2px solid var(--jnj-color-border-strong);
+}
+
+.StatusPage-effect-table-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.StatusPage-effect-trigger-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--jnj-color-text-faint);
+}
+
+.StatusPage-add-effect-button, .StatusPage-remove-effect-button {
+    padding: 6px 12px;
+    border-radius: var(--jnj-radius-pill);
+    border: 1px dashed var(--jnj-color-border-strong);
+    background: transparent;
+    color: var(--jnj-color-text-muted);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color var(--jnj-transition), color var(--jnj-transition);
+
+    &:hover {
+        border-color: var(--jnj-color-accent);
+        color: var(--jnj-color-accent);
+    }
+}
+
+.StatusPage-remove-effect-button {
+    margin-left: auto;
+    border-style: solid;
+    border-color: var(--jnj-color-border);
+
+    &:hover {
+        border-color: var(--jnj-color-danger);
+        color: var(--jnj-color-danger);
+    }
+}
+
+.StatusPage-granted-action {
+    flex-direction: column;
+    align-items: stretch;
+
+    > div {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
     }
 }
 

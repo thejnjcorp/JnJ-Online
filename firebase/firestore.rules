@@ -58,12 +58,36 @@ service cloud.firestore {
       allow create: if isSignedIn() && !documentExists("maps", mapId);
     }
 
+    // A status is public (readable by anyone signed in), or locked down via
+    // canRead - same array-of-uids pattern as campaigns/characters above,
+    // not a live campaign membership lookup. Locking to a campaign works by
+    // the client copying that campaign's current canRead+canWrite into this
+    // status's canRead at save time (see StatusPage.js) - a snapshot, not a
+    // join, matching how this app already denormalizes everything else
+    // (class actions onto characters, status presets onto characters, etc).
+    // Deliberately avoids get()/exists() here: a rule with a cross-document
+    // lookup can make a broad `list` query over this collection unprovable
+    // and get rejected outright, not just filter out documents you can't
+    // read - see StatusListPage.js/AddStatusDialog.js, which query this
+    // collection with plain equality/array-contains filters for exactly
+    // that reason.
+    // `isDefault` (an admin-curated status everyone gets automatically, no
+    // subscription needed) can only ever be true on a doc the admin account
+    // wrote - checked on both create and every subsequent update, since a
+    // non-admin author who already has canWrite on their own status could
+    // otherwise just flip isDefault themselves later. Everyone else's
+    // statuses are the "pool": still `public` (readable/browsable by any
+    // signed-in user, same as before), but a campaign has to separately
+    // subscribe (campaigns.subscribedStatusIds, written under the existing
+    // campaign write rules - no change needed there) before that pool
+    // status is offered as a preset for that campaign's characters - see
+    // AddStatusDialog.js.
     match /statuses/{statusId} {
-    	allow read: if isSignedIn();
+    	allow read: if isSignedIn() && (resource.data.public == true || uid() in canWriteField() || uid() in canReadField());
 
-      allow read, write: if isSignedIn() && uid() in canWriteField();
+      allow write: if isSignedIn() && uid() in canWriteField() && (!('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
 
-      allow create: if isSignedIn() && !documentExists("statuses", statusId);
+      allow create: if isSignedIn() && !documentExists("statuses", statusId) && (!('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
     }
 
     // Functions \\
@@ -74,6 +98,15 @@ service cloud.firestore {
 
     function uid() {
     	return request.auth.uid;
+    }
+
+    function isAdmin() {
+    	// TEMP: o402 (jtsVHdSjl5gKRIH0864otRL6Yzv1) added alongside the
+    	// original admin account so status defaults can be curated without
+    	// access to that account - remove once no longer needed. Scoped to
+    	// just this helper (used only by the statuses admin-default gate
+    	// below), not the blanket super-admin match at the top of this file.
+    	return uid() in ["wmJQbIlzX9RydXFmh3DzSBpIqHa2", "jtsVHdSjl5gKRIH0864otRL6Yzv1"];
     }
 
     function canWriteField() {

@@ -1,18 +1,38 @@
 /* Same height-capped, internally-scrolling idiom as Homepage/AccountPage -
-   see the note on .Homepage in styles/Homepage.scss. */
+   see the note on .Homepage in styles/Homepage.scss - but scrolling (and
+   centering the narrower content within it) happens on two separate
+   elements, same split Homepage itself uses: this outer one spans the full
+   viewport width so its scrollbar sits at the true window edge, and
+   .StatusListPage-inner is the width-capped, centered column of actual
+   content. Capping+centering the SAME element that scrolls (the old setup)
+   puts the scrollbar at that capped width's edge instead - i.e. visibly
+   inset from the browser window on anything wider than --jnj-content-max. */
 .StatusListPage {
     box-sizing: border-box;
     width: 100%;
-    max-width: var(--jnj-content-max);
     height: calc(100vh - var(--jnj-nav-height));
-    margin: 0 auto;
-    padding: var(--jnj-space-6) var(--jnj-space-5);
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--jnj-color-text);
+}
+
+.StatusListPage-inner {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: var(--jnj-content-max);
+    padding: var(--jnj-space-6) var(--jnj-space-5);
     display: flex;
     flex-direction: column;
     gap: var(--jnj-space-5);
     text-align: left;
-    color: var(--jnj-color-text);
+}
+
+.StatusListPage-filter-groups {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--jnj-space-3);
 }
 
 .StatusListPage-title {
@@ -102,8 +122,14 @@
     font-size: 15px;
 }
 
+.StatusListPage-card-badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+}
+
 .StatusListPage-card-effect-badge {
-    margin-left: auto;
     font-size: 10.5px;
     font-weight: 700;
     padding: 2px 8px;
@@ -111,6 +137,17 @@
     background: var(--jnj-color-accent-soft);
     color: var(--jnj-color-accent);
     white-space: nowrap;
+}
+
+.StatusListPage-card-effect-badge-action {
+    background: rgba(102, 0, 204, 0.14);
+    color: var(--jnj-color-arcane);
+}
+
+.StatusListPage-card-visibility {
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--jnj-color-text-faint);
 }
 
 .StatusListPage-card-classes {

@@ -21,10 +21,17 @@ import { ReactComponent as BagIcon } from '../icons/bag.svg';
 import { ReactComponent as NoteIcon } from '../icons/note.svg';
 import { ReactComponent as MapIcon } from '../icons/map.svg';
 import { useIsMobile } from "../utils/useIsMobile";
+import { getEffectiveCharacterStats, getGrantedActions } from "../utils/statusEffects";
 
 export function CharacterMainTab({ characterPage, userId, characterList = [], campaignInfo = {} }) {
     const hasWritePermissions = userId ? (characterPage.userId === userId || characterPage.canWrite?.includes(userId)) : false;
     const isMobile = useIsMobile();
+    // Status-adjusted AC/hit/damage for the combat math below (CombatActionList's
+    // to-hit/DC previews), and any actions a status grants while active (e.g. an
+    // "Identify" status adding a free Identify action) folded in alongside the
+    // character's own class actions - see utils/statusEffects.js.
+    const effectiveStats = getEffectiveCharacterStats(characterPage);
+    const allActions = [...characterPage.actions, ...getGrantedActions(characterPage)];
     // The Combat Map tab operates on the character's campaign (the combat
     // tracker, the active map) - a character with no campaign field has none
     // of that to show, and campaignId="" collapsing to "no campaign" makes
@@ -160,12 +167,12 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                 </div>
                 <div className="CharacterMainTab-action-body">
                     <span className="CharacterMainTab-caps-label CharacterMainTab-section-label">Passives</span>
-                    <CombatActionList 
-                        actions={characterPage.actions.filter(action => isPassive(action))}
+                    <CombatActionList
+                        actions={allActions.filter(action => isPassive(action))}
                         experience_points={characterPage.experience_points}
-                        baseArmorClass={characterPage.base_armor_class}
-                        baseHitModifier={characterPage.base_hit_modifier}
-                        baseDamageModifier={characterPage.base_damage_modifier}
+                        baseArmorClass={effectiveStats.base_armor_class}
+                        baseHitModifier={effectiveStats.base_hit_modifier}
+                        baseDamageModifier={effectiveStats.base_damage_modifier}
                         baseDamageDice={characterPage.base_damage_dice}
                         baseDamageDiceType={characterPage.base_damage_dice_type}
                         baseHealingDiceType={characterPage.base_healing_dice_type}
@@ -173,12 +180,12 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                         characterPage={characterPage}
                     />
                     <span className="CharacterMainTab-caps-label CharacterMainTab-section-label">Available Actions</span>
-                    <CombatActionList 
-                        actions={characterPage.actions.filter(action => action.actionCost <= characterPage.action_points).filter(action => !isPassive(action))}
+                    <CombatActionList
+                        actions={allActions.filter(action => action.actionCost <= characterPage.action_points).filter(action => !isPassive(action))}
                         experience_points={characterPage.experience_points}
-                        baseArmorClass={characterPage.base_armor_class}
-                        baseHitModifier={characterPage.base_hit_modifier}
-                        baseDamageModifier={characterPage.base_damage_modifier}
+                        baseArmorClass={effectiveStats.base_armor_class}
+                        baseHitModifier={effectiveStats.base_hit_modifier}
+                        baseDamageModifier={effectiveStats.base_damage_modifier}
                         baseDamageDice={characterPage.base_damage_dice}
                         baseDamageDiceType={characterPage.base_damage_dice_type}
                         baseHealingDiceType={characterPage.base_healing_dice_type}
@@ -188,11 +195,11 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                     />
                     <span className="CharacterMainTab-caps-label CharacterMainTab-section-label">Unavailable — not enough Action Points</span>
                     <CombatActionList
-                        actions={characterPage.actions.filter(action => action.actionCost > characterPage.action_points)}
+                        actions={allActions.filter(action => action.actionCost > characterPage.action_points)}
                         experience_points={characterPage.experience_points}
-                        baseArmorClass={characterPage.base_armor_class}
-                        baseHitModifier={characterPage.base_hit_modifier}
-                        baseDamageModifier={characterPage.base_damage_modifier}
+                        baseArmorClass={effectiveStats.base_armor_class}
+                        baseHitModifier={effectiveStats.base_hit_modifier}
+                        baseDamageModifier={effectiveStats.base_damage_modifier}
                         baseDamageDice={characterPage.base_damage_dice}
                         baseDamageDiceType={characterPage.base_damage_dice_type}
                         baseHealingDiceType={characterPage.base_healing_dice_type}
