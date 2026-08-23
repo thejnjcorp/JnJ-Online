@@ -20,9 +20,11 @@ import { ReactComponent as SwordsIcon } from '../icons/swords.svg';
 import { ReactComponent as BagIcon } from '../icons/bag.svg';
 import { ReactComponent as NoteIcon } from '../icons/note.svg';
 import { ReactComponent as MapIcon } from '../icons/map.svg';
+import { useIsMobile } from "../utils/useIsMobile";
 
 export function CharacterMainTab({ characterPage, userId, characterList = [], campaignInfo = {} }) {
     const hasWritePermissions = userId ? (characterPage.userId === userId || characterPage.canWrite?.includes(userId)) : false;
+    const isMobile = useIsMobile();
     // The Combat Map tab operates on the character's campaign (the combat
     // tracker, the active map) - a character with no campaign field has none
     // of that to show, and campaignId="" collapsing to "no campaign" makes
@@ -133,14 +135,25 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                 
                 <div className="CharacterMainTab-action-points">
                     <span className="CharacterMainTab-caps-label">Action Points</span>{"\xa0\xa0"}
-                    {characterPage.action_points > 0 ? <img src={starFilledIcon} alt='starFilled' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(1) : undefined}/> :
-                    <img src={starIcon} alt='star' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(1) : undefined}/>}
-                    {characterPage.action_points > 1 ? <img src={starFilledIcon} alt='starFilled' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(2) : undefined}/> :
-                    <img src={starIcon} alt='star' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(2) : undefined}/>}
-                    {characterPage.action_points > 2 ? <img src={starFilledIcon} alt='starFilled' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(3) : undefined}/> :
-                    <img src={starIcon} alt='star' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(3) : undefined}/>}
-                    {characterPage.action_points > 3 ? <img src={starFilledIcon} alt='starFilled' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(4) : undefined}/> :
-                    <img src={starIcon} alt='star' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(4) : undefined}/>}
+                    {/* Wrapped in a real <button> (rather than just an onClick on the
+                        <img>) so mobile gets an actual 44x44 tap target - see
+                        .CharacterMainTab-star-button in CharacterMainTab.scss. */}
+                    {[1, 2, 3, 4].map(n =>
+                        <button
+                            key={n}
+                            type="button"
+                            className="CharacterMainTab-star-button"
+                            disabled={!hasWritePermissions}
+                            onClick={hasWritePermissions ? () => setActionPoints(n) : undefined}
+                        >
+                            <img
+                                src={characterPage.action_points >= n ? starFilledIcon : starIcon}
+                                alt={characterPage.action_points >= n ? 'starFilled' : 'star'}
+                                className="CharacterMainTab-star"
+                                width={30}
+                            />
+                        </button>
+                    )}
                     <span className="CharacterMainTab-action-points-label">
                         {characterPage.action_points} / 4 available{hasWritePermissions ? " · click a star to spend" : ""}
                     </span>
@@ -191,11 +204,65 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
         {
             tabName: "Inventory",
             icon: <BagIcon/>,
-            content: <div className="CharacterMainTab-inventory">
+            // Mobile drops the side-by-side DnD columns for three stacked
+            // sections (Relics as a 2x2 grid, Backpack as a vertical list of
+            // slots, Pocket as its own card) - see design/character-page-v2
+            // section 11. Drag-and-drop is preserved by reusing the exact
+            // same PostListContentInventory/Pocket + @hello-pangea/dnd
+            // machinery as desktop, just with a different inputStatuses
+            // shape (which rows/columns of slots get rendered) and
+            // className overrides (which also hide each card's content,
+            // matching the mockup's title-only slot cards - full item
+            // descriptions stay a desktop-only affordance for now).
+            content: isMobile
+                ? <div className="CharacterMainTab-inventory-mobile">
+                    <span className="CharacterMainTab-caps-label CharacterMainTab-section-label">Relics</span>
+                    <PostListContentInventory
+                        inputStatuses={[["Relic 1", "Relic 2"], ["Relic 3", "Relic 4"]]}
+                        characterId={characterPage.character_id}
+                        className={{
+                            postColumn: "CharacterMainTab-PostColumn-inventory-mobile-relic",
+                            postColumnHeader: "CharacterMainTab-PostColumn-header-inventory-mobile",
+                            postColumnBody: "CharacterMainTab-PostColumn-body-inventory-mobile-relic",
+                            postCardTitle: "CharacterMainTab-PostCardTitle-inventory-mobile",
+                            postCardContent: "CharacterMainTab-PostCardContent-inventory-mobile",
+                            postCardBox: "CharacterMainTab-PostCardBox-inventory-mobile"
+                        }}
+                        campaignCharacterList={characterList || []}
+                    />
+                    <span className="CharacterMainTab-caps-label CharacterMainTab-section-label">Backpack</span>
+                    <PostListContentInventory
+                        inputStatuses={[["1"], ["2"], ["3"], ["4"], ["5"], ["6"], ["7"], ["8"]]}
+                        characterId={characterPage.character_id}
+                        className={{
+                            postColumn: "CharacterMainTab-PostColumn-inventory-mobile-backpack",
+                            postColumnHeader: "CharacterMainTab-PostColumn-header-inventory-mobile",
+                            postColumnBody: "CharacterMainTab-PostColumn-body-inventory-mobile-backpack",
+                            postCardTitle: "CharacterMainTab-PostCardTitle-inventory-mobile",
+                            postCardContent: "CharacterMainTab-PostCardContent-inventory-mobile",
+                            postCardBox: "CharacterMainTab-PostCardBox-inventory-mobile"
+                        }}
+                        campaignCharacterList={characterList || []}
+                    />
+                    <span className="CharacterMainTab-caps-label CharacterMainTab-section-label">Pocket</span>
+                    <PostListContentInventoryPocket
+                        inputStatuses={["Pocket"]}
+                        characterId={characterPage.character_id}
+                        className={{
+                            postColumn: "CharacterMainTab-PostColumn-inventory-pocket-mobile",
+                            postColumnHeader: "CharacterMainTab-PostColumn-header-inventory-mobile",
+                            postColumnBody: "CharacterMainTab-PostColumn-body-inventory-pocket-mobile",
+                            postCardTitle: "CharacterMainTab-PostCardTitle-inventory-mobile",
+                            postCardContent: "CharacterMainTab-PostCardContent-inventory-mobile",
+                            postCardBox: "CharacterMainTab-PostCardBox-inventory-mobile"
+                        }}
+                    />
+                </div>
+                : <div className="CharacterMainTab-inventory">
                 <div style={{ width: "50%" }}>
-                    <PostListContentInventory 
-                        inputStatuses={[["Relic 1", "Relic 2", "Relic 3", "Relic 4"], 
-                                        ["1", "2", "3", "4"], 
+                    <PostListContentInventory
+                        inputStatuses={[["Relic 1", "Relic 2", "Relic 3", "Relic 4"],
+                                        ["1", "2", "3", "4"],
                                         ["5", "6", "7", "8"]]}
                         characterId={characterPage.character_id}
                         className={{

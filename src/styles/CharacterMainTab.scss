@@ -100,6 +100,20 @@
     filter: invert(1);
 }
 
+.CharacterMainTab-star-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border-style: none;
+    background: transparent;
+    cursor: pointer;
+
+    &:disabled {
+        cursor: default;
+    }
+}
+
 .CharacterMainTab-caps-label {
     display: inline-block;
     font-size: 11px;
@@ -359,5 +373,118 @@
 
     &:hover {
         background-color: var(--jnj-color-accent-hover);
+    }
+}
+
+/* --- Mobile Inventory (design/character-page-v2 section 11) ---------------
+   Reuses the exact same PostListContentInventory/Pocket + @hello-pangea/dnd
+   machinery as desktop (so drag-and-drop keeps working on touch) - only the
+   inputStatuses shape (CharacterMainTab.js) and these classNames differ.
+   Content is hidden on every slot card here; title-only matches the mobile
+   mockup, full descriptions stay a desktop affordance. */
+.CharacterMainTab-inventory-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.CharacterMainTab-PostColumn-header-inventory-mobile {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--jnj-color-text-faint);
+    padding: 0 0 4px 2px;
+}
+
+.CharacterMainTab-PostCardTitle-inventory-mobile {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--jnj-color-text);
+}
+
+.CharacterMainTab-PostCardContent-inventory-mobile {
+    display: none;
+}
+
+.CharacterMainTab-PostCardBox-inventory-mobile {
+    box-sizing: border-box;
+    width: 100%;
+    background: var(--jnj-color-bg-raised);
+    border-radius: 6px;
+    padding: 6px 10px;
+
+    &.isDragging {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    }
+}
+
+.CharacterMainTab-PostColumn-body-inventory-mobile-relic {
+    box-sizing: border-box;
+    padding: 3px;
+}
+
+.CharacterMainTab-PostColumn-inventory-mobile-relic {
+    box-sizing: border-box;
+    min-height: 60px;
+    background: var(--jnj-color-bg-sunken);
+    border: 1px dashed var(--jnj-color-border);
+    border-radius: var(--jnj-radius-md);
+    padding: 8px;
+
+    &.isDraggingOver {
+        background-color: var(--jnj-color-bg-hover);
+    }
+}
+
+.CharacterMainTab-PostColumn-body-inventory-mobile-backpack {
+    box-sizing: border-box;
+    padding: 1px 0;
+}
+
+.CharacterMainTab-PostColumn-inventory-mobile-backpack {
+    box-sizing: border-box;
+    min-height: 38px;
+    background: var(--jnj-color-bg-sunken);
+    border: 1px dashed var(--jnj-color-border);
+    border-radius: var(--jnj-radius-md);
+    padding: 4px 10px;
+
+    &.isDraggingOver {
+        background-color: var(--jnj-color-bg-hover);
+    }
+}
+
+.CharacterMainTab-PostColumn-body-inventory-pocket-mobile {
+    box-sizing: border-box;
+    padding: 8px;
+    background: #e4d9bd;
+    border-radius: var(--jnj-radius-md);
+}
+
+.CharacterMainTab-PostColumn-inventory-pocket-mobile {
+    box-sizing: border-box;
+    min-height: 38px;
+
+    &.isDraggingOver {
+        background-color: #d8c9a3;
+    }
+}
+
+@media (max-width: 640px) {
+    .CharacterMainTab-star-button {
+        width: 44px;
+        height: 44px;
+        // Without this, .CharacterMainTab-action-points's flex row (label +
+        // 4 buttons + trailing text) doesn't fit 375px, and flex-shrink's
+        // default of 1 compressed these back down to their min-content
+        // floor (~30px, the star image's intrinsic width) - defeating the
+        // whole point of a real 44px tap target.
+        flex-shrink: 0;
+    }
+
+    .CharacterMainTab-action-points {
+        flex-wrap: wrap;
+        height: auto;
     }
 }

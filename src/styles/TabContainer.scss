@@ -74,3 +74,48 @@
         box-sizing: border-box;
     }
 }
+
+// Mobile: the pill switcher becomes a fixed bottom tab bar (icon above
+// label, real 60px touch targets) instead of an inline row above the
+// content - matches design/character-page-v2/reference-mobile.html. The
+// content area gets padding-bottom so its last child isn't hidden behind
+// the fixed bar.
+@media (max-width: 640px) {
+    .TabContainer {
+        .TabContainer-tabs {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            // overrides the base rule's `width: max-content` (sized to fit
+            // its buttons) back to `auto` - only then does left:0/right:0
+            // stretch this to fill the viewport exactly, padding included
+            width: auto;
+            gap: 0;
+            padding: 4px;
+            border-radius: 0;
+            border-top: 1px solid var(--jnj-color-border);
+            background: var(--jnj-color-bg-raised);
+            z-index: 20;
+        }
+
+        .TabButton {
+            flex: 1;
+            flex-direction: column;
+            justify-content: center;
+            gap: 4px;
+            min-height: 60px;
+            padding: 6px 4px;
+            font-size: 11px;
+            border-radius: var(--jnj-radius-md);
+
+            span {
+                white-space: nowrap;
+            }
+        }
+
+        .TabContainer-content {
+            padding-bottom: calc(60px + var(--jnj-space-4));
+        }
+    }
+}

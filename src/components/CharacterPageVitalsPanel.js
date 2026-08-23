@@ -128,39 +128,47 @@ export function CharacterPageVitalsPanel({characterPageLayoutLive, userId}) {
 
         <div className="CharacterPage-vitals-divider"/>
 
-        <div className="CharacterPage-vitals-ac" data-tooltip-id="ac">
-            <div className="CharacterPage-vitals-label">AC</div>
-            <div className="CharacterPage-vitals-ac-shield">
-                <img src={shieldIcon} className="CharacterPage-vitals-ac-shield-icon" alt=""/>
-                <span className="CharacterPage-vitals-ac-value">{characterStats.ArmorClass}</span>
+        {/* AC and XP/Hardness are wrapped together so mobile's
+            flex-direction:column stacks them as one row (see
+            design/character-page-v2 - Health / AC+XP+Hardness / Scores,
+            each separated by a full-width divider). The divider between
+            them is kept inside this wrapper so desktop's layout - which
+            this replaces without changing - is unaffected. */}
+        <div className="CharacterPage-vitals-ac-xp-row">
+            <div className="CharacterPage-vitals-ac" data-tooltip-id="ac">
+                <div className="CharacterPage-vitals-label">AC</div>
+                <div className="CharacterPage-vitals-ac-shield">
+                    <img src={shieldIcon} className="CharacterPage-vitals-ac-shield-icon" alt=""/>
+                    <span className="CharacterPage-vitals-ac-value">{characterStats.ArmorClass}</span>
+                </div>
             </div>
-        </div>
 
-        <div className="CharacterPage-vitals-divider"/>
+            <div className="CharacterPage-vitals-divider"/>
 
-        <div className="CharacterPage-vitals-xp-hardness">
-            <div className="CharacterPage-vitals-xp-hardness-row">
-                <span className="CharacterPage-vitals-label CharacterPage-vitals-xp-hardness-label">XP</span>
-                <input
-                    value={localScores.experience_points}
-                    className="CharacterPage-vitals-pill-input"
-                    disabled={!hasWritePermissions}
-                    name="experience_points"
-                    type="number"
-                    onChange={handleChange}
-                    data-tooltip-id="xp"
-                />
-            </div>
-            <div className="CharacterPage-vitals-xp-hardness-row">
-                <span className="CharacterPage-vitals-label CharacterPage-vitals-xp-hardness-label">Hardness</span>
-                <input
-                    value={localScores.hardness}
-                    className="CharacterPage-vitals-pill-input"
-                    disabled={!hasWritePermissions}
-                    name="hardness"
-                    type="number"
-                    onChange={handleChange}
-                />
+            <div className="CharacterPage-vitals-xp-hardness">
+                <div className="CharacterPage-vitals-xp-hardness-row">
+                    <span className="CharacterPage-vitals-label CharacterPage-vitals-xp-hardness-label">XP</span>
+                    <input
+                        value={localScores.experience_points}
+                        className="CharacterPage-vitals-pill-input"
+                        disabled={!hasWritePermissions}
+                        name="experience_points"
+                        type="number"
+                        onChange={handleChange}
+                        data-tooltip-id="xp"
+                    />
+                </div>
+                <div className="CharacterPage-vitals-xp-hardness-row">
+                    <span className="CharacterPage-vitals-label CharacterPage-vitals-xp-hardness-label">Hardness</span>
+                    <input
+                        value={localScores.hardness}
+                        className="CharacterPage-vitals-pill-input"
+                        disabled={!hasWritePermissions}
+                        name="hardness"
+                        type="number"
+                        onChange={handleChange}
+                    />
+                </div>
             </div>
         </div>
 

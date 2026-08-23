@@ -328,6 +328,12 @@
     }
 }
 
+.CharacterPage-vitals-ac-xp-row {
+    display: flex;
+    align-items: center;
+    gap: var(--jnj-space-6);
+}
+
 .CharacterPage-vitals-ac {
     text-align: center;
     flex-shrink: 0;
@@ -468,5 +474,132 @@
 @media (prefers-reduced-motion: no-preference) {
     .CharacterPage-loading-icon {
         animation: App-logo-spin infinite 20s linear;
+    }
+}
+
+/* --- Mobile (design/character-page-v2/reference-mobile.html) --------------
+   The persistent 300px sidebar becomes a summary button + slide-up drawer
+   (CharacterPage.js swaps the DOM, driven by useIsMobile()), and the page
+   becomes a single stacked column - .CharacterPage keeps being the one
+   scrolling region (same overflow-y:auto it already had), it just switches
+   from a row of two independently-scrolling panes to a column. */
+@media (max-width: 640px) {
+    .CharacterPage {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .CharacterPage-skills-summary-button {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--jnj-space-3);
+        box-sizing: border-box;
+        margin: var(--jnj-space-4) var(--jnj-space-4) 0;
+        padding: var(--jnj-space-3) var(--jnj-space-4);
+        border: 1px solid var(--jnj-color-border);
+        border-radius: var(--jnj-radius-md);
+        background: var(--jnj-color-bg-sunken);
+        color: var(--jnj-color-text);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .CharacterPage-skills-summary-chevron {
+        flex-shrink: 0;
+        color: var(--jnj-color-text-muted);
+    }
+
+    .CharacterPage-skills-drawer-scrim {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        z-index: 30;
+    }
+
+    .CharacterPage-skills-drawer {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        top: 8vh;
+        z-index: 31;
+        box-sizing: border-box;
+        background-color: var(--jnj-color-bg-sunken);
+        border-radius: var(--jnj-radius-lg) var(--jnj-radius-lg) 0 0;
+        padding: var(--jnj-space-5) 0 var(--jnj-space-7);
+        overflow-y: auto;
+        box-shadow: var(--jnj-shadow-md);
+    }
+
+    .CharacterPage-skills-drawer-close {
+        position: absolute;
+        top: var(--jnj-space-3);
+        right: var(--jnj-space-4);
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border-style: none;
+        background: var(--jnj-color-bg-hover);
+        color: var(--jnj-color-text);
+        font-size: 18px;
+        line-height: 1;
+        cursor: pointer;
+    }
+
+    .CharacterPage-right-content {
+        flex: 1 1 auto;
+        overflow-y: visible;
+        padding: var(--jnj-space-4) var(--jnj-space-4) var(--jnj-space-7);
+    }
+
+    .CharacterPage-masthead {
+        padding: var(--jnj-space-4);
+    }
+
+    .CharacterPage-masthead-content {
+        gap: var(--jnj-space-4);
+    }
+
+    .CharacterPage-masthead-avatar {
+        width: 56px;
+        height: 56px;
+    }
+
+    .CharacterPage-masthead-name {
+        font-size: 21px;
+    }
+
+    .CharacterPage-masthead-subline {
+        font-size: 11px;
+    }
+
+    .CharacterPage-vitals {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--jnj-space-4);
+    }
+
+    /* Only the top-level separators (Health / AC+XP+Hardness / Scores) go
+       horizontal - the one nested inside .CharacterPage-vitals-ac-xp-row
+       stays a vertical rule between AC and XP/Hardness, same as desktop. */
+    .CharacterPage-vitals > .CharacterPage-vitals-divider {
+        width: 100%;
+        height: 1px;
+    }
+
+    .CharacterPage-vitals-health {
+        flex-basis: auto;
+        min-width: 0;
+    }
+
+    .CharacterPage-vitals-ac-xp-row {
+        justify-content: space-between;
+    }
+
+    .CharacterPage-vitals-scores {
+        justify-content: space-between;
+        gap: var(--jnj-space-3);
     }
 }

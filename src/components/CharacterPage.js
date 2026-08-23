@@ -13,6 +13,8 @@ import '../styles/CharacterPageStyles/AlternativeCharacterPage.scss';
 import { useLocation } from 'react-router-dom';
 import { CharacterMainTab } from './CharacterMainTab';
 import { onAuthStateChanged } from 'firebase/auth';
+import { useIsMobile } from '../utils/useIsMobile';
+import { ReactComponent as ChevronDownIcon } from '../icons/chevron_down.svg';
 
 export function CharacterPage() {
     const [characterPage, setCharacterPage] = useState(characterPageLayout);
@@ -27,8 +29,10 @@ export function CharacterPage() {
     const [characterList, setCharacterList] = useState([]);
     const [loadingScreen, setLoadingScreen] = useState(true);
     const [userId, setUserId] = useState("");
+    const [skillsDrawerOpen, setSkillsDrawerOpen] = useState(false);
     const location = useLocation();
     const pageTheme = 'DefaultCharacterPage';
+    const isMobile = useIsMobile();
 
     const docQuery = useMemo(() => doc(db, "characters", location.pathname.split("/").at(2)), [location.pathname]);
     // campaignId is "placeholder" until the character doc loads, then either a
@@ -92,16 +96,34 @@ export function CharacterPage() {
         });
     }, [location])
 
+    const skillsCount = characterPage.skills_and_flaws.filter(item => item.isSkill).length;
+    const flawsCount = characterPage.skills_and_flaws.length - skillsCount;
+
     return <>
         {!loadingScreen && <div className={"CharacterPage " + pageTheme}>
-            <div className='CharacterPage-skills-and-flaws SkillsAndFlawsPanelOverride'>
-                <SkillsAndFlaws characterPage={characterPage} userId={userId}/>
-            </div>
+            {isMobile
+                ? <button className='CharacterPage-skills-summary-button' onClick={() => setSkillsDrawerOpen(true)}>
+                    <span>Skills &amp; Flaws · {skillsCount} · {flawsCount}</span>
+                    <ChevronDownIcon className='CharacterPage-skills-summary-chevron'/>
+                </button>
+                : <div className='CharacterPage-skills-and-flaws SkillsAndFlawsPanelOverride'>
+                    <SkillsAndFlaws characterPage={characterPage} userId={userId}/>
+                </div>}
             <div className='CharacterPage-right-content'>
                 <CharacterPageNavigation characterPage={characterPage}/>
                 <CharacterPageVitalsPanel characterPageLayoutLive={characterPage} userId={userId}/>
                 <CharacterMainTab characterPage={characterPage} userId={userId} characterList={characterList} campaignInfo={campaignInfo} />
             </div>
+            {/* Mobile only: Skills & Flaws content is unchanged, just moved into a
+                slide-up drawer instead of the persistent sidebar - see
+                design/character-page-v2 section 9. */}
+            {isMobile && skillsDrawerOpen && <>
+                <div className='CharacterPage-skills-drawer-scrim' onClick={() => setSkillsDrawerOpen(false)}/>
+                <div className='CharacterPage-skills-drawer SkillsAndFlawsPanelOverride'>
+                    <button className='CharacterPage-skills-drawer-close' onClick={() => setSkillsDrawerOpen(false)}>×</button>
+                    <SkillsAndFlaws characterPage={characterPage} userId={userId}/>
+                </div>
+            </>}
     </div>}
     {loadingScreen && <img src={loadingIcon} alt="loading" className='CharacterPage-loading-icon'/>}
     </>
