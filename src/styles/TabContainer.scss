@@ -1,32 +1,76 @@
 .TabContainer {
-    width: 80vw;
+    box-sizing: border-box;
+    width: 100%;
     min-height: 30vh;
-    background-color: rgba(0, 0, 0, 0.3);
-    margin: 10px;
-    border-radius: 15px;
-    max-height: 50vh;
+    // Without this, being a flex child of .CharacterPage-right-content's
+    // fixed-height column (default flex-shrink:1) squeezed this down to
+    // whatever height made everything fit within 90vh - re-introducing an
+    // internal scrollbar via flex compression even after the explicit
+    // max-height/overflow rules on .TabContainer-content were removed below.
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-4);
     // scrolling lives on .TabContainer-content below - having both nested here
     // was a redundant double scroll container, which @hello-pangea/dnd (used by
     // the Combat Tracker inside this tab) explicitly does not support
     overflow: visible;
 
+    .TabContainer-tabs {
+        display: flex;
+        gap: 6px;
+        padding: 5px;
+        border-radius: var(--jnj-radius-pill);
+        background: var(--jnj-color-bg-sunken);
+        width: max-content;
+        flex-shrink: 0;
+    }
+
     .TabButton {
-        font-size: 24px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 18px;
         border-style: none;
-        color: inherit;
-        background-color: rgba(0, 0, 0, 0);
+        border-radius: var(--jnj-radius-pill);
+        font-size: 13.5px;
+        font-weight: 600;
+        color: var(--jnj-color-text-muted);
+        background-color: transparent;
+        cursor: pointer;
+        transition: background-color var(--jnj-transition), color var(--jnj-transition);
 
         &:hover {
-            color: gray;
+            color: var(--jnj-color-text);
         }
     }
-    
+
     .TabButtonSelected {
-        text-decoration: underline;
+        background: var(--jnj-color-accent);
+        color: var(--jnj-color-on-accent);
+
+        &:hover {
+            color: var(--jnj-color-on-accent);
+        }
     }
 
     .TabContainer-content {
-        max-height: 50vh;
+        background-color: var(--jnj-color-bg-raised);
+        border: 1px solid var(--jnj-color-border);
+        border-radius: var(--jnj-radius-lg);
+        padding: 26px 30px;
+        // No max-height/overflow here by default - CharacterMainTab.js relies
+        // on this growing to its natural full height, with
+        // .CharacterPage-right-content's own scroll as the single scrollable
+        // region for the whole right column (masthead + vitals + this),
+        // rather than the tab content being its own separately-windowed,
+        // internally-scrolling box. DirectorsPage.js still gets its own
+        // capped/scrolling box via the container_height/content_height props
+        // (set as inline max-height by TabContainer.js) plus its own
+        // `.TabContainer { max-height: 90vh; }` override in
+        // DirectorsPage.scss - overflow-y:auto is harmless here with no cap
+        // in place, and becomes load-bearing again the moment one is applied.
         overflow-y: auto;
+        box-sizing: border-box;
     }
 }

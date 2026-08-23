@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JnJ Character Page v2 — mobile static reference (not wired to Firebase, view source / copy markup)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&amp;family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #16161a; --bg-sunken: #101013; --bg-raised: #1f1f25; --bg-hover: #2a2a33;
+    --border: #34343f; --border-strong: #4d4d5c;
+    --text: #ece8e1; --text-muted: #a09a90; --text-faint: #6f6a63; --on-accent: #16161a;
+    --accent: #c8a24a; --accent-hover: #e0bc63; --accent-soft: rgba(200,162,74,0.14);
+    --arcane: #7c4dff; --ember: #d4622a; --danger: #c9453f; --success: #5c9a6b;
+    --font-display: 'Cinzel', Georgia, 'Times New Roman', serif;
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --radius-md: 8px; --radius-lg: 14px; --radius-pill: 999px;
+    --shadow-md: 0 6px 18px rgba(0,0,0,0.45);
+    --nav-color: #6b3fca; /* stand-in for characterPage.navigation_color */
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; font-family: var(--font-body); background: var(--bg); color: var(--text); }
+  .muted { color: var(--text-muted); }
+  .faint { color: var(--text-faint); }
+  .caps { text-transform: uppercase; letter-spacing: 0.08em; }
+  .card { background: var(--bg-raised); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+  button { font-family: inherit; cursor: pointer; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .tab-btn { color: var(--text-muted); }
+  .tab-btn.active { color: var(--accent); }
+
+  .ap-star svg.filled { display: none; }
+  .ap-star svg.empty { display: block; }
+  .ap-star.filled svg.filled { display: block; }
+  .ap-star.filled svg.empty { display: none; }
+
+  .drawer-scrim, .drawer { display: none; }
+  .drawer-scrim.open, .drawer.open { display: block; }
+  .drawer.open { display: flex; }
+</style>
+</head>
+<body>
+
+<div style="width:100%;min-height:100vh;position:relative;">
+
+  <div style="padding:18px 16px 100px;display:flex;flex-direction:column;gap:14px;max-width:480px;margin:0 auto;">
+
+    <!-- MASTHEAD -->
+    <div style="position:relative;border-radius:16px;padding:16px 18px;overflow:hidden;background:linear-gradient(135deg, var(--nav-color) 0%, #1a1622 75%);box-shadow:var(--shadow-md);">
+      <div style="position:absolute;inset:0;background:radial-gradient(120% 140% at 100% 0%, rgba(255,255,255,0.08), transparent 55%);pointer-events:none;"></div>
+      <div style="position:relative;display:flex;align-items:center;gap:14px;">
+        <div style="width:56px;height:56px;border-radius:50%;background:rgba(0,0,0,0.28);border:2px solid rgba(255,255,255,0.35);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.75);flex-shrink:0;">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6 8-6s8 2 8 6" stroke-linecap="round"/></svg>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-family:var(--font-display);font-size:21px;font-weight:600;color:#fff;line-height:1.15;">Character Name</div>
+          <div style="margin-top:4px;font-size:11px;color:rgba(255,255,255,0.72);" class="caps">Class Name &middot; o402</div>
+        </div>
+        <button style="width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,0.35);background:rgba(0,0,0,0.25);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.8-.9 1.8-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2a3 3 0 0 0 3-3c0-4.4-3.6-8.4-7.8-8.4Z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="8.5" cy="15" r="1"/><circle cx="14.5" cy="7" r="1"/><circle cx="17" cy="11" r="1"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- SKILLS & FLAWS SUMMARY -->
+    <button class="card" style="display:flex;align-items:center;gap:10px;padding:13px 16px;min-height:48px;text-align:left;color:var(--text);width:100%;" onclick="openDrawer()">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.8-.9 1.8-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2a3 3 0 0 0 3-3c0-4.4-3.6-8.4-7.8-8.4Z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="8.5" cy="15" r="1"/><circle cx="14.5" cy="7" r="1"/><circle cx="17" cy="11" r="1"/></svg>
+      <span style="font-weight:600;font-size:14.5px;">Skills &amp; Flaws</span>
+      <span style="font-size:12px;" class="muted">3 &middot; 0</span>
+      <span style="margin-left:auto;color:var(--text-faint);">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </span>
+    </button>
+
+    <!-- VITALS CARD -->
+    <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:7px;">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--danger)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-9.5-9C1 7.6 2.8 4.5 6 4.5c2 0 3.4 1.2 4 2.4 0.6-1.2 2-2.4 4-2.4 3.2 0 5 3.1 3.5 6.5C19 15.6 12 20 12 20Z"/></svg>
+          <span style="font-size:10.5px;font-weight:700;" class="caps muted">Health</span>
+          <span style="margin-left:auto;font-size:18px;font-weight:700;">17<span class="muted" style="font-size:13px;font-weight:500;"> / 17</span></span>
+        </div>
+        <div style="height:9px;border-radius:999px;background:var(--bg-sunken);overflow:hidden;">
+          <div style="height:100%;width:100%;background:linear-gradient(90deg, var(--success), #7fc493);"></div>
+        </div>
+        <div style="margin-top:6px;font-size:11px;" class="muted">Temp HP: 0</div>
+      </div>
+
+      <div style="height:1px;background:var(--border);"></div>
+
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div style="text-align:center;flex-shrink:0;">
+          <div style="font-size:10px;font-weight:700;margin-bottom:3px;" class="caps faint">AC</div>
+          <div style="position:relative;width:44px;height:44px;color:var(--accent);">
+            <svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6l7-3Z"/></svg>
+            <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding-top:3px;font-size:16px;font-weight:700;color:var(--text);">17</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;flex:1;font-size:12.5px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:10.5px;font-weight:700;width:58px;" class="caps muted">XP</span>
+            <span style="min-width:30px;padding:3px 9px;border-radius:6px;background:var(--bg-sunken);font-weight:700;text-align:center;">0</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:10.5px;font-weight:700;width:58px;" class="caps muted">Hardness</span>
+            <span style="min-width:30px;padding:3px 9px;border-radius:6px;background:var(--bg-sunken);font-weight:700;text-align:center;">0</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:1px;background:var(--border);"></div>
+
+      <div style="display:flex;justify-content:space-between;">
+        <div style="text-align:center;">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto;display:block;"><path d="M4 9v6M2 10v4M20 9v6M22 10v4M7 12h10"/><rect x="5" y="8" width="3" height="8" rx="1"/><rect x="16" y="8" width="3" height="8" rx="1"/></svg>
+          <div style="font-size:10px;margin-top:4px;" class="caps faint">Str</div>
+          <div style="font-size:15px;font-weight:700;margin-top:2px;">3</div>
+        </div>
+        <div style="text-align:center;">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto;display:block;"><circle cx="14.5" cy="4.5" r="1.6"/><path d="M8 21l2.5-5 2-2-1-4 3-2 3 3-2 2 2 5M6 13l3-3 3 1"/></svg>
+          <div style="font-size:10px;margin-top:4px;" class="caps faint">Dex</div>
+          <div style="font-size:15px;font-weight:700;margin-top:2px;">1</div>
+        </div>
+        <div style="text-align:center;">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto;display:block;"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.3 1 2.1h5c0-.8.4-1.6 1-2.1A6 6 0 0 0 12 3Z"/></svg>
+          <div style="font-size:10px;margin-top:4px;" class="caps faint">Int</div>
+          <div style="font-size:15px;font-weight:700;margin-top:2px;">0</div>
+        </div>
+        <div style="text-align:center;">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto;display:block;"><path d="M4 5h13a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H10l-4 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/></svg>
+          <div style="font-size:10px;margin-top:4px;" class="caps faint">Cha</div>
+          <div style="font-size:15px;font-weight:700;margin-top:2px;">3</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB CONTENT -->
+    <div class="card" style="padding:18px 16px;">
+
+      <!-- ROLEPLAY -->
+      <div class="panel active" data-panel="roleplay">
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div style="border-left:3px solid var(--accent);border-radius:6px;background:var(--bg-sunken);padding:14px 16px;">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v13a2.5 2.5 0 0 1-2.5 2.5H8.5A2.5 2.5 0 0 1 6 17V4Z"/><path d="M6 8H4.5A1.5 1.5 0 0 0 3 9.5v7A2.5 2.5 0 0 0 5.5 19H8"/><path d="M9 8h6M9 11h6"/></svg>
+              <span style="font-family:var(--font-display);font-size:15.5px;">Background</span>
+            </div>
+            <div style="font-size:13.5px;line-height:1.65;white-space:pre-line;">Alando's Edicts:
+Face Evil Without Fear: Never back down from evil, even if it means dying for your beliefs.
+Remember and Confront Evil: Never forget the harm evil has caused, and always speak out against it.
+Don't Play God: Never interfere with the will of your deity or try to take their place.
+Honor the Dead: Whenever possible, give proper burial rites to everyone, no matter who they are.</div>
+          </div>
+          <div style="border-left:3px solid var(--ember);border-radius:6px;background:var(--bg-sunken);padding:14px 16px;">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--ember)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h13a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H10l-4 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/></svg>
+              <span style="font-family:var(--font-display);font-size:15.5px;">Notes</span>
+            </div>
+            <div style="font-size:13.5px;line-height:1.65;">Our good friend Mr. Astie perished after being thrown off a flying pirate ship and ended up getting his soul taken by Mr. Denty.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COMBAT -->
+      <div class="panel" data-panel="combat">
+        <div style="display:flex;flex-direction:column;gap:8px;padding-bottom:14px;margin-bottom:16px;border-bottom:1px solid var(--border);">
+          <span id="ap-label" style="font-size:10.5px;font-weight:700;" class="caps muted">Action Points &middot; 2 / 4</span>
+          <div style="display:flex;gap:2px;">
+            <button class="ap-star filled" onclick="toggleAP(1)" style="background:none;border:none;width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:var(--accent);">
+              <svg class="filled" viewBox="0 0 24 24" width="26" height="26" fill="currentColor" stroke="currentColor" stroke-width="1"><path d="M12 3.5l2.6 5.6 6 .7-4.4 4.1 1.2 6-5.4-3-5.4 3 1.2-6L3.4 9.8l6-.7 2.6-5.6Z"/></svg>
+              <svg class="empty" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M12 3.5l2.6 5.6 6 .7-4.4 4.1 1.2 6-5.4-3-5.4 3 1.2-6L3.4 9.8l6-.7 2.6-5.6Z"/></svg>
+            </button>
+            <button class="ap-star filled" onclick="toggleAP(2)" style="background:none;border:none;width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:var(--accent);">
+              <svg class="filled" viewBox="0 0 24 24" width="26" height="26" fill="currentColor" stroke="currentColor" stroke-width="1"><path d="M12 3.5l2.6 5.6 6 .7-4.4 4.1 1.2 6-5.4-3-5.4 3 1.2-6L3.4 9.8l6-.7 2.6-5.6Z"/></svg>
+              <svg class="empty" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M12 3.5l2.6 5.6 6 .7-4.4 4.1 1.2 6-5.4-3-5.4 3 1.2-6L3.4 9.8l6-.7 2.6-5.6Z"/></svg>
+            </button>
+            <button class="ap-star" onclick="toggleAP(3)" style="background:none;border:none;width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:var(--accent);">
+              <svg class="filled" viewBox="0 0 24 24" width="26" height="26" fill="currentColor" stroke="currentColor" stroke-width="1"><path d="M12 3.5l2.6 5.6 6 .7-4.4 4.1 1.2 6-5.4-3-5.4 3 1.2-6L3.4 9.8l6-.7 2.6-5.6Z"/></svg>
+              <svg class="empty" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M12 3.5l2.6 5.6 6 .7-4.4 4.1 1.2 6-5.4-3-5.4 3 1.2-6L3.4 9.8l6-.7 2.6-5.6Z"/></svg>
+            </button>
+            <button class="ap-star" onclick="toggleAP(4)" style="background:none;border:none;width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:var(--accent);">
+              <svg class="filled" viewBox="0 0 24 24" width="26" height="26" fill="currentColor" stroke="currentColor" stroke-width="1"><path d="M12 3.5l2.6 5.6 6 .7-4.4 4.1 1.2 6-5.4-3-5.4 3 1.2-6L3.4 9.8l6-.7 2.6-5.6Z"/></svg>
+              <svg class="empty" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M12 3.5l2.6 5.6 6 .7-4.4 4.1 1.2 6-5.4-3-5.4 3 1.2-6L3.4 9.8l6-.7 2.6-5.6Z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div style="font-size:10.5px;font-weight:700;margin-bottom:9px;" class="caps muted">Passives</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+          <div class="card" style="background:var(--bg-sunken);border-color:var(--border);padding:12px 14px;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span style="font-weight:600;font-size:14px;">Read the Room</span>
+              <span style="font-size:10px;padding:2px 7px;border-radius:999px;background:rgba(124,77,255,0.18);color:#b9a3ff;" class="caps">Passive</span>
+            </div>
+            <div style="font-size:12px;margin-top:4px;" class="muted">DC 13 check &middot; Self</div>
+            <div style="font-size:12.5px;margin-top:7px;line-height:1.5;" class="muted">Instinctively read the tension in a room before it boils over. Always active.</div>
+          </div>
+          <div class="card" style="background:var(--bg-sunken);border-color:var(--border);padding:12px 14px;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span style="font-weight:600;font-size:14px;">Steel Nerves</span>
+              <span style="font-size:10px;padding:2px 7px;border-radius:999px;background:rgba(124,77,255,0.18);color:#b9a3ff;" class="caps">Passive</span>
+            </div>
+            <div style="font-size:12px;margin-top:4px;" class="muted">DC 11 check &middot; Self</div>
+            <div style="font-size:12.5px;margin-top:7px;line-height:1.5;" class="muted">Fear and intimidation effects have no hold on you.</div>
+          </div>
+        </div>
+
+        <div style="font-size:10.5px;font-weight:700;margin-bottom:9px;" class="caps muted">Available Actions</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+          <div class="card" style="background:var(--bg-sunken);border-color:var(--border);padding:12px 14px;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-weight:600;font-size:14px;">Quick Draw</span>
+              <span style="color:var(--accent);display:flex;"><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12 3.5l2.6 5.6 6 .7-4.4 4.1 1.2 6-5.4-3-5.4 3 1.2-6L3.4 9.8l6-.7 2.6-5.6Z"/></svg></span>
+            </div>
+            <div style="font-size:12px;margin-top:4px;" class="muted">+6 to hit &middot; Melee</div>
+            <div style="font-size:12.5px;margin-top:7px;line-height:1.5;" class="muted">Draw your weapon and strike in the same motion, before your target can react.</div>
+            <button style="margin-top:10px;width:100%;padding:11px;border:none;border-radius:8px;background:var(--accent);color:var(--on-accent);font-weight:700;font-size:13px;">Use Action</button>
+          </div>
+          <div class="card" style="background:var(--bg-sunken);border-color:var(--border);padding:12px 14px;">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+              <span style="font-weight:600;font-size:14px;">Fade Step</span>
+              <span style="color:var(--accent);display:flex;"><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12 3.5l2.6 5.6 6 .7-4.4 4.1 1.2 6-5.4-3-5.4 3 1.2-6L3.4 9.8l6-.7 2.6-5.6Z"/></svg></span>
+              <span style="font-size:10px;padding:2px 7px;border-radius:999px;background:rgba(124,77,255,0.18);color:#b9a3ff;" class="caps">Reaction</span>
+            </div>
+            <div style="font-size:12px;margin-top:4px;" class="muted">DC 13 check &middot; Self</div>
+            <div style="font-size:12.5px;margin-top:7px;line-height:1.5;" class="muted">Slip out of sight for a heartbeat &mdash; impossible to target until your next turn.</div>
+            <button style="margin-top:10px;width:100%;padding:11px;border:none;border-radius:8px;background:var(--accent);color:var(--on-accent);font-weight:700;font-size:13px;">Use Reaction</button>
+          </div>
+          <div class="card" style="background:var(--bg-sunken);border-color:var(--border);padding:12px 14px;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-weight:600;font-size:14px;">Sucker Punch</span>
+              <span style="color:var(--accent);display:flex;gap:1px;"><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12 3.5l2.6 5.6 6 .7-4.4 4.1 1.2 6-5.4-3-5.4 3 1.2-6L3.4 9.8l6-.7 2.6-5.6Z"/></svg><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12 3.5l2.6 5.6 6 .7-4.4 4.1 1.2 6-5.4-3-5.4 3 1.2-6L3.4 9.8l6-.7 2.6-5.6Z"/></svg></span>
+            </div>
+            <div style="font-size:12px;margin-top:4px;" class="muted">+6 to hit &middot; Melee</div>
+            <div style="font-size:12.5px;margin-top:7px;line-height:1.5;" class="muted">A dirty, opportunistic strike aimed at whoever's least ready for it.</div>
+            <button style="margin-top:10px;width:100%;padding:11px;border:none;border-radius:8px;background:var(--accent);color:var(--on-accent);font-weight:700;font-size:13px;">Use Action</button>
+          </div>
+        </div>
+
+        <div style="font-size:10.5px;font-weight:700;margin-bottom:9px;" class="caps muted">Unavailable</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div class="card" style="background:var(--bg-sunken);border-color:var(--border);padding:12px 14px;opacity:0.5;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="var(--text-faint)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+              <span style="font-weight:600;font-size:14px;">All-In Gambit</span>
+            </div>
+            <div style="font-size:12px;margin-top:4px;" class="faint">+6 to hit &middot; Any range &middot; 4 AP</div>
+          </div>
+          <div class="card" style="background:var(--bg-sunken);border-color:var(--border);padding:12px 14px;opacity:0.5;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="var(--text-faint)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+              <span style="font-weight:600;font-size:14px;">Vanish</span>
+            </div>
+            <div style="font-size:12px;margin-top:4px;" class="faint">DC 15 check &middot; Self &middot; 3 AP</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- INVENTORY -->
+      <div class="panel" data-panel="inventory">
+        <div style="font-size:10.5px;font-weight:700;margin-bottom:9px;" class="caps muted">Relics</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;">
+          <div class="card" style="background:var(--bg-sunken);border-color:var(--border);padding:11px 12px;min-height:64px;">
+            <div style="font-size:9.5px;font-weight:700;margin-bottom:3px;" class="caps faint">Relic 1</div>
+            <div style="font-size:13px;font-weight:600;">Ashwood Charm</div>
+          </div>
+          <div class="card" style="background:var(--bg-sunken);border-color:var(--border);padding:11px 12px;min-height:64px;">
+            <div style="font-size:9.5px;font-weight:700;margin-bottom:3px;" class="caps faint">Relic 2</div>
+            <div style="font-size:13px;font-weight:600;">Signet of Doubt</div>
+          </div>
+          <div class="card" style="background:var(--bg-sunken);border-color:var(--border);padding:11px 12px;min-height:64px;border-style:dashed;">
+            <div style="font-size:9.5px;font-weight:700;margin-bottom:3px;" class="caps faint">Relic 3</div>
+            <div style="font-size:13px;" class="faint">Empty</div>
+          </div>
+          <div class="card" style="background:var(--bg-sunken);border-color:var(--border);padding:11px 12px;min-height:64px;border-style:dashed;">
+            <div style="font-size:9.5px;font-weight:700;margin-bottom:3px;" class="caps faint">Relic 4</div>
+            <div style="font-size:13px;" class="faint">Empty</div>
+          </div>
+        </div>
+
+        <div style="font-size:10.5px;font-weight:700;margin-bottom:9px;" class="caps muted">Backpack</div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px;">
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:var(--bg-sunken);">
+            <span style="width:22px;height:22px;border-radius:6px;background:var(--bg-hover);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;" class="muted">1</span>
+            <span style="font-size:13.5px;font-weight:600;">Rope (50 ft)</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:var(--bg-sunken);">
+            <span style="width:22px;height:22px;border-radius:6px;background:var(--bg-hover);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;" class="muted">2</span>
+            <span style="font-size:13.5px;font-weight:600;">Rations &times;3</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:var(--bg-sunken);">
+            <span style="width:22px;height:22px;border-radius:6px;background:var(--bg-hover);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;" class="muted">3</span>
+            <span style="font-size:13.5px;font-weight:600;">Lockpicks</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:var(--bg-sunken);">
+            <span style="width:22px;height:22px;border-radius:6px;background:var(--bg-hover);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;" class="muted">4</span>
+            <span style="font-size:13.5px;font-weight:600;">Bandages &times;2</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:var(--bg-sunken);opacity:0.55;">
+            <span style="width:22px;height:22px;border-radius:6px;background:var(--bg-hover);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;" class="faint">5</span>
+            <span style="font-size:13.5px;" class="faint">Empty</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:var(--bg-sunken);opacity:0.55;">
+            <span style="width:22px;height:22px;border-radius:6px;background:var(--bg-hover);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;" class="faint">6</span>
+            <span style="font-size:13.5px;" class="faint">Empty</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:var(--bg-sunken);opacity:0.55;">
+            <span style="width:22px;height:22px;border-radius:6px;background:var(--bg-hover);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;" class="faint">7</span>
+            <span style="font-size:13.5px;" class="faint">Empty</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:var(--bg-sunken);opacity:0.55;">
+            <span style="width:22px;height:22px;border-radius:6px;background:var(--bg-hover);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;" class="faint">8</span>
+            <span style="font-size:13.5px;" class="faint">Empty</span>
+          </div>
+        </div>
+
+        <div style="font-size:10.5px;font-weight:700;margin-bottom:9px;" class="caps muted">Pocket</div>
+        <div style="border-radius:12px;background:#e4d9bd;padding:14px 16px;">
+          <div style="font-size:14px;font-weight:700;color:#3a2f1f;">Lucky Coin</div>
+          <div style="font-size:12.5px;margin-top:4px;line-height:1.5;color:#5a4b32;">Found it the night everything went wrong. Won't spend it.</div>
+        </div>
+      </div>
+
+      <!-- COMBAT MAP -->
+      <div class="panel" data-panel="map">
+        <div style="display:flex;gap:6px;padding:4px;border-radius:999px;background:var(--bg-sunken);width:max-content;margin-bottom:16px;">
+          <button style="padding:8px 16px;border:none;border-radius:999px;background:var(--accent);color:var(--on-accent);font-weight:600;font-size:12px;">Line View</button>
+          <button style="padding:8px 16px;border:none;border-radius:999px;background:transparent;color:var(--text-muted);font-weight:600;font-size:12px;">Map View</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div class="card" style="background:var(--bg-sunken);padding:12px;">
+            <div style="font-size:10.5px;font-weight:700;margin-bottom:7px;" class="caps muted">Zone 0 &middot; Vanguard</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+              <div style="padding:6px 10px;border-radius:6px;background:var(--accent-soft);border:1px solid var(--accent);font-size:12px;font-weight:600;">You</div>
+              <div style="padding:6px 10px;border-radius:6px;background:rgba(201,69,63,0.15);border:1px solid var(--danger);font-size:12px;">Bandit Scout</div>
+            </div>
+          </div>
+          <div class="card" style="background:var(--bg-sunken);padding:12px;">
+            <div style="font-size:10.5px;font-weight:700;margin-bottom:7px;" class="caps muted">Zone 1</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+              <div style="padding:6px 10px;border-radius:6px;background:rgba(201,69,63,0.15);border:1px solid var(--danger);font-size:12px;">Bandit Scout</div>
+            </div>
+          </div>
+          <div class="card" style="background:var(--bg-sunken);padding:12px;">
+            <div style="font-size:10.5px;font-weight:700;margin-bottom:7px;" class="caps muted">Zone 2</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+              <div style="padding:6px 10px;border-radius:6px;background:rgba(92,154,107,0.15);border:1px solid var(--success);font-size:12px;">Mira (ally)</div>
+            </div>
+          </div>
+          <div class="card" style="background:var(--bg-sunken);padding:12px;">
+            <div style="font-size:10.5px;font-weight:700;margin-bottom:7px;" class="caps muted">Zone 3 &middot; Backline</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+              <div style="padding:6px 10px;border-radius:6px;background:var(--bg-hover);border:1px solid var(--border-strong);font-size:12px;" class="muted">Merchant</div>
+            </div>
+          </div>
+        </div>
+        <div style="font-size:11px;margin-top:12px;" class="faint">Zones stack in one column on mobile instead of the 4-across grid on desktop &mdash; Map View still pulls the campaign's active map.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FIXED BOTTOM TAB BAR -->
+  <div style="position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--bg-raised);border-top:1px solid var(--border);max-width:480px;margin:0 auto;">
+    <button class="tab-btn active" data-tab="roleplay" onclick="showTab('roleplay')" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:60px;border:none;background:transparent;font-size:10.5px;font-weight:600;">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v13a2.5 2.5 0 0 1-2.5 2.5H8.5A2.5 2.5 0 0 1 6 17V4Z"/><path d="M6 8H4.5A1.5 1.5 0 0 0 3 9.5v7A2.5 2.5 0 0 0 5.5 19H8"/><path d="M9 8h6M9 11h6"/></svg>
+      <span>Roleplay</span>
+    </button>
+    <button class="tab-btn" data-tab="combat" onclick="showTab('combat')" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:60px;border:none;background:transparent;font-size:10.5px;font-weight:600;">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l6-6M14 10l6-6M14 10l-1.5-4L9 4l1 3.5L14 10ZM10 14l1.5 4L16 20l-1-3.5L10 14Z"/></svg>
+      <span>Combat</span>
+    </button>
+    <button class="tab-btn" data-tab="inventory" onclick="showTab('inventory')" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:60px;border:none;background:transparent;font-size:10.5px;font-weight:600;">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l1 12H5L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
+      <span>Inventory</span>
+    </button>
+    <button class="tab-btn" data-tab="map" onclick="showTab('map')" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:60px;border:none;background:transparent;font-size:10.5px;font-weight:600;">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L4 6v14l5-2 6 2 5-2V4l-5 2-6-2Z"/><path d="M9 4v14M15 6v14"/></svg>
+      <span>Map</span>
+    </button>
+  </div>
+
+  <!-- SKILLS & FLAWS DRAWER -->
+  <div class="drawer-scrim" id="drawer-scrim" style="position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:40;" onclick="closeDrawer()"></div>
+  <div class="drawer" id="drawer" style="position:fixed;left:0;right:0;bottom:0;top:64px;background:var(--bg-sunken);border-radius:20px 20px 0 0;z-index:41;flex-direction:column;box-shadow:0 -8px 30px rgba(0,0,0,0.5);max-width:480px;margin:0 auto;">
+    <div style="display:flex;align-items:center;padding:16px 18px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <span style="font-family:var(--font-display);font-size:18px;">Skills &amp; Flaws</span>
+      <button onclick="closeDrawer()" style="margin-left:auto;width:36px;height:36px;border-radius:50%;border:1px solid var(--border-strong);background:var(--bg-raised);color:var(--text);display:flex;align-items:center;justify-content:center;">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div style="overflow-y:auto;padding:16px 18px 32px;">
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <button style="flex:1;padding:10px;border:1px solid var(--border-strong);border-radius:var(--radius-pill);background:var(--bg-raised);color:var(--text);font-size:13px;font-weight:600;">+ Add</button>
+        <button style="flex:1;padding:10px;border:1px solid var(--border-strong);border-radius:var(--radius-pill);background:var(--bg-raised);color:var(--text);font-size:13px;font-weight:600;">Remove</button>
+      </div>
+
+      <div style="padding:0 2px 8px;font-size:11px;font-weight:700;color:var(--accent);" class="caps">Skills</div>
+      <div style="margin:0 0 8px;border:1px solid var(--accent);border-radius:10px;background:var(--bg-raised);overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:8px;padding:12px;">
+          <span style="transform:rotate(90deg);color:var(--text-muted);display:inline-block;">&rsaquo;</span>
+          <span style="flex:1;font-size:14.5px;font-weight:600;">Shakedown</span>
+          <span style="color:var(--accent);font-size:14px;">&#9733;&#9733;</span>
+        </div>
+        <div style="padding:0 12px 12px 32px;font-size:13px;line-height:1.5;color:var(--text-muted);">Lean on someone until they talk. Advantage on Intimidation checks against a target with something to lose.</div>
+      </div>
+      <div style="margin:0 0 8px;border:1px solid var(--accent);border-radius:10px;background:var(--bg-raised);display:flex;align-items:center;gap:8px;padding:12px;">
+        <span style="color:var(--text-faint);">&rsaquo;</span>
+        <span style="flex:1;font-size:14.5px;">Scrambler's Instinct</span>
+        <span style="color:var(--accent);font-size:14px;">&#9733;</span>
+      </div>
+      <div style="margin:0 0 18px;border:1px solid var(--accent);border-radius:10px;background:var(--bg-raised);display:flex;align-items:center;gap:8px;padding:12px;">
+        <span style="color:var(--text-faint);">&rsaquo;</span>
+        <span style="flex:1;font-size:14.5px;">Fade Into the Crowd</span>
+        <span style="color:var(--accent);font-size:14px;">&#9733;</span>
+      </div>
+
+      <div style="padding:0 2px 8px;font-size:11px;font-weight:700;color:var(--danger);" class="caps">Flaws</div>
+      <div style="padding:16px 12px;border:1px dashed var(--border);border-radius:10px;font-size:13px;text-align:center;" class="faint">None recorded yet</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function showTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(function (el) {
+      el.classList.toggle('active', el.getAttribute('data-tab') === tab);
+    });
+    document.querySelectorAll('.panel').forEach(function (el) {
+      el.classList.toggle('active', el.getAttribute('data-panel') === tab);
+    });
+    closeDrawer();
+  }
+  function toggleAP(n) {
+    document.querySelectorAll('.ap-star').forEach(function (star, i) {
+      star.classList.toggle('filled', i < n);
+    });
+    document.getElementById('ap-label').textContent = 'Action Points · ' + n + ' / 4';
+  }
+  function openDrawer() {
+    document.getElementById('drawer-scrim').classList.add('open');
+    document.getElementById('drawer').classList.add('open');
+  }
+  function closeDrawer() {
+    document.getElementById('drawer-scrim').classList.remove('open');
+    document.getElementById('drawer').classList.remove('open');
+  }
+</script>
+</body>
+</html>

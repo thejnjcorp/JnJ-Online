@@ -114,7 +114,7 @@ export function CharacterPageStatsPanel({characterPageLayoutLive, userId}) {
                     value={localScores.experience_points} 
                     className='CharacterPage-xp-and-hardness-stat'
                     disabled={!hasWritePermissions}
-                    name='current_xp'
+                    name='experience_points'
                     type='number'
                     onChange={handleChange}/>
             </div>

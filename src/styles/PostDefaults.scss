@@ -1,5 +1,5 @@
 .PostColumn-default {
-    background: #eaeaee;
+    background: var(--jnj-color-bg-sunken);
     padding: 5px;
     border-radius: 5px;
     display: flex;
@@ -7,12 +7,12 @@
     height: calc(100% - max(10%, 40px));
 
     &.isDraggingOver {
-        background-color: #777;
+        background-color: var(--jnj-color-bg-hover);
     }
 }
 
 .PostColumn-header-default {
-    color: #000;
+    color: var(--jnj-color-text);
     font-weight: bold;
     font-size: 30px;
     height: calc(max(10%, 40px));
@@ -21,33 +21,32 @@
 .PostColumn-body-default {
     padding-top: 8px;
     padding-bottom: 16px;
-    background: #eaeaee;
+    background: var(--jnj-color-bg-sunken);
 }
 
 .PostCardTitle-default {
     font-size: 20px;
-    color: #ffffff;
+    color: var(--jnj-color-text);
     font-weight: bold;
 }
 
 .PostCardContent-default {
     font-size: 16px;
-    color: #bbbbbb;
+    color: var(--jnj-color-text-muted);
 }
 
 .PostCardBox-default {
-    background: #4c4c4c;
+    background: var(--jnj-color-bg-raised);
     border-radius: 5px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     margin-bottom: 10px;
     padding: 10px;
 
     &.isDragging {
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        transform: rotate(1deg);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
     }
 
     &:hover {
-        background: #636363;
+        background: var(--jnj-color-bg-hover);
     }
 }

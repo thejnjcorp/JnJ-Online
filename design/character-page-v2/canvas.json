@@ -1,0 +1,17 @@
+{
+  "pages": [
+    { "id": "desktop", "name": "Desktop" },
+    { "id": "mobile", "name": "Mobile" }
+  ],
+  "artboards": [
+    { "file": "Before.dc.html", "x": 0, "y": 0, "w": 1400, "h": 850, "title": "Current layout" },
+    { "file": "Main.dc.html", "x": 1600, "y": 0, "w": 1440, "h": 1600, "title": "v2 redesign", "expand": "fill" },
+    { "file": "Mobile.dc.html", "x": 0, "y": 0, "w": 390, "h": 1500, "title": "Mobile v2", "expand": "fill", "page": "mobile" }
+  ],
+  "annotations": [
+    { "id": "before-issues", "x": 0, "y": 890, "w": 520, "text": "Current layout, recreated from the real CharacterPage.js/.scss.\n\nWhat it's missing: character name, class, and player name appear nowhere on the page (only in the browser tab title). The purple bar is empty by default.\n\nThe ability-score and HP/AC boxes are fixed-width (400px + 500px) and don't fill the row — at real desktop widths this leaves a large dead black gap to the right, which is the empty space you see in your screenshot." },
+    { "id": "main-notes", "x": 1600, "y": -230, "w": 560, "text": "v2 — Roleplay / Combat / Combat Map redesigned (per your scope); Inventory intentionally left as a stub for a later pass.\n\nWorking prototype: click the Roleplay / Combat / Inventory / Combat Map pills to switch modes, and click the Action Point stars in Combat mode to test the resource tracker. The masthead color is a tweak (chip above the artboard) standing in for the existing per-character color picker.\n\n\"Character Name\" / \"Class Name\" are placeholders — everything else in Roleplay mode (skills, stats, background, notes) is your real data from the screenshot. Combat actions and map zones are illustrative sample content." },
+    { "id": "mobile-notes", "x": 440, "y": 0, "w": 420, "text": "Mobile v2 — all four modes, including Inventory this time.\n\nWhat's different from the desktop version, and why:\n\n• The mode switcher moves to a fixed bottom tab bar (thumb reach) instead of top pills.\n\n• Skills & Flaws can't stay a persistent 300px sidebar at this width — it's now a summary row that opens a slide-up drawer over the screen. Tap \"Skills & Flaws\" to open it, tap the scrim or the X to close.\n\n• Inventory is redesigned from scratch here: the desktop app's multi-column drag-and-drop board (4 relic slots + 8 backpack slots + a pocket, all side-by-side) doesn't fit a 390px screen, so it's restructured as stacked sections — a 2x2 Relics grid, a scrollable Backpack list, and the Pocket as its own highlighted card. Empty slots are shown honestly rather than hidden.\n\nWorking prototype: tap the bottom tabs, the AP stars in Combat, and the Skills & Flaws row." }
+  ],
+  "launch": { "view": "canvas", "page": "mobile" }
+}

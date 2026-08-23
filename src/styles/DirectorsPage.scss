@@ -44,9 +44,15 @@
     background-color: rgb(0, 0, 78);
 }
 
-.TabContainer {
-    max-height: 90vh;
-}
+// A .TabContainer { max-height: 90vh } rule used to live here, but it's
+// redundant for this page - DirectorsPage.js already passes
+// container_height="90vh" as a prop, which TabContainer.js applies as an
+// inline max-height that wins over any CSS rule regardless of specificity.
+// Since this selector is global (unscoped to this page), its only real
+// effect was leaking a 90vh cap onto every other page's TabContainer too,
+// including the character page's, which needs to grow to its natural height
+// instead of being windowed. Removed rather than scoped, since it did
+// nothing for this page in the first place.
 
 .DirectorsPage-Combat {
     display: flex;

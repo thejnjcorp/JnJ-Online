@@ -3,8 +3,7 @@ import 'react-tooltip/dist/react-tooltip.css';
 import loadingIcon from '../icons/loading.svg';
 import characterPageLayout from '../CharacterPageLayout.json';
 import { useEffect, useMemo, useState } from 'react';
-import { CharacterPageAbilityScorePanel } from './CharacterPageAbilityScorePanel';
-import { CharacterPageStatsPanel } from './CharacterPageStatsPanel';
+import { CharacterPageVitalsPanel } from './CharacterPageVitalsPanel';
 import { CharacterPageNavigation } from './CharacterPageNavigation';
 import { SkillsAndFlaws } from './SkillsAndFlaws';
 import { auth, db } from '../utils/firebase';
@@ -95,14 +94,12 @@ export function CharacterPage() {
 
     return <>
         {!loadingScreen && <div className={"CharacterPage " + pageTheme}>
-            <div className='CharacterPage-column-div CharacterPage-skills-and-flaws SkillsAndFlawsPanelOverride'>
-                {"\xa0\xa0"}Skills and Flaws<br/>
+            <div className='CharacterPage-skills-and-flaws SkillsAndFlawsPanelOverride'>
                 <SkillsAndFlaws characterPage={characterPage} userId={userId}/>
             </div>
-            <div className='CharacterPage-column-div CharacterPage-right-content'>
+            <div className='CharacterPage-right-content'>
                 <CharacterPageNavigation characterPage={characterPage}/>
-                <CharacterPageAbilityScorePanel characterPageLayoutLive={characterPage} userId={userId}/>
-                <CharacterPageStatsPanel characterPageLayoutLive={characterPage} userId={userId}/>
+                <CharacterPageVitalsPanel characterPageLayoutLive={characterPage} userId={userId}/>
                 <CharacterMainTab characterPage={characterPage} userId={userId} characterList={characterList} campaignInfo={campaignInfo} />
             </div>
     </div>}

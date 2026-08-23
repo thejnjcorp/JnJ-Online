@@ -1,5 +1,5 @@
 .MapRenderer {
-    background-color: green;
+    background-color: var(--jnj-color-bg-sunken);
     width: min-content;
     height: min-content;
     position: relative;
@@ -25,26 +25,28 @@
 .MapRenderer-color-picker-button, .MapRenderer-button {
     width: 50px;
     height: 30px;
-    border-color: rgba(0, 0, 0, 0);
+    border-color: transparent;
     border-radius: 5px;
     border-style: solid;
     margin-left: 20px;
     margin-right: 20px;
     background: rgba(0, 0, 0, 0.3);
-    color: white;
+    color: var(--jnj-color-text);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-direction: row;
+    cursor: pointer;
+    transition: border-color var(--jnj-transition);
 
     &:hover {
-        border-color: white;
+        border-color: var(--jnj-color-text);
     }
 }
 
 .MapRenderer-colorpicker {
     width: 25px;
-    filter: invert(1) sepia(1);
+    filter: invert(1);
 }
 
 .MapRenderer-colorpicker-panel {
@@ -52,12 +54,15 @@
     z-index: 1000;
     top: 20px;
     right: 0px;
-    background-color: rgba(198, 239, 255, 0.514);
+    background-color: var(--jnj-color-bg-raised);
+    border: 1px solid var(--jnj-color-border);
     margin: 20px;
+    padding: var(--jnj-space-3);
     border-radius: 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
+    box-shadow: var(--jnj-shadow-md);
 }
 
 .MapRenderer-colorpicker-quick-select-button {
@@ -66,18 +71,23 @@
     width: 20px;
     height: 20px;
     border-radius: 10px;
+    border: 1px solid var(--jnj-color-border-strong);
+    cursor: pointer;
 }
 
 .MapRenderer-colorpicker-select-button {
-    background-color: rgba(68, 68, 68, 0.363);
+    background-color: var(--jnj-color-bg-sunken);
     margin: 5px;
     border-radius: 10px;
     width: 200px;
     border-style: none;
-    color: white;
+    color: var(--jnj-color-text);
+    cursor: pointer;
+    transition: background-color var(--jnj-transition);
+    padding: var(--jnj-space-2);
 
     &:hover {
-        background-color: rgba(0, 0, 0, 0.363);
+        background-color: var(--jnj-color-bg-hover);
     }
 }
 
@@ -103,7 +113,7 @@
     .resizer {
         width: 10px;
         height: 10px;
-        background: darkred;
+        background: var(--jnj-color-danger);
         position: absolute;
 
         &.right {
@@ -163,7 +173,7 @@
 .MapRenderer-zone-name {
     display: flex;
     background-color: transparent;
-    color: white;
+    color: var(--jnj-color-text);
     text-align: center;
     border: none;
 }

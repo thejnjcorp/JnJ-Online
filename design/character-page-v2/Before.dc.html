@@ -1,0 +1,127 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #16161a; --bg-sunken: #101013; --bg-raised: #1f1f25; --bg-hover: #2a2a33;
+      --border: #34343f; --border-strong: #4d4d5c;
+      --text: #ece8e1; --text-muted: #a09a90; --text-faint: #6f6a63;
+      --accent: #c8a24a; --arcane: #7c4dff; --ember: #d4622a; --danger: #c9453f;
+      --font-display: 'Cinzel', Georgia, 'Times New Roman', serif;
+      --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: var(--font-body); }
+    a { color: var(--accent); } a:hover { color: #e0bc63; }
+    input:disabled { color: var(--text-muted); }
+  </style>
+</helmet>
+
+<div style="width:1400px;height:850px;display:flex;flex-direction:row;background:var(--bg);color:var(--text);overflow:hidden;font-family:var(--font-body);">
+
+  <!-- Skills and Flaws sidebar -->
+  <div style="width:240px;min-width:240px;height:850px;background:var(--bg-sunken);overflow:hidden;padding:16px 0;">
+    <div style="padding:0 16px 12px;font-size:15px;font-weight:600;">&nbsp;&nbsp;Skills and Flaws</div>
+    <div style="display:flex;gap:8px;padding:0 16px 14px;">
+      <div style="flex:1;text-align:center;padding:6px 10px;border:1px solid var(--border-strong);border-radius:999px;font-size:12px;font-weight:600;">+ Add</div>
+      <div style="flex:1;text-align:center;padding:6px 10px;border:1px solid var(--border-strong);border-radius:999px;font-size:12px;font-weight:600;">Remove</div>
+    </div>
+
+    <div style="margin:0 12px 8px;padding:8px 10px;border:1px solid var(--accent);border-radius:10px;background:var(--bg-raised);display:flex;align-items:center;gap:6px;">
+      <span style="color:var(--text-faint);">&rsaquo;</span>
+      <span style="flex:1;font-size:14px;">Shakedown</span>
+      <span style="color:var(--accent);font-size:12px;">&#9733;&#9733;</span>
+    </div>
+    <div style="margin:0 12px 8px;padding:8px 10px;border:1px solid var(--accent);border-radius:10px;background:var(--bg-raised);display:flex;align-items:center;gap:6px;">
+      <span style="color:var(--text-faint);">&rsaquo;</span>
+      <span style="flex:1;font-size:14px;">Scrambler's Instinct</span>
+      <span style="color:var(--accent);font-size:12px;">&#9733;</span>
+    </div>
+    <div style="margin:0 12px 8px;padding:8px 10px;border:1px solid var(--accent);border-radius:10px;background:var(--bg-raised);display:flex;align-items:center;gap:6px;">
+      <span style="color:var(--text-faint);">&rsaquo;</span>
+      <span style="flex:1;font-size:14px;">Fade Into the Crowd</span>
+      <span style="color:var(--accent);font-size:12px;">&#9733;</span>
+    </div>
+  </div>
+
+  <!-- Right content -->
+  <div style="flex:1;height:850px;overflow:hidden;display:flex;flex-direction:column;">
+
+    <!-- empty navigation bar -->
+    <div style="width:100%;height:100px;background:#6600cc;flex-shrink:0;"></div>
+
+    <!-- two disconnected fixed-width boxes, huge dead space to the right -->
+    <div style="display:flex;flex-direction:row;">
+      <div style="margin:10px;width:400px;height:190px;border-radius:20px;background:var(--bg-raised);display:flex;align-items:center;justify-content:center;gap:22px;flex-shrink:0;">
+        <div style="text-align:center;font-size:22px;">
+          <div style="width:34px;height:34px;margin:0 auto 6px;border:2px solid var(--accent);border-radius:6px;"></div>
+          <div>STR</div><div style="margin-top:14px;width:50px;height:26px;border-radius:6px;background:var(--bg-hover);line-height:26px;">3</div>
+        </div>
+        <div style="text-align:center;font-size:22px;">
+          <div style="width:34px;height:34px;margin:0 auto 6px;border:2px solid var(--accent);border-radius:6px;"></div>
+          <div>DEX</div><div style="margin-top:14px;width:50px;height:26px;border-radius:6px;background:var(--bg-hover);line-height:26px;">1</div>
+        </div>
+        <div style="text-align:center;font-size:22px;">
+          <div style="width:34px;height:34px;margin:0 auto 6px;border:2px solid var(--accent);border-radius:6px;"></div>
+          <div>INT</div><div style="margin-top:14px;width:50px;height:26px;border-radius:6px;background:var(--bg-hover);line-height:26px;">0</div>
+        </div>
+        <div style="text-align:center;font-size:22px;">
+          <div style="width:34px;height:34px;margin:0 auto 6px;border:2px solid var(--accent);border-radius:6px;"></div>
+          <div>CHA</div><div style="margin-top:14px;width:50px;height:26px;border-radius:6px;background:var(--bg-hover);line-height:26px;">3</div>
+        </div>
+      </div>
+
+      <div style="margin:10px;width:500px;height:190px;border-radius:20px;background:var(--bg-raised);flex-shrink:0;padding-top:20px;">
+        <div style="display:flex;justify-content:center;gap:26px;font-size:22px;">
+          <div style="text-align:center;">CURRENT<div style="margin-top:8px;width:56px;height:26px;border-radius:6px;background:var(--bg-hover);line-height:26px;">17</div></div>
+          <div style="text-align:center;">MAX<div style="margin-top:8px;width:56px;height:26px;border-radius:6px;background:var(--bg-hover);line-height:26px;">17</div></div>
+          <div style="text-align:center;">TEMP<div style="margin-top:8px;width:56px;height:26px;border-radius:6px;background:var(--bg-hover);line-height:26px;">0</div></div>
+          <div style="text-align:center;">
+            AC
+            <div style="width:64px;height:64px;margin-top:2px;border:3px solid var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:26px;">17</div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:center;gap:40px;margin-top:18px;font-size:16px;color:var(--text-muted);">
+          <div>XP <span style="color:var(--text);">0</span></div>
+          <div>HARDNESS <span style="color:var(--text);">0</span></div>
+        </div>
+      </div>
+      <!-- everything past here is dead black space at real viewport widths -->
+    </div>
+
+    <!-- tab container -->
+    <div style="margin:10px;background:var(--bg-raised);border:1px solid var(--border);border-radius:15px;flex:1;overflow:hidden;">
+      <div style="display:flex;gap:22px;padding:14px 20px 10px;font-size:20px;">
+        <span style="color:var(--accent);text-decoration:underline;">Roleplay Mode</span>
+        <span style="color:var(--text-muted);">Combat Mode</span>
+        <span style="color:var(--text-muted);">Inventory</span>
+        <span style="color:var(--text-muted);">Combat Map</span>
+      </div>
+      <div style="padding:6px 20px 20px;">
+        <h2 style="font-size:16px;margin:8px 0;font-weight:600;">Background:</h2>
+        <div style="font-size:14px;line-height:1.5;color:var(--text);">
+          Alando's Edicts:<br>
+          Face Evil Without Fear: Never back down from evil, even if it means dying for your beliefs.<br>
+          Remember and Confront Evil: Never forget the harm evil has caused, and always speak out against it.<br>
+          Don't Play God: Never interfere with the will of your deity or try to take their place.<br>
+          Honor the Dead: Whenever possible, give proper burial rites to everyone, no matter who they are.
+        </div>
+        <h2 style="font-size:16px;margin:18px 0 8px;font-weight:600;">Notes:</h2>
+        <div style="font-size:14px;line-height:1.5;color:var(--text);">
+          Our good friend Mr. Astie perished after being thrown off a flying pirate ship and ended up getting his soul taken by Mr. Denty.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

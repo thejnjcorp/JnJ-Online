@@ -1,19 +1,19 @@
 .DefaultCharacterPage {
-    background-color: rgb(59, 59, 59);
+    background-color: var(--jnj-color-bg);
 
     .SkillsAndFlawsPanelOverride {
-        background-color: rgb(63, 67, 99);
+        background-color: var(--jnj-color-bg-sunken);
     }
 
     .SkillsOverride {
-        border-color: navy;
+        border-color: var(--jnj-color-accent);
         border-width: 3px;
-        background-color: blue;
+        background-color: var(--jnj-color-bg-raised);
     }
 
     .FlawsOverride {
-        border-color: darkred;
+        border-color: var(--jnj-color-danger);
         border-width: 3px;
-        background-color: red;
+        background-color: var(--jnj-color-bg-raised);
     }
 }

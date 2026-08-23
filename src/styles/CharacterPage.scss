@@ -1,280 +1,472 @@
+/* v2 layout (design/character-page-v2). Note: none of the rules in this file
+   are shared with DirectorsPage.js's roster view, even though it renders the
+   same CharacterPageAbilityScorePanel/CharacterPageStatsPanel components -
+   DirectorsPage.scss carries its own complete, independent copy of those
+   panels' styles scoped under .DirectorsPageCharacterStatsOverride, so this
+   file is free to define the character-page-only layout without worrying
+   about that page. */
 .CharacterPage {
+    box-sizing: border-box;
     width: 100vw;
     height: 90vh;
     display: flex;
-    flex-direction: column;
-    flex-wrap: wrap;
+    flex-direction: row;
     align-items: flex-start;
-    align-content: flex-start;
-    justify-content: space-between;
     overflow-y: auto;
     overflow-x: hidden;
-
-    .CharacterPage-stats {
-        display: flex;
-        flex-direction: column;
-        width: 500px;
-        margin: 10px;
-        border-color: white;
-        border-radius: 20px;
-        border-width: 5px;
-        border-style: hidden;
-        background: rgba(0, 0, 0, 0.3);
-        height:190px;
-        font-size: 24px;
-
-        .CharacterPage-stats-horizontal {
-            display: flex;
-            justify-content: center; 
-            height: 140px;
-        }
-
-        .CharacterPage-stats-block-shield {
-            display: block;
-            width: 150px;
-            font-size: inherit;
-            padding-top: 5px;                       
-        }
-        
-        .CharacterPage-stats-block-hp {
-            display: flex;
-            width: 300px;
-            font-size: inherit;
-            padding-top: 30px;
-
-            .CharacterPage-hp-block {
-                width: 100px;
-            }
-
-            .CharacterPage-hp-stat {
-                background-color: inherit;
-                width: 60px;
-                height: 30px;
-                justify-items: center;
-                text-align: center;
-                border: none;
-                border-color: white;
-                border-radius: 8px;
-                color: white;
-                font-size: inherit;
-                padding: 0;
-
-                &::-webkit-outer-spin-button, &::-webkit-inner-spin-button {
-                    -webkit-appearance: none;
-                    margin: 0;
-                }
-            }
-
-            .CharaterPage-hp-divider {
-                margin-top: 10px;
-            }
-        }
-    }
-
-    .CharacterPage-shield {
-        height: 100px;
-        filter: sepia(1) saturate(8) hue-rotate(120deg);
-    }
-
-    .CharacterPage-shield-text {
-        position: relative;
-        top: -80px;
-        font-size: 36px;
-    }
-
-    .CharacterPage-xp-and-hardness-stat {
-        padding-top: 4px;
-        background-color: inherit;
-        width: 60px;
-        margin-left: 5px;
-        padding: 0;
-        height: 30px;
-        justify-items: center;
-        text-align: center;
-        border: none;
-        border-color: white;
-        border-radius: 8px;
-        color: white;
-        font-size: inherit;
-
-        &::-webkit-outer-spin-button, &::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-    }
-
-    .CharacterPage-xp {
-        padding-top: 40px;
-        
-    }
-
-    .CharacterPage-xp-slash {
-        position: relative;
-        top: -34px;
-        left: 95px;
-        width: 10px;
-    }
-
-    .CharacterPage-stats-xp {
-        padding-top: 10px;
-        width: 170px;
-        padding-left: 30px;
-    }
-
-    .CharacterPage-stats-hardness {
-        padding-top: 10px;
-        width: 190px;
-    }
-
-    .CharacterPage-stats-divider {
-        width: 110px;
-    }
-
-    .CharacterPage-stats-temp-hp-yellow {
-        border-color: yellow;
-    }
-
-    .CharacterPage-abiltyscore-horzontal {
-        margin: 10px;
-        height: 190px;
-        width: 400px;
-        display: flex;
-        flex-direction: row;
-        border-color: white;
-        border-radius: 20px;
-        border-width: 5px;
-        border-style: hidden;
-        justify-content: center;
-        padding: 0px 10px;
-        background: rgba(0, 0, 0, 0.3);
-    }
-
-    .CharacterPage-abilityscore-icon {
-        height: 50px;
-        margin-top: 15px;
-        filter: invert(1) sepia(1);
-    }
-
-    .CharacterPage-abiltyscore-block {
-        font-size: 24px;
-        padding: 0px 20px;
-    }
-
-    .CharacterPage-abilityscore-stat {
-        background-color: inherit;
-        width: 60px;
-        height: 30px;
-        justify-items: center;
-        text-align: center;
-        border: none;
-        border-color: white;
-        border-radius: 8px;
-        color: white;
-        font-size: inherit;
-        padding: 0;
-        margin-top: 20px;
-        
-        &::-webkit-outer-spin-button, &::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-    }
-
-    .CharacterPage-navigation {
-        display: flex;
-        align-items: center;
-        width: 80vw;
-        height: 100px;
-        background-color: rgb(82, 28, 180);
-
-    }
-
-    .CharacterPage-navigation-color-picker-button {
-        width: 100px;
-        height: 60px;
-        border-color: rgba(0, 0, 0, 0);
-        border-radius: 5px;
-        border-style: solid;
-        margin-left: 20px;
-        margin-right: 20px;
-        background: rgba(0, 0, 0, 0.3);
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        &:hover {
-            border-color: white;
-        }
-    }
-
-    .CharacterPage-colorpicker {
-        width: 50px;
-        filter: invert(1) sepia(1);
-    }
-
-    .CharacterPage-colorpicker-panel {
-        position: absolute;
-        z-index: 1;
-        top: 183px;
-        background-color: rgba(198, 239, 255, 0.514);
-        margin: 20px;
-        border-radius: 10px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-    
-    .CharacterPage-colorpicker-actual {
-        padding: 10px;
-    }
-
-    .CharacterPage-colorpicker-select-button {
-        background-color: rgba(68, 68, 68, 0.363);
-        margin: 5px;
-        border-radius: 10px;
-        width: 200px;
-        border-style: none;
-        color: white;
-
-        &:hover {
-            background-color: rgba(0, 0, 0, 0.363);
-        }
-    }
-
-    .CharacterPage-colorpicker-quick-select-button {
-        margin: 10px;
-        margin-bottom: 0px;
-        width: 20px;
-        height: 20px;
-        border-radius: 10px;
-    }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-    .CharacterPage-loading-icon {
-        height: 300px;
-        filter: invert(1);
-        animation: App-logo-spin infinite 20s linear;
-    }
-}
-
-.CharacterPage-column-div {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    align-content: flex-start;
-    justify-content: space-between;
+    color: var(--jnj-color-text);
 }
 
 .CharacterPage-skills-and-flaws {
-    width: 20vw;
+    box-sizing: border-box;
+    width: 300px;
+    min-width: 300px;
     height: 90vh;
-    background-color: gray;
+    background-color: var(--jnj-color-bg-sunken);
+    padding: var(--jnj-space-5) 0 var(--jnj-space-7);
     overflow-y: auto;
 }
 
 .CharacterPage-right-content {
-    width: 80vw;
+    box-sizing: border-box;
+    flex: 1;
+    min-width: 0;
+    height: 90vh;
+    overflow-y: auto;
+    padding: var(--jnj-space-5) var(--jnj-space-6) var(--jnj-space-7);
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-4);
+}
+
+/* --- Masthead --------------------------------------------------------------
+   The gradient start color is characterPage.navigation_color (set inline by
+   CharacterPageNavigation.js), same field the old flat-fill nav bar used. */
+.CharacterPage-masthead {
+    position: relative;
+    border-radius: var(--jnj-radius-lg);
+    padding: var(--jnj-space-6) var(--jnj-space-6);
+    overflow: hidden;
+    box-shadow: var(--jnj-shadow-md);
+    flex-shrink: 0;
+}
+
+.CharacterPage-masthead-glow {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(120% 140% at 100% 0%, rgba(255, 255, 255, 0.08), transparent 55%);
+    pointer-events: none;
+}
+
+.CharacterPage-masthead-content {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--jnj-space-5);
+}
+
+.CharacterPage-masthead-avatar-wrap {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.CharacterPage-masthead-avatar {
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.28);
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.CharacterPage-masthead-avatar-badge {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--jnj-color-bg-raised);
+    border: 2px solid;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--jnj-color-text);
+}
+
+.CharacterPage-masthead-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.CharacterPage-masthead-name {
+    font-family: var(--jnj-font-display);
+    font-size: 30px;
+    font-weight: 600;
+    color: #fff;
+    line-height: 1.1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.CharacterPage-masthead-subline {
+    margin-top: 6px;
+    font-size: 12.5px;
+    color: rgba(255, 255, 255, 0.72);
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.CharacterPage-masthead-color-button {
+    position: relative;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    background: rgba(0, 0, 0, 0.25);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: border-color var(--jnj-transition);
+
+    &:hover {
+        border-color: #fff;
+    }
+}
+
+/* --- Color picker dropdown (CharacterPageNavigationColorPickerButton.js) --*/
+.CharacterPage-colorpicker-panel {
+    position: absolute;
+    z-index: 20;
+    top: 68px;
+    right: var(--jnj-space-6);
+    background-color: var(--jnj-color-bg-raised);
+    border: 1px solid var(--jnj-color-border);
+    padding: var(--jnj-space-3);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--jnj-space-2);
+    box-shadow: var(--jnj-shadow-md);
+}
+
+.CharacterPage-colorpicker-actual {
+    padding: 10px;
+}
+
+.CharacterPage-colorpicker-select-button, .CharacterPage-colorpicker-cancel-button {
+    width: 200px;
+    padding: var(--jnj-space-2);
+    border-radius: 10px;
+    border-style: none;
+    background-color: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text);
+    cursor: pointer;
+    transition: background-color var(--jnj-transition);
+
+    &:hover {
+        background-color: var(--jnj-color-bg-hover);
+    }
+}
+
+.CharacterPage-colorpicker-select-button {
+    background-color: var(--jnj-color-accent);
+    color: var(--jnj-color-on-accent);
+    font-weight: 600;
+
+    &:hover {
+        background-color: var(--jnj-color-accent-hover);
+    }
+}
+
+/* --- Vitals card (CharacterPageVitalsPanel.js) -----------------------------
+   Merges what used to be two separate fixed-width boxes (400px ability score
+   + 500px stats) into one flex-wrap card, closing the dead-space gap they
+   left on wide viewports. */
+.CharacterPage-vitals {
+    box-sizing: border-box;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--jnj-space-6);
+    padding: var(--jnj-space-5) var(--jnj-space-6);
+    background: var(--jnj-color-bg-raised);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-lg);
+    flex-shrink: 0;
+}
+
+.CharacterPage-vitals-temp-hp .CharacterPage-vitals-health-bar {
+    box-shadow: 0 0 0 2px var(--jnj-color-ember);
+}
+
+.CharacterPage-vitals-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--jnj-color-text-faint);
+}
+
+.CharacterPage-vitals-divider {
+    width: 1px;
+    height: 52px;
+    background: var(--jnj-color-border);
+    flex-shrink: 0;
+}
+
+.CharacterPage-vitals-health {
+    flex: 1 1 300px;
+    min-width: 260px;
+}
+
+.CharacterPage-vitals-health-header {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 8px;
+    color: var(--jnj-color-danger);
+
+    .CharacterPage-vitals-label {
+        color: var(--jnj-color-text-muted);
+    }
+}
+
+.CharacterPage-vitals-health-numbers {
+    margin-left: auto;
+    display: flex;
+    align-items: baseline;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--jnj-color-text);
+}
+
+.CharacterPage-vitals-health-input {
+    width: 44px;
+    background: transparent;
+    border: none;
+    color: inherit;
+    font: inherit;
+    font-weight: inherit;
+    text-align: right;
+    padding: 0;
+    border-radius: 4px;
+    transition: background-color var(--jnj-transition);
+
+    &:focus {
+        outline: none;
+        background-color: var(--jnj-color-bg-hover);
+    }
+
+    &:disabled {
+        color: var(--jnj-color-text-muted);
+    }
+
+    &::-webkit-outer-spin-button, &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+}
+
+.CharacterPage-vitals-health-input-max {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--jnj-color-text-muted);
+    width: 36px;
+}
+
+.CharacterPage-vitals-health-bar {
+    height: 10px;
+    border-radius: var(--jnj-radius-pill);
+    background: var(--jnj-color-bg-sunken);
+    overflow: hidden;
+}
+
+.CharacterPage-vitals-health-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--jnj-color-success), #7fc493);
+    transition: width var(--jnj-transition-slow);
+}
+
+.CharacterPage-vitals-temp-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 11.5px;
+    color: var(--jnj-color-text-muted);
+}
+
+.CharacterPage-vitals-temp-input {
+    width: 34px;
+    background: var(--jnj-color-bg-sunken);
+    border: none;
+    border-radius: 4px;
+    color: var(--jnj-color-text);
+    font: inherit;
+    text-align: center;
+    padding: 1px 4px;
+
+    &:focus {
+        outline: 1px solid var(--jnj-color-accent);
+    }
+
+    &::-webkit-outer-spin-button, &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+}
+
+.CharacterPage-vitals-ac {
+    text-align: center;
+    flex-shrink: 0;
+
+    .CharacterPage-vitals-label {
+        margin-bottom: 4px;
+    }
+}
+
+.CharacterPage-vitals-ac-shield {
+    position: relative;
+    width: 56px;
+    height: 56px;
+}
+
+.CharacterPage-vitals-ac-shield-icon {
+    width: 56px;
+    height: 56px;
+    /* baked-in fill icon tinted to the brass accent - see the same filter
+       chain used elsewhere on this page for the legacy ability-score icons */
+    filter: brightness(0) saturate(100%) invert(72%) sepia(35%) saturate(590%) hue-rotate(358deg) brightness(93%) contrast(89%);
+}
+
+.CharacterPage-vitals-ac-value {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 4px;
+    font-size: 21px;
+    font-weight: 700;
+    color: var(--jnj-color-text);
+}
+
+.CharacterPage-vitals-xp-hardness {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex-shrink: 0;
+    font-size: 13px;
+}
+
+.CharacterPage-vitals-xp-hardness-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.CharacterPage-vitals-xp-hardness-label {
+    width: 64px;
+}
+
+.CharacterPage-vitals-pill-input {
+    min-width: 34px;
+    width: 44px;
+    padding: 3px 10px;
+    border-radius: 6px;
+    background: var(--jnj-color-bg-sunken);
+    border: none;
+    color: var(--jnj-color-text);
+    font-weight: 700;
+    text-align: center;
+    font: inherit;
+
+    &:focus {
+        outline: 1px solid var(--jnj-color-accent);
+    }
+
+    &:disabled {
+        color: var(--jnj-color-text-muted);
+    }
+
+    &::-webkit-outer-spin-button, &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+}
+
+.CharacterPage-vitals-scores {
+    display: flex;
+    gap: 22px;
+    flex-shrink: 0;
+}
+
+.CharacterPage-vitals-score {
+    text-align: center;
+}
+
+.CharacterPage-vitals-score-icon {
+    display: block;
+    margin: 0 auto;
+    color: var(--jnj-color-accent);
+}
+
+.CharacterPage-vitals-score .CharacterPage-vitals-label {
+    margin-top: 5px;
+}
+
+.CharacterPage-vitals-score-divider {
+    width: 26px;
+    height: 1px;
+    background: var(--jnj-color-border);
+    margin: 6px auto;
+}
+
+.CharacterPage-vitals-score-input {
+    width: 34px;
+    background: transparent;
+    border: none;
+    color: var(--jnj-color-text);
+    font-size: 16px;
+    font-weight: 700;
+    text-align: center;
+    font-family: inherit;
+
+    &:focus {
+        outline: none;
+        background-color: var(--jnj-color-bg-hover);
+        border-radius: 4px;
+    }
+
+    &:disabled {
+        color: var(--jnj-color-text-muted);
+    }
+
+    &::-webkit-outer-spin-button, &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+}
+
+.CharacterPage-loading-icon {
+    height: 300px;
+    filter: invert(1);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .CharacterPage-loading-icon {
+        animation: App-logo-spin infinite 20s linear;
+    }
 }

@@ -2,53 +2,116 @@
     height: min-content;
     padding-top: 10px;
     padding-bottom: 10px;
-    background-color: darkblue;
+    background-color: var(--jnj-color-bg-sunken);
 
     &:hover {
-        background-color: navy;
+        background-color: var(--jnj-color-bg-hover);
     }
 }
 
 .CharacterMainTab-inventory-item-opened {
     height: min-content;
-    background-color: darkblue;
+    background-color: var(--jnj-color-bg-sunken);
 }
 
 .CharacterMainTab-inventory-item-description {
-    background-color: wheat;
-    color: black;
+    background-color: var(--jnj-color-bg-raised);
+    color: var(--jnj-color-text);
 }
 
-.CharacterMainTab-background, .CharacterMainTab-notes {
-    margin-left: 10px;
-    margin-right: 10px;
-    font-size: medium;
-    text-align: left;
+.CharacterMainTab-roleplay {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.CharacterMainTab-roleplay-card {
+    position: relative;
+    border-left: 3px solid;
+    border-radius: 6px;
+    background: var(--jnj-color-bg-sunken);
+    padding: 18px 20px 18px 22px;
+    margin: 0;
+}
+
+.CharacterMainTab-roleplay-card-background {
+    border-left-color: var(--jnj-color-accent);
+
+    .CharacterMainTab-roleplay-card-header {
+        color: var(--jnj-color-accent);
+    }
+}
+
+.CharacterMainTab-roleplay-card-notes {
+    border-left-color: var(--jnj-color-ember);
+
+    .CharacterMainTab-roleplay-card-header {
+        color: var(--jnj-color-ember);
+    }
+}
+
+.CharacterMainTab-roleplay-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+
+    h2 {
+        margin: 0;
+        font-family: var(--jnj-font-display);
+        font-size: 17px;
+        font-weight: 600;
+        color: var(--jnj-color-text);
+    }
+}
+
+.CharacterMainTab-roleplay-card-caption {
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--jnj-color-text-faint);
 }
 
 .CharacterMainTab-action-points {
     display: flex;
     justify-content: start;
     align-items: center;
+    gap: 6px;
     padding-left: 10px;
+    padding-bottom: 18px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--jnj-color-border);
     height: 5vh;
 }
 
+.CharacterMainTab-action-points-label {
+    margin-left: 8px;
+    font-size: 13px;
+    color: var(--jnj-color-text-muted);
+}
+
 .CharacterMainTab-action-body {
-    height: 45vh;
-    overflow-y: auto;
+    // .TabContainer-content (the outer wrapper) is already the scroll
+    // container for this tab's content - a second overflow:auto here nested
+    // inside it produced two independent scrollbars for the same content.
 }
 
 .CharacterMainTab-star {
     filter: invert(1);
 }
 
-.CharacterMainTab-header-left-align {
+.CharacterMainTab-caps-label {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--jnj-color-text-muted);
+}
+
+.CharacterMainTab-section-label {
     display: block;
-    text-align: start;
-    border-bottom: 1px solid white;
-    margin: 10px;
-    margin-top: 0px;
+    margin-bottom: 10px;
 }
 
 .CharacterMainTab-background-description, .CharacterMainTab-notes-description {
@@ -57,10 +120,18 @@
     height: auto;
     resize: none;
     background-color: transparent;
-    color: white;
+    color: var(--jnj-color-text);
     border: none;
     font-family: inherit;
     font-size: inherit;
+
+    &:focus {
+        outline: none;
+    }
+
+    &::placeholder {
+        color: var(--jnj-color-text-faint);
+    }
 }
 
 .CharacterMainTab-inventory {
@@ -74,39 +145,85 @@
     height: 98%;
 }
 
-.CharacterMainTab-view-toggle {
+.CharacterMainTab-combat-map-header {
     display: flex;
     flex-shrink: 0;
-    gap: 6px;
-    padding: 4px 10px;
+    padding: 4px 10px 14px;
+}
 
-    button {
-        background: #4c4c4c;
-        color: #fff;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        border-radius: 4px;
-        padding: 4px 10px;
-        font-size: 12px;
-        cursor: pointer;
+.CharacterMainTab-open-map-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-pill);
+    background: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color var(--jnj-transition), color var(--jnj-transition);
 
-        &:hover:not(:disabled) {
-            background: #636363;
-        }
-
-        &:disabled {
-            cursor: default;
-        }
+    &:hover {
+        border-color: var(--jnj-color-accent);
+        color: var(--jnj-color-accent-hover);
     }
+}
 
-    .CharacterMainTab-view-toggle-active {
-        background: #6600cc;
-        border-color: #6600cc;
+/* --- Full-screen combat map overlay ---------------------------------------
+   The embedded map felt cramped at tab-content size, so Map View opens here
+   instead - same scrim + dismiss-on-outside-click idiom as the app's other
+   dialogs, just filling most of the viewport instead of a small centered
+   card. */
+.CharacterMainTab-map-overlay-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.CharacterMainTab-map-overlay {
+    position: fixed;
+    z-index: 41;
+    top: 5vh;
+    left: 5vw;
+    width: 90vw;
+    height: 90vh;
+    box-sizing: border-box;
+    padding: var(--jnj-space-5);
+    background-color: var(--jnj-color-bg-raised);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-lg);
+    box-shadow: var(--jnj-shadow-lg);
+    overflow: auto;
+}
+
+.CharacterMainTab-map-overlay-close {
+    position: absolute;
+    top: var(--jnj-space-4);
+    right: var(--jnj-space-4);
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: 50%;
+    background: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 1;
+    transition: border-color var(--jnj-transition), color var(--jnj-transition);
+
+    &:hover {
+        border-color: var(--jnj-color-danger);
+        color: var(--jnj-color-danger);
     }
 }
 
 // Post Column Styles for Inventory
 .CharacterMainTab-PostColumn-inventory {
-    background: #6c6c75;
+    background: var(--jnj-color-bg-sunken);
     padding: 5px;
     border-radius: 15px;
     display: flex;
@@ -114,12 +231,12 @@
     height: calc(100% - max(10%, 40px));
 
     &.isDraggingOver {
-        background-color: #777;
+        background-color: var(--jnj-color-bg-hover);
     }
 }
 
 .CharacterMainTab-PostColumn-header-inventory {
-    color: #ffffff;
+    color: var(--jnj-color-text);
     font-weight: bold;
     font-size: 30px;
     height: calc(max(10%, 40px));
@@ -129,42 +246,44 @@
     margin-bottom: 24px;
     margin-left: 12px;
     margin-right: 12px;
-    background: #6c6c75;
+    background: var(--jnj-color-bg-sunken);
     height: 14vh;
     border-radius: 15px;
 }
 
 .CharacterMainTab-PostCardTitle-inventory {
     font-size: 20px;
-    color: #ffffff;
+    color: var(--jnj-color-text);
     font-weight: bold;
 }
 
 .CharacterMainTab-PostCardContent-inventory {
     font-size: 16px;
-    color: #bbbbbb;
+    color: var(--jnj-color-text-muted);
 }
 
 .CharacterMainTab-PostCardBox-inventory {
-    background: #4c4c4c;
+    background: var(--jnj-color-bg-raised);
     border-radius: 5px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     margin-bottom: 10px;
     padding: 10px;
 
     &.isDragging {
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        transform: rotate(1deg);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
     }
 
     &:hover {
-        background: #636363;
+        background: var(--jnj-color-bg-hover);
     }
 }
 
-// Post Column Styles for Inventory Pocket
+// Post Column Styles for Inventory Pocket - deliberately a light "parchment"
+// surface rather than the dark theme, to visually set the pocket apart from
+// the main inventory at a glance (same intent as the original grey/white
+// treatment, just warmed to fit the theme).
 .CharacterMainTab-PostColumn-inventory-pocket {
-    background: #dedede;
+    background: #e4d9bd;
     padding: 5px;
     border-radius: 15px;
     display: flex;
@@ -172,12 +291,12 @@
     height: calc(100% - max(10%, 40px));
 
     &.isDraggingOver {
-        background-color: #777;
+        background-color: #d8c9a3;
     }
 }
 
 .CharacterMainTab-PostColumn-header-inventory-pocket {
-    color: #000000;
+    color: #3a2f1f;
     font-weight: bold;
     font-size: 30px;
     height: calc(max(10%, 40px));
@@ -185,7 +304,7 @@
 
 .CharacterMainTab-PostColumn-body-inventory-pocket {
     margin-bottom: 24px;
-    background: #dedede;
+    background: #e4d9bd;
     height: calc(28vh + 24px);
     border-radius: 15px;
     width: calc(100% - 12px) !important;
@@ -194,31 +313,31 @@
 
 .CharacterMainTab-PostCardTitle-inventory-pocket {
     font-size: 20px;
-    color: #ffffff;
+    color: var(--jnj-color-text);
     font-weight: bold;
 }
 
 .CharacterMainTab-PostCardContent-inventory-pocket {
     font-size: 16px;
-    color: #bbbbbb;
+    color: var(--jnj-color-text-muted);
 }
 
 .CharacterMainTab-PostCardBox-inventory-pocket {
-    background: #4c4c4c;
+    background: var(--jnj-color-bg-raised);
     border-radius: 5px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     margin-bottom: 10px;
     padding: 10px;
 
     &.isDragging {
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        transform: rotate(1deg);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
     }
 
     &:hover {
-        background: #636363;
+        background: var(--jnj-color-bg-hover);
     }
 }
+
 .CharacterMainTab-no-campaign {
     display: flex;
     flex-direction: column;

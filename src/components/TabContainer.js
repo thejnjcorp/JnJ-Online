@@ -25,14 +25,15 @@ export function TabContainer({tabs, container_height, content_height}) {
         : (content_height ? {maxHeight: content_height} : undefined);
 
     return <div className='TabContainer' style={containerStyle}>
-        <div>
+        <div className='TabContainer-tabs'>
             {tabs.map((tab, index) =>
         <button
             key={index}
             className={selectedTab !== index ? 'TabButton' : 'TabButton TabButtonSelected'}
             onClick={() => setSelectedTab(index)}
         >
-            {tab.tabName}
+            {tab.icon}
+            <span>{tab.tabName}</span>
         </button>)}
         </div>
         <div className='TabContainer-content' style={contentStyle}>

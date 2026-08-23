@@ -1,23 +1,108 @@
+/* --- Header (title + count) ------------------------------------------------*/
+.SkillsAndFlaws-header {
+    padding: 0 20px 4px;
+}
+
+.SkillsAndFlaws-title {
+    font-family: var(--jnj-font-display);
+    font-size: 18px;
+    letter-spacing: 0.02em;
+    color: var(--jnj-color-text);
+}
+
+.SkillsAndFlaws-count {
+    padding-top: 2px;
+    font-size: 12px;
+    color: var(--jnj-color-text-faint);
+}
+
+/* --- Group labels (Skills / Flaws) -----------------------------------------*/
+.SkillsAndFlaws-group-label {
+    padding: var(--jnj-space-4) 20px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+}
+
+.SkillsAndFlaws-group-label-skill {
+    color: var(--jnj-color-accent);
+}
+
+.SkillsAndFlaws-group-label-flaw {
+    color: var(--jnj-color-danger);
+}
+
+.SkillsAndFlaws-empty-group {
+    margin: 0 16px;
+    padding: 14px 12px;
+    border: 1px dashed var(--jnj-color-border);
+    border-radius: 10px;
+    font-size: 13px;
+    text-align: center;
+    color: var(--jnj-color-text-faint);
+}
+
+/* --- Toolbar (Add / Remove) ------------------------------------------------*/
+.SkillsAndFlaws-toolbar {
+    display: flex;
+    gap: var(--jnj-space-2);
+    padding: 0 20px var(--jnj-space-3);
+}
+
+.SkillsAndFlaws-toolbar-button {
+    flex: 1;
+    padding: var(--jnj-space-2) var(--jnj-space-4);
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-pill);
+    background-color: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text);
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color var(--jnj-transition), color var(--jnj-transition), background-color var(--jnj-transition);
+
+    &:hover {
+        background-color: var(--jnj-color-bg-hover);
+        border-color: var(--jnj-color-accent);
+    }
+}
+
+.SkillsAndFlaws-toolbar-button-active {
+    background-color: var(--jnj-color-danger);
+    border-color: var(--jnj-color-danger);
+    color: white;
+
+    &:hover {
+        filter: brightness(0.9);
+        border-color: var(--jnj-color-danger);
+    }
+}
+
+/* --- Card (also used, unmodified, for the live preview in the add dialog) -*/
 .SkillsAndFlaws, .SkillsAndFlaws-preview {
     display: flex;
-    margin-left: 1vw;
-    margin-right: 1vw;
-    margin-top: 10px;
-    margin-bottom: 10px;
-    width: 18vw;
+    margin: 0 16px 10px;
     height: max-content;
-    border: 1px;
+    border-width: 1px;
     border-style: solid;
     border-radius: 10px;
     padding: 10px;
     flex-direction: column;
-    font-size: 24px;
-    background-color: gray;
-    color: white;
+    font-size: 20px;
+    background-color: var(--jnj-color-bg-raised);
+    color: var(--jnj-color-text);
+    transition: background-color var(--jnj-transition);
+}
+
+.SkillsAndFlaws-open {
+    background-color: var(--jnj-color-bg-hover);
 }
 
 .SkillsAndFlaws-preview {
-    width: 16vw;
+    /* always rendered inside .SkillsAndFlaws-dialog, which overrides this to
+       width: auto below - kept here only as a sane fallback */
+    width: 260px;
 
     &:hover {
         filter: none;
@@ -25,11 +110,52 @@
 }
 
 .SkillsAndFlaws-skill {
-    border-color: aqua;
+    border-color: var(--jnj-color-accent);
 }
 
 .SkillsAndFlaws-flaw {
-    border-color: red;
+    border-color: var(--jnj-color-danger);
+}
+
+.SkillsAndFlaws-trigger {
+    display: flex;
+    align-items: center;
+    gap: var(--jnj-space-2);
+    cursor: pointer;
+    border-radius: var(--jnj-radius-sm);
+    margin: -6px;
+    padding: 6px;
+    transition: background-color var(--jnj-transition);
+
+    &:hover {
+        background-color: var(--jnj-color-bg-hover);
+    }
+}
+
+.SkillsAndFlaws-chevron {
+    display: inline-block;
+    flex-shrink: 0;
+    font-size: 20px;
+    color: var(--jnj-color-text-faint);
+    transition: transform var(--jnj-transition);
+}
+
+.SkillsAndFlaws-trigger-open .SkillsAndFlaws-chevron {
+    transform: rotate(90deg);
+    color: var(--jnj-color-text-muted);
+}
+
+.SkillsAndFlaws-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.SkillsAndFlaws-stars {
+    display: flex;
+    flex-shrink: 0;
 }
 
 .SkillsAndFlaws-star {
@@ -37,69 +163,186 @@
 }
 
 .SkillsAndFlaws-inner-div {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 16vw;
+    padding-top: var(--jnj-space-2);
 }
 
-.SkillsAndFlaws-trigger {
-    display: flex;
-    justify-content: space-between;
-}
-
-.SkillsAndFlaws-button {
-    width: 8vw;
-    height: 3vh;
-    margin-left: 0.5vw;
-    margin-right: 0.5vw;
-    background-color: rgb(44, 44, 44);
-    border-color: white;
-    border-style: solid;
-    border-radius: 10px;
-    color: white;
-
-    &:hover {
-        background-color: rgb(105, 105, 105);
-    }
+.SkillsAndFlaws-description {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--jnj-color-text-muted);
+    white-space: pre-wrap;
 }
 
 .SkillsAndFlaws-trash-button {
-    border-color: red;
-    border-radius: 5px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-color: var(--jnj-color-danger);
+    border-radius: var(--jnj-radius-sm);
     border-width: 1px;
     border-style: solid;
-    background-color: silver;
+    background-color: var(--jnj-color-bg-sunken);
+    cursor: pointer;
+    transition: background-color var(--jnj-transition);
+
     &:hover {
-        background-color: red;
-        border-color: silver;
+        background-color: var(--jnj-color-danger);
 
         .SkillsAndFlaws-trash-can {
-            filter: invert(70%);
+            filter: brightness(0) invert(1);
         }
     }
 }
 
 .SkillsAndFlaws-trash-can {
-    filter: invert(14%) sepia(100%) saturate(10000%) hue-rotate(0deg);
+    /* baked-in black fill (src/icons/trash_can.svg) tinted to the danger red
+       at rest, flipped to white on hover above once the button itself turns
+       red (see .SkillsAndFlaws-trash-button:hover) */
+    filter: brightness(0) saturate(100%) invert(33%) sepia(64%) saturate(1892%) hue-rotate(335deg) brightness(90%) contrast(89%);
 }
 
-.SkillsAndFlaws-remove-skill-flaw-confirm {
-    position: absolute;
-    left: 30vw;
-    width: 40vw;
-    top: 20vh;
-    background-color: rgb(0, 0, 85);
-    padding-top: 30px;
-    padding-bottom: 30px;
-    z-index: 1;
-    border-radius: 25px;
-    border-style: none;
+/* --- Add / Remove-confirm dialogs -----------------------------------------
+   Same scrim + centered card idiom used across the app (Navigation.js,
+   CampaignPage.js). */
+.SkillsAndFlaws-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background-color: rgba(0, 0, 0, 0.6);
 }
 
-.SkillsAndFlaws-button-container {
-    position: relative;
-    width: 20vw;
-    align-items: center;
-    height: 3vh;
+.SkillsAndFlaws-dialog {
+    position: fixed;
+    z-index: 31;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(400px, calc(100vw - var(--jnj-space-6)));
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-4);
+    padding: var(--jnj-space-6);
+    text-align: left;
+    background-color: var(--jnj-color-bg-raised);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-lg);
+    box-shadow: var(--jnj-shadow-lg);
+
+    h3 {
+        margin: 0;
+        font-family: var(--jnj-font-display);
+        font-size: var(--jnj-text-xl);
+        color: var(--jnj-color-text);
+    }
+
+    // Inside the dialog, the live-preview card should sit flush rather than
+    // carry the list card's own margins/fixed width.
+    .SkillsAndFlaws-preview {
+        margin: 0;
+        width: auto;
+    }
+}
+
+.SkillsAndFlaws-dialog-help {
+    margin: 0;
+    font-size: var(--jnj-text-sm);
+    color: var(--jnj-color-text-muted);
+}
+
+.SkillsAndFlaws-dialog-row {
+    display: flex;
+    gap: var(--jnj-space-2);
+}
+
+.SkillsAndFlaws-dialog-input, .SkillsAndFlaws-dialog-select, .SkillsAndFlaws-dialog-textarea {
+    padding: var(--jnj-space-2) var(--jnj-space-3);
+    background-color: var(--jnj-color-bg-sunken);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-md);
+    color: var(--jnj-color-text);
+    font-family: inherit;
+    font-size: var(--jnj-text-sm);
+    margin-bottom: var(--jnj-space-2);
+
+    &::placeholder {
+        color: var(--jnj-color-text-faint);
+    }
+
+    &:focus {
+        outline: none;
+        border-color: var(--jnj-color-accent);
+    }
+}
+
+.SkillsAndFlaws-dialog-input-degree {
+    width: 90px;
+    flex-shrink: 0;
+}
+
+.SkillsAndFlaws-dialog-select {
+    flex: 1;
+}
+
+.SkillsAndFlaws-dialog-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 80px;
+    resize: vertical;
+    margin-bottom: 0;
+}
+
+.SkillsAndFlaws-dialog-actions {
+    display: flex;
+    gap: var(--jnj-space-3);
+}
+
+.SkillsAndFlaws-dialog-button {
+    flex: 1;
+    padding: var(--jnj-space-3);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-md);
+    background-color: transparent;
+    color: var(--jnj-color-text);
+    font-family: inherit;
+    font-size: var(--jnj-text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color var(--jnj-transition), background-color var(--jnj-transition);
+
+    &:hover {
+        border-color: var(--jnj-color-border-strong);
+    }
+
+    &:disabled {
+        color: var(--jnj-color-text-faint);
+        cursor: not-allowed;
+    }
+}
+
+.SkillsAndFlaws-dialog-button-primary {
+    border-color: transparent;
+    background-color: var(--jnj-color-accent);
+    color: var(--jnj-color-on-accent);
+
+    &:hover:not(:disabled) {
+        background-color: var(--jnj-color-accent-hover);
+    }
+
+    &:disabled {
+        background-color: var(--jnj-color-bg-hover);
+    }
+}
+
+.SkillsAndFlaws-dialog-button-danger {
+    border-color: transparent;
+    background-color: var(--jnj-color-danger);
+    color: white;
+
+    &:hover:not(:disabled) {
+        filter: brightness(0.88);
+    }
 }

@@ -1,5 +1,5 @@
 .CombatMap-zone-body {
-    border: 2px solid rgba(255, 255, 255, 0.6);
+    border: 2px solid var(--jnj-color-border-strong);
     border-radius: 4px;
     background: rgba(0, 0, 0, 0.25);
     // not scrollable: @hello-pangea/dnd only supports one scroll container in a
@@ -22,7 +22,7 @@
     // a flat px size that's only ever right at one specific rendered width.
     font-size: calc(11px * var(--map-scale, 1));
     font-weight: bold;
-    color: #fff;
+    color: var(--jnj-color-text);
     text-align: center;
     text-shadow: 0 0 3px #000;
     pointer-events: none;
@@ -43,12 +43,12 @@
     // element itself - it was previously (incorrectly) styled on the outer
     // .CombatMap-zone-body wrapper, so the highlight never showed up
     &.isDraggingOver {
-        background: rgba(255, 220, 0, 0.35);
+        background: rgba(200, 162, 74, 0.35);
     }
 }
 
 .CombatMap-tile-box {
-    background: #4c4c4c;
+    background: var(--jnj-color-bg-raised);
     border-radius: 4px;
     padding: 2px 4px;
     margin-bottom: 2px;
@@ -58,13 +58,13 @@
     }
 
     &:hover {
-        background: #636363;
+        background: var(--jnj-color-bg-hover);
     }
 }
 
 .CombatMap-tile-title {
     font-size: calc(11px * var(--map-scale, 1));
-    color: #fff;
+    color: var(--jnj-color-text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -75,7 +75,7 @@
 }
 
 .CombatMap-no-active-map {
-    color: white;
+    color: var(--jnj-color-text-muted);
     padding: 20px;
     text-align: center;
 }

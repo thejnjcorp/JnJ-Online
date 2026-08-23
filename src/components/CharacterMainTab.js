@@ -15,22 +15,11 @@ import { PostListContentInventoryPocket } from "../utils/DraggableElements/PostL
 import { PostListContentCombat } from "../utils/DraggableElements/PostListCombat.tsx";
 import { PostListContentCombatMap } from "../utils/DraggableElements/PostListCombatMap.tsx";
 import { useCampaignMaps, useCombatEntities } from "../utils/useCampaignCombat";
-
-// .CharacterPage is capped at 90vh (see CharacterPage.scss), and everything
-// above the Combat Map tab eats into that budget before the map ever gets a
-// chance at it. These mirror the actual fixed-px values from CharacterPage.scss
-// (not vh-relative, so they don't scale with viewport height the way 90vh
-// does - subtracting them out is what makes this work across screen sizes,
-// rather than a flat px offset tuned to one screen).
-const CHARACTER_PAGE_NAV_HEIGHT = 100; // .CharacterPage-navigation { height: 100px }
-const ABILITY_STATS_ROW_HEIGHT = 190 + 2 * 10; // .CharacterPage-abiltyscore-horzontal/.CharacterPage-stats { height: 190px; margin: 10px }
-const TAB_CONTAINER_MARGIN = 2 * 10; // .TabContainer { margin: 10px }
-// Not given an explicit height in TabContainer.scss (sized intrinsically from
-// its 24px-font buttons), plus a little slack for anything else unaccounted
-// for here.
-const TAB_BUTTON_ROW_AND_SLACK = 65;
-const COMBAT_MAP_HEIGHT_OFFSET =
-    `${CHARACTER_PAGE_NAV_HEIGHT + ABILITY_STATS_ROW_HEIGHT + TAB_CONTAINER_MARGIN + TAB_BUTTON_ROW_AND_SLACK}px`;
+import { ReactComponent as ScrollIcon } from '../icons/scroll.svg';
+import { ReactComponent as SwordsIcon } from '../icons/swords.svg';
+import { ReactComponent as BagIcon } from '../icons/bag.svg';
+import { ReactComponent as NoteIcon } from '../icons/note.svg';
+import { ReactComponent as MapIcon } from '../icons/map.svg';
 
 export function CharacterMainTab({ characterPage, userId, characterList = [], campaignInfo = {} }) {
     const hasWritePermissions = userId ? (characterPage.userId === userId || characterPage.canWrite?.includes(userId)) : false;
@@ -41,17 +30,11 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
     const hasCampaign = Boolean(characterPage.campaign);
     const { activeMap } = useCampaignMaps(campaignInfo);
     const combatEntities = useCombatEntities(characterList, campaignInfo);
-    const combatView = characterPage.combat_view ?? "line";
+    // The actual map render felt cramped embedded at tab-content size, so it
+    // now opens full-screen on demand instead of living inline - see the
+    // overlay rendered after the TabContainer below.
+    const [mapOverlayOpen, setMapOverlayOpen] = useState(false);
 
-    function setCombatView(view) {
-        try {
-            updateDoc(doc(db, "characters", characterPage.character_id), {
-                combat_view: view
-            });
-        } catch (e) {
-            alert(e);
-        }
-    }
     const debounceRef = useRef({});
     const [localValues, setLocalValues] = useState({
         description: characterPage.description ? characterPage.description : characterPage.class_description,
@@ -108,10 +91,15 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
     
     const tabs = [
         {
-            tabName: "Roleplay Mode",
-            content: <>
-            <div className="CharacterMainTab-background">
-                <h2>Background:</h2>
+            tabName: "Roleplay",
+            icon: <ScrollIcon/>,
+            content: <div className="CharacterMainTab-roleplay">
+            <div className="CharacterMainTab-background CharacterMainTab-roleplay-card CharacterMainTab-roleplay-card-background">
+                <div className="CharacterMainTab-roleplay-card-header">
+                    <ScrollIcon/>
+                    <h2>Background</h2>
+                    <span className="CharacterMainTab-roleplay-card-caption">Autosaves as you type</span>
+                </div>
                 <TextareaAutosize
                     className="CharacterMainTab-background-description"
                     minRows={3}
@@ -121,8 +109,12 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                     onChange={handleChange}
                 />
             </div>
-            <div className="CharacterMainTab-notes">
-                <h2>Notes:</h2>
+            <div className="CharacterMainTab-notes CharacterMainTab-roleplay-card CharacterMainTab-roleplay-card-notes">
+                <div className="CharacterMainTab-roleplay-card-header">
+                    <NoteIcon/>
+                    <h2>Notes</h2>
+                    <span className="CharacterMainTab-roleplay-card-caption">Autosaves as you type</span>
+                </div>
                 <TextareaAutosize
                     className="CharacterMainTab-notes-description"
                     minRows={3}
@@ -132,14 +124,15 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                     onChange={handleChange}
                 />
             </div>
-            </>
+            </div>
         },
         {
-            tabName: "Combat Mode",
+            tabName: "Combat",
+            icon: <SwordsIcon/>,
             content: <>
                 
                 <div className="CharacterMainTab-action-points">
-                    Action Points:{"\xa0\xa0\xa0"}
+                    <span className="CharacterMainTab-caps-label">Action Points</span>{"\xa0\xa0"}
                     {characterPage.action_points > 0 ? <img src={starFilledIcon} alt='starFilled' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(1) : undefined}/> :
                     <img src={starIcon} alt='star' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(1) : undefined}/>}
                     {characterPage.action_points > 1 ? <img src={starFilledIcon} alt='starFilled' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(2) : undefined}/> :
@@ -148,9 +141,12 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                     <img src={starIcon} alt='star' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(3) : undefined}/>}
                     {characterPage.action_points > 3 ? <img src={starFilledIcon} alt='starFilled' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(4) : undefined}/> :
                     <img src={starIcon} alt='star' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(4) : undefined}/>}
+                    <span className="CharacterMainTab-action-points-label">
+                        {characterPage.action_points} / 4 available{hasWritePermissions ? " · click a star to spend" : ""}
+                    </span>
                 </div>
                 <div className="CharacterMainTab-action-body">
-                    <span className="CharacterMainTab-header-left-align">Passives:</span>
+                    <span className="CharacterMainTab-caps-label CharacterMainTab-section-label">Passives</span>
                     <CombatActionList 
                         actions={characterPage.actions.filter(action => isPassive(action))}
                         experience_points={characterPage.experience_points}
@@ -163,7 +159,7 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                         canUseActions={false}
                         characterPage={characterPage}
                     />
-                    <span className="CharacterMainTab-header-left-align">Available Actions:</span>
+                    <span className="CharacterMainTab-caps-label CharacterMainTab-section-label">Available Actions</span>
                     <CombatActionList 
                         actions={characterPage.actions.filter(action => action.actionCost <= characterPage.action_points).filter(action => !isPassive(action))}
                         experience_points={characterPage.experience_points}
@@ -177,8 +173,8 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                         characterPage={characterPage}
                         userId={userId}
                     />
-                    <span className="CharacterMainTab-header-left-align">Unavailable Actions:</span>
-                    <CombatActionList 
+                    <span className="CharacterMainTab-caps-label CharacterMainTab-section-label">Unavailable — not enough Action Points</span>
+                    <CombatActionList
                         actions={characterPage.actions.filter(action => action.actionCost > characterPage.action_points)}
                         experience_points={characterPage.experience_points}
                         baseArmorClass={characterPage.base_armor_class}
@@ -187,12 +183,14 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                         baseDamageDice={characterPage.base_damage_dice}
                         baseDamageDiceType={characterPage.base_damage_dice_type}
                         baseHealingDiceType={characterPage.base_healing_dice_type}
+                        locked={true}
                     />
                 </div>
             </>
         },
         {
             tabName: "Inventory",
+            icon: <BagIcon/>,
             content: <div className="CharacterMainTab-inventory">
                 <div style={{ width: "50%" }}>
                     <PostListContentInventory 
@@ -229,41 +227,37 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
         },
         {
             tabName: "Combat Map",
-            // Only .TabContainer-content needs an explicit height here - see the
-            // comment in TabContainer.js on why .TabContainer itself doesn't.
-            contentHeight: (hasCampaign && combatView === "map") ? `calc(90vh - ${COMBAT_MAP_HEIGHT_OFFSET})` : undefined,
+            icon: <MapIcon/>,
             content: !hasCampaign ? <div className="CharacterMainTab-no-campaign">
                 <p>This character isn't part of a campaign yet.</p>
                 <Link to="/campaigns" className="CharacterMainTab-no-campaign-link">Join or create a campaign</Link>
             </div> : <div className="CharacterMainTab-combat-map">
-                <div className="CharacterMainTab-view-toggle">
-                    <button
-                        className={combatView === "line" ? "CharacterMainTab-view-toggle-active" : ""}
-                        disabled={!hasWritePermissions || combatView === "line"}
-                        onClick={() => setCombatView("line")}
-                    >
-                        Line View
-                    </button>
-                    <button
-                        className={combatView === "map" ? "CharacterMainTab-view-toggle-active" : ""}
-                        disabled={!hasWritePermissions || combatView === "map"}
-                        onClick={() => setCombatView("map")}
-                    >
-                        Map View
+                <div className="CharacterMainTab-combat-map-header">
+                    <button className="CharacterMainTab-open-map-button" onClick={() => setMapOverlayOpen(true)}>
+                        <MapIcon/> Open Combat Map
                     </button>
                 </div>
-                {combatView === "map" ? <PostListContentCombatMap
-                    campaignId={characterPage.campaign}
-                    activeMap={activeMap}
-                    entities={combatEntities}
-                    noActiveMapMessage="The director hasn't set an active combat map yet."
-                /> : <PostListContentCombat
+                <PostListContentCombat
                     inputStatuses={["Zone 0", "Zone 1", "Zone 2", "Zone 3", "Zone 4"]}
                     campaignId={characterPage.campaign}
-                />}
+                />
             </div>
         }
     ];
 
-    return <TabContainer tabs={tabs}/>
+    return <>
+        <TabContainer tabs={tabs}/>
+        {mapOverlayOpen && <>
+            <div className="CharacterMainTab-map-overlay-scrim" onClick={() => setMapOverlayOpen(false)}/>
+            <div className="CharacterMainTab-map-overlay">
+                <button className="CharacterMainTab-map-overlay-close" onClick={() => setMapOverlayOpen(false)} aria-label="Close">×</button>
+                <PostListContentCombatMap
+                    campaignId={characterPage.campaign}
+                    activeMap={activeMap}
+                    entities={combatEntities}
+                    noActiveMapMessage="The director hasn't set an active combat map yet."
+                />
+            </div>
+        </>}
+    </>
 }
