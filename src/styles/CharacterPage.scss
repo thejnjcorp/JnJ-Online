@@ -80,6 +80,13 @@
     align-items: center;
     justify-content: center;
     color: rgba(255, 255, 255, 0.75);
+    overflow: hidden;
+}
+
+.CharacterPage-masthead-avatar-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .CharacterPage-masthead-avatar-badge {
@@ -191,20 +198,30 @@
 }
 
 /* --- Vitals card (CharacterPageVitalsPanel.js) -----------------------------
-   Merges what used to be two separate fixed-width boxes (400px ability score
-   + 500px stats) into one flex-wrap card, closing the dead-space gap they
-   left on wide viewports. */
-.CharacterPage-vitals {
+   v2: a 2x2 stat grid (Health / AC+XP+Hardness / Statuses / Scores) plus a
+   portrait column, replacing the earlier flex-wrap row of loose sections -
+   see design/character-page-v2/CHARACTER_PAGE_V2_HANDOFF.md. A hairline
+   cross (border-top/border-left on the bottom-right cells) divides the four
+   tiles instead of the standalone divider elements the old layout used. */
+.CharacterPage-vitals-card {
     box-sizing: border-box;
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
+    align-items: stretch;
     gap: var(--jnj-space-6);
     padding: var(--jnj-space-5) var(--jnj-space-6);
     background: var(--jnj-color-bg-raised);
     border: 1px solid var(--jnj-color-border);
     border-radius: var(--jnj-radius-lg);
     flex-shrink: 0;
+}
+
+.CharacterPage-vitals {
+    box-sizing: border-box;
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--jnj-space-5);
 }
 
 .CharacterPage-vitals-temp-hp .CharacterPage-vitals-health-bar {
@@ -330,8 +347,11 @@
 
 .CharacterPage-vitals-ac-xp-row {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: var(--jnj-space-6);
+    gap: var(--jnj-space-5);
+    padding-left: var(--jnj-space-5);
+    border-left: 1px solid var(--jnj-color-border);
 }
 
 .CharacterPage-vitals-ac {
@@ -416,7 +436,371 @@
 .CharacterPage-vitals-scores {
     display: flex;
     gap: 22px;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    padding-top: var(--jnj-space-5);
+    padding-left: var(--jnj-space-5);
+    border-top: 1px solid var(--jnj-color-border);
+    border-left: 1px solid var(--jnj-color-border);
+}
+
+/* --- Statuses (bottom-left cell; Statuses.js / AddStatusDialog.js) -------- */
+.CharacterPage-vitals-statuses {
+    padding-top: var(--jnj-space-5);
+    border-top: 1px solid var(--jnj-color-border);
+}
+
+.CharacterPage-vitals-statuses-header {
+    margin-bottom: var(--jnj-space-2);
+}
+
+.CharacterPage-status-list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.CharacterPage-status-wrap {
+    display: flex;
+    flex-direction: column;
+}
+
+.CharacterPage-status-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border-radius: var(--jnj-radius-pill);
+    border: 1px solid var(--jnj-color-border-strong);
+    background: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.CharacterPage-status-chip-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
     flex-shrink: 0;
+}
+
+.CharacterPage-status-chip-badge {
+    background: currentColor;
+    color: var(--jnj-color-bg-raised);
+    min-width: 16px;
+    height: 16px;
+    border-radius: var(--jnj-radius-pill);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 0 4px;
+}
+
+.CharacterPage-status-chip-buff {
+    border-color: var(--jnj-color-accent);
+    background: var(--jnj-color-accent-soft);
+    color: var(--jnj-color-accent);
+}
+
+.CharacterPage-status-chip-debuff {
+    border-color: var(--jnj-color-danger);
+    background: rgba(217, 83, 79, 0.14);
+    color: var(--jnj-color-danger);
+}
+
+.CharacterPage-status-chip-neutral {
+    border-color: var(--jnj-color-arcane);
+    background: rgba(102, 0, 204, 0.14);
+    color: var(--jnj-color-arcane);
+}
+
+.CharacterPage-status-chip-buff, .CharacterPage-status-chip-debuff, .CharacterPage-status-chip-neutral {
+    span {
+        color: var(--jnj-color-text);
+    }
+}
+
+.CharacterPage-status-detail {
+    margin-top: 6px;
+    max-width: 260px;
+    padding: 10px 12px;
+    background: var(--jnj-color-bg-sunken);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-md);
+}
+
+.CharacterPage-status-detail-description {
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--jnj-color-text-muted);
+}
+
+.CharacterPage-status-detail-remove {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: none;
+    border: none;
+    color: var(--jnj-color-danger);
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 0;
+    cursor: pointer;
+}
+
+.CharacterPage-status-add-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: var(--jnj-radius-pill);
+    border: 1px dashed var(--jnj-color-border-strong);
+    background: transparent;
+    color: var(--jnj-color-text-muted);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color var(--jnj-transition), color var(--jnj-transition);
+
+    &:hover {
+        border-color: var(--jnj-color-accent);
+        color: var(--jnj-color-accent);
+    }
+}
+
+/* --- Add Status dialog (AddStatusDialog.js) - same scrim+dialog idiom used
+   elsewhere in the app (SkillsAndFlaws.js, CharacterMainTab.js overlay). --- */
+.CharacterPage-status-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background-color: rgba(0, 0, 0, 0.6);
+}
+
+.CharacterPage-status-dialog {
+    position: fixed;
+    z-index: 31;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(420px, calc(100vw - 48px));
+    max-height: 85vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-4);
+    padding: var(--jnj-space-6);
+    text-align: left;
+    background: var(--jnj-color-bg-raised);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-lg);
+    box-shadow: var(--jnj-shadow-md);
+    color: var(--jnj-color-text);
+
+    h3 {
+        margin: 0;
+        font-family: var(--jnj-font-display);
+        font-size: 19px;
+        font-weight: 600;
+    }
+}
+
+.CharacterPage-status-dialog-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-2);
+}
+
+.CharacterPage-status-dialog-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.CharacterPage-status-preset-chip {
+    padding: 7px 13px;
+    border-radius: var(--jnj-radius-pill);
+    border: 1px solid var(--jnj-color-border-strong);
+    background: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text-muted);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.CharacterPage-status-preset-chip-selected {
+    color: var(--jnj-color-on-accent);
+
+    &.CharacterPage-status-chip-buff {
+        background: var(--jnj-color-accent);
+        border-color: var(--jnj-color-accent);
+    }
+
+    &.CharacterPage-status-chip-debuff {
+        background: var(--jnj-color-danger);
+        border-color: var(--jnj-color-danger);
+    }
+
+    &.CharacterPage-status-chip-neutral {
+        background: var(--jnj-color-arcane);
+        border-color: var(--jnj-color-arcane);
+    }
+}
+
+.CharacterPage-status-dialog-input, .CharacterPage-status-dialog-textarea {
+    box-sizing: border-box;
+    width: 100%;
+    padding: var(--jnj-space-3);
+    border-radius: var(--jnj-radius-md);
+    border: 1px solid var(--jnj-color-border);
+    background-color: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text);
+    font: inherit;
+
+    &:focus {
+        outline: 1px solid var(--jnj-color-accent);
+    }
+}
+
+.CharacterPage-status-dialog-textarea {
+    min-height: 70px;
+    resize: vertical;
+}
+
+.CharacterPage-status-dialog-stepper {
+    display: flex;
+    align-items: center;
+    gap: var(--jnj-space-3);
+
+    button {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--jnj-radius-md);
+        border: 1px solid var(--jnj-color-border-strong);
+        background: var(--jnj-color-bg-sunken);
+        color: var(--jnj-color-text);
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    span {
+        font-size: 16px;
+        font-weight: 700;
+        min-width: 20px;
+        text-align: center;
+    }
+}
+
+.CharacterPage-status-dialog-preview {
+    padding: 12px 14px;
+    border-radius: var(--jnj-radius-md);
+    background: var(--jnj-color-bg-sunken);
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--jnj-color-text-muted);
+}
+
+.CharacterPage-status-dialog-actions {
+    display: flex;
+    gap: var(--jnj-space-3);
+}
+
+.CharacterPage-status-dialog-button {
+    flex: 1;
+    padding: 12px;
+    border-radius: var(--jnj-radius-md);
+    border: 1px solid var(--jnj-color-border);
+    background: transparent;
+    color: var(--jnj-color-text);
+    font-weight: 600;
+    font-size: 13.5px;
+    cursor: pointer;
+}
+
+.CharacterPage-status-dialog-button-primary {
+    border: none;
+    background: var(--jnj-color-accent);
+    color: var(--jnj-color-on-accent);
+
+    &:hover {
+        background: var(--jnj-color-accent-hover);
+    }
+}
+
+/* --- Portrait panel (CharacterPortrait.js) --------------------------------
+   Desktop only - see the mobile override below, which hides this column
+   entirely (the narrow mobile card never had the dead space this fills). */
+.CharacterPage-portrait {
+    width: 180px;
+    flex-shrink: 0;
+    align-self: stretch;
+    position: relative;
+    border-radius: var(--jnj-radius-lg);
+    overflow: hidden;
+    background: linear-gradient(160deg, var(--jnj-color-bg-sunken) 0%, var(--jnj-color-bg-hover) 100%);
+    border: 1px solid var(--jnj-color-border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.CharacterPage-portrait-image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.CharacterPage-portrait-placeholder-icon {
+    width: 56px;
+    height: 56px;
+    color: var(--jnj-color-text-faint);
+}
+
+.CharacterPage-portrait-placeholder-text {
+    font-size: 11.5px;
+    text-align: center;
+    padding: 0 16px;
+    color: var(--jnj-color-text-faint);
+}
+
+.CharacterPage-portrait-edit-button {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--jnj-color-border-strong);
+    background: var(--jnj-color-bg-raised);
+    color: var(--jnj-color-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: border-color var(--jnj-transition), color var(--jnj-transition);
+
+    &:hover {
+        border-color: var(--jnj-color-accent);
+        color: var(--jnj-color-accent);
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: default;
+    }
 }
 
 .CharacterPage-vitals-score {
@@ -575,31 +959,44 @@
         font-size: 11px;
     }
 
+    /* No portrait column on mobile - the narrow vitals card never had the
+       dead space it exists to fill (see CharacterPortrait.js). */
+    .CharacterPage-vitals-card {
+        gap: 0;
+    }
+
+    .CharacterPage-portrait {
+        display: none;
+    }
+
+    /* The 2x2 grid becomes one stacked column - Health / AC+XP+Hardness /
+       Statuses / Scores, in that order, each its own full-width block. The
+       divider nested inside .CharacterPage-vitals-ac-xp-row (between AC and
+       XP/Hardness) stays a vertical rule, same as desktop - only the
+       grid-level separators (border-left/border-top on the right-hand and
+       bottom cells) need to flip to a single horizontal rule on top. */
     .CharacterPage-vitals {
-        flex-direction: column;
-        align-items: stretch;
+        grid-template-columns: 1fr;
         gap: var(--jnj-space-4);
-    }
-
-    /* Only the top-level separators (Health / AC+XP+Hardness / Scores) go
-       horizontal - the one nested inside .CharacterPage-vitals-ac-xp-row
-       stays a vertical rule between AC and XP/Hardness, same as desktop. */
-    .CharacterPage-vitals > .CharacterPage-vitals-divider {
-        width: 100%;
-        height: 1px;
-    }
-
-    .CharacterPage-vitals-health {
-        flex-basis: auto;
-        min-width: 0;
     }
 
     .CharacterPage-vitals-ac-xp-row {
         justify-content: space-between;
+        padding-left: 0;
+        padding-top: var(--jnj-space-4);
+        border-left: none;
+        border-top: 1px solid var(--jnj-color-border);
+    }
+
+    .CharacterPage-vitals-statuses {
+        padding-top: var(--jnj-space-4);
     }
 
     .CharacterPage-vitals-scores {
         justify-content: space-between;
         gap: var(--jnj-space-3);
+        padding-left: 0;
+        padding-top: var(--jnj-space-4);
+        border-left: none;
     }
 }

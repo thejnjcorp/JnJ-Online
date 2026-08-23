@@ -54,6 +54,24 @@
 // instead of being windowed. Removed rather than scoped, since it did
 // nothing for this page in the first place.
 
+.DirectorsPage-next-turn-button {
+    margin-left: var(--jnj-space-4);
+    padding: 6px 14px;
+    border-radius: var(--jnj-radius-pill);
+    border: 1px solid var(--jnj-color-accent);
+    background: transparent;
+    color: var(--jnj-color-accent);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color var(--jnj-transition), color var(--jnj-transition);
+
+    &:hover {
+        background: var(--jnj-color-accent);
+        color: var(--jnj-color-on-accent);
+    }
+}
+
 .DirectorsPage-Combat {
     display: flex;
     flex-direction: row;

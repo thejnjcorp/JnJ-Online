@@ -1,0 +1,154 @@
+/* Same height-capped, internally-scrolling idiom as Homepage/AccountPage -
+   see the note on .Homepage in styles/Homepage.scss. */
+.StatusListPage {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: var(--jnj-content-max);
+    height: calc(100vh - var(--jnj-nav-height));
+    margin: 0 auto;
+    padding: var(--jnj-space-6) var(--jnj-space-5);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-5);
+    text-align: left;
+    color: var(--jnj-color-text);
+}
+
+.StatusListPage-title {
+    font-family: var(--jnj-font-display);
+    font-size: var(--jnj-text-3xl);
+    margin: 0;
+}
+
+.StatusListPage-subtitle {
+    margin: var(--jnj-space-2) 0 0;
+    color: var(--jnj-color-text-muted);
+}
+
+.StatusListPage-filters {
+    display: flex;
+    gap: 6px;
+    padding: 5px;
+    border-radius: var(--jnj-radius-pill);
+    background: var(--jnj-color-bg-sunken);
+    width: max-content;
+}
+
+.StatusListPage-filter-button {
+    padding: 8px 16px;
+    border-style: none;
+    border-radius: var(--jnj-radius-pill);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--jnj-color-text-muted);
+    background-color: transparent;
+    cursor: pointer;
+    transition: background-color var(--jnj-transition), color var(--jnj-transition);
+
+    &:hover {
+        color: var(--jnj-color-text);
+    }
+}
+
+.StatusListPage-filter-button-active {
+    background: var(--jnj-color-accent);
+    color: var(--jnj-color-on-accent);
+
+    &:hover {
+        color: var(--jnj-color-on-accent);
+    }
+}
+
+.StatusListPage-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: var(--jnj-space-4);
+}
+
+.StatusListPage-card {
+    box-sizing: border-box;
+    text-align: left;
+    padding: var(--jnj-space-4);
+    background-color: var(--jnj-color-bg-raised);
+    border: 1px solid var(--jnj-color-border);
+    border-left: 3px solid var(--jnj-color-arcane);
+    border-radius: var(--jnj-radius-md);
+    color: var(--jnj-color-text);
+    cursor: pointer;
+    transition: background-color var(--jnj-transition), border-color var(--jnj-transition);
+
+    &:hover {
+        background-color: var(--jnj-color-bg-hover);
+    }
+}
+
+.StatusListPage-card-buff {
+    border-left-color: var(--jnj-color-accent);
+}
+
+.StatusListPage-card-debuff {
+    border-left-color: var(--jnj-color-danger);
+}
+
+.StatusListPage-card-header {
+    display: flex;
+    align-items: center;
+    gap: var(--jnj-space-2);
+}
+
+.StatusListPage-card-name {
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.StatusListPage-card-effect-badge {
+    margin-left: auto;
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: var(--jnj-radius-pill);
+    background: var(--jnj-color-accent-soft);
+    color: var(--jnj-color-accent);
+    white-space: nowrap;
+}
+
+.StatusListPage-card-classes {
+    margin-top: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--jnj-color-text-faint);
+}
+
+.StatusListPage-card-description {
+    margin-top: 8px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--jnj-color-text-muted);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.StatusListPage-empty {
+    color: var(--jnj-color-text-muted);
+}
+
+.StatusListPage-create-button {
+    align-self: flex-start;
+    padding: var(--jnj-space-3) var(--jnj-space-5);
+    border-radius: var(--jnj-radius-pill);
+    border-style: none;
+    background-color: var(--jnj-color-accent);
+    color: var(--jnj-color-on-accent);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color var(--jnj-transition);
+
+    &:hover {
+        background-color: var(--jnj-color-accent-hover);
+    }
+}

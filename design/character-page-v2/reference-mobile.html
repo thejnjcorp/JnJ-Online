@@ -136,6 +136,16 @@
           <div style="font-size:15px;font-weight:700;margin-top:2px;">3</div>
         </div>
       </div>
+
+      <div style="height:1px;background:var(--border);"></div>
+
+      <!-- STATUSES -->
+      <div>
+        <div style="font-size:10.5px;font-weight:700;margin-bottom:9px;" class="caps muted">Statuses</div>
+        <div id="status-list" style="display:flex;flex-wrap:wrap;gap:7px;align-items:flex-start;">
+          <!-- status chips injected by renderStatuses() -->
+        </div>
+      </div>
     </div>
 
     <!-- TAB CONTENT -->
@@ -424,6 +434,39 @@ Honor the Dead: Whenever possible, give proper burial rites to everyone, no matt
     </div>
   </div>
 
+  <!-- ADD STATUS DIALOG -->
+  <div id="status-scrim" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:50;" onclick="closeAddStatus()"></div>
+  <div id="status-dialog" style="display:none;position:fixed;z-index:51;top:50%;left:50%;transform:translate(-50%,-50%);width:min(360px, calc(100vw - 32px));max-height:calc(100vh - 64px);overflow-y:auto;flex-direction:column;gap:14px;padding:22px 20px;text-align:left;background:var(--bg-raised);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-md);">
+    <span style="font-family:var(--font-display);font-size:18px;">Add Status</span>
+
+    <div>
+      <div style="font-size:10.5px;font-weight:700;margin-bottom:8px;" class="caps muted">Choose a status</div>
+      <div id="status-presets" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+      <div style="font-size:11px;margin-top:8px;line-height:1.5;" class="faint">This mockup demonstrates the flow with presets — the real Add form also needs a free-text name/description for fully custom statuses (see the handoff doc).</div>
+    </div>
+
+    <div>
+      <div style="font-size:10.5px;font-weight:700;margin-bottom:8px;" class="caps muted">Stacks / duration</div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button onclick="incDecStacks(-1)" style="width:36px;height:36px;border-radius:8px;border:1px solid var(--border-strong);background:var(--bg-sunken);color:var(--text);font-size:16px;font-weight:700;">&minus;</button>
+        <span id="status-stacks" style="font-size:16px;font-weight:700;min-width:20px;text-align:center;">0</span>
+        <button onclick="incDecStacks(1)" style="width:36px;height:36px;border-radius:8px;border:1px solid var(--border-strong);background:var(--bg-sunken);color:var(--text);font-size:16px;font-weight:700;">+</button>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size:10.5px;font-weight:700;margin-bottom:8px;" class="caps muted">Polarity</div>
+      <div id="status-polarities" style="display:flex;gap:6px;"></div>
+    </div>
+
+    <div id="status-desc-preview" style="padding:12px 14px;border-radius:8px;background:var(--bg-sunken);font-size:12.5px;line-height:1.5;" class="muted"></div>
+
+    <div style="display:flex;gap:10px;">
+      <button onclick="confirmAddStatus()" style="flex:1;padding:13px;border:none;border-radius:8px;background:var(--accent);color:var(--on-accent);font-weight:700;font-size:13.5px;">Add Status</button>
+      <button onclick="closeAddStatus()" style="flex:1;padding:13px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text);font-weight:600;font-size:13.5px;">Cancel</button>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -450,6 +493,166 @@ Honor the Dead: Whenever possible, give proper burial rites to everyone, no matt
     document.getElementById('drawer-scrim').classList.remove('open');
     document.getElementById('drawer').classList.remove('open');
   }
+
+  // ============ STATUSES ============
+  var STATUS_PRESETS = [
+    { name: 'Haste', polarity: 'buff', stacks: 2, description: 'Gain a single action for a certain number of rounds. Reduces by 1 each round until it reaches 0.' },
+    { name: 'Slowed', polarity: 'debuff', stacks: 2, description: 'Lose a single action for a certain number of rounds. Reduces by 1 each round until it reaches 0.' },
+    { name: 'Blind', polarity: 'debuff', stacks: 0, description: 'Unable to use sight to perceive enemies or items. Automatically critically fails vision checks; ranged attacks face steep miss chances.' },
+    { name: 'Stunned', polarity: 'debuff', stacks: 1, description: 'Lose actions equal to the stunned number. Amounts over 3 carry into the next turn.' },
+    { name: 'Frightened', polarity: 'debuff', stacks: 1, description: '−1 to all checks and hit rolls per stack. Drops by 1 at the start of each of your turns.' },
+    { name: 'Custom…', polarity: 'neutral', stacks: 0, description: 'Production version: type a custom name and description here.' }
+  ];
+  var POLARITY_COLOR = { buff: 'var(--accent)', debuff: 'var(--danger)', neutral: 'var(--arcane)' };
+  var POLARITY_DEFS = [ { key: 'buff', label: 'Buff' }, { key: 'debuff', label: 'Debuff' }, { key: 'neutral', label: 'Neutral' } ];
+
+  var nextStatusId = 4;
+  var statuses = [
+    { id: 1, name: 'Haste', polarity: 'buff', stacks: 2, description: 'Gain a single action for a certain number of rounds. Reduces by 1 each round until it reaches 0.', expanded: false },
+    { id: 2, name: 'Slowed', polarity: 'debuff', stacks: 1, description: 'Lose a single action for a certain number of rounds. Reduces by 1 each round until it reaches 0.', expanded: false },
+    { id: 3, name: 'Blind', polarity: 'debuff', stacks: 0, description: 'Unable to use sight to perceive enemies or items. Automatically critically fails vision checks; ranged attacks face steep miss chances.', expanded: false }
+  ];
+  var selectedPreset = STATUS_PRESETS[0];
+  var newStacks = STATUS_PRESETS[0].stacks;
+
+  function renderStatuses() {
+    var list = document.getElementById('status-list');
+    list.innerHTML = '';
+    statuses.forEach(function (s) {
+      var color = POLARITY_COLOR[s.polarity] || POLARITY_COLOR.neutral;
+      var wrap = document.createElement('div');
+      wrap.style.display = 'flex';
+      wrap.style.flexDirection = 'column';
+
+      var chip = document.createElement('button');
+      chip.style.cssText = 'border:1px solid ' + color + ';background:' + color + '22;color:var(--text);display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;font-size:12.5px;font-weight:600;min-height:36px;';
+      chip.onclick = function () { s.expanded = !s.expanded; renderStatuses(); };
+
+      var dot = document.createElement('span');
+      dot.style.cssText = 'width:7px;height:7px;border-radius:50%;background:' + color + ';flex-shrink:0;';
+      chip.appendChild(dot);
+
+      var nameSpan = document.createElement('span');
+      nameSpan.textContent = s.name;
+      chip.appendChild(nameSpan);
+
+      if (s.stacks > 0) {
+        var badge = document.createElement('span');
+        badge.style.cssText = 'background:' + color + ';color:var(--on-accent);min-width:16px;height:16px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;padding:0 4px;';
+        badge.textContent = s.stacks;
+        chip.appendChild(badge);
+      }
+      wrap.appendChild(chip);
+
+      if (s.expanded) {
+        var card = document.createElement('div');
+        card.className = 'card';
+        card.style.cssText = 'margin-top:6px;padding:10px 12px;max-width:240px;background:var(--bg-sunken);';
+        var desc = document.createElement('div');
+        desc.style.cssText = 'font-size:12.5px;line-height:1.5;';
+        desc.className = 'muted';
+        desc.textContent = s.description;
+        card.appendChild(desc);
+
+        var removeBtn = document.createElement('button');
+        removeBtn.style.cssText = 'margin-top:8px;display:flex;align-items:center;gap:5px;background:none;border:none;color:var(--danger);font-size:11.5px;font-weight:600;padding:0;';
+        removeBtn.textContent = 'Remove';
+        removeBtn.onclick = function () { statuses = statuses.filter(function (x) { return x.id !== s.id; }); renderStatuses(); };
+        card.appendChild(removeBtn);
+
+        wrap.appendChild(card);
+      }
+
+      list.appendChild(wrap);
+    });
+
+    var addBtn = document.createElement('button');
+    addBtn.style.cssText = 'display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;border:1px dashed var(--border-strong);background:transparent;color:var(--text-muted);font-size:12.5px;font-weight:600;min-height:36px;';
+    addBtn.textContent = '+ Add';
+    addBtn.onclick = openAddStatus;
+    list.appendChild(addBtn);
+  }
+
+  function renderPresetChips() {
+    var wrap = document.getElementById('status-presets');
+    wrap.innerHTML = '';
+    STATUS_PRESETS.forEach(function (p) {
+      var isSelected = p.name === selectedPreset.name;
+      var color = POLARITY_COLOR[p.polarity] || POLARITY_COLOR.neutral;
+      var btn = document.createElement('button');
+      btn.textContent = p.name;
+      btn.style.cssText = (isSelected
+        ? 'border:1px solid ' + color + ';background:' + color + ';color:var(--on-accent);'
+        : 'border:1px solid var(--border-strong);background:var(--bg-sunken);color:var(--text-muted);') +
+        'padding:8px 13px;border-radius:999px;font-size:12.5px;font-weight:600;min-height:36px;';
+      btn.onclick = function () {
+        selectedPreset = p;
+        newStacks = p.stacks;
+        renderDialog();
+      };
+      wrap.appendChild(btn);
+    });
+  }
+
+  function renderPolarityChips() {
+    var wrap = document.getElementById('status-polarities');
+    wrap.innerHTML = '';
+    POLARITY_DEFS.forEach(function (pol) {
+      var isSelected = selectedPreset.polarity === pol.key;
+      var color = POLARITY_COLOR[pol.key];
+      var btn = document.createElement('button');
+      btn.textContent = pol.label;
+      btn.style.cssText = (isSelected
+        ? 'border:1px solid ' + color + ';background:' + color + ';color:var(--on-accent);'
+        : 'border:1px solid var(--border-strong);background:var(--bg-sunken);color:var(--text-muted);') +
+        'padding:8px 13px;border-radius:999px;font-size:12.5px;font-weight:600;min-height:36px;';
+      btn.onclick = function () {
+        selectedPreset = Object.assign({}, selectedPreset, { polarity: pol.key });
+        renderDialog();
+      };
+      wrap.appendChild(btn);
+    });
+  }
+
+  function renderDialog() {
+    renderPresetChips();
+    renderPolarityChips();
+    document.getElementById('status-stacks').textContent = newStacks;
+    document.getElementById('status-desc-preview').textContent = selectedPreset.description;
+  }
+
+  function incDecStacks(delta) {
+    newStacks = Math.max(0, Math.min(9, newStacks + delta));
+    document.getElementById('status-stacks').textContent = newStacks;
+  }
+
+  function openAddStatus() {
+    selectedPreset = STATUS_PRESETS[0];
+    newStacks = STATUS_PRESETS[0].stacks;
+    renderDialog();
+    document.getElementById('status-scrim').style.display = 'block';
+    document.getElementById('status-dialog').style.display = 'flex';
+  }
+
+  function closeAddStatus() {
+    document.getElementById('status-scrim').style.display = 'none';
+    document.getElementById('status-dialog').style.display = 'none';
+  }
+
+  function confirmAddStatus() {
+    statuses.push({
+      id: nextStatusId++,
+      name: selectedPreset.name,
+      polarity: selectedPreset.polarity,
+      stacks: newStacks,
+      description: selectedPreset.description,
+      expanded: false
+    });
+    closeAddStatus();
+    renderStatuses();
+  }
+
+  renderStatuses();
 </script>
 </body>
 </html>

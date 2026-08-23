@@ -164,6 +164,60 @@ async function main() {
         );
     });
 
+    console.log('\nStatus catalog (statuses collection, backs the new Add Status dialog):');
+
+    await check('a signed-in user can create a status preset', async () => {
+        await testEnv.clearFirestore();
+        const alice = testEnv.authenticatedContext('alice');
+        await assertSucceeds(
+            addDoc(collection(alice.firestore(), 'statuses'), {
+                name: 'Haste',
+                polarity: 'buff',
+                defaultStacks: 2,
+                description: 'Gain a single action for a certain number of rounds.',
+                effect: { stat: 'action_points', delta: 1, trigger: 'turn_start' },
+                classes: [],
+                canWrite: ['alice'],
+            })
+        );
+    });
+
+    await check('a signed-out visitor cannot create a status preset', async () => {
+        await testEnv.clearFirestore();
+        const anon = testEnv.unauthenticatedContext();
+        await assertFails(
+            addDoc(collection(anon.firestore(), 'statuses'), { name: 'Should Fail' })
+        );
+    });
+
+    await check('any signed-in user can read the status catalog', async () => {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'statuses', 'haste'), {
+                name: 'Haste',
+                polarity: 'buff',
+                canWrite: ['bob'],
+            });
+        });
+        const alice = testEnv.authenticatedContext('alice');
+        await assertSucceeds(getDoc(doc(alice.firestore(), 'statuses', 'haste')));
+    });
+
+    await check('a non-author cannot edit someone else\'s status preset', async () => {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'statuses', 'haste'), {
+                name: 'Haste',
+                polarity: 'buff',
+                canWrite: ['bob'],
+            });
+        });
+        const mallory = testEnv.authenticatedContext('mallory');
+        await assertFails(
+            updateDoc(doc(mallory.firestore(), 'statuses', 'haste'), { name: 'Hijacked' })
+        );
+    });
+
     await testEnv.cleanup();
 
     if (failures > 0) {

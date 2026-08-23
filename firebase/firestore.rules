@@ -58,6 +58,14 @@ service cloud.firestore {
       allow create: if isSignedIn() && !documentExists("maps", mapId);
     }
 
+    match /statuses/{statusId} {
+    	allow read: if isSignedIn();
+
+      allow read, write: if isSignedIn() && uid() in canWriteField();
+
+      allow create: if isSignedIn() && !documentExists("statuses", statusId);
+    }
+
     // Functions \\
 
     function isSignedIn() {

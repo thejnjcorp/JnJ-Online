@@ -14,6 +14,8 @@ import { ReactComponent as StrengthIcon } from '../icons/strength_line.svg';
 import { ReactComponent as DexterityIcon } from '../icons/dexterity_line.svg';
 import { ReactComponent as IntelligenceIcon } from '../icons/intelligence_line.svg';
 import { ReactComponent as CharismaIcon } from '../icons/charisma_line.svg';
+import { CharacterPortrait } from './CharacterPortrait';
+import { Statuses } from './Statuses';
 
 const ABILITY_SCORES = [
     { name: 'strength_stat', label: 'Str', Icon: StrengthIcon, tooltip: 'Strength' },
@@ -81,7 +83,14 @@ export function CharacterPageVitalsPanel({characterPageLayoutLive, userId}) {
     const healthPercent = maximumHealth > 0 ? Math.max(0, Math.min(100, (currentHealth / maximumHealth) * 100)) : 0;
     const hasTempHp = Number(localScores.temporary_health) > 0;
 
-    return <div className={hasTempHp ? "CharacterPage-vitals CharacterPage-vitals-temp-hp" : "CharacterPage-vitals"}>
+    // The 2x2 stat grid (Health / AC+XP+Hardness / Statuses / Scores) plus a
+    // portrait panel share one card, per the v2 desktop design - see
+    // design/character-page-v2/CHARACTER_PAGE_V2_HANDOFF.md's "Portrait
+    // panel" and "Statuses" sections. The portrait column is hidden on
+    // mobile via CSS (CharacterPage.scss); the grid itself becomes a single
+    // stacked column there too.
+    return <div className="CharacterPage-vitals-card">
+    <div className={hasTempHp ? "CharacterPage-vitals CharacterPage-vitals-temp-hp" : "CharacterPage-vitals"}>
 
         <div className="CharacterPage-vitals-health">
             <div className="CharacterPage-vitals-health-header">
@@ -126,14 +135,13 @@ export function CharacterPageVitalsPanel({characterPageLayoutLive, userId}) {
             </div>
         </div>
 
-        <div className="CharacterPage-vitals-divider"/>
-
         {/* AC and XP/Hardness are wrapped together so mobile's
             flex-direction:column stacks them as one row (see
-            design/character-page-v2 - Health / AC+XP+Hardness / Scores,
-            each separated by a full-width divider). The divider between
-            them is kept inside this wrapper so desktop's layout - which
-            this replaces without changing - is unaffected. */}
+            design/character-page-v2 - Health / AC+XP+Hardness / Statuses /
+            Scores, each its own cell in the 2x2 grid on desktop or a
+            full-width stacked block on mobile). The divider between AC and
+            XP/Hardness is kept inside this wrapper since it's the same on
+            both layouts. */}
         <div className="CharacterPage-vitals-ac-xp-row">
             <div className="CharacterPage-vitals-ac" data-tooltip-id="ac">
                 <div className="CharacterPage-vitals-label">AC</div>
@@ -172,7 +180,7 @@ export function CharacterPageVitalsPanel({characterPageLayoutLive, userId}) {
             </div>
         </div>
 
-        <div className="CharacterPage-vitals-divider"/>
+        <Statuses characterPage={characterPageLayoutLive} userId={userId}/>
 
         <div className="CharacterPage-vitals-scores">
             {ABILITY_SCORES.map(({name, label, Icon, tooltip}) =>
@@ -200,5 +208,8 @@ export function CharacterPageVitalsPanel({characterPageLayoutLive, userId}) {
             <Tooltip id="ac" place="top" content="armor class" variant="info"/>
             <Tooltip id="xp" place="top" content="experience points" variant="info"/>
         </>}
+    </div>
+
+    <CharacterPortrait characterPage={characterPageLayoutLive} userId={userId}/>
     </div>
 }

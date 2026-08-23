@@ -137,12 +137,53 @@ export function DirectorsPage() {
                     <div className='DirectorsPage-CombatCharacterStats'>
                         Player Stats<br/>
                         {characterList.map((character, index) => {
-                            const actualCharacter = { ...characterPageLayout, ...character } 
+                            const actualCharacter = { ...characterPageLayout, ...character }
+                            // NOTE: gated the same way the pre-existing AP star buttons are
+                            // - firestore.rules only grants a character's owner/canWrite
+                            // list write access, not the campaign's director_uid, so a
+                            // director who isn't also on a player's canWrite list can't
+                            // spend their AP OR advance their turn yet (same limitation
+                            // both controls already had; not changed here since granting
+                            // directors write access to every player's character doc is a
+                            // real security-rules decision, not a UI one).
                             const hasWritePermissions = userId ? (actualCharacter.userId === userId || actualCharacter.canWrite?.includes(userId)) : false;
+                            const canAdvanceTurn = hasWritePermissions;
                             function setActionPoints(actionPoints) {
                                 try {
                                     updateDoc(doc(db, "characters", actualCharacter.character_id), {
                                         action_points: actionPoints
+                                    });
+                                } catch (e) {
+                                    alert(e);
+                                }
+                            }
+                            // The only turn-based automation this pass wires up: statuses
+                            // with a structured effect (currently just an action_points
+                            // delta, e.g. Haste +1 / Slowed -1 - see AddStatusDialog.js)
+                            // apply once, then lose a stack; a status already at stacks:0
+                            // (a toggle condition like Blind, not a countdown) passes
+                            // through untouched. Everything else about turn order is still
+                            // the GM calling it verbally, per the ruleset - this just saves
+                            // the manual math for the handful of statuses that have any.
+                            function advanceTurn() {
+                                const statuses = actualCharacter.statuses || [];
+                                let actionPoints = actualCharacter.action_points;
+                                const nextStatuses = [];
+                                statuses.forEach(status => {
+                                    if (status.stacks > 0) {
+                                        if (status.effect?.stat === "action_points") {
+                                            actionPoints = Math.max(0, Math.min(4, actionPoints + status.effect.delta));
+                                        }
+                                        const remainingStacks = status.stacks - 1;
+                                        if (remainingStacks > 0) nextStatuses.push({ ...status, stacks: remainingStacks });
+                                    } else {
+                                        nextStatuses.push(status);
+                                    }
+                                });
+                                try {
+                                    updateDoc(doc(db, "characters", actualCharacter.character_id), {
+                                        action_points: actionPoints,
+                                        statuses: nextStatuses
                                     });
                                 } catch (e) {
                                     alert(e);
@@ -174,6 +215,13 @@ export function DirectorsPage() {
                                         <img src={starIcon} alt='star' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(3) : undefined}/>}
                                         {actualCharacter.action_points > 3 ? <img src={starFilledIcon} alt='starFilled' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(4) : undefined}/> :
                                         <img src={starIcon} alt='star' className="CharacterMainTab-star" width={30} onClick={hasWritePermissions ? () => setActionPoints(4) : undefined}/>}
+                                        {canAdvanceTurn && <button
+                                            className="DirectorsPage-next-turn-button"
+                                            onClick={(e) => { e.stopPropagation(); advanceTurn(); }}
+                                            title="Applies any active status effects (e.g. Haste/Slowed) and counts down their duration"
+                                        >
+                                            Next Turn
+                                        </button>}
                                     </div>}
                                     className="DirectorsPage-player-stats-dropdown"
                                     openedClassName="DirectorsPage-player-stats-dropdown-open"

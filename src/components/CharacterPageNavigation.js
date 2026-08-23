@@ -20,7 +20,9 @@ export function CharacterPageNavigation({characterPage}) {
         <div className="CharacterPage-masthead-content">
             <div className="CharacterPage-masthead-avatar-wrap">
                 <div className="CharacterPage-masthead-avatar">
-                    <PersonIcon/>
+                    {characterPage.portrait_url
+                        ? <img src={characterPage.portrait_url} alt="" className="CharacterPage-masthead-avatar-image"/>
+                        : <PersonIcon/>}
                 </div>
                 <div className="CharacterPage-masthead-avatar-badge" style={{borderColor: characterPage.navigation_color}}>
                     <PencilIcon/>

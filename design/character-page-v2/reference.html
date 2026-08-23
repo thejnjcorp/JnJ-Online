@@ -111,9 +111,13 @@
     </div>
 
     <!-- VITALS CARD -->
-    <div class="card" style="padding:22px 26px;display:flex;flex-wrap:wrap;align-items:center;gap:28px;">
+    <div class="card" style="padding:22px 26px;display:flex;gap:26px;align-items:stretch;">
 
-      <div style="flex:1 1 300px;min-width:260px;">
+     <!-- LEFT: 2x2 stat grid -->
+     <div style="flex:1;min-width:0;display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+      <!-- HP meter (top-left) -->
+      <div>
         <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--danger)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-9.5-9C1 7.6 2.8 4.5 6 4.5c2 0 3.4 1.2 4 2.4 0.6-1.2 2-2.4 4-2.4 3.2 0 5 3.1 3.5 6.5C19 15.6 12 20 12 20Z"/></svg>
           <span style="font-size:11px;font-weight:700;" class="caps muted">Health</span>
@@ -125,30 +129,42 @@
         <div style="display:flex;gap:14px;margin-top:8px;font-size:11.5px;" class="muted"><span>Temp HP: 0</span></div>
       </div>
 
-      <div style="width:1px;height:52px;background:var(--border);"></div>
+      <!-- AC / XP / Hardness (top-right) -->
+      <div style="padding-left:20px;border-left:1px solid var(--border);display:flex;flex-wrap:wrap;align-items:center;gap:24px;">
+        <div style="text-align:center;flex-shrink:0;">
+          <div style="font-size:11px;font-weight:700;margin-bottom:4px;" class="caps faint">AC</div>
+          <div style="position:relative;width:56px;height:56px;color:var(--accent);">
+            <svg viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6l7-3Z"/></svg>
+            <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding-top:4px;font-size:21px;font-weight:700;color:var(--text);">17</span>
+          </div>
+        </div>
 
-      <div style="text-align:center;flex-shrink:0;">
-        <div style="font-size:11px;font-weight:700;margin-bottom:4px;" class="caps faint">AC</div>
-        <div style="position:relative;width:56px;height:56px;color:var(--accent);">
-          <svg viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6l7-3Z"/></svg>
-          <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding-top:4px;font-size:21px;font-weight:700;color:var(--text);">17</span>
+        <div style="width:1px;height:52px;background:var(--border);"></div>
+
+        <div style="display:flex;flex-direction:column;gap:10px;flex-shrink:0;font-size:13px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:11px;font-weight:700;width:64px;" class="caps muted">XP</span>
+            <span style="min-width:34px;padding:3px 10px;border-radius:6px;background:var(--bg-sunken);font-weight:700;text-align:center;">0</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:11px;font-weight:700;width:64px;" class="caps muted">Hardness</span>
+            <span style="min-width:34px;padding:3px 10px;border-radius:6px;background:var(--bg-sunken);font-weight:700;text-align:center;">0</span>
+          </div>
         </div>
       </div>
 
-      <div style="display:flex;flex-direction:column;gap:10px;flex-shrink:0;font-size:13px;">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <span style="font-size:11px;font-weight:700;width:64px;" class="caps muted">XP</span>
-          <span style="min-width:34px;padding:3px 10px;border-radius:6px;background:var(--bg-sunken);font-weight:700;text-align:center;">0</span>
+      <!-- STATUSES (bottom-left) -->
+      <div style="padding-top:20px;border-top:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <span style="font-size:11px;font-weight:700;" class="caps muted">Statuses</span>
         </div>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <span style="font-size:11px;font-weight:700;width:64px;" class="caps muted">Hardness</span>
-          <span style="min-width:34px;padding:3px 10px;border-radius:6px;background:var(--bg-sunken);font-weight:700;text-align:center;">0</span>
+        <div id="status-list" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;">
+          <!-- status chips injected by renderStatuses() -->
         </div>
       </div>
 
-      <div style="width:1px;height:52px;background:var(--border);"></div>
-
-      <div style="display:flex;gap:22px;flex-shrink:0;">
+      <!-- Ability scores (bottom-right) -->
+      <div style="padding-top:20px;padding-left:20px;border-top:1px solid var(--border);border-left:1px solid var(--border);display:flex;gap:24px;flex-wrap:wrap;align-content:flex-start;">
         <div style="text-align:center;">
           <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto;display:block;"><path d="M4 9v6M2 10v4M20 9v6M22 10v4M7 12h10"/><rect x="5" y="8" width="3" height="8" rx="1"/><rect x="16" y="8" width="3" height="8" rx="1"/></svg>
           <div style="font-size:11px;margin-top:5px;" class="caps faint">Str</div>
@@ -174,6 +190,16 @@
           <div style="font-size:16px;font-weight:700;">3</div>
         </div>
       </div>
+     </div>
+
+     <!-- RIGHT: portrait panel -->
+     <div style="width:180px;flex-shrink:0;align-self:stretch;position:relative;border-radius:var(--radius-lg);overflow:hidden;background:linear-gradient(160deg, var(--bg-sunken) 0%, var(--bg-hover) 100%);border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;">
+       <svg viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="var(--text-faint)" stroke-width="1.3"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6 8-6s8 2 8 6" stroke-linecap="round"/></svg>
+       <div style="font-size:11.5px;text-align:center;padding:0 16px;" class="faint">No portrait yet</div>
+       <button style="position:absolute;bottom:12px;right:12px;width:32px;height:32px;border-radius:50%;border:1px solid var(--border-strong);background:var(--bg-raised);color:var(--text);display:flex;align-items:center;justify-content:center;">
+         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"/></svg>
+       </button>
+     </div>
     </div>
 
     <!-- MODE SWITCHER -->
@@ -378,6 +404,39 @@ Honor the Dead: Whenever possible, give proper burial rites to everyone, no matt
 
     </div>
   </div>
+
+  <!-- ADD STATUS DIALOG -->
+  <div id="status-scrim" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:30;" onclick="closeAddStatus()"></div>
+  <div id="status-dialog" style="display:none;position:fixed;z-index:31;top:50%;left:50%;transform:translate(-50%,-50%);width:min(420px, calc(100vw - 48px));flex-direction:column;gap:16px;padding:26px;text-align:left;background:var(--bg-raised);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-md);">
+    <span style="font-family:var(--font-display);font-size:19px;">Add Status</span>
+
+    <div>
+      <div style="font-size:11px;font-weight:700;margin-bottom:8px;" class="caps muted">Choose a status</div>
+      <div id="status-presets" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+      <div style="font-size:11px;margin-top:8px;line-height:1.5;" class="faint">This mockup demonstrates the flow with presets — the real Add form also needs a free-text name/description for fully custom statuses (see the handoff doc).</div>
+    </div>
+
+    <div>
+      <div style="font-size:11px;font-weight:700;margin-bottom:8px;" class="caps muted">Stacks / duration</div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button onclick="incDecStacks(-1)" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--border-strong);background:var(--bg-sunken);color:var(--text);font-size:16px;font-weight:700;">&minus;</button>
+        <span id="status-stacks" style="font-size:16px;font-weight:700;min-width:20px;text-align:center;">0</span>
+        <button onclick="incDecStacks(1)" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--border-strong);background:var(--bg-sunken);color:var(--text);font-size:16px;font-weight:700;">+</button>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size:11px;font-weight:700;margin-bottom:8px;" class="caps muted">Polarity</div>
+      <div id="status-polarities" style="display:flex;gap:6px;"></div>
+    </div>
+
+    <div id="status-desc-preview" style="padding:12px 14px;border-radius:8px;background:var(--bg-sunken);font-size:12.5px;line-height:1.5;" class="muted"></div>
+
+    <div style="display:flex;gap:12px;">
+      <button onclick="confirmAddStatus()" style="flex:1;padding:12px;border:none;border-radius:8px;background:var(--accent);color:var(--on-accent);font-weight:700;font-size:13.5px;">Add Status</button>
+      <button onclick="closeAddStatus()" style="flex:1;padding:12px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text);font-weight:600;font-size:13.5px;">Cancel</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -396,6 +455,166 @@ Honor the Dead: Whenever possible, give proper burial rites to everyone, no matt
     });
     document.getElementById('ap-label').textContent = n + ' / 4 available · click a star to spend';
   }
+
+  // ============ STATUSES ============
+  var STATUS_PRESETS = [
+    { name: 'Haste', polarity: 'buff', stacks: 2, description: 'Gain a single action for a certain number of rounds. Reduces by 1 each round until it reaches 0.' },
+    { name: 'Slowed', polarity: 'debuff', stacks: 2, description: 'Lose a single action for a certain number of rounds. Reduces by 1 each round until it reaches 0.' },
+    { name: 'Blind', polarity: 'debuff', stacks: 0, description: 'Unable to use sight to perceive enemies or items. Automatically critically fails vision checks; ranged attacks face steep miss chances.' },
+    { name: 'Stunned', polarity: 'debuff', stacks: 1, description: 'Lose actions equal to the stunned number. Amounts over 3 carry into the next turn.' },
+    { name: 'Frightened', polarity: 'debuff', stacks: 1, description: '−1 to all checks and hit rolls per stack. Drops by 1 at the start of each of your turns.' },
+    { name: 'Custom…', polarity: 'neutral', stacks: 0, description: 'Production version: type a custom name and description here.' }
+  ];
+  var POLARITY_COLOR = { buff: 'var(--accent)', debuff: 'var(--danger)', neutral: 'var(--arcane)' };
+  var POLARITY_DEFS = [ { key: 'buff', label: 'Buff' }, { key: 'debuff', label: 'Debuff' }, { key: 'neutral', label: 'Neutral' } ];
+
+  var nextStatusId = 4;
+  var statuses = [
+    { id: 1, name: 'Haste', polarity: 'buff', stacks: 2, description: 'Gain a single action for a certain number of rounds. Reduces by 1 each round until it reaches 0.', expanded: false },
+    { id: 2, name: 'Slowed', polarity: 'debuff', stacks: 1, description: 'Lose a single action for a certain number of rounds. Reduces by 1 each round until it reaches 0.', expanded: false },
+    { id: 3, name: 'Blind', polarity: 'debuff', stacks: 0, description: 'Unable to use sight to perceive enemies or items. Automatically critically fails vision checks; ranged attacks face steep miss chances.', expanded: false }
+  ];
+  var selectedPreset = STATUS_PRESETS[0];
+  var newStacks = STATUS_PRESETS[0].stacks;
+
+  function renderStatuses() {
+    var list = document.getElementById('status-list');
+    list.innerHTML = '';
+    statuses.forEach(function (s) {
+      var color = POLARITY_COLOR[s.polarity] || POLARITY_COLOR.neutral;
+      var wrap = document.createElement('div');
+      wrap.style.display = 'flex';
+      wrap.style.flexDirection = 'column';
+
+      var chip = document.createElement('button');
+      chip.style.cssText = 'border:1px solid ' + color + ';background:' + color + '22;color:var(--text);display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;font-size:12.5px;font-weight:600;';
+      chip.onclick = function () { s.expanded = !s.expanded; renderStatuses(); };
+
+      var dot = document.createElement('span');
+      dot.style.cssText = 'width:7px;height:7px;border-radius:50%;background:' + color + ';flex-shrink:0;';
+      chip.appendChild(dot);
+
+      var nameSpan = document.createElement('span');
+      nameSpan.textContent = s.name;
+      chip.appendChild(nameSpan);
+
+      if (s.stacks > 0) {
+        var badge = document.createElement('span');
+        badge.style.cssText = 'background:' + color + ';color:var(--on-accent);min-width:16px;height:16px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;padding:0 4px;';
+        badge.textContent = s.stacks;
+        chip.appendChild(badge);
+      }
+      wrap.appendChild(chip);
+
+      if (s.expanded) {
+        var card = document.createElement('div');
+        card.className = 'card';
+        card.style.cssText = 'margin-top:6px;padding:10px 12px;max-width:260px;background:var(--bg-sunken);';
+        var desc = document.createElement('div');
+        desc.style.cssText = 'font-size:12.5px;line-height:1.5;';
+        desc.className = 'muted';
+        desc.textContent = s.description;
+        card.appendChild(desc);
+
+        var removeBtn = document.createElement('button');
+        removeBtn.style.cssText = 'margin-top:8px;display:flex;align-items:center;gap:5px;background:none;border:none;color:var(--danger);font-size:11.5px;font-weight:600;padding:0;';
+        removeBtn.textContent = 'Remove';
+        removeBtn.onclick = function () { statuses = statuses.filter(function (x) { return x.id !== s.id; }); renderStatuses(); };
+        card.appendChild(removeBtn);
+
+        wrap.appendChild(card);
+      }
+
+      list.appendChild(wrap);
+    });
+
+    var addBtn = document.createElement('button');
+    addBtn.style.cssText = 'display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:999px;border:1px dashed var(--border-strong);background:transparent;color:var(--text-muted);font-size:12.5px;font-weight:600;';
+    addBtn.textContent = '+ Add Status';
+    addBtn.onclick = openAddStatus;
+    list.appendChild(addBtn);
+  }
+
+  function renderPresetChips() {
+    var wrap = document.getElementById('status-presets');
+    wrap.innerHTML = '';
+    STATUS_PRESETS.forEach(function (p) {
+      var isSelected = p.name === selectedPreset.name;
+      var color = POLARITY_COLOR[p.polarity] || POLARITY_COLOR.neutral;
+      var btn = document.createElement('button');
+      btn.textContent = p.name;
+      btn.style.cssText = (isSelected
+        ? 'border:1px solid ' + color + ';background:' + color + ';color:var(--on-accent);'
+        : 'border:1px solid var(--border-strong);background:var(--bg-sunken);color:var(--text-muted);') +
+        'padding:7px 13px;border-radius:999px;font-size:12.5px;font-weight:600;';
+      btn.onclick = function () {
+        selectedPreset = p;
+        newStacks = p.stacks;
+        renderDialog();
+      };
+      wrap.appendChild(btn);
+    });
+  }
+
+  function renderPolarityChips() {
+    var wrap = document.getElementById('status-polarities');
+    wrap.innerHTML = '';
+    POLARITY_DEFS.forEach(function (pol) {
+      var isSelected = selectedPreset.polarity === pol.key;
+      var color = POLARITY_COLOR[pol.key];
+      var btn = document.createElement('button');
+      btn.textContent = pol.label;
+      btn.style.cssText = (isSelected
+        ? 'border:1px solid ' + color + ';background:' + color + ';color:var(--on-accent);'
+        : 'border:1px solid var(--border-strong);background:var(--bg-sunken);color:var(--text-muted);') +
+        'padding:7px 13px;border-radius:999px;font-size:12.5px;font-weight:600;';
+      btn.onclick = function () {
+        selectedPreset = Object.assign({}, selectedPreset, { polarity: pol.key });
+        renderDialog();
+      };
+      wrap.appendChild(btn);
+    });
+  }
+
+  function renderDialog() {
+    renderPresetChips();
+    renderPolarityChips();
+    document.getElementById('status-stacks').textContent = newStacks;
+    document.getElementById('status-desc-preview').textContent = selectedPreset.description;
+  }
+
+  function incDecStacks(delta) {
+    newStacks = Math.max(0, Math.min(9, newStacks + delta));
+    document.getElementById('status-stacks').textContent = newStacks;
+  }
+
+  function openAddStatus() {
+    selectedPreset = STATUS_PRESETS[0];
+    newStacks = STATUS_PRESETS[0].stacks;
+    renderDialog();
+    document.getElementById('status-scrim').style.display = 'block';
+    document.getElementById('status-dialog').style.display = 'flex';
+  }
+
+  function closeAddStatus() {
+    document.getElementById('status-scrim').style.display = 'none';
+    document.getElementById('status-dialog').style.display = 'none';
+  }
+
+  function confirmAddStatus() {
+    statuses.push({
+      id: nextStatusId++,
+      name: selectedPreset.name,
+      polarity: selectedPreset.polarity,
+      stacks: newStacks,
+      description: selectedPreset.description,
+      expanded: false
+    });
+    closeAddStatus();
+    renderStatuses();
+  }
+
+  renderStatuses();
 </script>
 </body>
 </html>

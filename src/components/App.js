@@ -12,6 +12,8 @@ import { AccountPage } from './AccountPage.js';
 import { DirectorsPage } from './DirectorsPage.js';
 import { ClassPage } from './ClassPage.js';
 import { ClassListPage } from './ClassListPage.js';
+import { StatusPage } from './StatusPage.js';
+import { StatusListPage } from './StatusListPage.js';
 import { auth } from '../utils/firebase.js';
 
 // The site shell (nav + home) reads its palette from a theme class - see
@@ -69,6 +71,8 @@ function App() {
             <Route path='/directors/*' element={<DirectorsPage/>} />
             <Route path='/classes/*' element={<ClassPage/>} />
             <Route path='/class-list' element={<ClassListPage/>} />
+            <Route path='/statuses/*' element={<StatusPage/>} />
+            <Route path='/status-list' element={<StatusListPage/>} />
             {routeMarkdownFiles}
           </Routes>
         </div>
