@@ -3,7 +3,7 @@ import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { Post, PostListContentAbstract } from "./Post.ts";
 
-export function PostListContentCombat({ inputStatuses, campaignId }) {
+export function PostListContentCombat({ inputStatuses, campaignId, className, PostCardComponent }) {
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -36,5 +36,7 @@ export function PostListContentCombat({ inputStatuses, campaignId }) {
         inputStatuses={inputStatuses}
         usePosts={useCombatTrackerPosts}
         updatePosts={updateCombatTrackerPosts}
+        className={className}
+        PostCardComponent={PostCardComponent}
     />
 }

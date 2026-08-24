@@ -1,0 +1,565 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Director's Page — Combat Tab Redesign (Reference)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #16161a; --bg-sunken: #101013; --bg-raised: #1f1f25; --bg-hover: #2a2a33;
+    --border: #34343f; --border-strong: #4d4d5c;
+    --text: #ece8e1; --text-muted: #a09a90; --text-faint: #6f6a63; --on-accent: #16161a;
+    --accent: #c8a24a; --accent-hover: #e0bc63; --accent-soft: rgba(200,162,74,0.14);
+    --arcane: #7c4dff; --ember: #d4622a; --danger: #c9453f; --success: #5c9a6b;
+    --font-display: 'Cinzel', Georgia, 'Times New Roman', serif;
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --radius-md: 8px; --radius-lg: 14px; --radius-pill: 999px;
+    --shadow-md: 0 6px 18px rgba(0,0,0,0.45);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: var(--font-body); background: var(--bg); color: var(--text); }
+  .muted { color: var(--text-muted); }
+  .faint { color: var(--text-faint); }
+  .caps { text-transform: uppercase; letter-spacing: 0.08em; }
+  .card { background: var(--bg-raised); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+  button { font-family: inherit; cursor: pointer; }
+  svg { display: block; }
+  .page { width:100%; min-height:100vh; display:flex; flex-direction:row; background:var(--bg); color:var(--text); }
+  .sidebar { width:280px; min-width:280px; background:var(--bg-sunken); overflow-y:auto; display:flex; flex-direction:column; padding:14px 0; }
+  .sidebar-char { border-bottom:1px solid var(--border); }
+  .sidebar-char-header { width:100%; display:flex; align-items:center; gap:8px; padding:12px 18px; background:none; border:none; color:var(--text); text-align:left; }
+  .sidebar-char-header .name { font-family:var(--font-display); font-size:14.5px; font-weight:600; }
+  .sidebar-char-header .chevron { color:var(--text-faint); margin-left:auto; flex-shrink:0; transition:transform .15s ease; }
+  .sidebar-char-header .chevron.open { transform:rotate(90deg); }
+  .skill-card { margin:5px 14px; border-radius:10px; background:var(--bg-raised); overflow:hidden; }
+  .skill-card.skill { border:1px solid var(--accent); }
+  .skill-card.flaw { border:1px solid var(--danger); }
+  .skill-trigger { width:100%; display:flex; align-items:center; gap:8px; padding:10px; background:none; border:none; color:var(--text); text-align:left; }
+  .skill-trigger .chev { display:inline-block; font-size:19px; line-height:1; color:var(--text-faint); transition:transform .15s ease; }
+  .skill-trigger .chev.open { transform:rotate(90deg); }
+  .skill-trigger .sname { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:14px; }
+  .skill-trigger .stars { display:flex; flex-shrink:0; }
+  .skill-desc { padding:0 12px 10px; font-size:12px; line-height:1.5; color:var(--text-muted); white-space:pre-wrap; }
+  .main { flex:1; min-width:0; padding:24px 28px 60px; }
+  .tabs { display:flex; gap:6px; padding:5px; border-radius:999px; background:var(--bg-sunken); width:max-content; margin-bottom:18px; }
+  .tab-btn { display:flex; align-items:center; gap:8px; padding:9px 18px; border:none; border-radius:999px; font-size:13.5px; font-weight:600; background:transparent; color:var(--text-muted); }
+  .tab-btn.active { background:var(--accent); color:var(--on-accent); }
+  .placeholder-card { padding:40px; text-align:center; }
+  .combat-grid { display:grid; grid-template-columns:1.3fr 1fr 1.3fr; gap:20px; align-items:start; }
+  .panel { padding:18px; display:flex; flex-direction:column; gap:12px; }
+  .panel-title { display:flex; align-items:center; gap:8px; }
+  .panel-title span.name { font-family:var(--font-display); font-size:16px; }
+  .entity-card { border:1px solid var(--border); border-radius:10px; background:var(--bg-sunken); overflow:hidden; }
+  .entity-card.player { border-left:3px solid var(--accent); }
+  .entity-card.enemy { border-left:3px solid var(--danger); }
+  .entity-header { width:100%; display:flex; align-items:center; gap:8px; padding:11px 14px; background:none; border:none; color:var(--text); text-align:left; }
+  .chevron { flex-shrink:0; color:var(--text-faint); transition:transform .15s ease; }
+  .chevron.open { transform:rotate(90deg); }
+  .entity-body { padding:0 14px 14px; display:flex; flex-direction:column; gap:12px; }
+  .vitals-strip { display:flex; align-items:center; gap:14px; }
+  .hp-track { height:8px; border-radius:999px; background:var(--bg); overflow:hidden; }
+  .hp-fill { height:100%; }
+  .hp-fill.player { background:linear-gradient(90deg, var(--success), #7fc493); }
+  .hp-fill.enemy { background:linear-gradient(90deg, var(--danger), #e07a75); }
+  .ac-shield { position:relative; width:30px; height:30px; }
+  .ac-shield .val { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding-top:2px; font-size:11px; font-weight:700; color:var(--text); }
+  .ap-stars { display:flex; gap:3px; flex-shrink:0; }
+  .ap-stars button { background:none; border:none; padding:1px; }
+  .next-turn-btn { flex-shrink:0; padding:6px 12px; border-radius:999px; background:transparent; font-size:11px; font-weight:600; }
+  .next-turn-btn.player { border:1px solid var(--accent); color:var(--accent); }
+  .next-turn-btn.enemy { border:1px solid var(--danger); color:var(--danger); }
+  .weakres-row { display:flex; flex-wrap:wrap; gap:5px; font-size:10.5px; }
+  .weak-chip { padding:3px 8px; border-radius:999px; background:rgba(201,69,63,0.15); border:1px solid var(--danger); color:var(--text); }
+  .res-chip { padding:3px 8px; border-radius:999px; background:rgba(92,154,107,0.15); border:1px solid var(--success); color:var(--text); }
+  .status-row { display:flex; flex-wrap:wrap; gap:6px; align-items:flex-start; }
+  .status-chip { display:flex; align-items:center; gap:5px; padding:5px 10px; border-radius:999px; font-size:11.5px; font-weight:600; }
+  .status-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+  .status-badge { min-width:14px; height:14px; border-radius:999px; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; padding:0 3px; }
+  .status-detail { margin-top:5px; padding:8px 10px; max-width:220px; background:var(--bg); }
+  .status-remove { margin-top:6px; background:none; border:none; color:var(--danger); font-size:10.5px; font-weight:600; padding:0; }
+  .add-status-btn { display:flex; align-items:center; gap:5px; padding:5px 11px; border-radius:999px; border:1px dashed var(--border-strong); background:transparent; color:var(--text-muted); font-size:11.5px; font-weight:600; }
+  .actions-toggle { width:100%; display:flex; align-items:center; gap:6px; background:none; border:none; padding:0; color:var(--text-muted); font-size:11px; font-weight:700; }
+  .action-item { position:relative; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:10px 12px; }
+  .action-item .row { display:flex; align-items:center; gap:8px; padding-right:90px; }
+  .action-item .row .name { font-weight:600; font-size:13px; }
+  .action-item .row .meta { margin-left:auto; font-size:11.5px; }
+  .action-item .desc { font-size:12px; margin-top:5px; line-height:1.45; padding-right:90px; }
+  .tracker-mode-row { display:flex; gap:6px; padding:4px; border-radius:999px; background:var(--bg-sunken); width:max-content; }
+  .mode-btn { padding:6px 14px; border:none; border-radius:999px; font-weight:600; font-size:12px; background:transparent; color:var(--text-muted); }
+  .mode-btn.active { background:var(--accent); color:var(--on-accent); }
+  .zone-card { background:var(--bg-sunken); padding:12px; }
+  .zone-title { font-size:11px; font-weight:700; margin-bottom:8px; }
+  .zone-chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .entity-chip.ally { padding:6px 10px; border-radius:6px; background:var(--accent-soft); border:1px solid var(--accent); font-size:12px; font-weight:600; }
+  .entity-chip.foe { padding:6px 10px; border-radius:6px; background:rgba(201,69,63,0.15); border:1px solid var(--danger); font-size:12px; }
+  .map-grid { position:relative; height:260px; border-radius:12px; border:1px solid var(--border); overflow:hidden;
+    background: repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 28px),
+                repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 28px),
+                var(--bg-sunken); }
+  .map-zone { position:absolute; border-radius:4px; display:flex; align-items:flex-start; justify-content:center; padding-top:4px; font-size:10.5px; }
+  .scrim { position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:30; }
+  .dialog { position:fixed; z-index:31; top:50%; left:50%; transform:translate(-50%,-50%); width:min(420px, calc(100vw - 48px)); display:flex; flex-direction:column; gap:16px; padding:26px; text-align:left; background:var(--bg-raised); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow-md); }
+  .dialog-title { font-family:var(--font-display); font-size:19px; }
+  .section-label { font-size:11px; font-weight:700; margin-bottom:8px; }
+  .preset-row { display:flex; flex-wrap:wrap; gap:6px; }
+  .preset-chip, .polarity-chip { padding:7px 13px; border-radius:999px; font-size:12.5px; font-weight:600; border:1px solid var(--border-strong); background:var(--bg-sunken); color:var(--text-muted); }
+  .preset-chip.selected, .polarity-chip.selected { color:var(--on-accent); }
+  .stacks-row { display:flex; align-items:center; gap:12px; }
+  .stack-btn { width:32px; height:32px; border-radius:8px; border:1px solid var(--border-strong); background:var(--bg-sunken); color:var(--text); font-size:16px; font-weight:700; }
+  .desc-preview { padding:12px 14px; border-radius:8px; background:var(--bg-sunken); font-size:12.5px; line-height:1.5; }
+  .dialog-actions { display:flex; gap:12px; }
+  .dialog-actions button { flex:1; padding:12px; border-radius:8px; font-weight:700; font-size:13.5px; }
+  .btn-primary { border:none; background:var(--accent); color:var(--on-accent); }
+  .btn-secondary { border:1px solid var(--border); background:transparent; color:var(--text); font-weight:600 !important; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="sidebar" id="sidebar"></div>
+  <div class="main">
+    <div class="tabs" id="tabs"></div>
+    <div id="tab-content"></div>
+  </div>
+</div>
+<div id="dialog-root"></div>
+
+<script>
+const ICONS = {
+  roleplay: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v13a2.5 2.5 0 0 1-2.5 2.5H8.5A2.5 2.5 0 0 1 6 17V4Z"/><path d="M6 8H4.5A1.5 1.5 0 0 0 3 9.5v7A2.5 2.5 0 0 0 5.5 19H8"/><path d="M9 8h6M9 11h6"/></svg>',
+  combat: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l6-6M14 10l6-6M14 10l-1.5-4L9 4l1 3.5L14 10ZM10 14l1.5 4L16 20l-1-3.5L10 14Z"/></svg>',
+  maps: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L4 6v14l5-2 6 2 5-2V4l-5 2-6-2Z"/><path d="M9 4v14M15 6v14"/></svg>',
+  person: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6 8-6s8 2 8 6" stroke-linecap="round"/></svg>',
+  chevron: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>',
+  chevronSm: '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>',
+  shield: '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6l7-3Z"/></svg>',
+  starFilled: '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="currentColor" stroke-width="1"><path d="M12 3.5l2.6 5.6 6 .7-4.4 4.1 1.2 6-5.4-3-5.4 3 1.2-6L3.4 9.8l6-.7 2.6-5.6Z"/></svg>',
+  starEmpty: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M12 3.5l2.6 5.6 6 .7-4.4 4.1 1.2 6-5.4-3-5.4 3 1.2-6L3.4 9.8l6-.7 2.6-5.6Z"/></svg>',
+  add: '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  star: '<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" stroke="none"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.6 1.6 6.7L12 16.9l-6.2 3.4 1.6-6.7L2.2 9l6.9-.7L12 2z"/></svg>',
+  sword: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--danger)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l6-6M14 10l6-6M14 10l-1.5-4L9 4l1 3.5L14 10ZM10 14l1.5 4L16 20l-1-3.5L10 14Z"/></svg>',
+  map: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--arcane)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L4 6v14l5-2 6 2 5-2V4l-5 2-6-2Z"/><path d="M9 4v14M15 6v14"/></svg>'
+};
+
+const STATUS_PRESETS = [
+  { name: 'Haste', polarity: 'buff', stacks: 2, description: 'Gain a single action for a certain number of rounds. Reduces by 1 each round until it reaches 0.' },
+  { name: 'Slowed', polarity: 'debuff', stacks: 2, description: 'Lose a single action for a certain number of rounds. Reduces by 1 each round until it reaches 0.' },
+  { name: 'Blind', polarity: 'debuff', stacks: 0, description: 'Unable to use sight to perceive enemies or items. Automatically critically fails vision checks; ranged attacks face steep miss chances.' },
+  { name: 'Stunned', polarity: 'debuff', stacks: 1, description: 'Lose actions equal to the stunned number. Amounts over 3 carry into the next turn.' },
+  { name: 'Frightened', polarity: 'debuff', stacks: 1, description: '−1 to all checks and hit rolls per stack. Drops by 1 at the start of each of your turns.' },
+  { name: 'Custom…', polarity: 'neutral', stacks: 0, description: 'Production version: type a custom name and description here.' }
+];
+const POLARITY_COLOR = { buff: 'var(--accent)', debuff: 'var(--danger)', neutral: 'var(--arcane)' };
+
+let state = {
+  activeTab: 'combat',
+  mapView: 'line',
+  players: [
+    { id: 'p1', name: 'Kessa Vane', className: 'Wanderer', hp: 17, maxHp: 17, tempHp: 0, ac: 17, ap: 2, open: true, actionsOpen: false,
+      statuses: [{ id: 1, name: 'Haste', polarity: 'buff', stacks: 2, description: 'Gain a single action for a certain number of rounds. Reduces by 1 each round until it reaches 0.', expanded: false }],
+      actions: [{ name: 'Quick Draw', meta: '+6 to hit · Melee', desc: 'Draw your weapon and strike in the same motion, before your target can react.' }] },
+    { id: 'p2', name: 'Bram Oskar', className: 'Warden', hp: 9, maxHp: 22, tempHp: 3, ac: 15, ap: 3, open: true, actionsOpen: false,
+      statuses: [],
+      actions: [{ name: 'Guard Wall', meta: 'DC 13 check · Self', desc: 'Plant your shield and grant nearby allies +2 AC until your next turn.' }] }
+  ],
+  enemies: [
+    { id: 'e1', name: 'GUNMECH Leo', level: 3, hp: 88, maxHp: 130, ac: 17, ap: 3, open: true, actionsOpen: false,
+      weaknesses: ['Lightning 5', 'Acid 10'], resistances: ['Non-Magical 4', 'Fire 5'],
+      statuses: [{ id: 1, name: 'Slowed', polarity: 'debuff', stacks: 1, description: 'Lose a single action for a certain number of rounds. Reduces by 1 each round until it reaches 0.', expanded: false }],
+      actions: [{ name: 'Overcharge Strike', meta: '+5 to hit · Zone AOE', desc: 'A telegraphed, devastating blow that hits everything in the zone.' }] },
+    { id: 'e2', name: 'Bandit Scout', level: 1, hp: 12, maxHp: 12, ac: 12, ap: 2, open: true, actionsOpen: false,
+      weaknesses: [], resistances: [],
+      statuses: [],
+      actions: [{ name: 'Quick Shot', meta: '+4 to hit · Ranged', desc: 'A hurried shot, easy to line up but easier to dodge.' }] }
+  ],
+  nextStatusId: 10,
+  addStatusOpen: false,
+  addStatusTarget: null,
+  selectedPreset: STATUS_PRESETS[0],
+  newStacks: STATUS_PRESETS[0].stacks,
+  sidebarCharacters: [
+    {
+      id: 'c1', name: 'Kessa Vane', open: true,
+      skills: [
+        { id: 1, name: 'Shakedown', isSkill: true, degree: 2, description: 'Threaten a shaken target into giving up what they’re hiding, no violence required.', expanded: false },
+        { id: 2, name: "Scrambler's Instinct", isSkill: true, degree: 1, description: 'A beat of warning before an ambush lands — enough time to duck for cover.', expanded: false },
+        { id: 3, name: 'Fade Into the Crowd', isSkill: false, degree: 3, description: 'Stands out badly in any crowd smaller than a market day — memorable for all the wrong reasons.', expanded: false }
+      ]
+    },
+    {
+      id: 'c2', name: 'Bram Oskar', open: true,
+      skills: [
+        { id: 1, name: 'Iron Stomach', isSkill: true, degree: 2, description: 'Eats and drinks things that would fell a lesser Warden without complaint.', expanded: false },
+        { id: 2, name: 'Steady Hands', isSkill: true, degree: 1, description: 'Fine work — lockpicks, bandages, detonators — never trembles under pressure.', expanded: false }
+      ]
+    }
+  ]
+};
+
+function entityList(kind) { return kind === 'player' ? state.players : state.enemies; }
+function findEntity(kind, id) { return entityList(kind).find(e => e.id === id); }
+
+function chipStyle(color, selected) {
+  return selected
+    ? `border:1px solid ${color};background:${color}22;color:var(--text);`
+    : `border:1px solid ${color};background:${color}22;color:var(--text);`;
+}
+
+function render() {
+  renderSidebar();
+  renderTabs();
+  renderTabContent();
+  renderDialog();
+}
+
+function renderSidebar() {
+  const root = document.getElementById('sidebar');
+  root.innerHTML = state.sidebarCharacters.map(c => `
+    <div class="sidebar-char">
+      <button class="sidebar-char-header" data-char="${c.id}" data-action="toggle-char">
+        ${ICONS.person}
+        <span class="name">${c.name}</span>
+        <span class="chevron ${c.open ? 'open' : ''}">${ICONS.chevron}</span>
+      </button>
+      ${c.open ? `
+      <div>
+        ${c.skills.map(s => `
+        <div class="skill-card ${s.isSkill ? 'skill' : 'flaw'}">
+          <button class="skill-trigger" data-char="${c.id}" data-skill="${s.id}" data-action="toggle-skill">
+            <span class="chev ${s.expanded ? 'open' : ''}">&rsaquo;</span>
+            <span class="sname">${s.name}</span>
+            <span class="stars">${Array.from({ length: s.degree }, () => ICONS.star).join('')}</span>
+          </button>
+          ${s.expanded ? `<div class="skill-desc">${s.description}</div>` : ''}
+        </div>`).join('')}
+      </div>` : ''}
+    </div>`).join('');
+
+  root.querySelectorAll('[data-action="toggle-char"]').forEach(btn => {
+    btn.onclick = () => {
+      const c = state.sidebarCharacters.find(cc => cc.id === btn.dataset.char);
+      c.open = !c.open;
+      render();
+    };
+  });
+  root.querySelectorAll('[data-action="toggle-skill"]').forEach(btn => {
+    btn.onclick = () => {
+      const c = state.sidebarCharacters.find(cc => cc.id === btn.dataset.char);
+      const s = c.skills.find(ss => String(ss.id) === btn.dataset.skill);
+      s.expanded = !s.expanded;
+      render();
+    };
+  });
+}
+
+function renderTabs() {
+  const defs = [
+    { key: 'roleplay', label: 'Roleplay' },
+    { key: 'combat', label: 'Combat' },
+    { key: 'maps', label: 'Maps' }
+  ];
+  document.getElementById('tabs').innerHTML = defs.map(t => `
+    <button class="tab-btn ${state.activeTab === t.key ? 'active' : ''}" data-tab="${t.key}">
+      ${ICONS[t.key]}<span>${t.label}</span>
+    </button>`).join('');
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.onclick = () => { state.activeTab = btn.dataset.tab; render(); };
+  });
+}
+
+function renderTabContent() {
+  const root = document.getElementById('tab-content');
+  if (state.activeTab === 'roleplay') {
+    root.innerHTML = `<div class="card placeholder-card"><div class="muted" style="font-size:14px;">Roleplay tab isn't part of this pass — still the placeholder it is today.</div></div>`;
+    return;
+  }
+  if (state.activeTab === 'maps') {
+    root.innerHTML = `<div class="card placeholder-card"><div class="muted" style="font-size:14px;">Maps tab (upload + map list) isn't part of this pass — same plain upload UI as today.</div></div>`;
+    return;
+  }
+  root.innerHTML = `
+    <div class="combat-grid">
+      <div class="card panel">
+        <div class="panel-title">${ICONS.person}<span class="name">Player Characters</span><span class="faint" style="margin-left:auto;font-size:12px;">${state.players.length}</span></div>
+        <div id="players-list"></div>
+      </div>
+      <div class="card panel">
+        <div class="panel-title">${ICONS.map}<span class="name">Combat Tracker</span></div>
+        <div class="tracker-mode-row">
+          <button class="mode-btn ${state.mapView === 'line' ? 'active' : ''}" id="mode-line">Line View</button>
+          <button class="mode-btn ${state.mapView === 'map' ? 'active' : ''}" id="mode-map">Map View</button>
+        </div>
+        <div id="tracker-view"></div>
+      </div>
+      <div class="card panel">
+        <div class="panel-title">${ICONS.sword}<span class="name">Enemies</span><span class="faint" style="margin-left:auto;font-size:12px;">${state.enemies.length}</span></div>
+        <div id="enemies-list"></div>
+      </div>
+    </div>`;
+
+  document.getElementById('players-list').innerHTML = state.players.map(p => entityCardHtml(p, 'player')).join('');
+  document.getElementById('enemies-list').innerHTML = state.enemies.map(e => entityCardHtml(e, 'enemy')).join('');
+  renderTracker();
+  wireEntityCards('player');
+  wireEntityCards('enemy');
+
+  document.getElementById('mode-line').onclick = () => { state.mapView = 'line'; render(); };
+  document.getElementById('mode-map').onclick = () => { state.mapView = 'map'; render(); };
+}
+
+function renderTracker() {
+  const el = document.getElementById('tracker-view');
+  if (state.mapView === 'line') {
+    el.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="card zone-card">
+          <div class="zone-title caps muted">Zone 0 · Vanguard</div>
+          <div class="zone-chips">
+            <div class="entity-chip ally">Kessa Vane</div>
+            <div class="entity-chip foe">GUNMECH Leo</div>
+          </div>
+        </div>
+        <div class="card zone-card">
+          <div class="zone-title caps muted">Zone 1</div>
+          <div class="zone-chips">
+            <div class="entity-chip ally">Bram Oskar</div>
+            <div class="entity-chip foe">Bandit Scout</div>
+          </div>
+        </div>
+        <div class="faint" style="font-size:11px;line-height:1.5;">Zones and drag-and-drop placement are the real, already-themed CombatMap/PostListContentCombatMap component — not rebuilt here, just wrapped in a proper card.</div>
+      </div>`;
+  } else {
+    el.innerHTML = `
+      <div>
+        <div class="map-grid">
+          <div class="map-zone" style="left:20px;top:24px;width:110px;height:90px;border:2px solid var(--accent);">Zone 0</div>
+          <div class="map-zone" style="left:150px;top:70px;width:120px;height:100px;border:2px solid var(--danger);">Zone 1</div>
+        </div>
+        <div class="faint" style="font-size:11px;margin-top:8px;">Pulls the campaign's active map — shown here as a placeholder grid.</div>
+      </div>`;
+  }
+}
+
+function entityCardHtml(e, kind) {
+  const hpPercent = Math.max(0, Math.min(100, (e.hp / e.maxHp) * 100));
+  const hasTempHp = (e.tempHp || 0) > 0;
+  const weakRes = kind === 'enemy' && (e.weaknesses.length + e.resistances.length) > 0;
+  return `
+  <div class="entity-card ${kind}" data-id="${e.id}">
+    <button class="entity-header" data-action="toggle-open">
+      <span class="chevron ${e.open ? 'open' : ''}">${ICONS.chevron}</span>
+      <span style="font-weight:600;font-size:14.5px;">${e.name}</span>
+      <span class="faint" style="font-size:11.5px;">${kind === 'player' ? e.className : 'Lvl ' + e.level}</span>
+      <span class="muted" style="margin-left:auto;font-size:12px;">${e.hp}/${e.maxHp} HP</span>
+    </button>
+    ${e.open ? `
+    <div class="entity-body">
+      <div class="vitals-strip">
+        <div style="flex:1;min-width:0;">
+          <div class="hp-track"><div class="hp-fill ${kind}" style="width:${hpPercent}%;"></div></div>
+          ${hasTempHp ? `<div class="faint" style="font-size:10.5px;margin-top:3px;">+${e.tempHp} temp</div>` : ''}
+        </div>
+        <div class="ac-shield" style="color:${kind === 'player' ? 'var(--accent)' : 'var(--text-muted)'};">
+          ${ICONS.shield}<span class="val">${e.ac}</span>
+        </div>
+        <div class="ap-stars" style="color:${kind === 'player' ? 'var(--accent)' : 'var(--danger)'};">
+          ${[1,2,3,4].map(n => `<button data-action="set-ap" data-n="${n}">${n <= e.ap ? ICONS.starFilled : ICONS.starEmpty}</button>`).join('')}
+        </div>
+        <button class="next-turn-btn ${kind}" data-action="next-turn">Next Turn</button>
+      </div>
+      ${weakRes ? `
+      <div class="weakres-row">
+        ${e.weaknesses.map(w => `<span class="weak-chip">${w}</span>`).join('')}
+        ${e.resistances.map(r => `<span class="res-chip">${r}</span>`).join('')}
+      </div>` : ''}
+      <div class="status-row">
+        ${e.statuses.map(s => statusChipHtml(s)).join('')}
+        <button class="add-status-btn" data-action="open-add">${ICONS.add}Add</button>
+      </div>
+      <div>
+        <button class="actions-toggle caps" data-action="toggle-actions">
+          <span class="chevron ${e.actionsOpen ? 'open' : ''}" style="width:12px;height:12px;">${ICONS.chevronSm}</span>
+          Actions
+        </button>
+        ${e.actionsOpen ? `
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;">
+          ${e.actions.map(a => `
+          <div class="action-item">
+            <div class="row"><span class="name">${a.name}</span><span class="meta muted">${a.meta}</span></div>
+            <div class="desc muted">${a.desc}</div>
+          </div>`).join('')}
+        </div>` : ''}
+      </div>
+    </div>` : ''}
+  </div>`;
+}
+
+function statusChipHtml(s) {
+  const color = POLARITY_COLOR[s.polarity] || POLARITY_COLOR.neutral;
+  return `
+  <div style="display:flex;flex-direction:column;">
+    <button class="status-chip" data-action="toggle-status" data-status-id="${s.id}" style="border:1px solid ${color};background:${color}22;color:var(--text);">
+      <span class="status-dot" style="background:${color};"></span>
+      <span>${s.name}</span>
+      ${s.stacks > 0 ? `<span class="status-badge" style="background:${color};color:var(--on-accent);">${s.stacks}</span>` : ''}
+    </button>
+    ${s.expanded ? `
+    <div class="card status-detail">
+      <div class="muted" style="font-size:11.5px;line-height:1.45;">${s.description}</div>
+      <button class="status-remove" data-action="remove-status" data-status-id="${s.id}">Remove</button>
+    </div>` : ''}
+  </div>`;
+}
+
+function wireEntityCards(kind) {
+  const container = document.getElementById(kind === 'player' ? 'players-list' : 'enemies-list');
+  container.querySelectorAll('.entity-card').forEach(cardEl => {
+    const id = cardEl.dataset.id;
+    const entity = findEntity(kind, id);
+
+    const toggleOpenBtn = cardEl.querySelector('[data-action="toggle-open"]');
+    if (toggleOpenBtn) toggleOpenBtn.onclick = () => { entity.open = !entity.open; render(); };
+
+    cardEl.querySelectorAll('[data-action="set-ap"]').forEach(btn => {
+      btn.onclick = () => { entity.ap = Number(btn.dataset.n); render(); };
+    });
+
+    const nextTurnBtn = cardEl.querySelector('[data-action="next-turn"]');
+    if (nextTurnBtn) nextTurnBtn.onclick = () => {
+      entity.statuses = entity.statuses.map(s => ({ ...s, stacks: Math.max(0, s.stacks - 1) })).filter(s => s.stacks > 0);
+      render();
+    };
+
+    cardEl.querySelectorAll('[data-action="toggle-status"]').forEach(btn => {
+      btn.onclick = () => {
+        const sid = Number(btn.dataset.statusId);
+        entity.statuses = entity.statuses.map(s => s.id === sid ? { ...s, expanded: !s.expanded } : s);
+        render();
+      };
+    });
+    cardEl.querySelectorAll('[data-action="remove-status"]').forEach(btn => {
+      btn.onclick = () => {
+        const sid = Number(btn.dataset.statusId);
+        entity.statuses = entity.statuses.filter(s => s.id !== sid);
+        render();
+      };
+    });
+
+    const openAddBtn = cardEl.querySelector('[data-action="open-add"]');
+    if (openAddBtn) openAddBtn.onclick = () => {
+      state.addStatusOpen = true;
+      state.addStatusTarget = { kind, id };
+      state.selectedPreset = STATUS_PRESETS[0];
+      state.newStacks = STATUS_PRESETS[0].stacks;
+      render();
+    };
+
+    const toggleActionsBtn = cardEl.querySelector('[data-action="toggle-actions"]');
+    if (toggleActionsBtn) toggleActionsBtn.onclick = () => { entity.actionsOpen = !entity.actionsOpen; render(); };
+  });
+}
+
+function renderDialog() {
+  const root = document.getElementById('dialog-root');
+  if (!state.addStatusOpen) { root.innerHTML = ''; return; }
+  const target = state.addStatusTarget;
+  const targetEntity = target ? findEntity(target.kind, target.id) : null;
+  const targetName = targetEntity ? targetEntity.name : '';
+  const preset = state.selectedPreset;
+
+  root.innerHTML = `
+    <div class="scrim" id="scrim"></div>
+    <div class="dialog">
+      <span class="dialog-title">Add Status — ${targetName}</span>
+      <div>
+        <div class="section-label caps muted">Choose a status</div>
+        <div class="preset-row" id="preset-row">
+          ${STATUS_PRESETS.map(p => {
+            const selected = p.name === preset.name;
+            const color = POLARITY_COLOR[p.polarity] || POLARITY_COLOR.neutral;
+            const style = selected
+              ? `border:1px solid ${color};background:${color};color:var(--on-accent);`
+              : `border:1px solid var(--border-strong);background:var(--bg-sunken);color:var(--text-muted);`;
+            return `<button class="preset-chip" data-name="${p.name}" style="${style}">${p.name}</button>`;
+          }).join('')}
+        </div>
+        <div class="faint" style="font-size:11px;margin-top:8px;line-height:1.5;">Same catalog/mechanism as the character page's Add Status dialog — presets shown here for the mockup, custom name/description still open per that handoff.</div>
+      </div>
+      <div>
+        <div class="section-label caps muted">Stacks / duration</div>
+        <div class="stacks-row">
+          <button class="stack-btn" id="dec-stacks">−</button>
+          <span style="font-size:16px;font-weight:700;min-width:20px;text-align:center;">${state.newStacks}</span>
+          <button class="stack-btn" id="inc-stacks">+</button>
+        </div>
+      </div>
+      <div>
+        <div class="section-label caps muted">Polarity</div>
+        <div class="preset-row" id="polarity-row">
+          ${['buff','debuff','neutral'].map(key => {
+            const label = key === 'buff' ? 'Buff' : key === 'debuff' ? 'Debuff' : 'Neutral';
+            const selected = preset.polarity === key;
+            const color = POLARITY_COLOR[key];
+            const style = selected
+              ? `border:1px solid ${color};background:${color};color:var(--on-accent);`
+              : `border:1px solid var(--border-strong);background:var(--bg-sunken);color:var(--text-muted);`;
+            return `<button class="polarity-chip" data-key="${key}" style="${style}">${label}</button>`;
+          }).join('')}
+        </div>
+      </div>
+      <div class="desc-preview muted">${preset.description}</div>
+      <div class="dialog-actions">
+        <button class="btn-primary" id="confirm-add">Add Status</button>
+        <button class="btn-secondary" id="cancel-add">Cancel</button>
+      </div>
+    </div>`;
+
+  document.getElementById('scrim').onclick = closeAddStatus;
+  document.getElementById('cancel-add').onclick = closeAddStatus;
+  document.getElementById('dec-stacks').onclick = () => { state.newStacks = Math.max(0, state.newStacks - 1); render(); };
+  document.getElementById('inc-stacks').onclick = () => { state.newStacks = Math.min(9, state.newStacks + 1); render(); };
+  root.querySelectorAll('#preset-row .preset-chip').forEach(btn => {
+    btn.onclick = () => {
+      const p = STATUS_PRESETS.find(pp => pp.name === btn.dataset.name);
+      state.selectedPreset = p;
+      state.newStacks = p.stacks;
+      render();
+    };
+  });
+  root.querySelectorAll('#polarity-row .polarity-chip').forEach(btn => {
+    btn.onclick = () => {
+      state.selectedPreset = { ...state.selectedPreset, polarity: btn.dataset.key };
+      render();
+    };
+  });
+  document.getElementById('confirm-add').onclick = () => {
+    if (!target) return;
+    const list = entityList(target.kind);
+    const idx = list.findIndex(e => e.id === target.id);
+    if (idx >= 0) {
+      list[idx].statuses = [...list[idx].statuses, {
+        id: state.nextStatusId,
+        name: preset.name,
+        polarity: preset.polarity,
+        stacks: state.newStacks,
+        description: preset.description,
+        expanded: false
+      }];
+    }
+    state.nextStatusId += 1;
+    state.addStatusOpen = false;
+    state.addStatusTarget = null;
+    render();
+  };
+}
+
+function closeAddStatus() {
+  state.addStatusOpen = false;
+  state.addStatusTarget = null;
+  render();
+}
+
+render();
+</script>
+</body>
+</html>

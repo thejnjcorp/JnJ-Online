@@ -1,0 +1,10 @@
+{
+  "artboards": [
+    { "file": "Before.dc.html", "x": 0, "y": 0, "w": 1550, "h": 1080, "title": "Current (Before)" },
+    { "file": "Main.dc.html", "x": 1650, "y": 0, "w": 1900, "h": 1180, "title": "Redesign — Combat Tab" }
+  ],
+  "annotations": [
+    { "id": "brief-summary", "x": 0, "y": -150, "w": 500, "text": "Director's Page redesign — Combat tab + Skills sidebar. Player/enemy stat cards and the combat tracker container restyled with real DarkArcane tokens, matched to the already-built CharacterPageVitalsPanel/CombatActionList/TabContainer components; Statuses UI (chips + Add dialog) extended to enemies. Skills sidebar restyled to match the character page's own SkillsAndFlaws card treatment. Roleplay tab and Maps tab are unchanged this pass." }
+  ],
+  "launch": { "view": "canvas" }
+}

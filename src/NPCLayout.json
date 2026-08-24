@@ -7,6 +7,7 @@
     "Weaknesses": ["Lightning 5", "Acid 10"],
     "Resistances": ["Non Magical-Physical 4", "Fire 5"],
     "action_points": 3,
+    "statuses": [],
 
     "strength_stat": 4,
     "dexterity_stat": 1,

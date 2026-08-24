@@ -17,7 +17,7 @@ const CUSTOM_OPTION = { id: 'custom', name: 'Custom…', polarity: 'neutral', de
 // restriction plus ones matching this character's class - a trailing
 // "Custom..." option covers one-off statuses that aren't worth adding to the
 // shared catalog (see the design handoff's "open decision" note).
-export function AddStatusDialog({characterPage, userId, onClose}) {
+export function AddStatusDialog({characterPage, userId, onClose, onUpdateStatuses}) {
     const [presets, setPresets] = useState([]);
     const [selectedId, setSelectedId] = useState('custom');
     const [customName, setCustomName] = useState('');
@@ -94,20 +94,25 @@ export function AddStatusDialog({characterPage, userId, onClose}) {
     async function handleConfirm() {
         if (!name.trim()) return alert('Give this status a name.');
         setSubmitting(true);
+        const newStatus = {
+            id: crypto.randomUUID(),
+            name,
+            polarity,
+            stacks,
+            description,
+            effects: isCustom ? [] : getEffectsArray(selected),
+            decaysPerTurn: isCustom ? false : Boolean(selected.decaysPerTurn),
+            grantedAction: isCustom ? null : (selected.grantedAction || null),
+            ...(isCustom ? {} : { sourceStatusId: selected.id }),
+        };
         try {
-            await updateDoc(doc(db, "characters", characterPage.character_id), {
-                statuses: arrayUnion({
-                    id: crypto.randomUUID(),
-                    name,
-                    polarity,
-                    stacks,
-                    description,
-                    effects: isCustom ? [] : getEffectsArray(selected),
-                    decaysPerTurn: isCustom ? false : Boolean(selected.decaysPerTurn),
-                    grantedAction: isCustom ? null : (selected.grantedAction || null),
-                    ...(isCustom ? {} : { sourceStatusId: selected.id }),
-                })
-            });
+            if (onUpdateStatuses) {
+                await onUpdateStatuses([...(characterPage.statuses || []), newStatus]);
+            } else {
+                await updateDoc(doc(db, "characters", characterPage.character_id), {
+                    statuses: arrayUnion(newStatus)
+                });
+            }
             onClose();
         } catch (e) {
             alert(e);

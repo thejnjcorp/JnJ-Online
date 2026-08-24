@@ -1,67 +1,123 @@
+// Director's Page - Combat tab + Skills & Flaws sidebar. See
+// design/directors-page/handoff/DIRECTORS_PAGE_HANDOFF.md and
+// handoff/reference.html for the source mockup this file translates 1:1
+// (same --jnj-color-* values as the mockup's own :root tokens). The
+// Roleplay tab (still a placeholder) and Maps tab are explicitly out of
+// scope for this pass and keep their pre-existing plain markup/styles.
+
 .DirectorsPage {
     height: 90vh;
     width: 100vw;
     display: flex;
     flex-direction: row;
+    background: var(--jnj-color-bg);
+    color: var(--jnj-color-text);
 }
 
-.DirectorsPage-SkillsTab {
+.DirectorsPage-sidebar {
     height: 90vh;
-    width: 20vw;
-    background-color: rgb(73, 73, 73);
+    width: 280px;
+    min-width: 280px;
+    max-width: 280px;
+    box-sizing: border-box;
+    background-color: var(--jnj-color-bg-sunken);
     overflow-y: auto;
+    overflow-x: hidden;
     display: flex;
     flex-direction: column;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    justify-content: flex-start;
+    padding: var(--jnj-space-4) 0;
+}
+
+.DirectorsPage-sidebar-char {
+    border-bottom: 1px solid var(--jnj-color-border);
+}
+
+.DirectorsPage-sidebar-char-trigger {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--jnj-space-2);
+    padding: var(--jnj-space-3) var(--jnj-space-4);
+    background: none;
+    border: none;
+    color: var(--jnj-color-text);
+    text-align: left;
+    cursor: pointer;
+}
+
+.DirectorsPage-sidebar-char-icon {
+    color: var(--jnj-color-accent);
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.DirectorsPage-sidebar-char-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--jnj-font-display);
+    font-size: 14.5px;
+    font-weight: 600;
+}
+
+.DirectorsPage-sidebar-char-chevron {
+    margin-left: auto;
+}
+
+.DirectorsPage-sidebar-char-inner {
+    display: flex;
+    flex-direction: column;
 }
 
 .DirectorsPage-MainBody {
+    flex: 1;
+    min-width: 0;
     height: 90vh;
-    width: 80vw;
     display: flex;
+    padding: var(--jnj-space-5) var(--jnj-space-6) var(--jnj-space-7);
+    box-sizing: border-box;
+    overflow-y: auto;
 }
 
-.DirectorsPage-player-skill-dropdown {
-    width: 20vw;
+.DirectorsPage-chevron {
+    flex-shrink: 0;
+    color: var(--jnj-color-text-faint);
+    width: 14px;
+    height: 14px;
+    transition: transform var(--jnj-transition);
+    transform: rotate(-90deg);
 }
 
-.DirectorsPage-player-skill-dropdown-open {
-    width: 20vw;
+.DirectorsPage-chevron-open {
+    transform: rotate(0deg);
 }
 
-.DirectorsPage-player-skill-inner-div {
-    width: 20vw;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+.DirectorsPage-chevron-sm {
+    flex-shrink: 0;
+    color: var(--jnj-color-text-faint);
+    width: 12px;
+    height: 12px;
+    transition: transform var(--jnj-transition);
+    transform: rotate(-90deg);
 }
 
-.DirectorsPage-player-skill-trigger {
-    display: block;
-    width: 20vw;
-    background-color: rgb(0, 0, 78);
+.DirectorsPage-chevron-sm.DirectorsPage-chevron-open {
+    transform: rotate(0deg);
 }
-
-// A .TabContainer { max-height: 90vh } rule used to live here, but it's
-// redundant for this page - DirectorsPage.js already passes
-// container_height="90vh" as a prop, which TabContainer.js applies as an
-// inline max-height that wins over any CSS rule regardless of specificity.
-// Since this selector is global (unscoped to this page), its only real
-// effect was leaking a 90vh cap onto every other page's TabContainer too,
-// including the character page's, which needs to grow to its natural height
-// instead of being windowed. Removed rather than scoped, since it did
-// nothing for this page in the first place.
 
 .DirectorsPage-next-turn-button {
-    margin-left: var(--jnj-space-4);
+    flex-shrink: 0;
     padding: 6px 14px;
     border-radius: var(--jnj-radius-pill);
     border: 1px solid var(--jnj-color-accent);
     background: transparent;
     color: var(--jnj-color-accent);
-    font-size: 12.5px;
+    font-size: 11px;
     font-weight: 600;
     cursor: pointer;
     transition: background-color var(--jnj-transition), color var(--jnj-transition);
@@ -72,272 +128,497 @@
     }
 }
 
-.DirectorsPage-Combat {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
+.DirectorsPage-next-turn-button-enemy {
+    border-color: var(--jnj-color-danger);
+    color: var(--jnj-color-danger);
+
+    &:hover {
+        background: var(--jnj-color-danger);
+        color: var(--jnj-color-on-accent);
+    }
 }
 
-.DirectorsPage-CombatCharacterStats {
-    width: 27vw;
-    height: 80vh;
-    background-color: rgb(1, 70, 49);
-    border-radius: 10px;
-    margin-left: 1vw;
-    margin-top: 1vh;
+// Combat tab
+
+.DirectorsPage-combat-grid {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr 1.3fr;
+    gap: var(--jnj-space-5);
+    align-items: start;
+    width: 100%;
+}
+
+.DirectorsPage-panel {
+    background: var(--jnj-color-bg-raised);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-lg);
+    padding: var(--jnj-space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-3);
+    max-height: 80vh;
     overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    overflow-x: hidden;
+    box-sizing: border-box;
+    // grid items default to min-width:auto, which lets a wide child
+    // (a map image, a long action row) refuse to shrink below its own
+    // content size and force the column past its fr share - min-width:0 is
+    // the standard override so the 1.3fr/1fr/1.3fr split in
+    // .DirectorsPage-combat-grid actually holds on narrower windows.
+    min-width: 0;
 }
 
-.DirectorsPage-CombatTracker {
-    width: 20vw;
-    height: 80vh;
-    background-color: rgb(116, 85, 0);
-    border-radius: 10px;
-    margin-top: 1vh;
-    // intentionally not scrollable: each zone box (.CombatMap-zone-body) scrolls
-    // on its own, and @hello-pangea/dnd doesn't support a Droppable nested inside
-    // two scroll containers at once - having both broke drag-and-drop entirely
-    overflow: visible;
-}
-
-.DirectorsPage-CombatEnemyStats {
-    width: 27vw;
-    height: 80vh;
-    background-color: rgb(153, 50, 50);
-    border-radius: 10px;
-    margin-right: 1vw;
-    margin-top: 1vh;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.DirectorsPage-player-stats-dropdown, .DirectorsPage-enemy-stats-dropdown {
-    width: 26vw;
-    background-color: rgb(0, 151, 25);
-    border-radius: 10px;
-    margin-bottom: 10px;
-}
-
-.DirectorsPage-enemy-stats-dropdown {
-    background-color: rgb(221, 162, 0);
-}
-
-.DirectorsPage-player-stats-dropdown-open, .DirectorsPage-enemy-stats-dropdown-open {
-    width: 26vw;
-    background-color: rgb(0, 151, 25);
-    border-radius: 10px;
-    margin-bottom: 10px;
-}
-
-.DirectorsPage-enemy-stats-dropdown-open {
-    background-color: rgb(221, 162, 0);
-}
-
-.DirectorsPage-player-stats-inner-div, .DirectorsPage-enemy-stats-inner-div {
+.DirectorsPage-panel-title {
     display: flex;
     align-items: center;
-    padding-bottom: 10px;
-    flex-direction: column;
+    gap: var(--jnj-space-2);
 }
 
-.DirectorsPage-player-stats-trigger, .DirectorsPage-enemy-stats-trigger {
-    width: 26vw;
-    display: flex;
-    justify-content: center;
+.DirectorsPage-panel-title-icon {
+    color: var(--jnj-color-accent);
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
 }
 
-.DirectorsPageCharacterStatsOverride {
-    height: min-content;
-    width: 410px;
-    background-color: inherit;
-    justify-content: center;
-    display: flex;
-    flex-direction: row;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 10px;
+.DirectorsPage-panel-title-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--jnj-font-display);
+    font-size: 16px;
+}
 
-    .CharacterPage-stats {
-        display: flex;
+.DirectorsPage-panel-collapse-button {
+    flex-shrink: 0;
+    margin-left: auto;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    background: none;
+    border: none;
+    color: var(--jnj-color-text-faint);
+    cursor: pointer;
+    transition: color var(--jnj-transition);
+
+    &:hover {
+        color: var(--jnj-color-accent);
+    }
+}
+
+// Collapsing Player Characters / Enemies hands their grid-column share back
+// to the Combat Tracker (see combatGridTemplateColumns in DirectorsPage.js)
+// - the panel itself shrinks to a slim icon+toggle rail instead of a full
+// card list, for when a wide map or several Line View zones need more room
+// than the fixed three-way split leaves them.
+.DirectorsPage-panel-collapsed {
+    padding: var(--jnj-space-3) var(--jnj-space-2);
+    align-items: center;
+
+    .DirectorsPage-panel-title {
         flex-direction: column;
-        border-color: white;
-        border-width: 5px;
-        border-style: hidden;
-        font-size: 24px;
-        width: min-content;
-        height: min-content;
-        margin: 0px;
-        border-radius: 0px;
+        gap: var(--jnj-space-3);
+    }
+
+    .DirectorsPage-panel-collapse-button {
+        margin-left: 0;
+    }
+}
+
+// Entity cards (player + enemy)
+
+.DirectorsPage-entity-card {
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-md);
+    background: var(--jnj-color-bg-sunken);
+    overflow: hidden;
+}
+
+.DirectorsPage-entity-card-player {
+    border-left: 3px solid var(--jnj-color-accent);
+}
+
+.DirectorsPage-entity-card-enemy {
+    border-left: 3px solid var(--jnj-color-danger);
+}
+
+.DirectorsPage-entity-header {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--jnj-space-2);
+    padding: 11px 14px;
+    background: none;
+    border: none;
+    color: var(--jnj-color-text);
+    text-align: left;
+    cursor: pointer;
+}
+
+.DirectorsPage-entity-name {
+    font-weight: 600;
+    font-size: 14.5px;
+}
+
+.DirectorsPage-entity-subtitle {
+    color: var(--jnj-color-text-faint);
+    font-size: 11.5px;
+}
+
+.DirectorsPage-entity-hp-label {
+    margin-left: auto;
+    color: var(--jnj-color-text-muted);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.DirectorsPage-entity-body {
+    padding: 0 14px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-3);
+}
+
+.DirectorsPage-vitals-strip {
+    display: flex;
+    align-items: center;
+    gap: var(--jnj-space-4);
+}
+
+.DirectorsPage-hp-track-wrap {
+    flex: 1;
+    min-width: 0;
+}
+
+.DirectorsPage-hp-track {
+    height: 8px;
+    border-radius: var(--jnj-radius-pill);
+    background: var(--jnj-color-bg);
+    overflow: hidden;
+}
+
+.DirectorsPage-hp-fill {
+    height: 100%;
+}
+
+.DirectorsPage-hp-fill-player {
+    background: linear-gradient(90deg, var(--jnj-color-success), #7fc493);
+}
+
+.DirectorsPage-hp-fill-enemy {
+    background: linear-gradient(90deg, var(--jnj-color-danger), #e07a75);
+}
+
+.DirectorsPage-temp-hp-label {
+    color: var(--jnj-color-text-faint);
+    font-size: 10.5px;
+    margin-top: 3px;
+}
+
+.DirectorsPage-ac-shield {
+    position: relative;
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+}
+
+.DirectorsPage-ac-shield-icon {
+    width: 30px;
+    height: 30px;
+    // brass-tinted for players, matching the same baked-fill filter trick
+    // used on the character page's vitals panel; muted gray for enemies.
+    filter: brightness(0) saturate(100%) invert(72%) sepia(35%) saturate(590%) hue-rotate(358deg) brightness(93%) contrast(89%);
+}
+
+.DirectorsPage-ac-shield-enemy .DirectorsPage-ac-shield-icon {
+    filter: grayscale(1) brightness(1.5) contrast(0.9);
+}
+
+.DirectorsPage-ac-value {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 2px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--jnj-color-text);
+}
+
+.DirectorsPage-ap-stars {
+    display: flex;
+    gap: 3px;
+    flex-shrink: 0;
+
+    button {
         background: none;
-
-        .CharacterPage-stats-horizontal {
-            display: flex;
-            justify-content: center; 
-            height: min-content !important;
-            flex-direction: row;
-        }
-
-        .CharacterPage-stats-block-shield {
-            display: block;
-            font-size: inherit;
-            padding: 0px;
-            width: 90px;
-            height: 120px;
-        }
-        
-        .CharacterPage-stats-block-hp {
-            display: flex;
-            padding: 0px;
-            height: min-content;
-            font-size: 16px;
-            width: 160px;
-            display: flex;
-            justify-content: space-between;
-
-            .CharacterPage-hp-block {
-                width: min-content;
-            }
-
-            .CharacterPage-hp-stat {
-                background-color: inherit;
-                width: 30px;
-                height: 30px;
-                justify-items: center;
-                text-align: center;
-                border: none;
-                border-color: white;
-                border-radius: 8px;
-                color: white;
-                font-size: inherit;
-                padding: 0;
-
-                &::-webkit-outer-spin-button, &::-webkit-inner-spin-button {
-                    -webkit-appearance: none;
-                    margin: 0;
-                }
-            }
-
-            .CharaterPage-hp-divider {
-                margin-top: 10px;
-            }
-        }
-    }
-
-    .CharacterPage-shield {
-        height: 90px;
-        filter: sepia(1) saturate(8) hue-rotate(120deg);
-    }
-
-    .CharacterPage-shield-text {
-        position: relative;
-        top: -80px;
-        font-size: 36px;
-    }
-
-    .CharacterPage-xp-and-hardness-stat {
-        padding-top: 4px;
-        background-color: inherit;
-        width: 60px;
-        margin-left: 5px;
-        padding: 0;
-        height: 30px;
-        justify-items: center;
-        text-align: center;
         border: none;
-        border-color: white;
-        border-radius: 8px;
-        color: white;
-        font-size: inherit;
-
-        &::-webkit-outer-spin-button, &::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-    }
-
-    .CharacterPage-xp {
-        padding-top: 40px;
-        
-    }
-
-    .CharacterPage-xp-slash {
-        position: relative;
-        top: -28px;
-        left: 60px;
-        width: 10px;
-    }
-
-    .CharacterPage-stats-xp {
-        width: 90px;
-        padding: 0px;
-        font-size: 16px;
-    }
-
-    .CharacterPage-stats-hardness {
-        padding: 0px;
-        width: 115px;
-        font-size: 16px;
-    }
-
-    .CharacterPage-stats-divider {
-        width: 0px;
-    }
-
-    .CharacterPage-stats-temp-hp-yellow {
-        border-color: yellow;
-    }
-
-    .CharacterPage-abiltyscore-horzontal {
+        padding: 1px;
+        cursor: pointer;
         display: flex;
-        flex-direction: row;
-        border-color: white;
-        border-width: 5px;
-        border-style: hidden;
-        justify-content: center;
-        border-radius: 0px;
-        margin: 0px;
-        padding: 0px;
-        padding-top: 10px;
-        width: min-content;
-        height: min-content;
-        background: none;
-    }
 
-    .CharacterPage-abilityscore-icon {
-        height: 40px; 
-        margin-top: 15px;
-        filter: invert(1) sepia(1);
-    }
-
-    .CharacterPage-abiltyscore-block {
-        padding: 0px;
-        font-size: 16px;
-    }
-
-    .CharacterPage-abilityscore-stat {
-        background-color: inherit;
-        width: 40px;
-        height: 30px;
-        justify-items: center;
-        text-align: center;
-        border: none;
-        border-color: white;
-        border-radius: 8px;
-        color: white;
-        font-size: inherit;
-        padding: 0;
-        margin-top: 20px;
-
-        &::-webkit-outer-spin-button, &::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
+        &:disabled {
+            cursor: default;
         }
     }
 }
+
+.DirectorsPage-weakres-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    font-size: 10.5px;
+}
+
+.DirectorsPage-weak-chip {
+    padding: 3px 8px;
+    border-radius: var(--jnj-radius-pill);
+    background: rgba(201, 69, 63, 0.15);
+    border: 1px solid var(--jnj-color-danger);
+    color: var(--jnj-color-text);
+}
+
+.DirectorsPage-res-chip {
+    padding: 3px 8px;
+    border-radius: var(--jnj-radius-pill);
+    background: rgba(92, 154, 107, 0.15);
+    border: 1px solid var(--jnj-color-success);
+    color: var(--jnj-color-text);
+}
+
+.DirectorsPage-actions-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: var(--jnj-space-1);
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--jnj-color-text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+}
+
+// Combat Tracker
+
+.DirectorsPage-tracker-mode-row {
+    display: flex;
+    gap: var(--jnj-space-1);
+    padding: 4px;
+    border-radius: var(--jnj-radius-pill);
+    background: var(--jnj-color-bg-sunken);
+    width: max-content;
+}
+
+.DirectorsPage-mode-btn {
+    padding: 6px 14px;
+    border: none;
+    border-radius: var(--jnj-radius-pill);
+    font-weight: 600;
+    font-size: 12px;
+    background: transparent;
+    color: var(--jnj-color-text-muted);
+    cursor: pointer;
+}
+
+.DirectorsPage-mode-btn-active {
+    background: var(--jnj-color-accent);
+    color: var(--jnj-color-on-accent);
+}
+
+.DirectorsPage-tracker-mode-row-wrap {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--jnj-space-2);
+}
+
+// Same "pop out into a bigger view" affordance as CharacterMainTab's Combat
+// Map tab (see CharacterMainTab-open-map-button) - the map is cramped inside
+// this narrow tracker column, so Map View gets a button that opens the same
+// full-viewport overlay (CharacterMainTab-map-overlay, reused as-is).
+.DirectorsPage-tracker-expand-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-pill);
+    background: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text);
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color var(--jnj-transition), color var(--jnj-transition);
+
+    svg {
+        width: 13px;
+        height: 13px;
+    }
+
+    &:hover {
+        border-color: var(--jnj-color-accent);
+        color: var(--jnj-color-accent);
+    }
+}
+
+// A definite height (not just the base panel's max-height cap) so
+// PostListContentCombatMap's flex:"1 1 0%" sizing hint has something real
+// to resolve against below - same requirement as CharacterMainTab-map-overlay
+// (see CharacterMainTab.scss's comment on the same issue).
+.DirectorsPage-panel-tracker {
+    height: 80vh;
+}
+
+.DirectorsPage-tracker-view {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    gap: var(--jnj-space-2);
+}
+
+.DirectorsPage-tracker-view-hidden {
+    display: none;
+}
+
+// PostListContentCombatMap needs an actual flex ancestor to resolve a
+// definite height for its ResizeObserver-driven image sizing - same fix as
+// CharacterMainTab-map-overlay (see CharacterMainTab.scss).
+.DirectorsPage-tracker-view-map {
+    flex: 1;
+    min-height: 260px;
+}
+
+.DirectorsPage-tracker-empty {
+    color: var(--jnj-color-text-faint);
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+// Line View zone list - passed as PostColumn's `className` prop from
+// DirectorsPage.js (lineViewClassName) in place of the generic
+// PostDefaults.scss fallback, to match the mockup's .zone-card recipe.
+.DirectorsPage-zone-card {
+    // PostColumn.tsx sets this element's width inline as `calc(100% /
+    // zoneCount)` on a flex row - min-width:0 lets it actually honor that
+    // (a flex item's default min-width:auto would otherwise refuse to
+    // shrink below its content's min-content size and force the row to
+    // overflow sideways). Always fitting the available width - rather than
+    // holding a floor and scrolling past it - is the point: use the
+    // Player Characters/Enemies collapse buttons to hand the tracker more
+    // room instead (see combatGridTemplateColumns in DirectorsPage.js).
+    min-width: 0;
+    overflow: hidden;
+    box-sizing: border-box;
+    background: var(--jnj-color-bg-sunken);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-md);
+    padding: var(--jnj-space-3);
+}
+
+.DirectorsPage-zone-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--jnj-color-text-muted);
+    margin-bottom: var(--jnj-space-2);
+}
+
+// Deliberately not display:flex - a flex child's width:100% doesn't
+// reliably resolve against a nested/shrunk flex ancestor's actual rendered
+// width (it was falling back to the chip's own content size and bleeding
+// past the zone's edge instead of respecting it). Plain block stacking
+// doesn't have that ambiguity: each chip's width:100% always resolves
+// against zone-chips' real content-box width, full stop. Multiple entities
+// in one zone now stack as separate rows instead of wrapping side by side,
+// which reads fine at these widths anyway.
+.DirectorsPage-zone-chips {
+    display: block;
+}
+
+.DirectorsPage-entity-chip {
+    // A fixed width (not max-width) tied to the zone's own actual size,
+    // rather than shrink-to-fit content - content-based sizing was letting
+    // a long name's chip render wider than the zone and visually bleed into
+    // the next one instead of being clipped. width:100% is unambiguous:
+    // whatever the zone is actually rendered at, this matches it exactly,
+    // and the ellipsis below truncates within it.
+    display: block;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    margin-bottom: var(--jnj-space-2);
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: var(--jnj-color-accent-soft);
+    border: 1px solid var(--jnj-color-accent);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--jnj-color-text);
+}
+
+// A long name (post.title, from combatEntities' character/NPC name) stays
+// on one line and truncates with an ellipsis instead of wrapping to 2+
+// lines - most of a name is still recognizable truncated, whereas a wrap
+// just made short zones taller without actually helping legibility.
+.DirectorsPage-entity-chip-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.DirectorsPage-entity-chip-content:empty {
+    display: none;
+}
+
+// Player-only row (see makeLineViewCard in DirectorsPage.js) - a small
+// portrait next to the name stays recognizable even once the name itself
+// is ellipsis-truncated down to a couple characters at a narrow zone width.
+.DirectorsPage-entity-chip-inner {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.DirectorsPage-entity-chip-portrait, .DirectorsPage-entity-chip-portrait-placeholder {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.DirectorsPage-entity-chip-portrait {
+    object-fit: cover;
+    border: 1px solid var(--jnj-color-accent);
+}
+
+.DirectorsPage-entity-chip-portrait-placeholder {
+    box-sizing: border-box;
+    padding: 3px;
+    color: var(--jnj-color-accent);
+    background: var(--jnj-color-bg-sunken);
+    border: 1px solid var(--jnj-color-accent);
+}
+
+// Maps tab - unchanged, out of scope for this pass
 
 .DirectorsPage-map-preview {
     width: 500px;

@@ -262,6 +262,7 @@ export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, 
             key={status}
             width={"calc(100% / " + statuses.length + ")"}
             className={className || {}}
+            PostCardComponent={PostCardComponent}
           />
         ))}
 

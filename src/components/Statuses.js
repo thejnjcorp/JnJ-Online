@@ -1,23 +1,36 @@
 import { useState } from 'react';
-import { arrayRemove, doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { AddStatusDialog } from './AddStatusDialog';
 
-export function Statuses({characterPage, userId}) {
+// onUpdateStatuses/hasWritePermissions let a caller point this at a
+// non-character write path (Director's Page enemy cards - NPCs aren't
+// documents in the `characters` collection, see DirectorsPage.js's
+// updateEnemyStatuses). When omitted, this defaults to exactly the original
+// character-doc behavior, so the character page is unaffected.
+export function Statuses({characterPage, userId, onUpdateStatuses, hasWritePermissions: hasWritePermissionsProp}) {
     const [expandedIds, setExpandedIds] = useState([]);
     const [addDialogOpen, setAddDialogOpen] = useState(false);
-    const hasWritePermissions = userId ? (characterPage.userId === userId || characterPage.canWrite?.includes(userId)) : false;
+    const hasWritePermissions = hasWritePermissionsProp !== undefined
+        ? hasWritePermissionsProp
+        : (userId ? (characterPage.userId === userId || characterPage.canWrite?.includes(userId)) : false);
     const statuses = characterPage.statuses || [];
 
     function toggleExpanded(statusId) {
         setExpandedIds(prev => prev.includes(statusId) ? prev.filter(id => id !== statusId) : [...prev, statusId]);
     }
 
+    async function writeStatuses(nextStatuses) {
+        if (onUpdateStatuses) {
+            await onUpdateStatuses(nextStatuses);
+        } else {
+            await updateDoc(doc(db, "characters", characterPage.character_id), { statuses: nextStatuses });
+        }
+    }
+
     async function handleRemove(status) {
         try {
-            await updateDoc(doc(db, "characters", characterPage.character_id), {
-                statuses: arrayRemove(status)
-            });
+            await writeStatuses(statuses.filter(s => s.id !== status.id));
         } catch (e) {
             alert(e);
         }
@@ -33,9 +46,7 @@ export function Statuses({characterPage, userId}) {
         const newStacks = Math.max(0, Math.min(9, status.stacks + delta));
         if (newStacks === status.stacks) return;
         try {
-            await updateDoc(doc(db, "characters", characterPage.character_id), {
-                statuses: statuses.map(s => s.id === status.id ? { ...s, stacks: newStacks } : s)
-            });
+            await writeStatuses(statuses.map(s => s.id === status.id ? { ...s, stacks: newStacks } : s));
         } catch (e) {
             alert(e);
         }
@@ -76,6 +87,6 @@ export function Statuses({characterPage, userId}) {
                 + Add Status
             </button>}
         </div>
-        {addDialogOpen && <AddStatusDialog characterPage={characterPage} userId={userId} onClose={() => setAddDialogOpen(false)}/>}
+        {addDialogOpen && <AddStatusDialog characterPage={characterPage} userId={userId} onClose={() => setAddDialogOpen(false)} onUpdateStatuses={onUpdateStatuses}/>}
     </div>
 }

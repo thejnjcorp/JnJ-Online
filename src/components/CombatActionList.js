@@ -11,8 +11,15 @@ import { db } from '../utils/firebase';
 // only Unavailable (cost > current action points) should get the
 // faded/locked treatment. Passives are just always-on, not something you're
 // being blocked from using.
-export function CombatActionList({actions, experience_points, baseArmorClass, baseHitModifier, baseDamageModifier, baseDamageDice, baseDamageDiceType, baseHealingDiceType, canUseActions = false, locked = false, characterPage, userId}) {
-    const hasWritePermissions = userId ? (characterPage.userId === userId || characterPage.canWrite?.includes(userId)) : false;
+// onUseAction/hasWritePermissions let a caller point "Use Action" at a
+// non-character write path (Director's Page enemy cards - NPCs have no
+// `character_id`/`characters` doc to write to, see DirectorsPage.js's
+// setEnemyActionPoints). Omitted, this defaults to exactly the original
+// character-doc behavior.
+export function CombatActionList({actions, experience_points, baseArmorClass, baseHitModifier, baseDamageModifier, baseDamageDice, baseDamageDiceType, baseHealingDiceType, canUseActions = false, locked = false, characterPage, userId, onUseAction, hasWritePermissions: hasWritePermissionsProp}) {
+    const hasWritePermissions = hasWritePermissionsProp !== undefined
+        ? hasWritePermissionsProp
+        : (userId ? (characterPage.userId === userId || characterPage.canWrite?.includes(userId)) : false);
 
     function containsReaction(action){
         return action.tags !== undefined && action.tags.some(tag => tag.tagInfo === "Reaction");
@@ -66,9 +73,13 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
 
                 {!locked && canUseActions && hasWritePermissions && <button className='CombatActionList-use-action-button' onClick={() => {
                     try {
-                        updateDoc(doc(db, "characters", characterPage.character_id), {
-                            action_points: characterPage.action_points - action.actionCost
-                        })
+                        if (onUseAction) {
+                            onUseAction(action);
+                        } else {
+                            updateDoc(doc(db, "characters", characterPage.character_id), {
+                                action_points: characterPage.action_points - action.actionCost
+                            })
+                        }
                     } catch (e) {
                         alert(e);
                     }

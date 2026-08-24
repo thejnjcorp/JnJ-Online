@@ -1,0 +1,782 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&amp;family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #16161a; --bg-sunken: #101013; --bg-raised: #1f1f25; --bg-hover: #2a2a33;
+      --border: #34343f; --border-strong: #4d4d5c;
+      --text: #ece8e1; --text-muted: #a09a90; --text-faint: #6f6a63; --on-accent: #16161a;
+      --accent: #c8a24a; --accent-hover: #e0bc63; --accent-soft: rgba(200,162,74,0.14);
+      --arcane: #7c4dff; --ember: #d4622a; --danger: #c9453f; --success: #5c9a6b;
+      --font-display: 'Cinzel', Georgia, 'Times New Roman', serif;
+      --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --radius-md: 8px; --radius-lg: 14px; --radius-pill: 999px;
+      --shadow-md: 0 6px 18px rgba(0,0,0,0.45);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: var(--font-body); background: var(--bg); color: var(--text); }
+    .muted { color: var(--text-muted); }
+    .faint { color: var(--text-faint); }
+    .caps { text-transform: uppercase; letter-spacing: 0.08em; }
+    .card { background: var(--bg-raised); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+    button { font-family: inherit; cursor: pointer; }
+  </style>
+</helmet>
+
+<div style="width:100%;min-height:1100px;display:flex;flex-direction:row;background:var(--bg);color:var(--text);">
+
+  <!-- ============ SKILLS SIDEBAR — restyled to match the real SkillsAndFlaws.js card recipe
+       (already used, correctly themed, on the character page) instead of the plain
+       rgb(73,73,73)/rgb(0,0,78) shell. The skill/flaw cards below are pixel-matched to
+       SkillsAndFlaws.scss (bg-raised card, accent/danger border, chevron+name+stars trigger,
+       expand-for-description) — only the outer per-character chrome is new. ============ -->
+  <div style="width:280px;min-width:280px;background:var(--bg-sunken);overflow-y:auto;display:flex;flex-direction:column;padding:14px 0;">
+    <sc-for list="{{sidebarCharacters}}" as="c" hint-placeholder-count="2">
+      <div style="{{c.sectionBorderStyle}}">
+        <button onClick="{{c.toggle}}" style="width:100%;display:flex;align-items:center;gap:8px;padding:12px 18px;background:none;border:none;color:var(--text);text-align:left;">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6 8-6s8 2 8 6" stroke-linecap="round"/></svg>
+          <span style="font-family:var(--font-display);font-size:14.5px;font-weight:600;">{{c.name}}</span>
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{{c.chevronStyle}}color:var(--text-faint);margin-left:auto;flex-shrink:0;"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+        <sc-if value="{{c.open}}" hint-placeholder-val="{{true}}">
+          <div style="display:flex;flex-direction:column;">
+            <sc-for list="{{c.skills}}" as="sf" hint-placeholder-count="2">
+              <div style="margin:5px 14px;border:1px solid {{sf.borderColor}};border-radius:10px;background:var(--bg-raised);overflow:hidden;">
+                <button onClick="{{sf.toggle}}" style="width:100%;display:flex;align-items:center;gap:8px;padding:10px;background:none;border:none;color:var(--text);text-align:left;">
+                  <span style="font-size:19px;line-height:1;color:var(--text-faint);{{sf.chevronStyle}}">&rsaquo;</span>
+                  <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;">{{sf.name}}</span>
+                  <span style="display:flex;flex-shrink:0;">
+                    <sc-for list="{{sf.stars}}" as="star" hint-placeholder-count="2">
+                      <svg viewBox="0 0 24 24" width="13" height="13" fill="var(--text)" stroke="none" style="margin-left:2px;"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.6 1.6 6.7L12 16.9l-6.2 3.4 1.6-6.7L2.2 9l6.9-.7L12 2z"/></svg>
+                    </sc-for>
+                  </span>
+                </button>
+                <sc-if value="{{sf.expanded}}" hint-placeholder-val="{{false}}">
+                  <div style="padding:0 12px 10px;font-size:12px;line-height:1.5;color:var(--text-muted);white-space:pre-wrap;">{{sf.description}}</div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- ============ MAIN BODY ============ -->
+  <div style="flex:1;min-width:0;padding:24px 28px 60px;">
+
+    <!-- MODE SWITCHER — real TabContainer.scss values, unchanged since it's already themed -->
+    <div style="display:flex;gap:6px;padding:5px;border-radius:999px;background:var(--bg-sunken);width:max-content;margin-bottom:18px;">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+        <button onClick="{{t.pick}}" style="{{t.pillStyle}}display:flex;align-items:center;gap:8px;padding:9px 18px;border:none;border-radius:999px;font-size:13.5px;font-weight:600;">
+          <sc-if value="{{t.isRoleplay}}" hint-placeholder-val="{{false}}">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v13a2.5 2.5 0 0 1-2.5 2.5H8.5A2.5 2.5 0 0 1 6 17V4Z"/><path d="M6 8H4.5A1.5 1.5 0 0 0 3 9.5v7A2.5 2.5 0 0 0 5.5 19H8"/><path d="M9 8h6M9 11h6"/></svg>
+          </sc-if>
+          <sc-if value="{{t.isCombat}}" hint-placeholder-val="{{true}}">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l6-6M14 10l6-6M14 10l-1.5-4L9 4l1 3.5L14 10ZM10 14l1.5 4L16 20l-1-3.5L10 14Z"/></svg>
+          </sc-if>
+          <sc-if value="{{t.isMaps}}" hint-placeholder-val="{{false}}">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L4 6v14l5-2 6 2 5-2V4l-5 2-6-2Z"/><path d="M9 4v14M15 6v14"/></svg>
+          </sc-if>
+          <span>{{t.label}}</span>
+        </button>
+      </sc-for>
+    </div>
+
+    <!-- ROLEPLAY (unchanged this pass) -->
+    <sc-if value="{{isRoleplay}}" hint-placeholder-val="{{false}}">
+      <div class="card" style="padding:40px;text-align:center;">
+        <div class="muted" style="font-size:14px;">Roleplay tab isn't part of this pass — still the placeholder it is today.</div>
+      </div>
+    </sc-if>
+
+    <!-- MAPS (unchanged this pass) -->
+    <sc-if value="{{isMaps}}" hint-placeholder-val="{{false}}">
+      <div class="card" style="padding:40px;text-align:center;">
+        <div class="muted" style="font-size:14px;">Maps tab (upload + map list) isn't part of this pass — same plain upload UI as today.</div>
+      </div>
+    </sc-if>
+
+    <!-- COMBAT — the redesign -->
+    <sc-if value="{{isCombat}}" hint-placeholder-val="{{true}}">
+      <div style="display:grid;grid-template-columns:1.3fr 1fr 1.3fr;gap:20px;align-items:start;">
+
+        <!-- ============ PLAYER CHARACTERS ============ -->
+        <div class="card" style="padding:18px;display:flex;flex-direction:column;gap:12px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6 8-6s8 2 8 6" stroke-linecap="round"/></svg>
+            <span style="font-family:var(--font-display);font-size:16px;">Player Characters</span>
+            <span class="faint" style="margin-left:auto;font-size:12px;">{{playerCount}}</span>
+          </div>
+
+          <sc-for list="{{players}}" as="p" hint-placeholder-count="2">
+            <div style="border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:10px;background:var(--bg-sunken);overflow:hidden;">
+              <button onClick="{{p.toggleOpen}}" style="width:100%;display:flex;align-items:center;gap:8px;padding:11px 14px;background:none;border:none;color:var(--text);text-align:left;">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{{p.cardChevronStyle}}color:var(--text-faint);flex-shrink:0;"><path d="M9 6l6 6-6 6"/></svg>
+                <span style="font-weight:600;font-size:14.5px;">{{p.name}}</span>
+                <span class="faint" style="font-size:11.5px;">{{p.className}}</span>
+                <span class="muted" style="margin-left:auto;font-size:12px;">{{p.hp}}/{{p.maxHp}} HP</span>
+              </button>
+
+              <sc-if value="{{p.open}}" hint-placeholder-val="{{true}}">
+                <div style="padding:0 14px 14px;display:flex;flex-direction:column;gap:12px;">
+
+                  <!-- vitals strip -->
+                  <div style="display:flex;align-items:center;gap:14px;">
+                    <div style="flex:1;min-width:0;">
+                      <div style="height:8px;border-radius:999px;background:var(--bg);overflow:hidden;">
+                        <div style="height:100%;width:{{p.hpPercent}};background:linear-gradient(90deg, var(--success), #7fc493);"></div>
+                      </div>
+                      <sc-if value="{{p.hasTempHp}}" hint-placeholder-val="{{false}}">
+                        <div style="font-size:10.5px;margin-top:3px;" class="faint">+{{p.tempHp}} temp</div>
+                      </sc-if>
+                    </div>
+                    <div style="text-align:center;flex-shrink:0;">
+                      <div style="position:relative;width:30px;height:30px;color:var(--accent);">
+                        <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6l7-3Z"/></svg>
+                        <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding-top:2px;font-size:11px;font-weight:700;color:var(--text);">{{p.ac}}</span>
+                      </div>
+                    </div>
+                    <div style="display:flex;gap:3px;flex-shrink:0;">
+                      <sc-for list="{{p.apStars}}" as="s" hint-placeholder-count="4">
+                        <button onClick="{{s.pick}}" style="background:none;border:none;padding:1px;color:var(--accent);">
+                          <sc-if value="{{s.filled}}" hint-placeholder-val="{{true}}">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="currentColor" stroke-width="1"><path d="M12 3.5l2.6 5.6 6 .7-4.4 4.1 1.2 6-5.4-3-5.4 3 1.2-6L3.4 9.8l6-.7 2.6-5.6Z"/></svg>
+                          </sc-if>
+                          <sc-if value="{{s.empty}}" hint-placeholder-val="{{false}}">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M12 3.5l2.6 5.6 6 .7-4.4 4.1 1.2 6-5.4-3-5.4 3 1.2-6L3.4 9.8l6-.7 2.6-5.6Z"/></svg>
+                          </sc-if>
+                        </button>
+                      </sc-for>
+                    </div>
+                    <button onClick="{{p.nextTurn}}" style="flex-shrink:0;padding:6px 12px;border-radius:999px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-size:11px;font-weight:600;">Next Turn</button>
+                  </div>
+
+                  <!-- statuses -->
+                  <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start;">
+                    <sc-for list="{{p.statuses}}" as="st" hint-placeholder-count="1">
+                      <div style="display:flex;flex-direction:column;">
+                        <button onClick="{{st.toggle}}" style="{{st.chipStyle}}display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;font-size:11.5px;font-weight:600;">
+                          <span style="width:6px;height:6px;border-radius:50%;{{st.dotStyle}}flex-shrink:0;"></span>
+                          <span>{{st.name}}</span>
+                          <sc-if value="{{st.hasStacks}}" hint-placeholder-val="{{true}}">
+                            <span style="{{st.badgeStyle}}min-width:14px;height:14px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;padding:0 3px;">{{st.stacks}}</span>
+                          </sc-if>
+                        </button>
+                        <sc-if value="{{st.expanded}}" hint-placeholder-val="{{false}}">
+                          <div class="card" style="margin-top:5px;padding:8px 10px;max-width:220px;background:var(--bg);">
+                            <div style="font-size:11.5px;line-height:1.45;" class="muted">{{st.description}}</div>
+                            <button onClick="{{st.remove}}" style="margin-top:6px;background:none;border:none;color:var(--danger);font-size:10.5px;font-weight:600;padding:0;">Remove</button>
+                          </div>
+                        </sc-if>
+                      </div>
+                    </sc-for>
+                    <button onClick="{{p.openAdd}}" style="display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;border:1px dashed var(--border-strong);background:transparent;color:var(--text-muted);font-size:11.5px;font-weight:600;">
+                      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                      Add
+                    </button>
+                  </div>
+
+                  <!-- actions -->
+                  <div>
+                    <button onClick="{{p.toggleActions}}" style="width:100%;display:flex;align-items:center;gap:6px;background:none;border:none;padding:0;color:var(--text-muted);font-size:11px;font-weight:700;" class="caps">
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{{p.actionsChevronStyle}}"><path d="M9 6l6 6-6 6"/></svg>
+                      Actions
+                    </button>
+                    <sc-if value="{{p.actionsOpen}}" hint-placeholder-val="{{false}}">
+                      <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;">
+                        <sc-for list="{{p.actions}}" as="a" hint-placeholder-count="1">
+                          <div style="position:relative;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+                            <div style="display:flex;align-items:center;gap:8px;padding-right:90px;">
+                              <span style="font-weight:600;font-size:13px;">{{a.name}}</span>
+                              <span style="margin-left:auto;font-size:11.5px;" class="muted">{{a.meta}}</span>
+                            </div>
+                            <div style="font-size:12px;margin-top:5px;line-height:1.45;padding-right:90px;" class="muted">{{a.desc}}</div>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </sc-if>
+                  </div>
+
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+
+        <!-- ============ COMBAT TRACKER ============ -->
+        <div class="card" style="padding:18px;display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--arcane)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L4 6v14l5-2 6 2 5-2V4l-5 2-6-2Z"/><path d="M9 4v14M15 6v14"/></svg>
+            <span style="font-family:var(--font-display);font-size:16px;">Combat Tracker</span>
+          </div>
+
+          <div style="display:flex;gap:6px;padding:4px;border-radius:999px;background:var(--bg-sunken);width:max-content;">
+            <button onClick="{{pickLineView}}" style="{{lineViewStyle}}padding:6px 14px;border:none;border-radius:999px;font-weight:600;font-size:12px;">Line View</button>
+            <button onClick="{{pickMapView}}" style="{{mapViewStyle}}padding:6px 14px;border:none;border-radius:999px;font-weight:600;font-size:12px;">Map View</button>
+          </div>
+
+          <sc-if value="{{isLineView}}" hint-placeholder-val="{{true}}">
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div class="card" style="background:var(--bg-sunken);padding:12px;">
+                <div style="font-size:11px;font-weight:700;margin-bottom:8px;" class="caps muted">Zone 0 &middot; Vanguard</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                  <div style="padding:6px 10px;border-radius:6px;background:var(--accent-soft);border:1px solid var(--accent);font-size:12px;font-weight:600;">Kessa Vane</div>
+                  <div style="padding:6px 10px;border-radius:6px;background:rgba(201,69,63,0.15);border:1px solid var(--danger);font-size:12px;">GUNMECH Leo</div>
+                </div>
+              </div>
+              <div class="card" style="background:var(--bg-sunken);padding:12px;">
+                <div style="font-size:11px;font-weight:700;margin-bottom:8px;" class="caps muted">Zone 1</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                  <div style="padding:6px 10px;border-radius:6px;background:var(--accent-soft);border:1px solid var(--accent);font-size:12px;font-weight:600;">Bram Oskar</div>
+                  <div style="padding:6px 10px;border-radius:6px;background:rgba(201,69,63,0.15);border:1px solid var(--danger);font-size:12px;">Bandit Scout</div>
+                </div>
+              </div>
+              <div style="font-size:11px;line-height:1.5;" class="faint">Zones and drag-and-drop placement are the real, already-themed CombatMap/PostListContentCombatMap component &mdash; not rebuilt here, just wrapped in a proper card.</div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{isMapView}}" hint-placeholder-val="{{false}}">
+            <div>
+              <div style="position:relative;height:260px;border-radius:12px;border:1px solid var(--border);background:
+                  repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 28px),
+                  repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 28px),
+                  var(--bg-sunken);overflow:hidden;">
+                <div style="position:absolute;left:20px;top:24px;width:110px;height:90px;border:2px solid var(--accent);border-radius:4px;display:flex;align-items:flex-start;justify-content:center;padding-top:4px;font-size:10.5px;">Zone 0</div>
+                <div style="position:absolute;left:150px;top:70px;width:120px;height:100px;border:2px solid var(--danger);border-radius:4px;display:flex;align-items:flex-start;justify-content:center;padding-top:4px;font-size:10.5px;">Zone 1</div>
+              </div>
+              <div style="font-size:11px;margin-top:8px;" class="faint">Pulls the campaign's active map &mdash; shown here as a placeholder grid.</div>
+            </div>
+          </sc-if>
+        </div>
+
+        <!-- ============ ENEMIES ============ -->
+        <div class="card" style="padding:18px;display:flex;flex-direction:column;gap:12px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--danger)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l6-6M14 10l6-6M14 10l-1.5-4L9 4l1 3.5L14 10ZM10 14l1.5 4L16 20l-1-3.5L10 14Z"/></svg>
+            <span style="font-family:var(--font-display);font-size:16px;">Enemies</span>
+            <span class="faint" style="margin-left:auto;font-size:12px;">{{enemyCount}}</span>
+          </div>
+
+          <sc-for list="{{enemies}}" as="e" hint-placeholder-count="2">
+            <div style="border:1px solid var(--border);border-left:3px solid var(--danger);border-radius:10px;background:var(--bg-sunken);overflow:hidden;">
+              <button onClick="{{e.toggleOpen}}" style="width:100%;display:flex;align-items:center;gap:8px;padding:11px 14px;background:none;border:none;color:var(--text);text-align:left;">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{{e.cardChevronStyle}}color:var(--text-faint);flex-shrink:0;"><path d="M9 6l6 6-6 6"/></svg>
+                <span style="font-weight:600;font-size:14.5px;">{{e.name}}</span>
+                <span class="faint" style="font-size:11.5px;">Lvl {{e.level}}</span>
+                <span class="muted" style="margin-left:auto;font-size:12px;">{{e.hp}}/{{e.maxHp}} HP</span>
+              </button>
+
+              <sc-if value="{{e.open}}" hint-placeholder-val="{{true}}">
+                <div style="padding:0 14px 14px;display:flex;flex-direction:column;gap:12px;">
+
+                  <div style="display:flex;align-items:center;gap:14px;">
+                    <div style="flex:1;min-width:0;">
+                      <div style="height:8px;border-radius:999px;background:var(--bg);overflow:hidden;">
+                        <div style="height:100%;width:{{e.hpPercent}};background:linear-gradient(90deg, var(--danger), #e07a75);"></div>
+                      </div>
+                    </div>
+                    <div style="text-align:center;flex-shrink:0;">
+                      <div style="position:relative;width:30px;height:30px;color:var(--text-muted);">
+                        <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6l7-3Z"/></svg>
+                        <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding-top:2px;font-size:11px;font-weight:700;color:var(--text);">{{e.ac}}</span>
+                      </div>
+                    </div>
+                    <div style="display:flex;gap:3px;flex-shrink:0;">
+                      <sc-for list="{{e.apStars}}" as="s" hint-placeholder-count="4">
+                        <button onClick="{{s.pick}}" style="background:none;border:none;padding:1px;color:var(--danger);">
+                          <sc-if value="{{s.filled}}" hint-placeholder-val="{{true}}">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="currentColor" stroke-width="1"><path d="M12 3.5l2.6 5.6 6 .7-4.4 4.1 1.2 6-5.4-3-5.4 3 1.2-6L3.4 9.8l6-.7 2.6-5.6Z"/></svg>
+                          </sc-if>
+                          <sc-if value="{{s.empty}}" hint-placeholder-val="{{false}}">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M12 3.5l2.6 5.6 6 .7-4.4 4.1 1.2 6-5.4-3-5.4 3 1.2-6L3.4 9.8l6-.7 2.6-5.6Z"/></svg>
+                          </sc-if>
+                        </button>
+                      </sc-for>
+                    </div>
+                    <button onClick="{{e.nextTurn}}" style="flex-shrink:0;padding:6px 12px;border-radius:999px;border:1px solid var(--danger);background:transparent;color:var(--danger);font-size:11px;font-weight:600;">Next Turn</button>
+                  </div>
+
+                  <sc-if value="{{e.hasWeakRes}}" hint-placeholder-val="{{false}}">
+                    <div style="display:flex;flex-wrap:wrap;gap:5px;font-size:10.5px;">
+                      <sc-for list="{{e.weaknessChips}}" as="w" hint-placeholder-count="1">
+                        <span style="padding:3px 8px;border-radius:999px;background:rgba(201,69,63,0.15);border:1px solid var(--danger);color:var(--text);">{{w.label}}</span>
+                      </sc-for>
+                      <sc-for list="{{e.resistanceChips}}" as="r" hint-placeholder-count="1">
+                        <span style="padding:3px 8px;border-radius:999px;background:rgba(92,154,107,0.15);border:1px solid var(--success);color:var(--text);">{{r.label}}</span>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+
+                  <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start;">
+                    <sc-for list="{{e.statuses}}" as="st" hint-placeholder-count="1">
+                      <div style="display:flex;flex-direction:column;">
+                        <button onClick="{{st.toggle}}" style="{{st.chipStyle}}display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;font-size:11.5px;font-weight:600;">
+                          <span style="width:6px;height:6px;border-radius:50%;{{st.dotStyle}}flex-shrink:0;"></span>
+                          <span>{{st.name}}</span>
+                          <sc-if value="{{st.hasStacks}}" hint-placeholder-val="{{true}}">
+                            <span style="{{st.badgeStyle}}min-width:14px;height:14px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;padding:0 3px;">{{st.stacks}}</span>
+                          </sc-if>
+                        </button>
+                        <sc-if value="{{st.expanded}}" hint-placeholder-val="{{false}}">
+                          <div class="card" style="margin-top:5px;padding:8px 10px;max-width:220px;background:var(--bg);">
+                            <div style="font-size:11.5px;line-height:1.45;" class="muted">{{st.description}}</div>
+                            <button onClick="{{st.remove}}" style="margin-top:6px;background:none;border:none;color:var(--danger);font-size:10.5px;font-weight:600;padding:0;">Remove</button>
+                          </div>
+                        </sc-if>
+                      </div>
+                    </sc-for>
+                    <button onClick="{{e.openAdd}}" style="display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;border:1px dashed var(--border-strong);background:transparent;color:var(--text-muted);font-size:11.5px;font-weight:600;">
+                      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                      Add
+                    </button>
+                  </div>
+
+                  <div>
+                    <button onClick="{{e.toggleActions}}" style="width:100%;display:flex;align-items:center;gap:6px;background:none;border:none;padding:0;color:var(--text-muted);font-size:11px;font-weight:700;" class="caps">
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{{e.actionsChevronStyle}}"><path d="M9 6l6 6-6 6"/></svg>
+                      Actions
+                    </button>
+                    <sc-if value="{{e.actionsOpen}}" hint-placeholder-val="{{false}}">
+                      <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;">
+                        <sc-for list="{{e.actions}}" as="a" hint-placeholder-count="1">
+                          <div style="position:relative;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+                            <div style="display:flex;align-items:center;gap:8px;padding-right:90px;">
+                              <span style="font-weight:600;font-size:13px;">{{a.name}}</span>
+                              <span style="margin-left:auto;font-size:11.5px;" class="muted">{{a.meta}}</span>
+                            </div>
+                            <div style="font-size:12px;margin-top:5px;line-height:1.45;padding-right:90px;" class="muted">{{a.desc}}</div>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </sc-if>
+                  </div>
+
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+
+      </div>
+    </sc-if>
+  </div>
+
+  <!-- ADD STATUS DIALOG (shared; opened from any player/enemy card) -->
+  <sc-if value="{{addStatusOpen}}" hint-placeholder-val="{{false}}">
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:30;" onClick="{{closeAddStatus}}"></div>
+    <div style="position:fixed;z-index:31;top:50%;left:50%;transform:translate(-50%,-50%);width:min(420px, calc(100vw - 48px));display:flex;flex-direction:column;gap:16px;padding:26px;text-align:left;background:var(--bg-raised);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-md);">
+      <span style="font-family:var(--font-display);font-size:19px;">Add Status &mdash; {{addStatusTargetName}}</span>
+
+      <div>
+        <div style="font-size:11px;font-weight:700;margin-bottom:8px;" class="caps muted">Choose a status</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          <sc-for list="{{presets}}" as="p" hint-placeholder-count="6">
+            <button onClick="{{p.pick}}" style="{{p.chipStyle}}padding:7px 13px;border-radius:999px;font-size:12.5px;font-weight:600;">{{p.name}}</button>
+          </sc-for>
+        </div>
+        <div style="font-size:11px;margin-top:8px;line-height:1.5;" class="faint">Same catalog/mechanism as the character page's Add Status dialog &mdash; presets shown here for the mockup, custom name/description still open per that handoff.</div>
+      </div>
+
+      <div>
+        <div style="font-size:11px;font-weight:700;margin-bottom:8px;" class="caps muted">Stacks / duration</div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <button onClick="{{decStacks}}" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--border-strong);background:var(--bg-sunken);color:var(--text);font-size:16px;font-weight:700;">&minus;</button>
+          <span style="font-size:16px;font-weight:700;min-width:20px;text-align:center;">{{newStacks}}</span>
+          <button onClick="{{incStacks}}" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--border-strong);background:var(--bg-sunken);color:var(--text);font-size:16px;font-weight:700;">+</button>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:11px;font-weight:700;margin-bottom:8px;" class="caps muted">Polarity</div>
+        <div style="display:flex;gap:6px;">
+          <sc-for list="{{polarities}}" as="pol" hint-placeholder-count="3">
+            <button onClick="{{pol.pick}}" style="{{pol.chipStyle}}padding:7px 13px;border-radius:999px;font-size:12.5px;font-weight:600;">{{pol.label}}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="padding:12px 14px;border-radius:8px;background:var(--bg-sunken);font-size:12.5px;line-height:1.5;" class="muted">{{newDescription}}</div>
+
+      <div style="display:flex;gap:12px;">
+        <button onClick="{{confirmAddStatus}}" style="flex:1;padding:12px;border:none;border-radius:8px;background:var(--accent);color:var(--on-accent);font-weight:700;font-size:13.5px;">Add Status</button>
+        <button onClick="{{closeAddStatus}}" style="flex:1;padding:12px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text);font-weight:600;font-size:13.5px;">Cancel</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script data-dc-script>
+const STATUS_PRESETS = [
+  { name: 'Haste', polarity: 'buff', stacks: 2, description: 'Gain a single action for a certain number of rounds. Reduces by 1 each round until it reaches 0.' },
+  { name: 'Slowed', polarity: 'debuff', stacks: 2, description: 'Lose a single action for a certain number of rounds. Reduces by 1 each round until it reaches 0.' },
+  { name: 'Blind', polarity: 'debuff', stacks: 0, description: 'Unable to use sight to perceive enemies or items. Automatically critically fails vision checks; ranged attacks face steep miss chances.' },
+  { name: 'Stunned', polarity: 'debuff', stacks: 1, description: 'Lose actions equal to the stunned number. Amounts over 3 carry into the next turn.' },
+  { name: 'Frightened', polarity: 'debuff', stacks: 1, description: '−1 to all checks and hit rolls per stack. Drops by 1 at the start of each of your turns.' },
+  { name: 'Custom…', polarity: 'neutral', stacks: 0, description: 'Production version: type a custom name and description here.' }
+];
+
+const POLARITY_COLOR = { buff: 'var(--accent)', debuff: 'var(--danger)', neutral: 'var(--arcane)' };
+
+function chipStylesFor(color) {
+  return {
+    chipStyle: `border:1px solid ${color};background:${color}22;color:var(--text);`,
+    dotStyle: `background:${color};`,
+    badgeStyle: `background:${color};color:var(--on-accent);`
+  };
+}
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      activeTab: 'combat',
+      mapView: 'line',
+      players: [
+        {
+          id: 'p1', name: 'Kessa Vane', className: 'Wanderer',
+          hp: 17, maxHp: 17, tempHp: 0, ac: 17, ap: 2, open: true, actionsOpen: false,
+          statuses: [
+            { id: 1, name: 'Haste', polarity: 'buff', stacks: 2, description: 'Gain a single action for a certain number of rounds. Reduces by 1 each round until it reaches 0.', expanded: false }
+          ],
+          actions: [
+            { name: 'Quick Draw', cost: 1, meta: '+6 to hit · Melee', desc: 'Draw your weapon and strike in the same motion, before your target can react.' }
+          ]
+        },
+        {
+          id: 'p2', name: 'Bram Oskar', className: 'Warden',
+          hp: 9, maxHp: 22, tempHp: 3, ac: 15, ap: 3, open: true, actionsOpen: false,
+          statuses: [],
+          actions: [
+            { name: 'Guard Wall', cost: 2, meta: 'DC 13 check · Self', desc: 'Plant your shield and grant nearby allies +2 AC until your next turn.' }
+          ]
+        }
+      ],
+      enemies: [
+        {
+          id: 'e1', name: 'GUNMECH Leo', level: 3,
+          hp: 88, maxHp: 130, ac: 17, ap: 3, open: true, actionsOpen: false,
+          weaknesses: ['Lightning 5', 'Acid 10'], resistances: ['Non-Magical 4', 'Fire 5'],
+          statuses: [
+            { id: 1, name: 'Slowed', polarity: 'debuff', stacks: 1, description: 'Lose a single action for a certain number of rounds. Reduces by 1 each round until it reaches 0.', expanded: false }
+          ],
+          actions: [
+            { name: 'Overcharge Strike', cost: 3, meta: '+5 to hit · Zone AOE', desc: 'A telegraphed, devastating blow that hits everything in the zone.' }
+          ]
+        },
+        {
+          id: 'e2', name: 'Bandit Scout', level: 1,
+          hp: 12, maxHp: 12, ac: 12, ap: 2, open: true, actionsOpen: false,
+          weaknesses: [], resistances: [],
+          statuses: [],
+          actions: [
+            { name: 'Quick Shot', cost: 1, meta: '+4 to hit · Ranged', desc: 'A hurried shot, easy to line up but easier to dodge.' }
+          ]
+        }
+      ],
+      nextStatusId: 10,
+      addStatusOpen: false,
+      addStatusTarget: null,
+      selectedPreset: STATUS_PRESETS[0],
+      newStacks: STATUS_PRESETS[0].stacks,
+      sidebarCharacters: [
+        {
+          id: 'c1', name: 'Kessa Vane', open: true,
+          skills: [
+            { id: 1, name: 'Shakedown', isSkill: true, degree: 2, description: 'Threaten a shaken target into giving up what they’re hiding, no violence required.', expanded: false },
+            { id: 2, name: "Scrambler's Instinct", isSkill: true, degree: 1, description: 'A beat of warning before an ambush lands — enough time to duck for cover.', expanded: false },
+            { id: 3, name: 'Fade Into the Crowd', isSkill: false, degree: 3, description: 'Stands out badly in any crowd smaller than a market day — memorable for all the wrong reasons.', expanded: false }
+          ]
+        },
+        {
+          id: 'c2', name: 'Bram Oskar', open: true,
+          skills: [
+            { id: 1, name: 'Iron Stomach', isSkill: true, degree: 2, description: 'Eats and drinks things that would fell a lesser Warden without complaint.', expanded: false },
+            { id: 2, name: 'Steady Hands', isSkill: true, degree: 1, description: 'Fine work — lockpicks, bandages, detonators — never trembles under pressure.', expanded: false }
+          ]
+        }
+      ]
+    };
+  }
+
+  pickTab(tab) {
+    return () => this.setState({ activeTab: tab });
+  }
+
+  pickMapMode(mode) {
+    return () => this.setState({ mapView: mode });
+  }
+
+  entityKey(kind) {
+    return kind === 'player' ? 'players' : 'enemies';
+  }
+
+  updateEntity(kind, id, updater) {
+    const key = this.entityKey(kind);
+    return () => this.setState({
+      [key]: this.state[key].map(e => e.id === id ? updater(e) : e)
+    });
+  }
+
+  toggleCardOpen(kind, id) {
+    return this.updateEntity(kind, id, e => ({ ...e, open: !e.open }));
+  }
+
+  toggleActionsOpen(kind, id) {
+    return this.updateEntity(kind, id, e => ({ ...e, actionsOpen: !e.actionsOpen }));
+  }
+
+  setAP(kind, id, n) {
+    return this.updateEntity(kind, id, e => ({ ...e, ap: n }));
+  }
+
+  toggleStatus(kind, id, statusId) {
+    return this.updateEntity(kind, id, e => ({
+      ...e,
+      statuses: e.statuses.map(s => s.id === statusId ? { ...s, expanded: !s.expanded } : s)
+    }));
+  }
+
+  removeStatus(kind, id, statusId) {
+    return this.updateEntity(kind, id, e => ({
+      ...e,
+      statuses: e.statuses.filter(s => s.id !== statusId)
+    }));
+  }
+
+  advanceTurn(kind, id) {
+    return this.updateEntity(kind, id, e => ({
+      ...e,
+      statuses: e.statuses
+        .map(s => ({ ...s, stacks: Math.max(0, s.stacks - 1) }))
+        .filter(s => s.stacks > 0)
+    }));
+  }
+
+  openAddStatus(kind, id) {
+    return () => this.setState({
+      addStatusOpen: true,
+      addStatusTarget: { kind, id },
+      selectedPreset: STATUS_PRESETS[0],
+      newStacks: STATUS_PRESETS[0].stacks
+    });
+  }
+
+  closeAddStatus() {
+    return () => this.setState({ addStatusOpen: false, addStatusTarget: null });
+  }
+
+  pickPreset(preset) {
+    return () => this.setState({ selectedPreset: preset, newStacks: preset.stacks });
+  }
+
+  pickPolarity(polarity) {
+    return () => this.setState({ selectedPreset: { ...this.state.selectedPreset, polarity } });
+  }
+
+  incStacks() {
+    return () => this.setState({ newStacks: Math.min(9, this.state.newStacks + 1) });
+  }
+
+  decStacks() {
+    return () => this.setState({ newStacks: Math.max(0, this.state.newStacks - 1) });
+  }
+
+  confirmAddStatus() {
+    return () => {
+      const target = this.state.addStatusTarget;
+      if (!target) return;
+      const preset = this.state.selectedPreset;
+      const newStatus = {
+        id: this.state.nextStatusId,
+        name: preset.name,
+        polarity: preset.polarity,
+        stacks: this.state.newStacks,
+        description: preset.description,
+        expanded: false
+      };
+      const key = this.entityKey(target.kind);
+      this.setState({
+        [key]: this.state[key].map(e => e.id === target.id ? { ...e, statuses: [...e.statuses, newStatus] } : e),
+        nextStatusId: this.state.nextStatusId + 1,
+        addStatusOpen: false,
+        addStatusTarget: null
+      });
+    };
+  }
+
+  toggleSidebarChar(charId) {
+    return () => this.setState({
+      sidebarCharacters: this.state.sidebarCharacters.map(c => c.id === charId ? { ...c, open: !c.open } : c)
+    });
+  }
+
+  toggleSkill(charId, skillId) {
+    return () => this.setState({
+      sidebarCharacters: this.state.sidebarCharacters.map(c => c.id !== charId ? c : {
+        ...c,
+        skills: c.skills.map(s => s.id === skillId ? { ...s, expanded: !s.expanded } : s)
+      })
+    });
+  }
+
+  mapEntity(e, kind, accentVar) {
+    const hpPercent = Math.max(0, Math.min(100, (e.hp / e.maxHp) * 100)) + '%';
+    const apStars = [1, 2, 3, 4].map(n => ({
+      n, filled: n <= e.ap, empty: n > e.ap, pick: this.setAP(kind, e.id, n)
+    }));
+    const statuses = e.statuses.map(s => {
+      const color = POLARITY_COLOR[s.polarity] || POLARITY_COLOR.neutral;
+      const styles = chipStylesFor(color);
+      return {
+        ...s,
+        hasStacks: s.stacks > 0,
+        ...styles,
+        toggle: this.toggleStatus(kind, e.id, s.id),
+        remove: this.removeStatus(kind, e.id, s.id)
+      };
+    });
+    return {
+      ...e,
+      hpPercent,
+      hasTempHp: (e.tempHp || 0) > 0,
+      apStars,
+      statuses,
+      cardChevronStyle: e.open ? 'transform:rotate(90deg);' : '',
+      actionsChevronStyle: e.actionsOpen ? 'transform:rotate(90deg);' : '',
+      toggleOpen: this.toggleCardOpen(kind, e.id),
+      toggleActions: this.toggleActionsOpen(kind, e.id),
+      openAdd: this.openAddStatus(kind, e.id),
+      nextTurn: this.advanceTurn(kind, e.id)
+    };
+  }
+
+  renderVals() {
+    const activeTab = this.state.activeTab;
+
+    const tabDefs = [
+      { key: 'roleplay', label: 'Roleplay' },
+      { key: 'combat', label: 'Combat' },
+      { key: 'maps', label: 'Maps' }
+    ];
+    const tabs = tabDefs.map(t => {
+      const active = t.key === activeTab;
+      return {
+        key: t.key,
+        label: t.label,
+        isRoleplay: t.key === 'roleplay',
+        isCombat: t.key === 'combat',
+        isMaps: t.key === 'maps',
+        pillStyle: active ? 'background:var(--accent);color:var(--on-accent);' : 'background:transparent;color:var(--text-muted);',
+        pick: this.pickTab(t.key)
+      };
+    });
+
+    const players = this.state.players.map(p => this.mapEntity(p, 'player', 'var(--accent)'));
+    const enemies = this.state.enemies.map(e => {
+      const mapped = this.mapEntity(e, 'enemy', 'var(--danger)');
+      return {
+        ...mapped,
+        hasWeakRes: (e.weaknesses.length + e.resistances.length) > 0,
+        weaknessChips: e.weaknesses.map(w => ({ label: w })),
+        resistanceChips: e.resistances.map(r => ({ label: r }))
+      };
+    });
+
+    const selectedPreset = this.state.selectedPreset;
+    const presets = STATUS_PRESETS.map(p => {
+      const isSelected = p.name === selectedPreset.name;
+      const color = POLARITY_COLOR[p.polarity] || POLARITY_COLOR.neutral;
+      return {
+        name: p.name,
+        chipStyle: isSelected
+          ? `border:1px solid ${color};background:${color};color:var(--on-accent);`
+          : `border:1px solid var(--border-strong);background:var(--bg-sunken);color:var(--text-muted);`,
+        pick: this.pickPreset(p)
+      };
+    });
+
+    const polarityDefs = [
+      { key: 'buff', label: 'Buff' },
+      { key: 'debuff', label: 'Debuff' },
+      { key: 'neutral', label: 'Neutral' }
+    ];
+    const polarities = polarityDefs.map(pol => {
+      const isSelected = selectedPreset.polarity === pol.key;
+      const color = POLARITY_COLOR[pol.key];
+      return {
+        label: pol.label,
+        chipStyle: isSelected
+          ? `border:1px solid ${color};background:${color};color:var(--on-accent);`
+          : `border:1px solid var(--border-strong);background:var(--bg-sunken);color:var(--text-muted);`,
+        pick: this.pickPolarity(pol.key)
+      };
+    });
+
+    const sidebarCharacters = this.state.sidebarCharacters.map(c => ({
+      id: c.id,
+      name: c.name,
+      open: c.open,
+      chevronStyle: c.open ? 'transform:rotate(90deg);' : '',
+      sectionBorderStyle: 'border-bottom:1px solid var(--border);',
+      toggle: this.toggleSidebarChar(c.id),
+      skills: c.skills.map(s => ({
+        id: s.id,
+        name: s.name,
+        description: s.description,
+        expanded: s.expanded,
+        borderColor: s.isSkill ? 'var(--accent)' : 'var(--danger)',
+        chevronStyle: s.expanded ? 'display:inline-block;transform:rotate(90deg);' : 'display:inline-block;',
+        stars: Array.from({ length: s.degree }, (_, i) => ({ i })),
+        toggle: this.toggleSkill(c.id, s.id)
+      }))
+    }));
+
+    const target = this.state.addStatusTarget;
+    let addStatusTargetName = '';
+    if (target) {
+      const list = target.kind === 'player' ? this.state.players : this.state.enemies;
+      const found = list.find(e => e.id === target.id);
+      addStatusTargetName = found ? found.name : '';
+    }
+
+    return {
+      tabs,
+      sidebarCharacters,
+      isRoleplay: activeTab === 'roleplay',
+      isCombat: activeTab === 'combat',
+      isMaps: activeTab === 'maps',
+      players,
+      enemies,
+      playerCount: players.length,
+      enemyCount: enemies.length,
+      isLineView: this.state.mapView === 'line',
+      isMapView: this.state.mapView === 'map',
+      pickLineView: this.pickMapMode('line'),
+      pickMapView: this.pickMapMode('map'),
+      lineViewStyle: this.state.mapView === 'line' ? 'background:var(--accent);color:var(--on-accent);' : 'background:transparent;color:var(--text-muted);',
+      mapViewStyle: this.state.mapView === 'map' ? 'background:var(--accent);color:var(--on-accent);' : 'background:transparent;color:var(--text-muted);',
+      addStatusOpen: this.state.addStatusOpen,
+      addStatusTargetName,
+      presets,
+      polarities,
+      newStacks: this.state.newStacks,
+      newDescription: selectedPreset.description,
+      closeAddStatus: this.closeAddStatus(),
+      confirmAddStatus: this.confirmAddStatus(),
+      incStacks: this.incStacks(),
+      decStacks: this.decStacks()
+    };
+  }
+}
+</script>
+</body>
+</html>
