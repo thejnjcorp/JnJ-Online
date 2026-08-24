@@ -1,0 +1,252 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&amp;family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #16161a; --bg-sunken: #101013; --bg-raised: #1f1f25; --bg-hover: #2a2a33;
+      --border: #34343f; --border-strong: #4d4d5c;
+      --text: #ece8e1; --text-muted: #a09a90; --text-faint: #6f6a63; --on-accent: #16161a;
+      --accent: #c8a24a; --accent-hover: #e0bc63; --accent-soft: rgba(200,162,74,0.14);
+      --arcane: #7c4dff; --ember: #d4622a; --danger: #c9453f; --success: #5c9a6b;
+      --font-display: 'Cinzel', Georgia, 'Times New Roman', serif;
+      --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --radius-md: 8px; --radius-lg: 14px; --radius-pill: 999px;
+      --shadow-md: 0 6px 18px rgba(0,0,0,0.45);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: var(--font-body); background: var(--bg); color: var(--text); }
+    .muted { color: var(--text-muted); }
+    .faint { color: var(--text-faint); }
+    .caps { text-transform: uppercase; letter-spacing: 0.08em; }
+    .card { background: var(--bg-raised); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+    button { font-family: inherit; cursor: pointer; }
+    .clamp2 { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  </style>
+</helmet>
+
+<div style="width:100%;min-height:1100px;background:var(--bg);color:var(--text);padding:32px 40px 60px;">
+
+  <!-- HEADER -->
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:14px;">
+    <div>
+      <div style="font-family:var(--font-display);font-size:28px;">Classes</div>
+      <div class="muted" style="font-size:13.5px;margin-top:4px;">Browse every class available in JnJ Online, and add the ones you want to a campaign you direct.</div>
+    </div>
+    <button style="padding:11px 20px;border:none;border-radius:var(--radius-pill);background:var(--accent);color:var(--on-accent);font-weight:700;font-size:13.5px;display:flex;align-items:center;gap:6px;">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      Create New Class
+    </button>
+  </div>
+
+  <!-- SEARCH + FILTERS -->
+  <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:22px;">
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--radius-md);background:var(--bg-sunken);border:1px solid var(--border);max-width:360px;">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--text-faint)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input placeholder="Search classes&hellip;" style="flex:1;background:none;border:none;outline:none;color:var(--text);font-size:13.5px;font-family:inherit;">
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <sc-for list="{{typeFilters}}" as="f" hint-placeholder-count="5">
+          <button onClick="{{f.pick}}" style="{{f.style}}padding:6px 14px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid var(--border-strong);">{{f.label}}</button>
+        </sc-for>
+      </div>
+      <div style="width:1px;height:20px;background:var(--border);"></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <sc-for list="{{visFilters}}" as="f" hint-placeholder-count="4">
+          <button onClick="{{f.pick}}" style="{{f.style}}padding:6px 14px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid var(--border-strong);">{{f.label}}</button>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <!-- GRID -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:18px;">
+    <sc-for list="{{classes}}" as="c" hint-placeholder-count="5">
+      <div class="card" style="{{c.accentBorderStyle}}padding:16px;display:flex;flex-direction:column;gap:10px;position:relative;">
+        <div style="display:flex;align-items:flex-start;gap:10px;">
+          <span style="font-family:var(--font-display);font-size:16px;flex:1;">{{c.name}}</span>
+          <span style="{{c.visBadgeStyle}}padding:3px 9px;border-radius:999px;font-size:10px;font-weight:700;flex-shrink:0;white-space:nowrap;">{{c.visLabel}}</span>
+        </div>
+        <div class="faint" style="font-size:11.5px;">by {{c.author}} &middot; {{c.type}}</div>
+        <div class="muted clamp2" style="font-size:12.5px;line-height:1.5;min-height:38px;">{{c.description}}</div>
+
+        <div style="display:flex;align-items:center;gap:8px;margin-top:2px;">
+          <button style="flex:1;padding:8px;border-radius:var(--radius-md);border:1px solid var(--border);background:transparent;color:var(--text);font-size:12px;font-weight:600;">View Class</button>
+          <sc-if value="{{c.canSubscribe}}" hint-placeholder-val="{{true}}">
+            <button onClick="{{c.toggleAdd}}" style="flex:1;padding:8px;border-radius:var(--radius-md);border:none;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:5px;">
+              Add to Campaign
+              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="{{c.addChevronStyle}}"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+          </sc-if>
+        </div>
+
+        <sc-if value="{{c.addOpen}}" hint-placeholder-val="{{false}}">
+          <div style="position:absolute;z-index:10;top:100%;left:0;right:0;margin-top:6px;padding:12px;background:var(--bg-hover);border:1px solid var(--border-strong);border-radius:var(--radius-md);box-shadow:var(--shadow-md);display:flex;flex-direction:column;gap:8px;">
+            <div class="faint caps" style="font-size:10px;font-weight:700;">Subscribe a campaign you direct</div>
+            <sc-for list="{{c.campaigns}}" as="camp" hint-placeholder-count="2">
+              <button onClick="{{camp.toggle}}" style="{{camp.style}}display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:var(--radius-md);font-size:12.5px;font-weight:600;">
+                <span>{{camp.name}}</span>
+                <sc-if value="{{camp.subscribed}}" hint-placeholder-val="{{false}}">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--on-accent)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+                </sc-if>
+              </button>
+            </sc-for>
+            <button onClick="{{c.toggleAdd}}" style="margin-top:2px;padding:7px;border-radius:var(--radius-md);border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:11.5px;font-weight:600;">Done</button>
+          </div>
+        </sc-if>
+      </div>
+    </sc-for>
+
+    <!-- create-new card -->
+    <button style="border:1px dashed var(--border-strong);border-radius:var(--radius-lg);background:transparent;color:var(--text-muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:150px;">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      <span style="font-size:12.5px;font-weight:600;">Create New Class</span>
+    </button>
+  </div>
+
+  <div class="faint" style="font-size:11px;margin-top:26px;max-width:640px;line-height:1.6;">
+    <strong style="color:var(--text-muted);">Default</strong> classes are admin-curated and available to every campaign automatically. <strong style="color:var(--text-muted);">Pool</strong> classes are public submissions any campaign can opt into. <strong style="color:var(--text-muted);">Private</strong> classes are visible only to their author until shared &mdash; same three-tier model as the Statuses catalog.
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script>
+const TYPE_COLOR = {
+  'Attrionist': 'var(--arcane)',
+  'Crit Hunter': 'var(--ember)',
+  'Manipulator': 'var(--success)',
+  'Snowballer': 'var(--danger)'
+};
+const VIS_STYLE = {
+  default: 'background:var(--accent);color:var(--on-accent);',
+  pool: 'background:transparent;color:var(--arcane);border:1px solid var(--arcane);',
+  private: 'background:transparent;color:var(--text-faint);border:1px solid var(--border-strong);'
+};
+const VIS_LABEL = { default: 'Default', pool: 'Pool', private: 'Private' };
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      typeFilter: 'all',
+      visFilter: 'all',
+      classes: [
+        {
+          id: 'warden', name: 'Warden', type: 'Attrionist', author: 'JnJ Team', visibility: 'default',
+          description: 'A frontline defender who plants their feet and dares the enemy to come through. Grants nearby allies bonus AC and can taunt enemies into attacking them instead.',
+          addOpen: false, campaigns: [{ id: 'camp1', name: 'The Rust Reaches', subscribed: true }, { id: 'camp2', name: 'Low Skies', subscribed: true }]
+        },
+        {
+          id: 'wanderer', name: 'Wanderer', type: 'Crit Hunter', author: 'JnJ Team', visibility: 'default',
+          description: 'A quick, opportunistic striker who thrives on picking the exact right moment to attack before anyone can react.',
+          addOpen: false, campaigns: [{ id: 'camp1', name: 'The Rust Reaches', subscribed: true }, { id: 'camp2', name: 'Low Skies', subscribed: true }]
+        },
+        {
+          id: 'bramblewright', name: 'Bramblewright', type: 'Manipulator', author: 'thornback_gm', visibility: 'pool',
+          description: 'Bends terrain and growth to slow enemies and reposition allies mid-fight. A popular community submission with a loyal following.',
+          addOpen: false, campaigns: [{ id: 'camp1', name: 'The Rust Reaches', subscribed: false }, { id: 'camp2', name: 'Low Skies', subscribed: true }]
+        },
+        {
+          id: 'gunmech-pilot', name: 'Gunmech Pilot', type: 'Snowballer', author: 'ferrous_dm', visibility: 'pool',
+          description: 'Escalates hard once their rig is powered up &mdash; weak early, terrifying by round three if left unchecked.',
+          addOpen: false, campaigns: [{ id: 'camp1', name: 'The Rust Reaches', subscribed: false }, { id: 'camp2', name: 'Low Skies', subscribed: false }]
+        },
+        {
+          id: 'my-homebrew', name: 'Ashwake Cultist', type: 'Manipulator', author: 'You', visibility: 'private',
+          description: 'Your own in-progress homebrew &mdash; only visible to you until you make it public.',
+          addOpen: false, campaigns: []
+        }
+      ]
+    };
+  }
+
+  pickTypeFilter(type) {
+    return () => this.setState({ typeFilter: type });
+  }
+
+  pickVisFilter(vis) {
+    return () => this.setState({ visFilter: vis });
+  }
+
+  toggleAdd(classId) {
+    return () => this.setState({
+      classes: this.state.classes.map(c => c.id === classId ? { ...c, addOpen: !c.addOpen } : c)
+    });
+  }
+
+  toggleCampaignSub(classId, campaignId) {
+    return () => this.setState({
+      classes: this.state.classes.map(c => c.id !== classId ? c : {
+        ...c,
+        campaigns: c.campaigns.map(camp => camp.id === campaignId ? { ...camp, subscribed: !camp.subscribed } : camp)
+      })
+    });
+  }
+
+  renderVals() {
+    const typeFilter = this.state.typeFilter;
+    const visFilter = this.state.visFilter;
+
+    const typeDefs = ['all', 'Attrionist', 'Crit Hunter', 'Manipulator', 'Snowballer'];
+    const typeFilters = typeDefs.map(t => ({
+      key: t,
+      label: t === 'all' ? 'All Types' : t,
+      style: t === typeFilter ? 'background:var(--accent);color:var(--on-accent);' : 'background:var(--bg-sunken);color:var(--text-muted);',
+      pick: this.pickTypeFilter(t)
+    }));
+
+    const visDefs = [
+      { key: 'all', label: 'All' },
+      { key: 'default', label: 'Default' },
+      { key: 'pool', label: 'Pool' },
+      { key: 'private', label: 'Private' }
+    ];
+    const visFilters = visDefs.map(v => ({
+      key: v.key,
+      label: v.label,
+      style: v.key === visFilter ? 'background:var(--accent);color:var(--on-accent);' : 'background:var(--bg-sunken);color:var(--text-muted);',
+      pick: this.pickVisFilter(v.key)
+    }));
+
+    const filtered = this.state.classes.filter(c => {
+      if (typeFilter !== 'all' && c.type !== typeFilter) return false;
+      if (visFilter !== 'all' && c.visibility !== visFilter) return false;
+      return true;
+    });
+
+    const classes = filtered.map(c => {
+      const typeColor = TYPE_COLOR[c.type] || 'var(--border-strong)';
+      return {
+        ...c,
+        accentBorderStyle: `border-left:3px solid ${typeColor};`,
+        visBadgeStyle: VIS_STYLE[c.visibility],
+        visLabel: VIS_LABEL[c.visibility],
+        canSubscribe: c.visibility === 'default' || c.visibility === 'pool',
+        addChevronStyle: c.addOpen ? 'transform:rotate(180deg);' : '',
+        toggleAdd: this.toggleAdd(c.id),
+        campaigns: c.campaigns.map(camp => ({
+          ...camp,
+          style: camp.subscribed ? 'background:var(--accent);color:var(--on-accent);border:none;' : 'background:var(--bg-sunken);color:var(--text);border:1px solid var(--border);',
+          toggle: this.toggleCampaignSub(c.id, camp.id)
+        }))
+      };
+    });
+
+    return {
+      typeFilters,
+      visFilters,
+      classes
+    };
+  }
+}
+</script>
+</body>
+</html>

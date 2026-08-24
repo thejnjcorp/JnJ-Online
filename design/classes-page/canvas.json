@@ -1,0 +1,11 @@
+{
+  "artboards": [
+    { "file": "Before.dc.html", "x": 0, "y": 0, "w": 950, "h": 950, "title": "Current (Before)" },
+    { "file": "Main.dc.html", "x": 1030, "y": 0, "w": 1300, "h": 1180, "title": "Classes Catalog — Redesign" },
+    { "file": "CampaignClasses.dc.html", "x": 2410, "y": 0, "w": 1300, "h": 1230, "title": "Director: Manage Campaign Classes" }
+  ],
+  "annotations": [
+    { "id": "brief-summary", "x": 0, "y": -160, "w": 560, "text": "Classes redesign — two deliverables. (1) The global Classes catalog page, restyled with DarkArcane tokens plus a new Default/Pool/Private visibility model (classes have none today — everything is visible to everyone) and a quick per-card 'Add to Campaign' subscribe action. (2) A new director-facing 'Manage Campaign Classes' screen — default classes shown as always-included, subscribed pool classes with remove, and a browse-and-subscribe grid for the rest. Mirrors the subscription model already used for Statuses (campaigns.subscribedStatusIds) but as a real dedicated workflow instead of a toggle buried in an edit form." }
+  ],
+  "launch": { "view": "canvas" }
+}

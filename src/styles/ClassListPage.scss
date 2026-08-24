@@ -1,61 +1,299 @@
-.ClassListPage-class-card {
-    border-width: 2px;
-    border-radius: 10px;
-    width: 30vw;
-    border-style: hidden;
-    font-weight: bold;
-    font-size: 36px;
-    margin: 20px;
-    padding-top: 20px;
-    padding-bottom: 20px;
-    color: white;
-    background: rgba(161, 244, 255, 0.541);
-
-    &:hover {
-        background: rgba(123, 186, 194, 0.541);
-        color: cyan;
-    }
-}
-
-.ClassListPage-class-card-small-text {
-    font-size: 24px;
-    font-weight: 100;
-}
-
+/* Same height-capped, internally-scrolling idiom as StatusListPage.js - see
+   the note on .StatusListPage in styles/StatusListPage.scss. */
 .ClassListPage {
-    width: 100vw;
-    height: 90vh;
+    box-sizing: border-box;
+    width: 100%;
+    height: calc(100vh - var(--jnj-nav-height));
     overflow-y: auto;
-    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--jnj-color-text);
+}
+
+.ClassListPage-inner {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: var(--jnj-content-max);
+    padding: var(--jnj-space-6) var(--jnj-space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-5);
+    text-align: left;
 }
 
 .ClassListPage-title {
+    font-family: var(--jnj-font-display);
+    font-size: var(--jnj-text-3xl);
+    margin: 0;
+}
+
+.ClassListPage-subtitle {
+    margin: var(--jnj-space-2) 0 0;
+    color: var(--jnj-color-text-muted);
+}
+
+.ClassListPage-filter-groups {
     display: flex;
     flex-wrap: wrap;
-    width: 90vw;
-    justify-content: center;
-    align-content: center;
-    font-size: 48px;
-    font-weight: bold;
-    letter-spacing: 1px;
-    padding-bottom: 10px;
-    margin-left: 5vw;
-    margin-right: 5vw;
-    margin-bottom: 30px;
-    border: 0px;
-    border-bottom: 2px;
-    border-color: white;
-    border-style: solid;
+    gap: var(--jnj-space-3);
 }
 
-.ClassListPage-class-card-description {
-    width: 28vw;
-    margin: 0px 10px;
-    height: 120px;
-    white-space: pre-wrap;
-    overflow-y: auto;
+.ClassListPage-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 5px;
+    border-radius: var(--jnj-radius-pill);
+    background: var(--jnj-color-bg-sunken);
+    width: max-content;
 }
 
-.ClassListPage-selector-button {
-    font-size: 24px;
+.ClassListPage-filter-button {
+    padding: 8px 16px;
+    border-style: none;
+    border-radius: var(--jnj-radius-pill);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--jnj-color-text-muted);
+    background-color: transparent;
+    cursor: pointer;
+    transition: background-color var(--jnj-transition), color var(--jnj-transition);
+
+    &:hover {
+        color: var(--jnj-color-text);
+    }
+}
+
+.ClassListPage-filter-button-active {
+    background: var(--jnj-color-accent);
+    color: var(--jnj-color-on-accent);
+
+    &:hover {
+        color: var(--jnj-color-on-accent);
+    }
+}
+
+.ClassListPage-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--jnj-space-4);
+}
+
+.ClassListPage-card {
+    box-sizing: border-box;
+    position: relative;
+    text-align: left;
+    padding: var(--jnj-space-4);
+    background-color: var(--jnj-color-bg-raised);
+    border: 1px solid var(--jnj-color-border);
+    border-left: 3px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-lg);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.ClassListPage-card-arcane {
+    border-left-color: var(--jnj-color-arcane);
+}
+
+.ClassListPage-card-ember {
+    border-left-color: var(--jnj-color-ember);
+}
+
+.ClassListPage-card-success {
+    border-left-color: var(--jnj-color-success);
+}
+
+.ClassListPage-card-danger {
+    border-left-color: var(--jnj-color-danger);
+}
+
+.ClassListPage-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.ClassListPage-card-name {
+    font-family: var(--jnj-font-display);
+    font-size: 16px;
+    flex: 1;
+    min-width: 0;
+}
+
+.ClassListPage-card-vis-badge {
+    flex-shrink: 0;
+    padding: 3px 9px;
+    border-radius: var(--jnj-radius-pill);
+    font-size: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.ClassListPage-card-vis-badge-default {
+    background: var(--jnj-color-accent);
+    color: var(--jnj-color-on-accent);
+}
+
+.ClassListPage-card-vis-badge-pool {
+    background: transparent;
+    color: var(--jnj-color-arcane);
+    border: 1px solid var(--jnj-color-arcane);
+}
+
+.ClassListPage-card-vis-badge-private {
+    background: transparent;
+    color: var(--jnj-color-text-faint);
+    border: 1px solid var(--jnj-color-border-strong);
+}
+
+.ClassListPage-card-meta {
+    font-size: 11.5px;
+    color: var(--jnj-color-text-faint);
+}
+
+.ClassListPage-card-description {
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--jnj-color-text-muted);
+    min-height: 38px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.ClassListPage-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px;
+}
+
+.ClassListPage-card-view-button {
+    flex: 1;
+    padding: 8px;
+    border-radius: var(--jnj-radius-md);
+    border: 1px solid var(--jnj-color-border);
+    background: transparent;
+    color: var(--jnj-color-text);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color var(--jnj-transition);
+
+    &:hover {
+        border-color: var(--jnj-color-border-strong);
+    }
+}
+
+.ClassListPage-card-add-button {
+    flex: 1;
+    padding: 8px;
+    border-radius: var(--jnj-radius-md);
+    border: none;
+    background: var(--jnj-color-accent-soft);
+    color: var(--jnj-color-accent);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.ClassListPage-add-popover {
+    position: absolute;
+    z-index: 10;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 6px;
+    padding: 12px;
+    background: var(--jnj-color-bg-hover);
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-md);
+    box-shadow: var(--jnj-shadow-md);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ClassListPage-add-popover-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--jnj-color-text-faint);
+}
+
+.ClassListPage-hint {
+    font-size: 12px;
+    color: var(--jnj-color-text-muted);
+}
+
+.ClassListPage-add-popover-chip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-radius: var(--jnj-radius-md);
+    font-size: 12.5px;
+    font-weight: 600;
+    border: 1px solid var(--jnj-color-border);
+    background: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text);
+    cursor: pointer;
+}
+
+.ClassListPage-add-popover-chip-selected {
+    border: none;
+    background: var(--jnj-color-accent);
+    color: var(--jnj-color-on-accent);
+}
+
+.ClassListPage-add-popover-check {
+    font-weight: 700;
+}
+
+.ClassListPage-add-popover-done {
+    margin-top: 2px;
+    padding: 7px;
+    border-radius: var(--jnj-radius-md);
+    border: 1px solid var(--jnj-color-border);
+    background: transparent;
+    color: var(--jnj-color-text-muted);
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ClassListPage-empty {
+    color: var(--jnj-color-text-muted);
+}
+
+.ClassListPage-create-button {
+    align-self: flex-start;
+    padding: var(--jnj-space-3) var(--jnj-space-5);
+    border-radius: var(--jnj-radius-pill);
+    border-style: none;
+    background-color: var(--jnj-color-accent);
+    color: var(--jnj-color-on-accent);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color var(--jnj-transition);
+
+    &:hover {
+        background-color: var(--jnj-color-accent-hover);
+    }
+}
+
+.ClassListPage-footnote {
+    font-size: 11px;
+    color: var(--jnj-color-text-faint);
+    max-width: 640px;
+    line-height: 1.6;
+
+    strong {
+        color: var(--jnj-color-text-muted);
+    }
 }

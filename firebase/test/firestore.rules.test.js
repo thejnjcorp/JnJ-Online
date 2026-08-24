@@ -352,6 +352,141 @@ async function main() {
         );
     });
 
+    console.log('\nClass catalog (classes collection, mirrors the statuses model above):');
+
+    await check('a signed-in user can create a class', async () => {
+        await testEnv.clearFirestore();
+        const alice = testEnv.authenticatedContext('alice');
+        await assertSucceeds(
+            addDoc(collection(alice.firestore(), 'classes'), {
+                class_name: 'Warden',
+                class_type: 'Attrionist',
+                author: 'alice',
+                public: true,
+                isDefault: false,
+                canRead: [],
+                canWrite: ['alice'],
+            })
+        );
+    });
+
+    await check('a signed-out visitor cannot create a class', async () => {
+        await testEnv.clearFirestore();
+        const anon = testEnv.unauthenticatedContext();
+        await assertFails(
+            addDoc(collection(anon.firestore(), 'classes'), { class_name: 'Should Fail' })
+        );
+    });
+
+    await check('any signed-in user can read a public (pool) class', async () => {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'classes', 'warden'), {
+                class_name: 'Warden', public: true, isDefault: false, canRead: [], canWrite: ['bob'],
+            });
+        });
+        const alice = testEnv.authenticatedContext('alice');
+        await assertSucceeds(getDoc(doc(alice.firestore(), 'classes', 'warden')));
+    });
+
+    await check('a non-listed user cannot read a private class', async () => {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'classes', 'homebrew'), {
+                class_name: 'Ashwake Cultist', public: false, canRead: ['bob'], canWrite: ['bob'],
+            });
+        });
+        const mallory = testEnv.authenticatedContext('mallory');
+        await assertFails(getDoc(doc(mallory.firestore(), 'classes', 'homebrew')));
+    });
+
+    await check('the creator can always read their own private class', async () => {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'classes', 'homebrew'), {
+                class_name: 'Ashwake Cultist', public: false, canRead: ['bob'], canWrite: ['bob'],
+            });
+        });
+        const bob = testEnv.authenticatedContext('bob');
+        await assertSucceeds(getDoc(doc(bob.firestore(), 'classes', 'homebrew')));
+    });
+
+    await check('a plain unfiltered list query only returns classes the requester can read', async () => {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'classes', 'public-one'), {
+                class_name: 'Warden', public: true, canRead: [], canWrite: ['bob'],
+            });
+            await setDoc(doc(adminCtx.firestore(), 'classes', 'private-one'), {
+                class_name: 'Ashwake Cultist', public: false, canRead: ['bob'], canWrite: ['bob'],
+            });
+        });
+        const mallory = testEnv.authenticatedContext('mallory');
+        const snap = await getDocs(query(collection(mallory.firestore(), 'classes'), where('public', '==', true)));
+        if (snap.docs.length !== 1 || snap.docs[0].id !== 'public-one') {
+            throw new Error(`expected exactly [public-one], got [${snap.docs.map(d => d.id).join(', ')}]`);
+        }
+    });
+
+    console.log('\nAdmin-only default classes (isDefault):');
+
+    await check('a non-admin cannot create a class with isDefault: true', async () => {
+        await testEnv.clearFirestore();
+        const mallory = testEnv.authenticatedContext('mallory');
+        await assertFails(
+            addDoc(collection(mallory.firestore(), 'classes'), {
+                class_name: 'Self-Promoted Default', isDefault: true, public: true, canRead: [], canWrite: ['mallory'],
+            })
+        );
+    });
+
+    await check('a non-admin can still create a regular (non-default) pool class', async () => {
+        await testEnv.clearFirestore();
+        const mallory = testEnv.authenticatedContext('mallory');
+        await assertSucceeds(
+            addDoc(collection(mallory.firestore(), 'classes'), {
+                class_name: 'Ashwake Cultist', isDefault: false, public: true, canRead: [], canWrite: ['mallory'],
+            })
+        );
+    });
+
+    await check('the admin account can create a default class', async () => {
+        await testEnv.clearFirestore();
+        const admin = testEnv.authenticatedContext(ADMIN_UID);
+        await assertSucceeds(
+            addDoc(collection(admin.firestore(), 'classes'), {
+                class_name: 'Warden', isDefault: true, public: true, canRead: [], canWrite: [ADMIN_UID],
+            })
+        );
+    });
+
+    await check('a non-admin author cannot promote their own class to isDefault later', async () => {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'classes', 'homebrew'), {
+                class_name: 'Ashwake Cultist', isDefault: false, public: true, canRead: [], canWrite: ['mallory'],
+            });
+        });
+        const mallory = testEnv.authenticatedContext('mallory');
+        await assertFails(
+            updateDoc(doc(mallory.firestore(), 'classes', 'homebrew'), { isDefault: true })
+        );
+    });
+
+    await check('a non-author cannot edit someone else\'s class', async () => {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'classes', 'warden'), {
+                class_name: 'Warden',
+                canWrite: ['bob'],
+            });
+        });
+        const mallory = testEnv.authenticatedContext('mallory');
+        await assertFails(
+            updateDoc(doc(mallory.firestore(), 'classes', 'warden'), { class_name: 'Hijacked' })
+        );
+    });
+
     await testEnv.cleanup();
 
     if (failures > 0) {

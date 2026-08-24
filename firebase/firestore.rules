@@ -34,12 +34,22 @@ service cloud.firestore {
       allow create: if isSignedIn() && !documentExists("characters", characterId);
     }
 
+    // Same three-tier model as statuses above (public/isDefault/canRead,
+    // isDefault admin-gated on every write, no cross-document get()/exists()
+    // so a plain equality/array-contains list query stays provable - see
+    // ClassListPage.js/NewCharacterPage.js) minus the campaign-lock tier: a
+    // class doc doesn't currently offer authoring one scoped to a single
+    // campaign from the start, only Default (isDefault, admin-curated, every
+    // campaign gets it automatically), Pool (public, a campaign has to
+    // subscribe via campaigns.subscribedClassIds - written under the
+    // existing campaign write rules, no change needed there - before it's
+    // offered in that campaign's class picker), and Private (canRead only).
     match /classes/{classId} {
-    	allow read: if isSignedIn();
+    	allow read: if isSignedIn() && (resource.data.public == true || uid() in canWriteField() || uid() in canReadField());
 
-    	allow read, write: if isSignedIn() && uid() in canWriteField();
+      allow write: if isSignedIn() && uid() in canWriteField() && (!('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
 
-      allow create: if isSignedIn() && !documentExists("classes", classId);
+      allow create: if isSignedIn() && !documentExists("classes", classId) && (!('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
     }
 
     match /races/{raceId} {

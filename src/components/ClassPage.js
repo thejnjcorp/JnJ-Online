@@ -1,10 +1,34 @@
 import { useEffect, useReducer, useState } from 'react';
 import { reverseCharacterDiceConverter, CharacterDiceConverter } from './CharacterStatCalculator';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { addDoc, collection, getDoc, doc, updateDoc } from '@firebase/firestore';
+import { addDoc, arrayRemove, arrayUnion, collection, getDoc, getDocs, doc, or, query, updateDoc, where } from '@firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../utils/firebase';
+import { ADMIN_UIDS } from '../utils/statusEffects';
 import ClassLayout from '../ClassLayout.json';
 import '../styles/ClassPage.scss';
+
+// Same three-tier model as StatusPage.js's getVisibilityOptions, minus the
+// campaign-lock tier (no class-creation flow asks for one yet - see the
+// comment on the classes match block in firestore.rules).
+function getVisibilityOptions(isAdmin) {
+    return [
+        {
+            key: 'public',
+            label: isAdmin ? 'Public (Default)' : 'Pool (Public)',
+            hint: isAdmin
+                ? 'Every campaign gets this automatically - no subscription needed. Only the admin account can create these.'
+                : "Any signed-in user can browse this in the Classes catalog, but a Director has to subscribe their campaign to it (see below, once saved) before it's offered when creating a character in that campaign.",
+        },
+        { key: 'private', label: 'Private', hint: 'Only visible to you (and anyone else you add to canWrite).' },
+    ];
+}
+
+// Derives the UI-only "visibility" radio from the persisted public field, so
+// editing an existing class starts on the right option.
+function visibilityFromDoc(data) {
+    return data.public ? 'public' : 'private';
+}
 
 const formReducer = (state, event) => {
     switch(event.type) {
@@ -70,12 +94,15 @@ const formReducer = (state, event) => {
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 export function ClassPage() {
-    const [formData, setFormData] = useReducer(formReducer, {});
+    const [formData, setFormData] = useReducer(formReducer, { visibility: 'public' });
     const [isPageVisible, setIsPageVisible] = useState(true);
     const [isActionListVisible, setIsActionListVisible] = useState(true);
     const [areTagsVisible, setAreTagsVisible] = useState(true);
+    const [userId, setUserId] = useState('');
+    const [myCampaigns, setMyCampaigns] = useState([]);
     const navigate = useNavigate();
     const location = useLocation();
+    const classId = location.pathname.split('/').at(2);
 
     useEffect(() => {
         document.title = "New Class";
@@ -86,11 +113,52 @@ export function ClassPage() {
         // eslint-disable-next-line
     }, [location])
 
+    useEffect(() => {
+        // auth.currentUser can still be null right after a hard page load,
+        // before Firebase has rehydrated the session - waiting on this (same
+        // as StatusPage.js does) avoids the admin/subscribe sections
+        // silently staying empty on a fresh navigation or a page refresh.
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (!user) return;
+            setUserId(user.uid);
+            // Same "campaigns I belong to" query StatusPage.js already uses
+            // for its own subscribe section.
+            getDocs(query(collection(db, 'campaigns'), or(where('canRead', 'array-contains', user.uid), where('canWrite', 'array-contains', user.uid))))
+                .then(querySnapshot => {
+                    setMyCampaigns(querySnapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+                }).catch(error => console.log(error));
+            unsubscribe();
+        });
+    }, []);
+
     async function getClassData() {
         const docRef = await getDoc(doc(db, "classes", location.pathname.split('/').at(2)));
-        setFormData({ type: 'SET_FORM_DATA', payload: docRef.data() });
-        document.title = docRef.data().class_name;
+        const data = docRef.data();
+        setFormData({ type: 'SET_FORM_DATA', payload: { ...data, visibility: visibilityFromDoc(data) } });
+        document.title = data.class_name;
         rerenderPage();
+    }
+
+    // Subscribing writes to the campaign doc, not the class - needs actual
+    // write access there (director or canWrite), not just membership (the
+    // broader "campaigns I belong to" list myCampaigns already fetches).
+    const myWritableCampaigns = myCampaigns.filter(c => c.canWrite?.includes(userId) || c.director_uid === userId);
+
+    async function toggleSubscription(campaign) {
+        const subscribed = campaign.subscribedClassIds?.includes(classId);
+        try {
+            await updateDoc(doc(db, 'campaigns', campaign.id), {
+                subscribedClassIds: subscribed ? arrayRemove(classId) : arrayUnion(classId)
+            });
+            setMyCampaigns(prev => prev.map(c => c.id !== campaign.id ? c : {
+                ...c,
+                subscribedClassIds: subscribed
+                    ? (c.subscribedClassIds || []).filter(id => id !== classId)
+                    : [...(c.subscribedClassIds || []), classId],
+            }));
+        } catch (e) {
+            alert(e);
+        }
     }
 
     const rerenderPage = async function() {
@@ -100,6 +168,9 @@ export function ClassPage() {
     }
 
     const canWrite = !formData.canWrite?.includes(auth.currentUser.uid) && (location.pathname.split('/').length > 2);
+    const isAdmin = Boolean(userId) && ADMIN_UIDS.includes(userId);
+    const isEditing = location.pathname.split('/').length > 2;
+    const VISIBILITIES = getVisibilityOptions(isAdmin);
 
     const handleChange = event => {
         const { name, type, checked, value } = event.target;
@@ -232,10 +303,20 @@ export function ClassPage() {
                 }
         })
         
+        // isDefault only ever true for the admin account - a non-admin
+        // picking "Public" lands in the pool instead (public + browsable,
+        // but a campaign has to subscribe before it's offered when creating
+        // a character - see "Subscribe your campaigns" below). Mirrors
+        // StatusPage.js's identical handleSubmit branch.
+        const visibilityFields = formData.visibility === 'public'
+            ? { public: true, isDefault: isAdmin, canRead: [] }
+            : { public: false, isDefault: false, canRead: [auth.currentUser.uid] };
+
         if (location.pathname.split('/').length > 2) {
             try {
                 await updateDoc(doc(db, "classes", location.pathname.split('/').at(2)), {
-                    ...formData, 
+                    ...formData,
+                    ...visibilityFields,
                     canWrite: [auth.currentUser.uid]
                 });
                 alert("successfully updated the class")
@@ -245,6 +326,7 @@ export function ClassPage() {
         } else {
             const docRef = await addDoc(collection(db, "classes"), {
                 ...formData,
+                ...visibilityFields,
                 canWrite: [auth.currentUser.uid]
             });
             navigate(docRef.id);
@@ -294,6 +376,20 @@ export function ClassPage() {
                 <option value="Manipulator">Manipulator</option>
                 <option value="Snowballer">Snowballer</option>
             </select>
+        </div>
+        <div className='ClassPage-input'>
+            Visibility:
+            <select
+                className='ClassPage-input-box'
+                name="visibility"
+                onChange={handleChange}
+                type='dropdown'
+                value={formData.visibility || 'public'}
+                disabled={canWrite}
+            >
+                {VISIBILITIES.map(v => <option key={v.key} value={v.key}>{v.label}</option>)}
+            </select>
+            <div className='ClassPage-hint'>{VISIBILITIES.find(v => v.key === (formData.visibility || 'public'))?.hint}</div>
         </div>
         <div className='ClassPage-input'>
             Base Armor Class:
@@ -666,6 +762,22 @@ export function ClassPage() {
                 </div>
             })}
         </div>
+        {isEditing && formData.public && !formData.isDefault && <div className='ClassPage-input'>
+            Subscribe your campaigns:
+            <div className='ClassPage-hint'>A pool class like this one only shows up when creating a character in a campaign once that campaign subscribes to it - not automatically, the way an admin default would.</div>
+            {myWritableCampaigns.length === 0 && <div className='ClassPage-hint'>You don't direct (or have write access to) any campaigns yet.</div>}
+            {myWritableCampaigns.map(c => {
+                const subscribed = c.subscribedClassIds?.includes(classId);
+                return <button
+                    key={c.id}
+                    type="button"
+                    className={subscribed ? 'ClassPage-chip ClassPage-chip-selected' : 'ClassPage-chip'}
+                    onClick={() => toggleSubscription(c)}
+                >
+                    {c.campaign_name}{subscribed ? ' ✓' : ''}
+                </button>;
+            })}
+        </div>}
         <button className='ClassPage-submit-button' type='submit' onClick={() => handleSubmit()} disabled={canWrite}>
             {location.pathname.split('/').length > 2 ? "Update Class" : "Create Class"}
         </button>

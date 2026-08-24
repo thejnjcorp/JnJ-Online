@@ -2,7 +2,7 @@ import '../styles/NewCharacterPage.scss'
 import { useEffect, useReducer, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { db, auth } from '../utils/firebase';
-import { collection, addDoc, getDocs, getDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, getDoc, doc, or, query, where } from 'firebase/firestore';
 import { onAuthStateChanged } from "firebase/auth";
 import { CharacterDiceConverter } from './CharacterStatCalculator';
 import { CombatActionList } from './CombatActionList';
@@ -33,11 +33,11 @@ export function NewCharacterPage() {
     const location = useLocation();
 
     useEffect(() => {
-        getClassList();
         getRaceList();
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (!user) return;
             getPlayerInfo(user);
+            getClassList(user.uid);
             unsubscribe();
         });
         // eslint-disable-next-line
@@ -60,10 +60,29 @@ export function NewCharacterPage() {
         console.log("ready to submit!")
     },[formData])
 
-    async function getClassList() {
+    async function getClassList(uid) {
         try {
-           const docsSnapshot = await getDocs(collection(db, "classes"));
-            setClassList(docsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}))); 
+            // Same visibility scoping StatusListPage.js/AddStatusDialog.js
+            // already use for statuses - public classes plus anything this
+            // viewer can read/write - then narrowed to what this campaign
+            // actually offers (an admin default, a class this viewer
+            // authored, or one the campaign has subscribed to) so a
+            // character can't be given a class outside that set. See
+            // design/classes-page/handoff/CLASSES_REDESIGN_HANDOFF.md's
+            // "Consuming the subscription" section.
+            let subscribedClassIds = [];
+            try {
+                const campaignSnap = await getDoc(doc(db, "campaigns", location.pathname.split("/").at(2)));
+                subscribedClassIds = campaignSnap.data()?.subscribedClassIds || [];
+            } catch (e) {
+                console.log(e);
+            }
+            const classesQuery = query(collection(db, "classes"),
+                or(where("public", "==", true), where("canRead", "array-contains", uid), where("canWrite", "array-contains", uid)));
+            const docsSnapshot = await getDocs(classesQuery);
+            const all = docsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+            const inScope = all.filter(c => c.isDefault || c.canWrite?.includes(uid) || subscribedClassIds.includes(c.id));
+            setClassList(inScope);
         } catch(e) {
             console.log("Failed to get Class list: " + e)
         }

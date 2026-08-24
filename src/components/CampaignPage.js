@@ -215,6 +215,9 @@ export function CampaignPage() {
             <button className='CampaignPage-secondary-button' onClick={() => navigate("/directors/" + campaignId)}>
                 Director Mode
             </button>
+            <button className='CampaignPage-secondary-button' onClick={() => navigate("/campaigns/" + campaignId + "/classes")}>
+                Manage Classes
+            </button>
         </div>
 
         <section className="CampaignPage-players">

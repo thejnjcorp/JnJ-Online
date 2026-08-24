@@ -1,0 +1,326 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Classes Redesign — Reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #16161a; --bg-sunken: #101013; --bg-raised: #1f1f25; --bg-hover: #2a2a33;
+    --border: #34343f; --border-strong: #4d4d5c;
+    --text: #ece8e1; --text-muted: #a09a90; --text-faint: #6f6a63; --on-accent: #16161a;
+    --accent: #c8a24a; --accent-hover: #e0bc63; --accent-soft: rgba(200,162,74,0.14);
+    --arcane: #7c4dff; --ember: #d4622a; --danger: #c9453f; --success: #5c9a6b;
+    --font-display: 'Cinzel', Georgia, 'Times New Roman', serif;
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --radius-md: 8px; --radius-lg: 14px; --radius-pill: 999px;
+    --shadow-md: 0 6px 18px rgba(0,0,0,0.45);
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: var(--font-body); background: var(--bg); color: var(--text); }
+  .muted { color: var(--text-muted); }
+  .faint { color: var(--text-faint); }
+  .caps { text-transform: uppercase; letter-spacing: 0.08em; }
+  .card { background: var(--bg-raised); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+  button { font-family: inherit; cursor: pointer; }
+  .clamp2 { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .tabs { display:flex; gap:6px; padding:5px; border-radius:999px; background:var(--bg-sunken); width:max-content; margin:20px 40px 0; }
+  .tab-btn { padding:9px 18px; border:none; border-radius:999px; font-size:13px; font-weight:600; background:transparent; color:var(--text-muted); }
+  .tab-btn.active { background:var(--accent); color:var(--on-accent); }
+  .page-wrap { width:100%; min-height:100vh; }
+  .screen { display:none; }
+  .screen.active { display:block; }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+  <div class="tabs" id="screen-tabs"></div>
+  <div id="catalog-screen" class="screen"></div>
+  <div id="manage-screen" class="screen"></div>
+</div>
+
+<script>
+const TYPE_COLOR = { 'Attrionist': 'var(--arcane)', 'Crit Hunter': 'var(--ember)', 'Manipulator': 'var(--success)', 'Snowballer': 'var(--danger)' };
+const VIS_STYLE = {
+  default: 'background:var(--accent);color:var(--on-accent);',
+  pool: 'background:transparent;color:var(--arcane);border:1px solid var(--arcane);',
+  private: 'background:transparent;color:var(--text-faint);border:1px solid var(--border-strong);'
+};
+const VIS_LABEL = { default: 'Default', pool: 'Pool', private: 'Private' };
+const TYPE_DEFS = ['all', 'Attrionist', 'Crit Hunter', 'Manipulator', 'Snowballer'];
+
+let state = {
+  activeScreen: 'catalog',
+  typeFilter: 'all',
+  visFilter: 'all',
+  classes: [
+    { id: 'warden', name: 'Warden', type: 'Attrionist', author: 'JnJ Team', visibility: 'default',
+      description: 'A frontline defender who plants their feet and dares the enemy to come through. Grants nearby allies bonus AC and can taunt enemies into attacking them instead.',
+      addOpen: false, campaigns: [{ id: 'camp1', name: 'The Rust Reaches', subscribed: true }, { id: 'camp2', name: 'Low Skies', subscribed: true }] },
+    { id: 'wanderer', name: 'Wanderer', type: 'Crit Hunter', author: 'JnJ Team', visibility: 'default',
+      description: 'A quick, opportunistic striker who thrives on picking the exact right moment to attack before anyone can react.',
+      addOpen: false, campaigns: [{ id: 'camp1', name: 'The Rust Reaches', subscribed: true }, { id: 'camp2', name: 'Low Skies', subscribed: true }] },
+    { id: 'bramblewright', name: 'Bramblewright', type: 'Manipulator', author: 'thornback_gm', visibility: 'pool',
+      description: 'Bends terrain and growth to slow enemies and reposition allies mid-fight. A popular community submission with a loyal following.',
+      addOpen: false, campaigns: [{ id: 'camp1', name: 'The Rust Reaches', subscribed: false }, { id: 'camp2', name: 'Low Skies', subscribed: true }] },
+    { id: 'gunmech-pilot', name: 'Gunmech Pilot', type: 'Snowballer', author: 'ferrous_dm', visibility: 'pool',
+      description: 'Escalates hard once their rig is powered up — weak early, terrifying by round three if left unchecked.',
+      addOpen: false, campaigns: [{ id: 'camp1', name: 'The Rust Reaches', subscribed: false }, { id: 'camp2', name: 'Low Skies', subscribed: false }] },
+    { id: 'my-homebrew', name: 'Ashwake Cultist', type: 'Manipulator', author: 'You', visibility: 'private',
+      description: 'Your own in-progress homebrew — only visible to you until you make it public.',
+      addOpen: false, campaigns: [] }
+  ],
+  manage: {
+    activeCampaign: 'camp1',
+    campaigns: [{ id: 'camp1', name: 'The Rust Reaches' }, { id: 'camp2', name: 'Low Skies' }],
+    typeFilter: 'all',
+    defaultClasses: [{ id: 'warden', name: 'Warden', type: 'Attrionist' }, { id: 'wanderer', name: 'Wanderer', type: 'Crit Hunter' }],
+    poolClasses: {
+      camp1: [
+        { id: 'bramblewright', name: 'Bramblewright', type: 'Manipulator', author: 'thornback_gm', description: 'Bends terrain and growth to slow enemies and reposition allies mid-fight.', subscribed: false },
+        { id: 'gunmech-pilot', name: 'Gunmech Pilot', type: 'Snowballer', author: 'ferrous_dm', description: 'Escalates hard once their rig is powered up — weak early, terrifying by round three.', subscribed: false },
+        { id: 'ashcaller', name: 'Ashcaller', type: 'Attrionist', author: 'moorwen', description: 'Trades their own health for stacking burn damage on everything nearby.', subscribed: true }
+      ],
+      camp2: [
+        { id: 'bramblewright', name: 'Bramblewright', type: 'Manipulator', author: 'thornback_gm', description: 'Bends terrain and growth to slow enemies and reposition allies mid-fight.', subscribed: true },
+        { id: 'gunmech-pilot', name: 'Gunmech Pilot', type: 'Snowballer', author: 'ferrous_dm', description: 'Escalates hard once their rig is powered up — weak early, terrifying by round three.', subscribed: false },
+        { id: 'ashcaller', name: 'Ashcaller', type: 'Attrionist', author: 'moorwen', description: 'Trades their own health for stacking burn damage on everything nearby.', subscribed: false }
+      ]
+    }
+  }
+};
+
+function render() {
+  renderTabs();
+  document.getElementById('catalog-screen').classList.toggle('active', state.activeScreen === 'catalog');
+  document.getElementById('manage-screen').classList.toggle('active', state.activeScreen === 'manage');
+  if (state.activeScreen === 'catalog') renderCatalog(); else renderManage();
+}
+
+function renderTabs() {
+  document.getElementById('screen-tabs').innerHTML = `
+    <button class="tab-btn ${state.activeScreen === 'catalog' ? 'active' : ''}" id="tab-catalog">Classes Catalog</button>
+    <button class="tab-btn ${state.activeScreen === 'manage' ? 'active' : ''}" id="tab-manage">Manage Campaign Classes</button>`;
+  document.getElementById('tab-catalog').onclick = () => { state.activeScreen = 'catalog'; render(); };
+  document.getElementById('tab-manage').onclick = () => { state.activeScreen = 'manage'; render(); };
+}
+
+/* ---------------- Screen 1: Catalog ---------------- */
+
+function renderCatalog() {
+  const filtered = state.classes.filter(c =>
+    (state.typeFilter === 'all' || c.type === state.typeFilter) &&
+    (state.visFilter === 'all' || c.visibility === state.visFilter));
+
+  document.getElementById('catalog-screen').innerHTML = `
+    <div style="padding:32px 40px 60px;">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:14px;">
+        <div>
+          <div style="font-family:var(--font-display);font-size:28px;">Classes</div>
+          <div class="muted" style="font-size:13.5px;margin-top:4px;">Browse every class available in JnJ Online, and add the ones you want to a campaign you direct.</div>
+        </div>
+        <button style="padding:11px 20px;border:none;border-radius:var(--radius-pill);background:var(--accent);color:var(--on-accent);font-weight:700;font-size:13.5px;">+ Create New Class</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin-bottom:22px;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;" id="type-filters"></div>
+        <div style="width:1px;height:20px;background:var(--border);"></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;" id="vis-filters"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:18px;" id="class-grid"></div>
+      <div class="faint" style="font-size:11px;margin-top:26px;max-width:640px;line-height:1.6;">
+        <strong style="color:var(--text-muted);">Default</strong> classes are admin-curated and available to every campaign automatically. <strong style="color:var(--text-muted);">Pool</strong> classes are public submissions any campaign can opt into. <strong style="color:var(--text-muted);">Private</strong> classes are visible only to their author until shared.
+      </div>
+    </div>`;
+
+  document.getElementById('type-filters').innerHTML = TYPE_DEFS.map(t => {
+    const active = t === state.typeFilter;
+    return `<button data-type="${t}" style="padding:6px 14px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid var(--border-strong);${active ? 'background:var(--accent);color:var(--on-accent);' : 'background:var(--bg-sunken);color:var(--text-muted);'}">${t === 'all' ? 'All Types' : t}</button>`;
+  }).join('');
+  document.getElementById('type-filters').querySelectorAll('button').forEach(btn => {
+    btn.onclick = () => { state.typeFilter = btn.dataset.type; render(); };
+  });
+
+  const visDefs = [['all','All'],['default','Default'],['pool','Pool'],['private','Private']];
+  document.getElementById('vis-filters').innerHTML = visDefs.map(([key,label]) => {
+    const active = key === state.visFilter;
+    return `<button data-vis="${key}" style="padding:6px 14px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid var(--border-strong);${active ? 'background:var(--accent);color:var(--on-accent);' : 'background:var(--bg-sunken);color:var(--text-muted);'}">${label}</button>`;
+  }).join('');
+  document.getElementById('vis-filters').querySelectorAll('button').forEach(btn => {
+    btn.onclick = () => { state.visFilter = btn.dataset.vis; render(); };
+  });
+
+  document.getElementById('class-grid').innerHTML = filtered.map(c => classCardHtml(c)).join('') + `
+    <button style="border:1px dashed var(--border-strong);border-radius:var(--radius-lg);background:transparent;color:var(--text-muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:150px;">
+      <span style="font-size:22px;">+</span><span style="font-size:12.5px;font-weight:600;">Create New Class</span>
+    </button>`;
+  wireCatalogCards(filtered);
+}
+
+function classCardHtml(c) {
+  const typeColor = TYPE_COLOR[c.type] || 'var(--border-strong)';
+  const canSubscribe = c.visibility === 'default' || c.visibility === 'pool';
+  return `
+  <div class="card" data-id="${c.id}" style="border-left:3px solid ${typeColor};padding:16px;display:flex;flex-direction:column;gap:10px;position:relative;">
+    <div style="display:flex;align-items:flex-start;gap:10px;">
+      <span style="font-family:var(--font-display);font-size:16px;flex:1;">${c.name}</span>
+      <span style="${VIS_STYLE[c.visibility]}padding:3px 9px;border-radius:999px;font-size:10px;font-weight:700;flex-shrink:0;white-space:nowrap;">${VIS_LABEL[c.visibility]}</span>
+    </div>
+    <div class="faint" style="font-size:11.5px;">by ${c.author} · ${c.type}</div>
+    <div class="muted clamp2" style="font-size:12.5px;line-height:1.5;min-height:38px;">${c.description}</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:2px;">
+      <button style="flex:1;padding:8px;border-radius:var(--radius-md);border:1px solid var(--border);background:transparent;color:var(--text);font-size:12px;font-weight:600;">View Class</button>
+      ${canSubscribe ? `<button class="add-toggle" style="flex:1;padding:8px;border-radius:var(--radius-md);border:none;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700;">Add to Campaign</button>` : ''}
+    </div>
+    ${c.addOpen ? `
+    <div style="position:absolute;z-index:10;top:100%;left:0;right:0;margin-top:6px;padding:12px;background:var(--bg-hover);border:1px solid var(--border-strong);border-radius:var(--radius-md);box-shadow:var(--shadow-md);display:flex;flex-direction:column;gap:8px;">
+      <div class="faint caps" style="font-size:10px;font-weight:700;">Subscribe a campaign you direct</div>
+      ${c.campaigns.map(camp => `
+      <button class="camp-toggle" data-camp="${camp.id}" style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:var(--radius-md);font-size:12.5px;font-weight:600;${camp.subscribed ? 'background:var(--accent);color:var(--on-accent);border:none;' : 'background:var(--bg-sunken);color:var(--text);border:1px solid var(--border);'}">
+        <span>${camp.name}</span>${camp.subscribed ? '<span>✓</span>' : ''}
+      </button>`).join('')}
+      <button class="add-toggle" style="margin-top:2px;padding:7px;border-radius:var(--radius-md);border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:11.5px;font-weight:600;">Done</button>
+    </div>` : ''}
+  </div>`;
+}
+
+function wireCatalogCards(list) {
+  document.querySelectorAll('#class-grid .card').forEach(cardEl => {
+    const c = list.find(cc => cc.id === cardEl.dataset.id);
+    cardEl.querySelectorAll('.add-toggle').forEach(btn => {
+      btn.onclick = () => { c.addOpen = !c.addOpen; render(); };
+    });
+    cardEl.querySelectorAll('.camp-toggle').forEach(btn => {
+      btn.onclick = () => {
+        const camp = c.campaigns.find(cp => cp.id === btn.dataset.camp);
+        camp.subscribed = !camp.subscribed;
+        render();
+      };
+    });
+  });
+}
+
+/* ---------------- Screen 2: Manage Campaign Classes ---------------- */
+
+function renderManage() {
+  const m = state.manage;
+  const activeCampObj = m.campaigns.find(c => c.id === m.activeCampaign);
+  const allPool = m.poolClasses[m.activeCampaign] || [];
+  const subscribed = allPool.filter(c => c.subscribed);
+  const browse = allPool.filter(c => !c.subscribed).filter(c => m.typeFilter === 'all' || c.type === m.typeFilter);
+
+  document.getElementById('manage-screen').innerHTML = `
+    <div style="padding:32px 40px 60px;max-width:1180px;margin:0 auto;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;" class="muted">
+        <span style="font-size:12.5px;">Campaigns / ${activeCampObj ? activeCampObj.name : ''}</span>
+      </div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:26px;flex-wrap:wrap;gap:14px;">
+        <div>
+          <div style="font-family:var(--font-display);font-size:26px;">Manage Classes</div>
+          <div class="muted" style="font-size:13.5px;margin-top:4px;">Choose which pool classes players in this campaign can pick from. Default classes are always available and can't be removed.</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:var(--radius-pill);background:var(--bg-sunken);border:1px solid var(--border);" id="campaign-switcher">
+          <span class="faint caps" style="font-size:10px;font-weight:700;">Campaign</span>
+        </div>
+      </div>
+
+      <div style="margin-bottom:30px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <span style="font-family:var(--font-display);font-size:15.5px;">Default Classes</span>
+          <span class="faint" style="font-size:11.5px;">Always available · admin-curated</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));gap:12px;">
+          ${m.defaultClasses.map(c => `
+          <div class="card" style="padding:12px 14px;border-left:3px solid var(--accent);display:flex;flex-direction:column;gap:4px;opacity:0.92;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-weight:600;font-size:13.5px;flex:1;">${c.name}</span>
+              <span style="background:var(--accent-soft);color:var(--accent);padding:2px 8px;border-radius:999px;font-size:9.5px;font-weight:700;">Included</span>
+            </div>
+            <div class="faint" style="font-size:11px;">${c.type}</div>
+          </div>`).join('')}
+        </div>
+      </div>
+
+      <div style="margin-bottom:30px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <span style="font-family:var(--font-display);font-size:15.5px;">Subscribed Pool Classes</span>
+          <span class="faint" style="font-size:11.5px;">${subscribed.length} added to this campaign</span>
+        </div>
+        <div id="subscribed-grid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));gap:12px;">
+          ${subscribed.length ? subscribed.map(c => subscribedCardHtml(c)).join('') : `<div class="card" style="padding:24px;text-align:center;grid-column:1/-1;"><div class="muted" style="font-size:13px;">No pool classes subscribed yet — browse below and add a few.</div></div>`}
+        </div>
+      </div>
+
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
+          <span style="font-family:var(--font-display);font-size:15.5px;">Browse Pool Classes</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;" id="manage-type-filters"></div>
+        </div>
+        <div id="browse-grid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));gap:12px;">
+          ${browse.length ? browse.map(c => browseCardHtml(c)).join('') : `<div class="card" style="padding:24px;text-align:center;grid-column:1/-1;"><div class="muted" style="font-size:13px;">Every pool class matching this filter is already subscribed.</div></div>`}
+        </div>
+      </div>
+    </div>`;
+
+  const switcher = document.getElementById('campaign-switcher');
+  m.campaigns.forEach(c => {
+    const btn = document.createElement('button');
+    btn.textContent = c.name;
+    btn.style.cssText = `padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600;border:none;${c.id === m.activeCampaign ? 'background:var(--accent);color:var(--on-accent);' : 'background:transparent;color:var(--text-muted);'}`;
+    btn.onclick = () => { m.activeCampaign = c.id; render(); };
+    switcher.appendChild(btn);
+  });
+
+  document.getElementById('manage-type-filters').innerHTML = TYPE_DEFS.map(t => {
+    const active = t === m.typeFilter;
+    return `<button data-type="${t}" style="padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:600;border:1px solid var(--border-strong);${active ? 'background:var(--accent);color:var(--on-accent);' : 'background:var(--bg-sunken);color:var(--text-muted);'}">${t === 'all' ? 'All Types' : t}</button>`;
+  }).join('');
+  document.getElementById('manage-type-filters').querySelectorAll('button').forEach(btn => {
+    btn.onclick = () => { m.typeFilter = btn.dataset.type; render(); };
+  });
+
+  document.querySelectorAll('.unsub-btn').forEach(btn => {
+    btn.onclick = () => { toggleSub(btn.dataset.id); };
+  });
+  document.querySelectorAll('.sub-btn').forEach(btn => {
+    btn.onclick = () => { toggleSub(btn.dataset.id); };
+  });
+}
+
+function subscribedCardHtml(c) {
+  return `
+  <div class="card" style="padding:14px;border-left:3px solid var(--arcane);display:flex;flex-direction:column;gap:8px;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span style="font-weight:600;font-size:13.5px;flex:1;">${c.name}</span>
+      <span class="faint" style="font-size:11px;">${c.type}</span>
+    </div>
+    <div class="muted clamp2" style="font-size:12px;line-height:1.5;">${c.description}</div>
+    <button class="unsub-btn" data-id="${c.id}" style="align-self:flex-start;padding:6px 12px;border-radius:999px;border:1px solid var(--danger);background:transparent;color:var(--danger);font-size:11.5px;font-weight:600;">Remove from campaign</button>
+  </div>`;
+}
+
+function browseCardHtml(c) {
+  return `
+  <div class="card" style="padding:14px;border-left:3px solid var(--border-strong);display:flex;flex-direction:column;gap:8px;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span style="font-weight:600;font-size:13.5px;flex:1;">${c.name}</span>
+      <span class="faint" style="font-size:11px;">by ${c.author}</span>
+    </div>
+    <div class="faint" style="font-size:11px;margin-top:-4px;">${c.type}</div>
+    <div class="muted clamp2" style="font-size:12px;line-height:1.5;">${c.description}</div>
+    <button class="sub-btn" data-id="${c.id}" style="align-self:flex-start;padding:7px 14px;border-radius:999px;border:none;background:var(--accent);color:var(--on-accent);font-size:11.5px;font-weight:700;">+ Add to Campaign</button>
+  </div>`;
+}
+
+function toggleSub(classId) {
+  const m = state.manage;
+  const list = m.poolClasses[m.activeCampaign];
+  const c = list.find(cc => cc.id === classId);
+  c.subscribed = !c.subscribed;
+  render();
+}
+
+render();
+</script>
+</body>
+</html>

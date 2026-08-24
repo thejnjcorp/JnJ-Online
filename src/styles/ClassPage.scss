@@ -145,6 +145,33 @@
     }
 }
 
+.ClassPage-hint {
+    font-size: 14px;
+    color: gray;
+    max-width: 60vw;
+}
+
+.ClassPage-chip {
+    margin: 4px 6px 0 0;
+    padding: 4px 12px;
+    font-size: 16px;
+    border-radius: 999px;
+    border-style: solid;
+    border-color: gray;
+    background-color: inherit;
+    color: inherit;
+
+    &:hover {
+        border-color: white;
+    }
+}
+
+.ClassPage-chip-selected {
+    border-color: royalblue;
+    background-color: royalblue;
+    color: white;
+}
+
 .ClassPage-submit-button {
     font-size: 18px;
     padding-left: 10px;
