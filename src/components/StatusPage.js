@@ -85,10 +85,6 @@ export function StatusPage() {
     }, [statusId]);
 
     useEffect(() => {
-        getDocs(collection(db, 'classes')).then(querySnapshot => {
-            setClassOptions(querySnapshot.docs.map(d => d.data().class_name).filter(Boolean));
-        }).catch(error => console.log(error));
-
         // auth.currentUser can still be null right after a hard page load,
         // before Firebase has rehydrated the session - waiting on this
         // (same as CharacterPage.js/DirectorsPage.js do) avoids a crash on
@@ -96,6 +92,18 @@ export function StatusPage() {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (!user) return;
             setUserId(user.uid);
+            // Same visibility scoping ClassListPage.js uses - an unfiltered
+            // collection() scan doesn't satisfy the classes read rule's
+            // per-doc conditions (public/canRead/canWrite), so it gets
+            // rejected outright as unprovable rather than just filtering
+            // results - found by hand after the classes rules shipped
+            // (this call silently failed, leaving "No classes exist yet."
+            // showing even with real classes in the catalog).
+            getDocs(query(collection(db, 'classes'),
+                or(where('public', '==', true), where('canRead', 'array-contains', user.uid), where('canWrite', 'array-contains', user.uid))))
+                .then(querySnapshot => {
+                    setClassOptions(querySnapshot.docs.map(d => d.data().class_name).filter(Boolean));
+                }).catch(error => console.log(error));
             // Same "campaigns I belong to" query Campaigns.js already uses -
             // needed here to populate the campaign-lock picker.
             getDocs(query(collection(db, 'campaigns'), or(where('canRead', 'array-contains', user.uid), where('canWrite', 'array-contains', user.uid))))

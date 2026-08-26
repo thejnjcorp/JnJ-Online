@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { arrayRemove, arrayUnion, collection, doc, getDocs, or, query, updateDoc, where } from "firebase/firestore";
+import { arrayRemove, collection, doc, getDocs, or, query, updateDoc, where } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "../utils/firebase";
+import { subscribeClassToCampaign } from "../utils/campaignSubscriptions";
 import '../styles/ClassListPage.scss';
 
 const TYPE_FILTERS = ['all', 'Attrionist', 'Crit Hunter', 'Manipulator', 'Snowballer'];
@@ -73,17 +74,26 @@ export function ClassListPage() {
         (filterVisibility === 'all' || visibilityOf(c) === filterVisibility)
     );
 
-    async function toggleSubscription(classId, campaign) {
-        const subscribed = campaign.subscribedClassIds?.includes(classId);
+    async function toggleSubscription(classDoc, campaign) {
+        const subscribed = campaign.subscribedClassIds?.includes(classDoc.id);
         try {
-            await updateDoc(doc(db, 'campaigns', campaign.id), {
-                subscribedClassIds: subscribed ? arrayRemove(classId) : arrayUnion(classId)
-            });
+            let subscribedStatusIds = campaign.subscribedStatusIds || [];
+            if (subscribed) {
+                await updateDoc(doc(db, 'campaigns', campaign.id), {
+                    subscribedClassIds: arrayRemove(classDoc.id)
+                });
+            } else {
+                // Also auto-subscribes any public status scoped to this
+                // class - see campaignSubscriptions.js.
+                const newStatusIds = await subscribeClassToCampaign(campaign.id, classDoc);
+                subscribedStatusIds = Array.from(new Set([...subscribedStatusIds, ...newStatusIds]));
+            }
             setMyCampaigns(prev => prev.map(c => c.id !== campaign.id ? c : {
                 ...c,
                 subscribedClassIds: subscribed
-                    ? (c.subscribedClassIds || []).filter(id => id !== classId)
-                    : [...(c.subscribedClassIds || []), classId],
+                    ? (c.subscribedClassIds || []).filter(id => id !== classDoc.id)
+                    : [...(c.subscribedClassIds || []), classDoc.id],
+                subscribedStatusIds,
             }));
         } catch (e) {
             alert(e);
@@ -152,7 +162,7 @@ export function ClassListPage() {
                                 return <button
                                     key={camp.id}
                                     className={subscribed ? 'ClassListPage-add-popover-chip ClassListPage-add-popover-chip-selected' : 'ClassListPage-add-popover-chip'}
-                                    onClick={() => toggleSubscription(c.id, camp)}
+                                    onClick={() => toggleSubscription(c, camp)}
                                 >
                                     <span>{camp.campaign_name}</span>
                                     {subscribed && <span className="ClassListPage-add-popover-check">&#10003;</span>}

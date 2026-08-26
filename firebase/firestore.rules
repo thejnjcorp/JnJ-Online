@@ -47,7 +47,14 @@ service cloud.firestore {
     match /classes/{classId} {
     	allow read: if isSignedIn() && (resource.data.public == true || uid() in canWriteField() || uid() in canReadField());
 
-      allow write: if isSignedIn() && uid() in canWriteField() && (!('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
+      // request.resource is null on a delete (there's no new document being
+      // written) - `request.resource == null` first so a delete short-
+      // circuits past the isDefault guard instead of throwing on
+      // request.resource.data of a null resource. Found by hand while
+      // manually deleting a test status through this exact rule shape - see
+      // the identical fix on the statuses block below, which had the same
+      // latent bug (StatusPage.js's delete button would have hit this too).
+      allow write: if isSignedIn() && uid() in canWriteField() && (request.resource == null || !('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
 
       allow create: if isSignedIn() && !documentExists("classes", classId) && (!('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
     }
@@ -95,7 +102,13 @@ service cloud.firestore {
     match /statuses/{statusId} {
     	allow read: if isSignedIn() && (resource.data.public == true || uid() in canWriteField() || uid() in canReadField());
 
-      allow write: if isSignedIn() && uid() in canWriteField() && (!('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
+      // request.resource is null on a delete (no new document being
+      // written) - `request.resource == null` first so a delete
+      // short-circuits past the isDefault guard instead of throwing on
+      // .data of a null resource. StatusPage.js's delete button would hit
+      // this on any status - found by hand while cleaning up a test status
+      // through this exact path.
+      allow write: if isSignedIn() && uid() in canWriteField() && (request.resource == null || !('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
 
       allow create: if isSignedIn() && !documentExists("statuses", statusId) && (!('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
     }

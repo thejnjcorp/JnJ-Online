@@ -1,10 +1,11 @@
 import { useEffect, useReducer, useState } from 'react';
 import { reverseCharacterDiceConverter, CharacterDiceConverter } from './CharacterStatCalculator';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { addDoc, arrayRemove, arrayUnion, collection, getDoc, getDocs, doc, or, query, updateDoc, where } from '@firebase/firestore';
+import { addDoc, arrayRemove, collection, getDoc, getDocs, doc, or, query, updateDoc, where } from '@firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../utils/firebase';
 import { ADMIN_UIDS } from '../utils/statusEffects';
+import { subscribeClassToCampaign } from '../utils/campaignSubscriptions';
 import ClassLayout from '../ClassLayout.json';
 import '../styles/ClassPage.scss';
 
@@ -147,14 +148,23 @@ export function ClassPage() {
     async function toggleSubscription(campaign) {
         const subscribed = campaign.subscribedClassIds?.includes(classId);
         try {
-            await updateDoc(doc(db, 'campaigns', campaign.id), {
-                subscribedClassIds: subscribed ? arrayRemove(classId) : arrayUnion(classId)
-            });
+            let subscribedStatusIds = campaign.subscribedStatusIds || [];
+            if (subscribed) {
+                await updateDoc(doc(db, 'campaigns', campaign.id), {
+                    subscribedClassIds: arrayRemove(classId)
+                });
+            } else {
+                // Also auto-subscribes any public status scoped to this
+                // class - see campaignSubscriptions.js.
+                const newStatusIds = await subscribeClassToCampaign(campaign.id, { id: classId, class_name: formData.class_name });
+                subscribedStatusIds = Array.from(new Set([...subscribedStatusIds, ...newStatusIds]));
+            }
             setMyCampaigns(prev => prev.map(c => c.id !== campaign.id ? c : {
                 ...c,
                 subscribedClassIds: subscribed
                     ? (c.subscribedClassIds || []).filter(id => id !== classId)
                     : [...(c.subscribedClassIds || []), classId],
+                subscribedStatusIds,
             }));
         } catch (e) {
             alert(e);

@@ -7,6 +7,7 @@ import '../styles/Campaigns.scss';
 import { NewCampaignPage } from "./NewCampaignPage";
 import { NewCharacterPage } from "./NewCharacterPage";
 import { CampaignClassesPage } from "./CampaignClassesPage";
+import { CampaignStatusesPage } from "./CampaignStatusesPage";
 import { onAuthStateChanged } from "firebase/auth";
 import loadingIcon from '../icons/loading.svg';
 
@@ -99,7 +100,7 @@ export function Campaigns() {
                 </div>}
             </div>}
         </div>}
-        {!location.pathname.endsWith('campaigns') && !location.pathname.endsWith('new') && !location.pathname.endsWith('newCharacter') && !location.pathname.endsWith('classes') &&
+        {!location.pathname.endsWith('campaigns') && !location.pathname.endsWith('new') && !location.pathname.endsWith('newCharacter') && !location.pathname.endsWith('classes') && !location.pathname.endsWith('statuses') &&
             <CampaignPage/>}
         {location.pathname.endsWith('new') &&
             <NewCampaignPage/>}
@@ -107,5 +108,7 @@ export function Campaigns() {
             <NewCharacterPage/>}
         {location.pathname.endsWith('classes') &&
             <CampaignClassesPage/>}
+        {location.pathname.endsWith('statuses') &&
+            <CampaignStatusesPage/>}
     </div>
 }

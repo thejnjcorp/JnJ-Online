@@ -9,7 +9,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { initializeTestEnvironment, assertSucceeds, assertFails } = require('@firebase/rules-unit-testing');
-const { collection, addDoc, doc, setDoc, getDoc, getDocs, query, where, updateDoc } = require('firebase/firestore');
+const { collection, addDoc, doc, setDoc, getDoc, getDocs, query, where, updateDoc, deleteDoc } = require('firebase/firestore');
 
 const PROJECT_ID = 'jnj-online';
 let failures = 0;
@@ -205,6 +205,23 @@ async function main() {
         await assertSucceeds(getDoc(doc(alice.firestore(), 'statuses', 'haste')));
     });
 
+    await check('the author can delete their own status', async () => {
+        // Regression test: request.resource is null on delete, and the
+        // isDefault write guard used to access request.resource.data
+        // unconditionally, throwing on every delete regardless of who
+        // requested it - found by hand while cleaning up test data through
+        // this exact rule shape. See the comment on the statuses match
+        // block in firestore.rules.
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'statuses', 'disposable'), {
+                name: 'Disposable Test Status', isDefault: false, public: true, canRead: [], canWrite: ['bob'],
+            });
+        });
+        const bob = testEnv.authenticatedContext('bob');
+        await assertSucceeds(deleteDoc(doc(bob.firestore(), 'statuses', 'disposable')));
+    });
+
     console.log('\nStatus visibility (public / creator-locked / campaign-locked):');
 
     await check('a non-listed user cannot read a creator-locked (private) status', async () => {
@@ -387,6 +404,19 @@ async function main() {
         });
         const alice = testEnv.authenticatedContext('alice');
         await assertSucceeds(getDoc(doc(alice.firestore(), 'classes', 'warden')));
+    });
+
+    await check('the author can delete their own class', async () => {
+        // Same request.resource-is-null-on-delete regression as statuses
+        // above - this collection mirrors that write rule exactly.
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'classes', 'disposable'), {
+                class_name: 'Disposable Test Class', isDefault: false, public: true, canRead: [], canWrite: ['bob'],
+            });
+        });
+        const bob = testEnv.authenticatedContext('bob');
+        await assertSucceeds(deleteDoc(doc(bob.firestore(), 'classes', 'disposable')));
     });
 
     await check('a non-listed user cannot read a private class', async () => {

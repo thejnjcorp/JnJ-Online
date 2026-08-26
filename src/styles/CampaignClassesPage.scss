@@ -146,6 +146,23 @@
     border-left-color: var(--jnj-color-arcane);
 }
 
+// Status polarity coloring (CampaignStatusesPage.js) - placed after
+// -default/-subscribed above so it wins the border-left-color tie (same
+// specificity, later in source order) whenever both classes land on the
+// same card, matching the polarity-first color language StatusListPage.js
+// already established for statuses everywhere else in the app.
+.CampaignClassesPage-card-buff {
+    border-left-color: var(--jnj-color-accent);
+}
+
+.CampaignClassesPage-card-debuff {
+    border-left-color: var(--jnj-color-danger);
+}
+
+.CampaignClassesPage-card-neutral {
+    border-left-color: var(--jnj-color-arcane);
+}
+
 .CampaignClassesPage-card-row {
     display: flex;
     align-items: center;

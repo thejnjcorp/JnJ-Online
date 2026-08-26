@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { arrayRemove, arrayUnion, collection, doc, getDocs, onSnapshot, or, query, updateDoc, where } from 'firebase/firestore';
+import { arrayRemove, collection, doc, getDocs, onSnapshot, or, query, updateDoc, where } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../utils/firebase';
+import { subscribeClassToCampaign } from '../utils/campaignSubscriptions';
 import '../styles/CampaignClassesPage.scss';
 
 const TYPE_FILTERS = ['all', 'Attrionist', 'Crit Hunter', 'Manipulator', 'Snowballer'];
@@ -63,11 +64,19 @@ export function CampaignClassesPage() {
         .filter(c => !subscribedClassIds.includes(c.id))
         .filter(c => typeFilter === 'all' || c.class_type === typeFilter);
 
-    async function toggleSubscription(classId, subscribe) {
+    async function toggleSubscription(classDoc, subscribe) {
         try {
-            await updateDoc(doc(db, 'campaigns', campaignId), {
-                subscribedClassIds: subscribe ? arrayUnion(classId) : arrayRemove(classId)
-            });
+            if (subscribe) {
+                // Also auto-subscribes any public status scoped to this
+                // class - see campaignSubscriptions.js. The onSnapshot
+                // listener above picks up both fields once this resolves,
+                // no local state to patch here.
+                await subscribeClassToCampaign(campaignId, classDoc);
+            } else {
+                await updateDoc(doc(db, 'campaigns', campaignId), {
+                    subscribedClassIds: arrayRemove(classDoc.id)
+                });
+            }
         } catch (e) {
             alert(e);
         }
@@ -121,7 +130,7 @@ export function CampaignClassesPage() {
                             <div className="CampaignClassesPage-card-description">{c.description}</div>
                             {hasWritePermissions && <button
                                 className="CampaignClassesPage-remove-button"
-                                onClick={() => toggleSubscription(c.id, false)}
+                                onClick={() => toggleSubscription(c, false)}
                             >
                                 Remove from campaign
                             </button>}
@@ -156,7 +165,7 @@ export function CampaignClassesPage() {
                             <div className="CampaignClassesPage-card-description">{c.description}</div>
                             {hasWritePermissions && <button
                                 className="CampaignClassesPage-add-button"
-                                onClick={() => toggleSubscription(c.id, true)}
+                                onClick={() => toggleSubscription(c, true)}
                             >
                                 + Add to Campaign
                             </button>}
