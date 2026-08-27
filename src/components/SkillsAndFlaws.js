@@ -1,6 +1,6 @@
 import Collapsible from 'react-collapsible';
 import Markdown from 'markdown-to-jsx';
-import starIcon from '../icons/star.svg';
+import circleIcon from '../icons/circle.svg';
 import { useState, useReducer } from 'react';
 import { db } from '../utils/firebase';
 import '../styles/SkillsAndFlaws.scss';
@@ -87,9 +87,9 @@ export function SkillsAndFlaws({characterPage, userId}) {
             trigger={<>
                 <span className="SkillsAndFlaws-chevron">›</span>
                 <span className="SkillsAndFlaws-name">{skill_or_flaw.name}</span>
-                <span className="SkillsAndFlaws-stars">
+                <span className="SkillsAndFlaws-circles">
                     {Array.from({ length: skill_or_flaw.degree }, (_, index) => (
-                        <img key={index} src={starIcon} alt='star' className='SkillsAndFlaws-star' width={18}/>
+                        <img key={index} src={circleIcon} alt='circle' className='SkillsAndFlaws-circle' width={18}/>
                     ))}
                 </span>
                 {removeSkillFlawVisible && <button className='SkillsAndFlaws-trash-button'

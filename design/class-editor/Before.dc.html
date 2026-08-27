@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: sans-serif; background: #282c34; color: white; font-size: 14px; }
+    .ClassPage-input { margin-bottom: 6px; }
+    .ClassPage-input-box { font-size: 14px; margin: 0 4px; }
+  </style>
+</helmet>
+
+<div style="width:820px;background:#282c34;padding:20px 26px;">
+  <div style="font-size:15px;font-weight:bold;margin-bottom:10px;color:#aaa;">Real ClassPage.js today &mdash; one long flat form. This is ALSO what a read-only viewer sees (same DOM, inputs just get a disabled attribute) &mdash; there is no dedicated view mode.</div>
+
+  <div class="ClassPage-input">Class Name: <input class="ClassPage-input-box" value="Warden"></div>
+  <div class="ClassPage-input">Author: <input class="ClassPage-input-box" value="JnJ Team"></div>
+  <div class="ClassPage-input">Class Type:
+    <select class="ClassPage-input-box"><option>Attrionist</option></select>
+  </div>
+  <div class="ClassPage-input">Base Armor Class: <input class="ClassPage-input-box" type="number" value="14"></div>
+  <div class="ClassPage-input">Base Health Dice: <input class="ClassPage-input-box" value="2d8"></div>
+  <div class="ClassPage-input">Base Hit Modifier: <input class="ClassPage-input-box" type="number" value="2"></div>
+
+  <div class="ClassPage-input">
+    Base Melee Damage:
+    <input class="ClassPage-input-box" style="width:40px;" type="number" value="1">
+    <input class="ClassPage-input-box" style="width:40px;" value="8">&nbsp;+
+    <input class="ClassPage-input-box" style="width:40px;" type="number" value="2">
+    &nbsp;Damage Type: <input class="ClassPage-input-box" value="Slashing">
+  </div>
+  <div class="ClassPage-input">
+    Base Ranged Damage:
+    <input class="ClassPage-input-box" style="width:40px;" type="number" value="1">
+    <input class="ClassPage-input-box" style="width:40px;" value="6">&nbsp;+
+    <input class="ClassPage-input-box" style="width:40px;" type="number" value="0">
+    &nbsp;Damage Type: <input class="ClassPage-input-box" value="Piercing">
+  </div>
+
+  <div class="ClassPage-input">Base Healing Dice Type: <input class="ClassPage-input-box" value="1d4"></div>
+  <div class="ClassPage-input">Base Class DC: <input class="ClassPage-input-box" type="number" value="12"></div>
+  <div class="ClassPage-input">Base Hardness: <input class="ClassPage-input-box" type="number" value="3"></div>
+  <div class="ClassPage-input">Lore/Flavor Text:<br/>
+    <textarea style="width:400px;height:50px;font-size:14px;">A frontline defender who plants their feet...</textarea>
+  </div>
+
+  <div style="margin-top:14px;">
+    Actions: <button style="font-size:13px;">Add Action</button> *Note: Feats are actions denoted by the prefix "Feat:"<br/>
+    <div class="ClassPage-input" style="margin-top:8px;border-top:1px solid #555;padding-top:8px;">
+      Action Cost: <input class="ClassPage-input-box" style="width:30px;" type="number" value="1">
+      &nbsp;Range: <input class="ClassPage-input-box" value="Self">
+      &nbsp;To-Hit Action: <input type="checkbox">
+      &nbsp;DC Modifier: <input class="ClassPage-input-box" style="width:60px;" value="Str,0">
+      &nbsp;Action Name: <input class="ClassPage-input-box" value="Bulwark Stance">
+      <button style="font-size:12px;">Add Tag</button>
+      <button style="font-size:12px;color:salmon;">Remove Action</button>
+      <br/>
+      Action Level: <input class="ClassPage-input-box" style="width:40px;" type="number" value="1">
+      &nbsp;Action Type:
+      <select class="ClassPage-input-box"><option>Standard</option></select>
+      <br/>
+      <div style="display:inline-block;margin-top:6px;padding:4px 8px;background:#c8a24a;color:#16161a;">
+        Tag Information: <input class="ClassPage-input-box" value="Defense">
+        &nbsp;Tag Color: <input type="color" value="#c8a24a">
+        &nbsp;Text Color: <input type="color" value="#16161a">
+        &nbsp;Tag Description: <input class="ClassPage-input-box" style="width:250px;" value="Improves AC or reduces incoming damage.">
+        <button style="font-size:12px;">Delete Tag</button>
+      </div>
+      <br/>
+      Description:<br/>
+      <textarea style="width:400px;height:40px;font-size:14px;">Plant your feet and raise your shield...</textarea>
+    </div>
+  </div>
+
+  <button style="margin-top:16px;padding:8px 16px;font-size:14px;">Update Class</button>
+
+  <div style="margin-top:18px;font-size:12px;color:#999;line-height:1.6;max-width:700px;">
+    Every field is the same size, same style, crammed into inline rows with manual "&amp;nbsp;" spacing. Tags are raw color-swatch inputs with no live preview. Class → Action → Tag are three nesting levels of the exact same dense pattern. Validation only happens on submit, via a single blocking alert() listing every invalid field at once.
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

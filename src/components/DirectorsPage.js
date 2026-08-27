@@ -18,8 +18,8 @@ import { CombatActionList } from './CombatActionList';
 import { Statuses } from './Statuses';
 import { uploadImageToImgur } from '../utils/imgurUploader';
 import { onAuthStateChanged } from 'firebase/auth';
-import starIcon from '../icons/star.svg';
-import starFilledIcon from '../icons/star_filled.svg';
+import circleIcon from '../icons/circle.svg';
+import circleFilledIcon from '../icons/circle_filled.svg';
 import shieldIcon from '../icons/shield.svg';
 import { ReactComponent as PersonIcon } from '../icons/person.svg';
 import { ReactComponent as ScrollIcon } from '../icons/scroll.svg';
@@ -144,10 +144,10 @@ function DirectorsEntityCard({
                     <img src={shieldIcon} className="DirectorsPage-ac-shield-icon" alt=""/>
                     <span className="DirectorsPage-ac-value">{ac}</span>
                 </div>
-                <div className={`DirectorsPage-ap-stars DirectorsPage-ap-stars-${kind}`}>
+                <div className={`DirectorsPage-ap-circles DirectorsPage-ap-circles-${kind}`}>
                     {[1, 2, 3, 4].map(n =>
                         <button key={n} disabled={!onSetAp} onClick={() => onSetAp && onSetAp(n)}>
-                            <img src={ap >= n ? starFilledIcon : starIcon} alt="" width={15}/>
+                            <img src={ap >= n ? circleFilledIcon : circleIcon} alt="" width={15}/>
                         </button>
                     )}
                 </div>

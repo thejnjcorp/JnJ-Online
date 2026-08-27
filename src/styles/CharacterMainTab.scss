@@ -96,11 +96,11 @@
     // inside it produced two independent scrollbars for the same content.
 }
 
-.CharacterMainTab-star {
+.CharacterMainTab-circle {
     filter: invert(1);
 }
 
-.CharacterMainTab-star-button {
+.CharacterMainTab-circle-button {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -482,13 +482,13 @@
 }
 
 @media (max-width: 640px) {
-    .CharacterMainTab-star-button {
+    .CharacterMainTab-circle-button {
         width: 44px;
         height: 44px;
         // Without this, .CharacterMainTab-action-points's flex row (label +
         // 4 buttons + trailing text) doesn't fit 375px, and flex-shrink's
         // default of 1 compressed these back down to their min-content
-        // floor (~30px, the star image's intrinsic width) - defeating the
+        // floor (~30px, the circle image's intrinsic width) - defeating the
         // whole point of a real 44px tap target.
         flex-shrink: 0;
     }

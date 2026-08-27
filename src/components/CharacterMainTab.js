@@ -2,8 +2,8 @@ import { CombatActionList } from "./CombatActionList";
 // import Collapsible from "react-collapsible";
 import { Link } from "react-router-dom";
 import TextareaAutosize from "react-textarea-autosize";
-import starIcon from '../icons/star.svg';
-import starFilledIcon from '../icons/star_filled.svg';
+import circleIcon from '../icons/circle.svg';
+import circleFilledIcon from '../icons/circle_filled.svg';
 import '../styles/CharacterMainTab.scss';
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../utils/firebase";
@@ -146,25 +146,25 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                     <span className="CharacterMainTab-caps-label">Action Points</span>{"\xa0\xa0"}
                     {/* Wrapped in a real <button> (rather than just an onClick on the
                         <img>) so mobile gets an actual 44x44 tap target - see
-                        .CharacterMainTab-star-button in CharacterMainTab.scss. */}
+                        .CharacterMainTab-circle-button in CharacterMainTab.scss. */}
                     {[1, 2, 3, 4].map(n =>
                         <button
                             key={n}
                             type="button"
-                            className="CharacterMainTab-star-button"
+                            className="CharacterMainTab-circle-button"
                             disabled={!hasWritePermissions}
                             onClick={hasWritePermissions ? () => setActionPoints(n) : undefined}
                         >
                             <img
-                                src={characterPage.action_points >= n ? starFilledIcon : starIcon}
-                                alt={characterPage.action_points >= n ? 'starFilled' : 'star'}
-                                className="CharacterMainTab-star"
+                                src={characterPage.action_points >= n ? circleFilledIcon : circleIcon}
+                                alt={characterPage.action_points >= n ? 'circleFilled' : 'circle'}
+                                className="CharacterMainTab-circle"
                                 width={30}
                             />
                         </button>
                     )}
                     <span className="CharacterMainTab-action-points-label">
-                        {characterPage.action_points} / 4 available{hasWritePermissions ? " · click a star to spend" : ""}
+                        {characterPage.action_points} / 4 available{hasWritePermissions ? " · click a circle to spend" : ""}
                     </span>
                 </div>
                 <div className="CharacterMainTab-action-body">

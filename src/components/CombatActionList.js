@@ -1,6 +1,6 @@
 import '../styles/CombatActionList.scss';
 import Markdown from 'markdown-to-jsx';
-import starFilledIcon from '../icons/star_filled.svg';
+import circleFilledIcon from '../icons/circle_filled.svg';
 import { ReactComponent as LockIcon } from '../icons/lock.svg';
 import { CharacterStatCalculator } from './CharacterStatCalculator';
 import { getActionCategory } from '../utils/classActions';
@@ -69,7 +69,7 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
                     {locked && <LockIcon className="CombatActionListCard-lock"/>}
                     <span className='CombatActionListCard-name'>{action.actionName}</span>
                     {!locked && action.actionCost > 0 && Array.from({ length: action.actionCost }, (_, i) => (
-                        <img key={i} src={starFilledIcon} alt='star' className='CombatActionList-star' width={13}/>
+                        <img key={i} src={circleFilledIcon} alt='circle' className='CombatActionList-circle' width={13}/>
                     ))}
                     {!locked && displayTags?.map((tag, i) =>
                         <span

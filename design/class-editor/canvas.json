@@ -1,0 +1,10 @@
+{
+  "artboards": [
+    { "file": "Before.dc.html", "x": 0, "y": 0, "w": 900, "h": 900, "title": "Current (Before)" },
+    { "file": "Main.dc.html", "x": 980, "y": 0, "w": 1000, "h": 1700, "title": "Unified Class Editor / View" }
+  ],
+  "annotations": [
+    { "id": "brief-summary", "x": 0, "y": -150, "w": 520, "text": "Class editor/view redesign. Kept as one unified page (matches how the rest of the app already handles view-vs-edit, e.g. character stat panels) rather than splitting into two routes. Restyled into clear sections (Identity, Visibility, Combat Stats, Melee/Ranged Damage with a live formatted preview, Healing, Lore, Actions & Feats), with Actions as collapsible cards instead of an inline sprawl, tags edited via a small popover with a live pill preview instead of raw color swatches, and a sticky save bar instead of a blocking alert(). The pill switcher at the top of the Main artboard is a DEMO-ONLY control for previewing all three states (Visitor / Author / Admin) — the real page still gates by canWrite/ADMIN_UIDS, not a manual toggle." }
+  ],
+  "launch": { "view": "canvas" }
+}

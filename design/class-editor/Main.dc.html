@@ -1,0 +1,633 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&amp;family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #16161a; --bg-sunken: #101013; --bg-raised: #1f1f25; --bg-hover: #2a2a33;
+      --border: #34343f; --border-strong: #4d4d5c;
+      --text: #ece8e1; --text-muted: #a09a90; --text-faint: #6f6a63; --on-accent: #16161a;
+      --accent: #c8a24a; --accent-hover: #e0bc63; --accent-soft: rgba(200,162,74,0.14);
+      --arcane: #7c4dff; --ember: #d4622a; --danger: #c9453f; --success: #5c9a6b;
+      --font-display: 'Cinzel', Georgia, 'Times New Roman', serif;
+      --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --radius-md: 8px; --radius-lg: 14px; --radius-pill: 999px;
+      --shadow-md: 0 6px 18px rgba(0,0,0,0.45);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: var(--font-body); background: var(--bg); color: var(--text); }
+    .muted { color: var(--text-muted); }
+    .faint { color: var(--text-faint); }
+    .caps { text-transform: uppercase; letter-spacing: 0.08em; }
+    .card { background: var(--bg-raised); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+    button { font-family: inherit; cursor: pointer; }
+    input, select, textarea { font-family: inherit; color: var(--text); }
+    .field-input {
+      width: 100%; padding: 9px 11px; border-radius: var(--radius-md);
+      border: 1px solid var(--border); background: var(--bg-sunken); color: var(--text); font-size: 13px;
+    }
+    .field-input:focus { outline: none; border-color: var(--accent); }
+    .field-label { font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.05em; }
+    .field-value { font-size: 15px; font-weight: 600; }
+    .section-title { display:flex; align-items:center; gap:8px; font-family:var(--font-display); font-size:16px; margin-bottom:14px; }
+    .stat-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:14px; }
+  </style>
+</helmet>
+
+<div style="width:100%;min-height:1600px;background:var(--bg);color:var(--text);padding:32px 40px 100px;max-width:900px;margin:0 auto;">
+
+  <!-- DEMO-ONLY viewer switcher: not a real product control, just lets you see both states of the unified page.
+       Real gating is permission-based (canWrite / ADMIN_UIDS), same as the rest of the app. -->
+  <div style="position:sticky;top:12px;z-index:40;display:flex;justify-content:center;margin-bottom:18px;">
+    <div style="display:flex;gap:4px;padding:4px;border-radius:999px;background:var(--bg-hover);border:1px solid var(--border-strong);box-shadow:var(--shadow-md);">
+      <sc-for list="{{viewerModes}}" as="m" hint-placeholder-count="3">
+        <button onClick="{{m.pick}}" style="{{m.style}}padding:6px 14px;border-radius:999px;font-size:11.5px;font-weight:700;border:none;">{{m.label}}</button>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- BREADCRUMB -->
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;" class="muted">
+    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    <span style="font-size:12.5px;">Classes</span>
+  </div>
+
+  <!-- HEADER -->
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:26px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:220px;">
+      <sc-if value="{{isEditable}}" hint-placeholder-val="{{true}}">
+        <input class="field-input" style="font-family:var(--font-display);font-size:24px;padding:8px 12px;margin-bottom:8px;" value="{{className}}" placeholder="Class Name">
+      </sc-if>
+      <sc-if value="{{isView}}" hint-placeholder-val="{{false}}">
+        <div style="font-family:var(--font-display);font-size:26px;margin-bottom:6px;">{{className}}</div>
+      </sc-if>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span style="{{typeBadgeStyle}}padding:4px 11px;border-radius:999px;font-size:11px;font-weight:700;">{{classType}}</span>
+        <span class="faint" style="font-size:12px;">by {{authorName}}</span>
+        <span style="{{visBadgeStyle}}padding:3px 9px;border-radius:999px;font-size:10px;font-weight:700;">{{visLabel}}</span>
+      </div>
+    </div>
+    <sc-if value="{{isEditable}}" hint-placeholder-val="{{true}}">
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+        <span class="faint" style="font-size:10.5px;">Class Type</span>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;max-width:220px;">
+          <sc-for list="{{typeOptions}}" as="t" hint-placeholder-count="4">
+            <button onClick="{{t.pick}}" style="{{t.style}}padding:5px 11px;border-radius:999px;font-size:11px;font-weight:600;border:1px solid var(--border-strong);">{{t.label}}</button>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+
+  <!-- VISIBILITY (editable only) -->
+  <sc-if value="{{isEditable}}" hint-placeholder-val="{{true}}">
+    <div class="card" style="padding:16px 18px;margin-bottom:18px;">
+      <div class="section-title" style="margin-bottom:10px;font-size:13.5px;">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        Visibility
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <sc-for list="{{visOptions}}" as="v" hint-placeholder-count="2">
+          <button onClick="{{v.pick}}" style="{{v.style}}padding:8px 14px;border-radius:var(--radius-md);font-size:12.5px;font-weight:600;text-align:left;display:flex;flex-direction:column;gap:2px;min-width:150px;">
+            <span>{{v.label}}</span>
+            <span style="{{v.subStyle}}font-size:10.5px;font-weight:500;">{{v.sub}}</span>
+          </button>
+        </sc-for>
+      </div>
+      <sc-if value="{{isAdmin}}" hint-placeholder-val="{{false}}">
+        <div class="faint" style="font-size:10.5px;margin-top:8px;">Signed in as an admin account &mdash; Public classes you save become Default (auto-included in every campaign).</div>
+      </sc-if>
+      <sc-if value="{{isNotAdmin}}" hint-placeholder-val="{{true}}">
+        <div class="faint" style="font-size:10.5px;margin-top:8px;">Public classes join the shared Pool &mdash; a campaign's director has to subscribe before their players can pick it.</div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <!-- COMBAT STATS -->
+  <div class="card" style="padding:18px;margin-bottom:18px;">
+    <div class="section-title">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--accent)" stroke-width="1.6"><path d="M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6l7-3Z"/></svg>
+      Combat Stats
+    </div>
+    <div class="stat-grid">
+      <sc-for list="{{coreStats}}" as="s" hint-placeholder-count="5">
+        <div>
+          <span class="field-label">{{s.label}}</span>
+          <sc-if value="{{isEditable}}" hint-placeholder-val="{{true}}">
+            <input class="field-input" value="{{s.value}}" placeholder="{{s.placeholder}}">
+          </sc-if>
+          <sc-if value="{{isView}}" hint-placeholder-val="{{false}}">
+            <div class="field-value">{{s.value}}</div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+    <div style="margin-top:14px;">
+      <span class="field-label">Base Health Dice</span>
+      <sc-if value="{{isEditable}}" hint-placeholder-val="{{true}}">
+        <input class="field-input" style="max-width:160px;" value="{{healthDice}}" placeholder="e.g. 2d6">
+      </sc-if>
+      <sc-if value="{{isView}}" hint-placeholder-val="{{false}}">
+        <div class="field-value" style="font-family:var(--font-display);">{{healthDice}}</div>
+      </sc-if>
+    </div>
+  </div>
+
+  <!-- MELEE DAMAGE -->
+  <div class="card" style="padding:18px;margin-bottom:18px;">
+    <div class="section-title">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--danger)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 10l7-7M17 3l4 4-2 2M4 20l6-6"/></svg>
+      Melee Damage
+    </div>
+    <sc-if value="{{isEditable}}" hint-placeholder-val="{{true}}">
+      <div style="display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;">
+        <div><span class="field-label">Dice</span><input class="field-input" style="width:70px;" value="{{meleeDice}}"></div>
+        <div style="font-size:18px;color:var(--text-faint);padding-bottom:9px;">d</div>
+        <div><span class="field-label">Die</span>
+          <div style="display:flex;gap:4px;">
+            <sc-for list="{{dieTypeOptions}}" as="d" hint-placeholder-count="6">
+              <button onClick="{{d.pickMelee}}" style="{{d.meleeStyle}}padding:8px 9px;border-radius:var(--radius-md);font-size:11.5px;font-weight:600;border:1px solid var(--border-strong);">{{d.label}}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="font-size:18px;color:var(--text-faint);padding-bottom:9px;">+</div>
+        <div><span class="field-label">Mod</span><input class="field-input" style="width:60px;" value="{{meleeModifier}}"></div>
+        <div style="flex:1;min-width:120px;"><span class="field-label">Damage Type</span><input class="field-input" value="{{meleeType}}" placeholder="Slashing"></div>
+      </div>
+      <div style="margin-top:10px;padding:9px 12px;border-radius:var(--radius-md);background:var(--accent-soft);color:var(--accent);font-size:13px;font-weight:700;display:inline-block;font-family:var(--font-display);">{{meleePreview}}</div>
+    </sc-if>
+    <sc-if value="{{isView}}" hint-placeholder-val="{{false}}">
+      <div style="font-family:var(--font-display);font-size:19px;">{{meleePreview}}</div>
+    </sc-if>
+  </div>
+
+  <!-- RANGED DAMAGE -->
+  <div class="card" style="padding:18px;margin-bottom:18px;">
+    <div class="section-title">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--ember)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20L20 4M20 4h-6M20 4v6"/></svg>
+      Ranged Damage
+    </div>
+    <sc-if value="{{isEditable}}" hint-placeholder-val="{{true}}">
+      <div style="display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;">
+        <div><span class="field-label">Dice</span><input class="field-input" style="width:70px;" value="{{rangedDice}}"></div>
+        <div style="font-size:18px;color:var(--text-faint);padding-bottom:9px;">d</div>
+        <div><span class="field-label">Die</span>
+          <div style="display:flex;gap:4px;">
+            <sc-for list="{{dieTypeOptions}}" as="d" hint-placeholder-count="6">
+              <button onClick="{{d.pickRanged}}" style="{{d.rangedStyle}}padding:8px 9px;border-radius:var(--radius-md);font-size:11.5px;font-weight:600;border:1px solid var(--border-strong);">{{d.label}}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="font-size:18px;color:var(--text-faint);padding-bottom:9px;">+</div>
+        <div><span class="field-label">Mod</span><input class="field-input" style="width:60px;" value="{{rangedModifier}}"></div>
+        <div style="flex:1;min-width:120px;"><span class="field-label">Damage Type</span><input class="field-input" value="{{rangedType}}" placeholder="Piercing"></div>
+      </div>
+      <div style="margin-top:10px;padding:9px 12px;border-radius:var(--radius-md);background:rgba(212,98,42,0.14);color:var(--ember);font-size:13px;font-weight:700;display:inline-block;font-family:var(--font-display);">{{rangedPreview}}</div>
+    </sc-if>
+    <sc-if value="{{isView}}" hint-placeholder-val="{{false}}">
+      <div style="font-family:var(--font-display);font-size:19px;">{{rangedPreview}}</div>
+    </sc-if>
+  </div>
+
+  <!-- HEALING + DC -->
+  <div class="card" style="padding:18px;margin-bottom:18px;">
+    <div class="section-title">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--success)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.35-9.5-8.5C.7 8.6 2.6 5 6.2 5c2 0 3.4 1.1 4.3 2.4C11.4 6.1 12.8 5 14.8 5c3.6 0 5.5 3.6 3.7 7.5C16 16.65 12 21 12 21Z"/><path d="M9 12h2l1-2 1.5 4 1-2h1.5"/></svg>
+      Healing
+    </div>
+    <div class="stat-grid">
+      <div>
+        <span class="field-label">Base Healing Dice Type</span>
+        <sc-if value="{{isEditable}}" hint-placeholder-val="{{true}}">
+          <input class="field-input" style="max-width:160px;" value="{{healingDice}}" placeholder="e.g. 1d4">
+        </sc-if>
+        <sc-if value="{{isView}}" hint-placeholder-val="{{false}}">
+          <div class="field-value" style="font-family:var(--font-display);">{{healingDice}}</div>
+        </sc-if>
+      </div>
+    </div>
+  </div>
+
+  <!-- LORE -->
+  <div class="card" style="padding:18px;margin-bottom:18px;">
+    <div class="section-title">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--arcane)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v13a2.5 2.5 0 0 1-2.5 2.5H8.5A2.5 2.5 0 0 1 6 17V4Z"/><path d="M9 8h6M9 11h6"/></svg>
+      Lore &amp; Flavor Text
+    </div>
+    <sc-if value="{{isEditable}}" hint-placeholder-val="{{true}}">
+      <textarea class="field-input" style="min-height:90px;resize:vertical;line-height:1.5;">{{description}}</textarea>
+    </sc-if>
+    <sc-if value="{{isView}}" hint-placeholder-val="{{false}}">
+      <div class="muted" style="font-size:13.5px;line-height:1.6;white-space:pre-wrap;">{{description}}</div>
+    </sc-if>
+  </div>
+
+  <!-- ACTIONS & FEATS -->
+  <div class="card" style="padding:18px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div class="section-title" style="margin-bottom:0;">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l6-6M14 10l6-6M14 10l-1.5-4L9 4l1 3.5L14 10ZM10 14l1.5 4L16 20l-1-3.5L10 14Z"/></svg>
+        Actions &amp; Feats
+      </div>
+      <sc-if value="{{isEditable}}" hint-placeholder-val="{{true}}">
+        <button onClick="{{addAction}}" style="padding:7px 13px;border-radius:999px;border:none;background:var(--accent-soft);color:var(--accent);font-size:11.5px;font-weight:700;">+ Add Action</button>
+      </sc-if>
+    </div>
+    <div class="faint" style="font-size:11px;margin-bottom:12px;">Feats are actions with a name starting <code style="background:var(--bg-sunken);padding:1px 5px;border-radius:4px;">Feat:</code></div>
+
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <sc-for list="{{actions}}" as="a" hint-placeholder-count="2">
+        <div style="border:1px solid var(--border);border-radius:var(--radius-md);background:var(--bg-sunken);overflow:visible;">
+          <button onClick="{{a.toggleOpen}}" style="width:100%;display:flex;align-items:center;gap:10px;padding:11px 13px;background:none;border:none;color:var(--text);text-align:left;">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="{{a.chevronStyle}}color:var(--text-faint);flex-shrink:0;"><path d="M9 6l6 6-6 6"/></svg>
+            <span style="{{a.costPipStyle}}width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;flex-shrink:0;">{{a.actionCost}}</span>
+            <span style="font-weight:600;font-size:13.5px;flex:1;">{{a.actionName}}</span>
+            <span class="faint" style="font-size:11px;">Lvl {{a.actionLevel}}</span>
+            <span style="background:var(--bg-hover);color:var(--text-muted);padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600;">{{a.typeLabel}}</span>
+          </button>
+
+          <sc-if value="{{a.open}}" hint-placeholder-val="{{true}}">
+            <div style="padding:2px 14px 14px;display:flex;flex-direction:column;gap:12px;">
+
+              <sc-if value="{{isEditable}}" hint-placeholder-val="{{true}}">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+                  <div><span class="field-label">Action Name</span><input class="field-input" style="min-width:180px;" value="{{a.actionName}}"></div>
+                  <div><span class="field-label">Cost</span><input class="field-input" style="width:50px;" value="{{a.actionCost}}"></div>
+                  <div><span class="field-label">Level</span><input class="field-input" style="width:50px;" value="{{a.actionLevel}}"></div>
+                  <div><span class="field-label">Range</span><input class="field-input" style="width:90px;" value="{{a.range}}" placeholder="1 Zone"></div>
+                </div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+                  <div>
+                    <span class="field-label">Frequency</span>
+                    <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                      <sc-for list="{{a.typeOptions}}" as="ty" hint-placeholder-count="4">
+                        <button onClick="{{ty.pick}}" style="{{ty.style}}padding:6px 11px;border-radius:999px;font-size:11px;font-weight:600;border:1px solid var(--border-strong);">{{ty.label}}</button>
+                      </sc-for>
+                    </div>
+                  </div>
+                  <sc-if value="{{a.showTypeCount}}" hint-placeholder-val="{{false}}">
+                    <div><span class="field-label">Times</span><input class="field-input" style="width:50px;" value="{{a.actionTypeCount}}"></div>
+                  </sc-if>
+                  <div>
+                    <span class="field-label">Resolves via</span>
+                    <div style="display:flex;gap:4px;">
+                      <button onClick="{{a.pickToHit}}" style="{{a.toHitPickStyle}}padding:6px 11px;border-radius:999px;font-size:11px;font-weight:600;border:1px solid var(--border-strong);">To-Hit</button>
+                      <button onClick="{{a.pickDC}}" style="{{a.dcPickStyle}}padding:6px 11px;border-radius:999px;font-size:11px;font-weight:600;border:1px solid var(--border-strong);">Difficulty Class</button>
+                    </div>
+                  </div>
+                  <sc-if value="{{a.toHitBool}}" hint-placeholder-val="{{true}}">
+                    <div><span class="field-label">To-Hit Mod</span><input class="field-input" style="width:60px;" value="{{a.toHit}}"></div>
+                  </sc-if>
+                  <sc-if value="{{a.isDC}}" hint-placeholder-val="{{false}}">
+                    <div><span class="field-label">DC (stat, mod)</span><input class="field-input" style="width:90px;" value="{{a.difficultyClass}}" placeholder="Dex,0"></div>
+                  </sc-if>
+                </div>
+                <div>
+                  <span class="field-label">Description</span>
+                  <textarea class="field-input" style="min-height:60px;resize:vertical;line-height:1.5;">{{a.description}}</textarea>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{isView}}" hint-placeholder-val="{{false}}">
+                <div class="faint" style="font-size:11.5px;">{{a.range}} &middot; {{a.resolveSummary}}</div>
+                <div class="muted" style="font-size:13px;line-height:1.6;white-space:pre-wrap;">{{a.description}}</div>
+              </sc-if>
+
+              <div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                  <span class="field-label" style="margin-bottom:0;">Tags</span>
+                  <sc-if value="{{isEditable}}" hint-placeholder-val="{{true}}">
+                    <button onClick="{{a.addTag}}" style="padding:4px 10px;border-radius:999px;border:1px dashed var(--border-strong);background:transparent;color:var(--text-muted);font-size:10.5px;font-weight:600;">+ Tag</button>
+                  </sc-if>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                  <sc-for list="{{a.tags}}" as="tag" hint-placeholder-count="2">
+                    <button onClick="{{tag.openEdit}}" style="{{tag.pillStyle}}padding:4px 11px;border-radius:999px;font-size:11px;font-weight:600;border:none;">{{tag.tagInfo}}</button>
+                  </sc-for>
+                </div>
+              </div>
+
+              <sc-if value="{{isEditable}}" hint-placeholder-val="{{true}}">
+                <button onClick="{{a.remove}}" style="align-self:flex-start;padding:6px 12px;border-radius:999px;border:1px solid var(--danger);background:transparent;color:var(--danger);font-size:11px;font-weight:600;">Remove Action</button>
+              </sc-if>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- SAVE BAR -->
+  <sc-if value="{{isEditable}}" hint-placeholder-val="{{true}}">
+    <div style="position:sticky;bottom:16px;margin-top:22px;display:flex;justify-content:center;">
+      <div class="card" style="padding:12px 16px;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow-md);">
+        <span class="muted" style="font-size:12px;">Unsaved changes</span>
+        <button style="padding:9px 18px;border:none;border-radius:var(--radius-pill);background:transparent;color:var(--text-muted);font-size:12.5px;font-weight:600;border:1px solid var(--border);">Cancel</button>
+        <button style="padding:9px 20px;border:none;border-radius:var(--radius-pill);background:var(--accent);color:var(--on-accent);font-size:12.5px;font-weight:700;">Save Class</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- TAG EDIT POPOVER -->
+  <sc-if value="{{tagDialogOpen}}" hint-placeholder-val="{{false}}">
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:50;" onClick="{{closeTagDialog}}"></div>
+    <div class="card" style="position:fixed;z-index:51;top:50%;left:50%;transform:translate(-50%,-50%);width:min(380px, calc(100vw - 48px));padding:22px;display:flex;flex-direction:column;gap:14px;box-shadow:var(--shadow-md);">
+      <div style="font-family:var(--font-display);font-size:16px;">Edit Tag</div>
+      <div>
+        <span class="field-label">Label</span>
+        <input class="field-input" value="{{tagDialogInfo}}" placeholder="e.g. Fire">
+      </div>
+      <div style="display:flex;gap:10px;">
+        <div style="flex:1;"><span class="field-label">Tag Color</span><input class="field-input" style="padding:4px;height:36px;" type="color" value="{{tagDialogColor}}"></div>
+        <div style="flex:1;"><span class="field-label">Text Color</span><input class="field-input" style="padding:4px;height:36px;" type="color" value="{{tagDialogTextColor}}"></div>
+      </div>
+      <div>
+        <span class="field-label">Live Preview</span>
+        <span style="{{tagDialogPreviewStyle}}padding:5px 13px;border-radius:999px;font-size:12px;font-weight:600;display:inline-block;">{{tagDialogInfo}}</span>
+      </div>
+      <div>
+        <span class="field-label">Description</span>
+        <textarea class="field-input" style="min-height:50px;resize:vertical;">{{tagDialogDescription}}</textarea>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button onClick="{{removeTagDialog}}" style="padding:9px 14px;border-radius:var(--radius-md);border:1px solid var(--danger);background:transparent;color:var(--danger);font-size:12px;font-weight:600;">Delete Tag</button>
+        <button onClick="{{closeTagDialog}}" style="flex:1;padding:9px 14px;border-radius:var(--radius-md);border:none;background:var(--accent);color:var(--on-accent);font-size:12px;font-weight:700;">Done</button>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script data-dc-script>
+const TYPE_COLOR = { 'Attrionist': 'var(--arcane)', 'Crit Hunter': 'var(--ember)', 'Manipulator': 'var(--success)', 'Snowballer': 'var(--danger)' };
+const DIE_OPTIONS = [4, 6, 8, 10, 12, 20];
+const ACTION_TYPE_LABEL = { standard: 'Standard', perDay: 'Per Day', perShortRest: 'Per Short Rest', perCombat: 'Per Combat' };
+const COST_COLOR = ['var(--text-faint)', 'var(--success)', 'var(--accent)', 'var(--danger)'];
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      viewerMode: 'author', // 'visitor' | 'author' | 'admin'
+      className: 'Warden',
+      author: 'JnJ Team',
+      classType: 'Attrionist',
+      visibility: 'public', // 'public' | 'private'
+      healthDice: '2d8',
+      healingDice: '1d4',
+      coreStats: { base_armor_class: 14, base_hit_modifier: 2, base_class_damage_class: 12, base_hardness: 3 },
+      meleeDice: 1, meleeDieType: 8, meleeModifier: 2, meleeType: 'Slashing',
+      rangedDice: 1, rangedDieType: 6, rangedModifier: 0, rangedType: 'Piercing',
+      description: 'A frontline defender who plants their feet and dares the enemy to come through. Grants nearby allies bonus AC and can taunt enemies into attacking them instead of the party’s more fragile members.',
+      actions: [
+        {
+          id: 1, actionName: 'Bulwark Stance', actionCost: 1, actionLevel: 1, range: 'Self',
+          actionType: 'standard', actionTypeCount: 0, toHitBool: false, difficultyClass: 'Str,0', toHit: 0,
+          description: 'Plant your feet and raise your shield. You and adjacent allies gain +2 AC until your next turn.',
+          open: true,
+          tags: [{ id: 1, tagInfo: 'Defense', tagColor: '#c8a24a', textColor: '#16161a', tagDescription: 'Improves AC or reduces incoming damage.' }]
+        },
+        {
+          id: 2, actionName: 'Feat: Unbreakable', actionCost: 0, actionLevel: 5, range: 'Self',
+          actionType: 'perShortRest', actionTypeCount: 1, toHitBool: false, difficultyClass: 'Con,2', toHit: 0,
+          description: 'Once per short rest, ignore the next source of damage entirely.',
+          open: false,
+          tags: [{ id: 1, tagInfo: 'Feat', tagColor: '#7c4dff', textColor: '#ece8e1', tagDescription: 'A passive feature gained at a specific level.' }]
+        }
+      ],
+      nextActionId: 3,
+      tagDialogOpen: false,
+      tagDialogTarget: null // { actionId, tagId }
+    };
+  }
+
+  pickViewerMode(mode) { return () => this.setState({ viewerMode: mode }); }
+  pickClassType(type) { return () => this.setState({ classType: type }); }
+  pickVisibility(v) { return () => this.setState({ visibility: v }); }
+  pickMeleeDie(n) { return () => this.setState({ meleeDieType: n }); }
+  pickRangedDie(n) { return () => this.setState({ rangedDieType: n }); }
+
+  toggleActionOpen(id) {
+    return () => this.setState({ actions: this.state.actions.map(a => a.id === id ? { ...a, open: !a.open } : a) });
+  }
+
+  pickActionType(id, type) {
+    return () => this.setState({ actions: this.state.actions.map(a => a.id === id ? { ...a, actionType: type } : a) });
+  }
+
+  pickResolveMode(id, toHitBool) {
+    return () => this.setState({ actions: this.state.actions.map(a => a.id === id ? { ...a, toHitBool } : a) });
+  }
+
+  addAction() {
+    return () => {
+      const id = this.state.nextActionId;
+      this.setState({
+        actions: [...this.state.actions, {
+          id, actionName: 'New Action', actionCost: 1, actionLevel: 1, range: '1 Zone',
+          actionType: 'standard', actionTypeCount: 0, toHitBool: true, difficultyClass: '', toHit: 0,
+          description: '', open: true, tags: []
+        }],
+        nextActionId: id + 1
+      });
+    };
+  }
+
+  removeAction(id) {
+    return () => this.setState({ actions: this.state.actions.filter(a => a.id !== id) });
+  }
+
+  addTag(actionId) {
+    return () => this.setState({
+      actions: this.state.actions.map(a => a.id !== actionId ? a : {
+        ...a,
+        tags: [...a.tags, { id: (a.tags.reduce((m, t) => Math.max(m, t.id), 0) + 1), tagInfo: 'New Tag', tagColor: '#c8a24a', textColor: '#16161a', tagDescription: '' }]
+      })
+    });
+  }
+
+  openTagDialog(actionId, tagId) {
+    return () => this.setState({ tagDialogOpen: true, tagDialogTarget: { actionId, tagId } });
+  }
+
+  closeTagDialog() {
+    return () => this.setState({ tagDialogOpen: false, tagDialogTarget: null });
+  }
+
+  removeTagDialog() {
+    return () => {
+      const target = this.state.tagDialogTarget;
+      if (!target) return;
+      this.setState({
+        actions: this.state.actions.map(a => a.id !== target.actionId ? a : { ...a, tags: a.tags.filter(t => t.id !== target.tagId) }),
+        tagDialogOpen: false,
+        tagDialogTarget: null
+      });
+    };
+  }
+
+  diceFormat(count, die, modifier, type) {
+    const mod = modifier ? (modifier > 0 ? ` + ${modifier}` : ` - ${Math.abs(modifier)}`) : '';
+    return `${count}d${die}${mod}${type ? ' · ' + type : ''}`;
+  }
+
+  renderVals() {
+    const viewerMode = this.state.viewerMode;
+    const isEditable = viewerMode !== 'visitor';
+    const isView = !isEditable;
+    const isAdmin = viewerMode === 'admin';
+
+    const viewerModes = [
+      { key: 'visitor', label: 'Visitor (read-only)' },
+      { key: 'author', label: 'Author (editing)' },
+      { key: 'admin', label: 'Admin (editing)' }
+    ].map(m => ({
+      ...m,
+      style: m.key === viewerMode ? 'background:var(--accent);color:var(--on-accent);' : 'background:transparent;color:var(--text-muted);',
+      pick: this.pickViewerMode(m.key)
+    }));
+
+    const typeColor = TYPE_COLOR[this.state.classType] || 'var(--border-strong)';
+    const typeOptions = Object.keys(TYPE_COLOR).map(t => ({
+      key: t, label: t,
+      style: t === this.state.classType ? `background:${TYPE_COLOR[t]};color:var(--on-accent);border-color:transparent;` : 'background:var(--bg-sunken);color:var(--text-muted);',
+      pick: this.pickClassType(t)
+    }));
+
+    const visLabel = this.state.visibility === 'private' ? 'Private' : (isAdmin ? 'Default' : 'Pool');
+    const visBadgeStyle = this.state.visibility === 'private'
+      ? 'background:transparent;color:var(--text-faint);border:1px solid var(--border-strong);'
+      : 'background:var(--accent-soft);color:var(--accent);';
+
+    const visOptions = [
+      {
+        key: 'public',
+        label: isAdmin ? 'Public (Default)' : 'Public (Pool)',
+        sub: isAdmin ? 'Auto-included in every campaign' : 'Any campaign can subscribe to it'
+      },
+      { key: 'private', label: 'Private', sub: 'Only you can see or use it' }
+    ].map(v => {
+      const selected = v.key === this.state.visibility;
+      return {
+        ...v,
+        style: selected ? 'background:var(--accent);color:var(--on-accent);border:1px solid var(--accent);' : 'background:var(--bg-sunken);color:var(--text);border:1px solid var(--border);',
+        subStyle: selected ? 'color:var(--on-accent);opacity:0.75;' : 'color:var(--text-faint);',
+        pick: this.pickVisibility(v.key)
+      };
+    });
+
+    const coreStatDefs = [
+      { key: 'base_armor_class', label: 'Armor Class', placeholder: '14' },
+      { key: 'base_hit_modifier', label: 'Hit Modifier', placeholder: '+2' },
+      { key: 'base_class_damage_class', label: 'Class DC', placeholder: '12' },
+      { key: 'base_hardness', label: 'Hardness', placeholder: '3' }
+    ];
+    const coreStats = coreStatDefs.map(d => ({ ...d, value: this.state.coreStats[d.key] }));
+
+    const dieTypeOptions = DIE_OPTIONS.map(n => ({
+      key: n, label: 'd' + n,
+      meleeStyle: n === this.state.meleeDieType ? 'background:var(--danger);color:white;border-color:transparent;' : 'background:var(--bg-sunken);color:var(--text-muted);',
+      rangedStyle: n === this.state.rangedDieType ? 'background:var(--ember);color:white;border-color:transparent;' : 'background:var(--bg-sunken);color:var(--text-muted);',
+      pickMelee: this.pickMeleeDie(n),
+      pickRanged: this.pickRangedDie(n)
+    }));
+
+    const meleePreview = this.diceFormat(this.state.meleeDice, this.state.meleeDieType, this.state.meleeModifier, this.state.meleeType);
+    const rangedPreview = this.diceFormat(this.state.rangedDice, this.state.rangedDieType, this.state.rangedModifier, this.state.rangedType);
+
+    const actions = this.state.actions.map(a => {
+      const typeOpts = ['standard', 'perDay', 'perShortRest', 'perCombat'].map(t => ({
+        key: t, label: ACTION_TYPE_LABEL[t],
+        style: t === a.actionType ? 'background:var(--accent);color:var(--on-accent);border-color:transparent;' : 'background:var(--bg-hover);color:var(--text-muted);',
+        pick: this.pickActionType(a.id, t)
+      }));
+      const resolveSummary = a.toHitBool ? `+${a.toHit} to hit` : `DC (${a.difficultyClass || '—'})`;
+      const tags = a.tags.map(tag => ({
+        ...tag,
+        pillStyle: `background:${tag.tagColor};color:${tag.textColor};`,
+        openEdit: this.openTagDialog(a.id, tag.id)
+      }));
+      return {
+        ...a,
+        typeLabel: ACTION_TYPE_LABEL[a.actionType],
+        chevronStyle: a.open ? 'transform:rotate(90deg);' : '',
+        costPipStyle: `background:${COST_COLOR[Math.min(a.actionCost, 3)]}22;color:${COST_COLOR[Math.min(a.actionCost, 3)]};`,
+        toggleOpen: this.toggleActionOpen(a.id),
+        typeOptions: typeOpts,
+        showTypeCount: a.actionType !== 'standard',
+        toHitPickStyle: a.toHitBool ? 'background:var(--accent);color:var(--on-accent);border-color:transparent;' : 'background:var(--bg-hover);color:var(--text-muted);',
+        dcPickStyle: !a.toHitBool ? 'background:var(--accent);color:var(--on-accent);border-color:transparent;' : 'background:var(--bg-hover);color:var(--text-muted);',
+        pickToHit: this.pickResolveMode(a.id, true),
+        pickDC: this.pickResolveMode(a.id, false),
+        isDC: !a.toHitBool,
+        resolveSummary,
+        tags,
+        addTag: this.addTag(a.id),
+        remove: this.removeAction(a.id)
+      };
+    });
+
+    const target = this.state.tagDialogTarget;
+    let tagDialogInfo = '', tagDialogColor = '#c8a24a', tagDialogTextColor = '#16161a', tagDialogDescription = '', tagDialogPreviewStyle = '';
+    if (target) {
+      const action = this.state.actions.find(a => a.id === target.actionId);
+      const tag = action && action.tags.find(t => t.id === target.tagId);
+      if (tag) {
+        tagDialogInfo = tag.tagInfo;
+        tagDialogColor = tag.tagColor;
+        tagDialogTextColor = tag.textColor;
+        tagDialogDescription = tag.tagDescription;
+        tagDialogPreviewStyle = `background:${tag.tagColor};color:${tag.textColor};`;
+      }
+    }
+
+    return {
+      viewerModes,
+      isEditable,
+      isView,
+      isAdmin,
+      isNotAdmin: !isAdmin,
+      className: this.state.className,
+      authorName: this.state.author,
+      classType: this.state.classType,
+      typeBadgeStyle: `background:${typeColor};color:white;`,
+      typeOptions,
+      visLabel,
+      visBadgeStyle,
+      visOptions,
+      coreStats,
+      healthDice: this.state.healthDice,
+      healingDice: this.state.healingDice,
+      meleeDice: this.state.meleeDice,
+      meleeModifier: this.state.meleeModifier,
+      meleeType: this.state.meleeType,
+      meleePreview,
+      rangedDice: this.state.rangedDice,
+      rangedModifier: this.state.rangedModifier,
+      rangedType: this.state.rangedType,
+      rangedPreview,
+      dieTypeOptions,
+      description: this.state.description,
+      actions,
+      addAction: this.addAction(),
+      tagDialogOpen: this.state.tagDialogOpen,
+      tagDialogInfo,
+      tagDialogColor,
+      tagDialogTextColor,
+      tagDialogDescription,
+      tagDialogPreviewStyle,
+      closeTagDialog: this.closeTagDialog(),
+      removeTagDialog: this.removeTagDialog()
+    };
+  }
+}
+</script>
+</body>
+</html>

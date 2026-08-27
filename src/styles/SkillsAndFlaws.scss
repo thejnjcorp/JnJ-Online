@@ -161,12 +161,12 @@
     white-space: nowrap;
 }
 
-.SkillsAndFlaws-stars {
+.SkillsAndFlaws-circles {
     display: flex;
     flex-shrink: 0;
 }
 
-.SkillsAndFlaws-star {
+.SkillsAndFlaws-circle {
     filter: invert(1);
 }
 
