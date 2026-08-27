@@ -1,4 +1,4 @@
-import { useState, useRef, createRef } from "react"
+import { useState, useRef } from "react"
 import Draggable from "react-draggable";
 import { HexColorPicker } from "react-colorful";
 import colorpickerIcon from '../icons/colorpicker.svg';
@@ -6,20 +6,25 @@ import "../styles/MapRenderer.scss";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../utils/firebase";
 
+const RESIZE_STEP = 5;
 
 export function MapRenderer({ map, userId }) {
     const [isEditing, setIsEditing] = useState(false);
     const [mapBorderColor, setMapBorderColor] = useState(map?.borderColor || "red");
-    const [zones, setZones] = useState(map?.zones || []);
+    // Legacy zones saved before zones had a stable id get one assigned here,
+    // on load - everything below (refs, drag/resize, selection) identifies a
+    // zone by id rather than array position, so removing or reordering a
+    // zone can't scramble another zone's ref or in-progress drag.
+    const [zones, setZones] = useState((map?.zones || []).map(zone => zone.id ? zone : { ...zone, id: crypto.randomUUID() }));
     const canEdit = map?.canWrite?.includes(userId);
-    const [selectedZone, setSelectedZone] = useState(null);
+    const [selectedZoneId, setSelectedZoneId] = useState(null);
 
     const [showColorPicker, setShowColorPicker] = useState(false);
     const [selectedColor, setSelectedColor] = useState(map?.borderColor || "red");
     const [zoneTextColor, setZoneTextColor] = useState(map?.zoneTextColor || "white");
     const [showTextColorPicker, setShowTextColorPicker] = useState(false);
     const [selectedTextColor, setSelectedTextColor] = useState(map?.zoneTextColor || "white");
-    const nodeRefs = useRef([]);
+    const nodeRefs = useRef({});
 
     // monotonic, never reused even across clear/remove - avoids naming a new zone
     // the same as one that still exists elsewhere in the array, since "Zone " + length
@@ -39,40 +44,40 @@ export function MapRenderer({ map, userId }) {
         setShowTextColorPicker(false);
     }
 
-    const startResizing = (e, index, direction) => {
+    // Pure edge-specific math, shared by mouse-drag resizing and the resize
+    // handles' keyboard support - given a base zone snapshot and a delta,
+    // returns the resized zone.
+    const applyResizeDelta = (baseZone, direction, dx, dy) => {
+        const updated = { ...baseZone };
+        if (direction.includes("right")) {
+            updated.width = Math.max(20, baseZone.width + dx);
+        }
+        if (direction.includes("left")) {
+            updated.width = Math.max(20, baseZone.width - dx);
+            updated.x = baseZone.x + dx;
+        }
+        if (direction.includes("bottom")) {
+            updated.height = Math.max(20, baseZone.height + dy);
+        }
+        if (direction.includes("top")) {
+            updated.height = Math.max(20, baseZone.height - dy);
+            updated.y = baseZone.y + dy;
+        }
+        return updated;
+    };
+
+    const startResizing = (e, zoneId, direction) => {
         e.preventDefault();
         e.stopPropagation();
 
         const startX = e.clientX;
         const startY = e.clientY;
-        const zone = zones[index];
+        const baseZone = zones.find(z => z.id === zoneId);
 
         const handleMouseMove = (moveEvent) => {
             const dx = moveEvent.clientX - startX;
             const dy = moveEvent.clientY - startY;
-
-            setZones(prev => {
-                const updated = [...prev];
-                const z = { ...updated[index] };
-
-                if (direction.includes("right")) {
-                    z.width = Math.max(20, zone.width + dx);
-                }
-                if (direction.includes("left")) {
-                    z.width = Math.max(20, zone.width - dx);
-                    z.x = zone.x + dx;
-                }
-                if (direction.includes("bottom")) {
-                    z.height = Math.max(20, zone.height + dy);
-                }
-                if (direction.includes("top")) {
-                    z.height = Math.max(20, zone.height - dy);
-                    z.y = zone.y + dy;
-                }
-
-                updated[index] = z;
-                return updated;
-            });
+            setZones(prev => prev.map(z => z.id === zoneId ? applyResizeDelta(baseZone, direction, dx, dy) : z));
         };
 
         const handleMouseUp = () => {
@@ -84,6 +89,22 @@ export function MapRenderer({ map, userId }) {
         window.addEventListener("mouseup", handleMouseUp);
     };
 
+    const handleResizerKeyDown = (e, zoneId, direction) => {
+        const deltas = {
+            ArrowRight: [RESIZE_STEP, 0],
+            ArrowLeft: [-RESIZE_STEP, 0],
+            ArrowDown: [0, RESIZE_STEP],
+            ArrowUp: [0, -RESIZE_STEP],
+        };
+        const delta = deltas[e.key];
+        if (!delta) return;
+        e.preventDefault();
+        // Each key press is its own independent nudge (unlike a mouse drag's
+        // cumulative delta from one start point), so this builds on the
+        // current size rather than a fixed snapshot.
+        setZones(prev => prev.map(z => z.id === zoneId ? applyResizeDelta(z, direction, delta[0], delta[1]) : z));
+    };
+
     return <div className="MapRenderer">
         <div className="MapRenderer-header">
             {canEdit && <button type="button" className="MapRenderer-button" onClick={() => setIsEditing(!isEditing)}>{isEditing ? "Stop Editing" : "Edit"}</button>}
@@ -92,6 +113,7 @@ export function MapRenderer({ map, userId }) {
                 setZones(prev => [
                     ...prev,
                     {
+                        id: crypto.randomUUID(),
                         name: "Zone " + zoneCounterRef.current,
                         x: 10,
                         y: 10,
@@ -101,15 +123,15 @@ export function MapRenderer({ map, userId }) {
                 ]);
             }}>Add Zone</button>}
             {isEditing && <button type="button" className="MapRenderer-button" onClick={() => {
-                if (selectedZone !== null) {
-                    setZones(prev => prev.filter((_, index) => index !== selectedZone));
-                    setSelectedZone(null);
+                if (selectedZoneId !== null) {
+                    setZones(prev => prev.filter(z => z.id !== selectedZoneId));
+                    setSelectedZoneId(null);
                 }
             }}>Remove Zone</button>}
             {isEditing && zones.length > 0 && <button type="button" className="MapRenderer-button" onClick={() => {
                 if (window.confirm("Clear all zones on this map? This isn't saved until you hit Save Map.")) {
                     setZones([]);
-                    setSelectedZone(null);
+                    setSelectedZoneId(null);
                 }
             }}>Clear Zones</button>}
             {isEditing && <button type="button" className="MapRenderer-color-picker-button" onClick={() => {
@@ -158,34 +180,26 @@ export function MapRenderer({ map, userId }) {
         <div className="MapRenderer-canvas">
         <img src={map.link} alt="map" width={500}/>
         {zones.map((zone, index) => {
-            if (!nodeRefs.current[index]) nodeRefs.current[index] = createRef();
-            return <Draggable key={index}
-                nodeRef={nodeRefs.current[index]}
+            if (!nodeRefs.current[zone.id]) nodeRefs.current[zone.id] = { current: null };
+            return <Draggable key={zone.id}
+                nodeRef={nodeRefs.current[zone.id]}
                 defaultPosition={{x: zone.x, y: zone.y}}
                 position={{x: zone.x, y: zone.y}}
                 bounds="parent"
                 onStop={(_, data) => {
-                    setZones(prev => {
-                        const newZones = [...prev];
-                        newZones[index] = {
-                            ...newZones[index],
-                            x: data.x,
-                            y: data.y
-                        };
-                        return newZones;
-                    });
+                    setZones(prev => prev.map(z => z.id === zone.id ? { ...z, x: data.x, y: data.y } : z));
                 }}
                 disabled={!isEditing}
             >
                 <div
                     style={{
-                        width: zone.width, 
+                        width: zone.width,
                         height: zone.height,
                         borderColor: mapBorderColor,
-                        zIndex: selectedZone === index ? 999 : index
+                        zIndex: selectedZoneId === zone.id ? 999 : index
                     }}
                     className="MapRenderer-zone"
-                    ref={nodeRefs.current[index]}
+                    ref={nodeRefs.current[zone.id]}
                 >
                     <input
                         className="MapRenderer-zone-name"
@@ -193,26 +207,22 @@ export function MapRenderer({ map, userId }) {
                         type="text"
                         value={zone.name}
                         onChange={(e) => {
-                            setZones(prev => {
-                                const newZones = [...prev];
-                                newZones[index] = {
-                                    ...newZones[index],
-                                    name: e.target.value
-                                };
-                                return newZones;
-                            });
+                            const newName = e.target.value;
+                            setZones(prev => prev.map(z => z.id === zone.id ? { ...z, name: newName } : z));
                         }}
-                        onMouseDown={() => setSelectedZone(index)}
+                        onMouseDown={() => setSelectedZoneId(zone.id)}
                         disabled={!isEditing}
                     />
-                    {isEditing && <div className="resizer top-left" onMouseDown={(e) => startResizing(e, index, "top-left")}/>}
-                    {isEditing && <div className="resizer top" onMouseDown={(e) => startResizing(e, index, "top")}/>}
-                    {isEditing && <div className="resizer top-right" onMouseDown={(e) => startResizing(e, index, "top-right")}/>}
-                    {isEditing && <div className="resizer right" onMouseDown={(e) => startResizing(e, index, "right")}/>}
-                    {isEditing && <div className="resizer bottom-right" onMouseDown={(e) => startResizing(e, index, "bottom-right")}/>}
-                    {isEditing && <div className="resizer bottom" onMouseDown={(e) => startResizing(e, index, "bottom")}/>}
-                    {isEditing && <div className="resizer bottom-left" onMouseDown={(e) => startResizing(e, index, "bottom-left")}/>}
-                    {isEditing && <div className="resizer left" onMouseDown={(e) => startResizing(e, index, "left")}/>}
+                    {isEditing && ["top-left", "top", "top-right", "right", "bottom-right", "bottom", "bottom-left", "left"].map(direction =>
+                        <button
+                            type="button"
+                            key={direction}
+                            className={`resizer ${direction}`}
+                            aria-label={`Resize zone from ${direction.replace('-', ' ')}`}
+                            onMouseDown={(e) => startResizing(e, zone.id, direction)}
+                            onKeyDown={(e) => handleResizerKeyDown(e, zone.id, direction)}
+                        />
+                    )}
                 </div>
             </Draggable>
         })}

@@ -75,7 +75,7 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
                         <span
                             className='CombatActionList-tag'
                             style={{backgroundColor: tag.tagColor, color: tag.textColor}}
-                            key={i}
+                            key={tag.id || i}
                         >
                             {tag.tagInfo}
                             {tag.tagDescription !== undefined && tag.tagDescription !== "" && <div className='CombatActionList-tag-description'>

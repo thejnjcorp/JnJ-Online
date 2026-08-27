@@ -115,6 +115,9 @@
         height: 10px;
         background: var(--jnj-color-danger);
         position: absolute;
+        border: none;
+        padding: 0;
+        margin: 0;
 
         &.right {
             right: 0;

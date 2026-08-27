@@ -156,7 +156,7 @@ export function advanceTurnStatuses(characterPage) {
     const nextStatuses = [];
 
     activeStatuses(characterPage).forEach(status => {
-        if (!decaysPerTurn(status) || !(status.stacks > 0)) {
+        if (!decaysPerTurn(status) || (status.stacks ?? 0) <= 0) {
             nextStatuses.push(status);
             return;
         }

@@ -116,7 +116,7 @@ export function StatusListPage() {
                         <span className="StatusListPage-card-name">{status.name}</span>
                     </div>
                     {(getEffectsArray(status).length > 0 || status.grantedAction) && <div className="StatusListPage-card-badge-row">
-                        {getEffectsArray(status).map((effect, i) => <span className="StatusListPage-card-effect-badge" key={i}>{effectLabel(effect)}</span>)}
+                        {getEffectsArray(status).map((effect, i) => <span className="StatusListPage-card-effect-badge" key={effect.id || i}>{effectLabel(effect)}</span>)}
                         {status.grantedAction && <span className="StatusListPage-card-effect-badge StatusListPage-card-effect-badge-action">Grants: {status.grantedAction.actionName}</span>}
                     </div>}
                     <div className="StatusListPage-card-visibility">

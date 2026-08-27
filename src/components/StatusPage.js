@@ -164,7 +164,7 @@ export function StatusPage() {
     function addEffect() {
         const firstStat = STATUS_STAT_DEFINITIONS[0];
         const effects = formData.effects || [];
-        setFormData({ name: 'effects', value: [...effects, { stat: firstStat.key, delta: 1, trigger: firstStat.triggers[0] }] });
+        setFormData({ name: 'effects', value: [...effects, { id: crypto.randomUUID(), stat: firstStat.key, delta: 1, trigger: firstStat.triggers[0] }] });
         // A turn_start effect (currently only action_points) almost always
         // wants the status to also count down - Frightened-style "passive
         // effect that still decays" is the exception, still just a checkbox
@@ -199,7 +199,7 @@ export function StatusPage() {
         const effects = [...formData.effects];
         const current = effects[index];
         effects[index] = mode === 'scaled'
-            ? { ...current, mode: 'scaled', table: current.table?.length ? current.table : [{ level: 1, delta: current.delta || 0 }] }
+            ? { ...current, mode: 'scaled', table: current.table?.length ? current.table : [{ id: crypto.randomUUID(), level: 1, delta: current.delta || 0 }] }
             : { ...current, mode: 'flat' };
         setFormData({ name: 'effects', value: effects });
     }
@@ -208,7 +208,7 @@ export function StatusPage() {
         const effects = [...formData.effects];
         const table = effects[index].table || [];
         const nextLevel = table.length > 0 ? Math.max(...table.map(row => row.level)) + 1 : 1;
-        effects[index] = { ...effects[index], table: [...table, { level: nextLevel, delta: 0 }] };
+        effects[index] = { ...effects[index], table: [...table, { id: crypto.randomUUID(), level: nextLevel, delta: 0 }] };
         setFormData({ name: 'effects', value: effects });
     }
 
@@ -423,7 +423,7 @@ export function StatusPage() {
             {(formData.effects || []).map((effect, index) => {
                 const definition = STATUS_STAT_DEFINITIONS.find(s => s.key === effect.stat) || STATUS_STAT_DEFINITIONS[0];
                 const isScaled = effect.mode === 'scaled';
-                return <div className="StatusPage-effect-row" key={index}>
+                return <div className="StatusPage-effect-row" key={effect.id || index}>
                     <div className="StatusPage-effect-row-main">
                         Adjust{' '}
                         <select
@@ -456,7 +456,7 @@ export function StatusPage() {
                     {isScaled && <div className="StatusPage-effect-table">
                         <p className="StatusPage-hint">The value at the highest defined stack level at or below the status's current stacks applies - e.g. Exhaustion's table only defines levels 1-6, so stacks 7+ still resolves to level 6's value. Lets one status (stacks = severity level) reproduce a non-linear table like Exhaustion's, instead of a flat per-stack delta.</p>
                         {(effect.table || []).map((row, rowIndex) =>
-                            <div className="StatusPage-effect-table-row" key={rowIndex}>
+                            <div className="StatusPage-effect-table-row" key={row.id || rowIndex}>
                                 <span>Stacks &ge;</span>
                                 <input
                                     className="StatusPage-input StatusPage-input-narrow"

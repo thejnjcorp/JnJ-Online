@@ -178,8 +178,8 @@ export function ClassActionEditor({ action, index, onChange, onRemove, onAddTag,
             </div>
             <div className="ClassPage-tag-pills">
                 {(action.tags || []).map((tag, tagIndex) => isEditable
-                    ? <button type="button" key={tagIndex} className="ClassPage-tag-pill" style={{ backgroundColor: tag.tagColor, color: tag.textColor }} onClick={() => setOpenTagIndex(tagIndex)}>{tag.tagInfo}</button>
-                    : <span key={tagIndex} className="ClassPage-tag-pill" style={{ backgroundColor: tag.tagColor, color: tag.textColor }} title={tag.tagDescription}>{tag.tagInfo}</span>
+                    ? <button type="button" key={tag.id || tagIndex} className="ClassPage-tag-pill" style={{ backgroundColor: tag.tagColor, color: tag.textColor }} onClick={() => setOpenTagIndex(tagIndex)}>{tag.tagInfo}</button>
+                    : <span key={tag.id || tagIndex} className="ClassPage-tag-pill" style={{ backgroundColor: tag.tagColor, color: tag.textColor }} title={tag.tagDescription}>{tag.tagInfo}</span>
                 )}
             </div>
 

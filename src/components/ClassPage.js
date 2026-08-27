@@ -52,6 +52,27 @@ function visibilityFromDoc(data) {
     return data.public ? 'public' : 'private';
 }
 
+// Descends one dotted-path segment (e.g. "actions[0]" or "tagInfo") into the
+// nested form-data object formReducer is building, creating any missing
+// array/object along the way, and returns the object to descend into next.
+function navigateFormDataKey(currentObject, key, isLast) {
+    // If the key contains an array index (e.g., "actions[0]")
+    const arrayMatch = key.match(/(\w+)\[(\d+)\]/);
+    if (arrayMatch) {
+        const arrayName = arrayMatch[1]; // Array name, like 'actions'
+        const arrayIndex = Number.parseInt(arrayMatch[2], 10); // Index, like 0 or 1
+
+        // Ensure the array (and the item at that index) exist, then move down to it
+        if (!currentObject[arrayName]) currentObject[arrayName] = [];
+        if (!currentObject[arrayName][arrayIndex]) currentObject[arrayName][arrayIndex] = {};
+        return currentObject[arrayName][arrayIndex];
+    }
+
+    // A regular object property (e.g., "tags" or "tagInfo")
+    if (!currentObject[key]) currentObject[key] = {}; // Initialize if the key doesn't exist yet
+    return isLast ? currentObject : currentObject[key];
+}
+
 const formReducer = (state, event) => {
     if (event.type === 'SET_FORM_DATA') {
         return {
@@ -61,54 +82,25 @@ const formReducer = (state, event) => {
     }
     const { name, value } = event;
     const arrayRegex = /(\w+)\[(\d+)\](\.\w+|\[\d+\])*/g;
-    let newState = { ...state };
+    const newState = { ...state };
 
-    if (arrayRegex.test(name)) {
-        const keys = name.split('.');
-        let currentObject = newState;
-        keys.forEach((key, index) => {
-            // If the key contains an array index (e.g., "actions[0]")
-            const arrayMatch = key.match(/(\w+)\[(\d+)\]/);
-
-            if (arrayMatch) {
-                const arrayName = arrayMatch[1]; // Array name, like 'actions'
-                const arrayIndex = Number.parseInt(arrayMatch[2], 10); // Index, like 0 or 1
-
-                // Ensure the array exists
-                if (!currentObject[arrayName]) {
-                currentObject[arrayName] = [];
-                }
-
-                // Navigate to the array at the specified index
-                if (!currentObject[arrayName][arrayIndex]) {
-                currentObject[arrayName][arrayIndex] = {};
-                }
-
-                // Move down to the array item
-                currentObject = currentObject[arrayName][arrayIndex];
-            } else {
-                // If it's a regular object property (e.g., "tags" or "tagInfo")
-                if (!currentObject[key]) {
-                currentObject[key] = {};  // Initialize if the key doesn't exist yet
-                }
-
-                if (keys.length - 1 !== index) {
-                    // Move down to the nested object
-                    currentObject = currentObject[key];
-                }
-            }
-        });
-
-        // Set the final value
-        currentObject[keys[keys.length - 1]] = value;
-        return newState;
-    } else {
+    if (!arrayRegex.test(name)) {
         // If there are no arrays or nested objects, handle the flat properties
         return {
-        ...state,
-        [name]: value
+            ...state,
+            [name]: value
         };
     }
+
+    const keys = name.split('.');
+    let currentObject = newState;
+    keys.forEach((key, index) => {
+        currentObject = navigateFormDataKey(currentObject, key, index === keys.length - 1);
+    });
+
+    // Set the final value
+    currentObject[keys[keys.length - 1]] = value;
+    return newState;
 };
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
@@ -230,7 +222,7 @@ export function ClassPage() {
     }
 
     const handleAddAction = function(category) {
-        const newAction = { actionType: "standard", toHitBool: false, category };
+        const newAction = { id: crypto.randomUUID(), actionType: "standard", toHitBool: false, category };
         if (formData.actions !== undefined) {
             setFormData({
                 name: "actions",
@@ -270,15 +262,16 @@ export function ClassPage() {
     }
 
     const handleAddTag = function(index) {
+        const newTag = { id: crypto.randomUUID() };
         if (formData.actions[index].tags !== undefined) {
             setFormData({
                 name: `actions[${index}].tags`,
-                value: formData.actions[index].tags.concat({})
+                value: formData.actions[index].tags.concat(newTag)
             });
         } else {
             setFormData({
                 name: `actions[${index}].tags`,
-                value: [{}]
+                value: [newTag]
             });
         }
     }
@@ -413,7 +406,7 @@ export function ClassPage() {
     (formData.actions || []).forEach((action, index) => {
         categorizedActions[getActionCategory(action)].push(
             <ClassActionEditor
-                key={index}
+                key={action.id || index}
                 index={index}
                 action={action}
                 onChange={setFormData}

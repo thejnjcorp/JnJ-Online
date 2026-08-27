@@ -108,21 +108,26 @@ const BlogPages =(props)=> {
                 {headers?.map((header, index) => {
                     return <Collapsible
                         key={header?.text || index}
-                        trigger={<div
-                            style={{fontSize: 24}}
-                            role="button"
-                            tabIndex={0}
+                        trigger={<button
+                            type="button"
+                            style={{
+                                fontFamily: 'inherit',
+                                fontSize: 24,
+                                color: 'inherit',
+                                background: 'none',
+                                border: 'none',
+                                padding: 0,
+                                margin: 0,
+                                display: 'block',
+                                width: '100%',
+                                textAlign: 'left',
+                                cursor: 'pointer',
+                            }}
                             onClick={() => {
                                 setCurrentPage(index + 1);
                                 window.scrollTo(0, 0);
                             }}
-                            onKeyDown={e => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                    setCurrentPage(index + 1);
-                                    window.scrollTo(0, 0);
-                                }
-                            }}
-                        >{header?.text || "Placeholder"}</div>}
+                        >{header?.text || "Placeholder"}</button>}
                         transitionTime={100}
                     >
                         {header?.subHeaders?.map((subHeader, subIndex) => {
