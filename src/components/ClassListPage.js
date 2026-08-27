@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import Markdown from "markdown-to-jsx";
 import { arrayRemove, collection, doc, getDocs, or, query, updateDoc, where } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "../utils/firebase";
@@ -144,7 +145,8 @@ export function ClassListPage() {
                             </span>
                         </div>
                         <div className="ClassListPage-card-meta">by {c.author} &middot; {c.class_type}</div>
-                        <div className="ClassListPage-card-description">{c.description}</div>
+                        {c.class_weapons && <div className="ClassListPage-card-weapons">Weapons: {c.class_weapons}</div>}
+                        <div className="ClassListPage-card-description"><Markdown>{c.description || ""}</Markdown></div>
                         <div className="ClassListPage-card-actions">
                             <button className="ClassListPage-card-view-button" onClick={() => navigate('/classes/' + c.id)}>View Class</button>
                             {canSubscribe && <button

@@ -172,6 +172,55 @@
     color: white;
 }
 
+.ClassPage-section {
+    width: 80vw;
+    margin: 0 10vw 20px;
+    text-align: left;
+}
+
+.ClassPage-section-title {
+    font-size: 20px;
+    font-weight: bold;
+    border-bottom: 1px solid gray;
+    margin-bottom: 10px;
+    padding-bottom: 4px;
+}
+
+.ClassPage-add-action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.ClassPage-category-group {
+    margin-top: 20px;
+    padding-top: 10px;
+    border-top: 1px dashed gray;
+}
+
+.ClassPage-category-group-title {
+    font-size: 20px;
+    color: gray;
+    margin-bottom: 10px;
+}
+
+.ClassPage-outcome-table-toggle {
+    display: block;
+    font-size: 16px;
+    margin-top: 10px;
+}
+
+.ClassPage-outcome-rows {
+    margin-top: 5px;
+    margin-left: 20px;
+}
+
+.ClassPage-outcome-row {
+    font-size: 18px;
+    margin-top: 5px;
+}
+
 .ClassPage-submit-button {
     font-size: 18px;
     padding-left: 10px;

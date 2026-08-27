@@ -15,5 +15,6 @@
     "base_class_damage_class": 14,
     "base_hardness": 0,
     "description": "lore/flavor for the class",
+    "class_weapons": "Claws, Pocket Sand, Venom, Random objects lying around",
     "actions": []
 }

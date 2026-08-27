@@ -1,9 +1,18 @@
 import '../styles/CombatActionList.scss';
+import Markdown from 'markdown-to-jsx';
 import starFilledIcon from '../icons/star_filled.svg';
 import { ReactComponent as LockIcon } from '../icons/lock.svg';
 import { CharacterStatCalculator } from './CharacterStatCalculator';
+import { getActionCategory } from '../utils/classActions';
 import { updateDoc, doc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
+
+const OUTCOME_TABLE_ROWS = [
+    { key: 'criticalSuccess', label: 'Critical Success' },
+    { key: 'success', label: 'Success' },
+    { key: 'failure', label: 'Failure' },
+    { key: 'criticalFailure', label: 'Critical Failure' },
+];
 
 // locked is distinct from canUseActions=false: CharacterMainTab.js renders
 // three groups (Passives, Available, Unavailable) and both Passives and
@@ -22,7 +31,7 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
         : (userId ? (characterPage.userId === userId || characterPage.canWrite?.includes(userId)) : false);
 
     function containsReaction(action){
-        return action.tags !== undefined && action.tags.some(tag => tag.tagInfo === "Reaction");
+        return getActionCategory(action) === 'reaction';
     }
 
     function toHitInterperlator(toHit) {
@@ -46,15 +55,23 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
     }
 
     return <div className='CombatActionList'>
-        {actions.map((action, index) =>
-            <div className={locked ? 'CombatActionListCard CombatActionListCard-locked' : 'CombatActionListCard'} key={index}>
+        {actions.map((action, index) => {
+            // A feat gets a synthetic "Feat" chip at render time rather
+            // than a persisted tag, so authoring a feat via the Category
+            // dropdown is enough to get the visual label - no redundant
+            // manual tag required.
+            const displayTags = getActionCategory(action) === 'feat'
+                ? [{ tagInfo: 'Feat' }, ...(action.tags || [])]
+                : action.tags;
+            const hasOutcomeTable = action.outcomeTable && Object.values(action.outcomeTable).some(Boolean);
+            return <div className={locked ? 'CombatActionListCard CombatActionListCard-locked' : 'CombatActionListCard'} key={index}>
                 <div className='CombatActionListCard-header'>
                     {locked && <LockIcon className="CombatActionListCard-lock"/>}
                     <span className='CombatActionListCard-name'>{action.actionName}</span>
                     {!locked && action.actionCost > 0 && Array.from({ length: action.actionCost }, (_, i) => (
                         <img key={i} src={starFilledIcon} alt='star' className='CombatActionList-star' width={13}/>
                     ))}
-                    {!locked && action.tags?.map((tag, i) =>
+                    {!locked && displayTags?.map((tag, i) =>
                         <span
                             className='CombatActionList-tag'
                             style={{backgroundColor: tag.tagColor, color: tag.textColor}}
@@ -69,7 +86,23 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
                     <span className='CombatActionListCard-meta'>{metaText(action)}</span>
                 </div>
 
-                {!locked && <div className='CombatActionListCard-description'>{action.description}</div>}
+                {!locked && (action.trigger || action.requirement) && <div className='CombatActionListCard-meta-lines'>
+                    {action.trigger && <div className='CombatActionListCard-trigger'><strong>Trigger:</strong> {action.trigger}</div>}
+                    {action.requirement && <div className='CombatActionListCard-requirement'><strong>Requirement:</strong> {action.requirement}</div>}
+                </div>}
+
+                {!locked && <div className='CombatActionListCard-description'><Markdown>{action.description || ""}</Markdown></div>}
+
+                {!locked && hasOutcomeTable && <table className='CombatActionListCard-outcome-table'>
+                    <tbody>
+                        {OUTCOME_TABLE_ROWS.map(row => action.outcomeTable[row.key] &&
+                            <tr key={row.key}>
+                                <th>{row.label}</th>
+                                <td>{action.outcomeTable[row.key]}</td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>}
 
                 {!locked && canUseActions && hasWritePermissions && <button className='CombatActionList-use-action-button' onClick={() => {
                     try {
@@ -84,7 +117,7 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
                         alert(e);
                     }
                 }}>Use { containsReaction(action) ? "Reaction" : "Action"}</button>}
-            </div>
-        )}
+            </div>;
+        })}
     </div>
 }

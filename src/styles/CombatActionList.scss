@@ -57,13 +57,62 @@
     color: var(--jnj-color-text-faint);
 }
 
+.CombatActionListCard-meta-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 6px;
+    padding-right: 110px;
+    font-size: 13px;
+    color: var(--jnj-color-text-muted);
+
+    strong {
+        color: var(--jnj-color-text);
+    }
+}
+
 .CombatActionListCard-description {
     margin-top: 6px;
     font-size: 13px;
     line-height: 1.5;
     color: var(--jnj-color-text-muted);
-    white-space: pre-wrap;
     padding-right: 110px;
+
+    p, ul, ol {
+        margin: 0 0 6px;
+    }
+
+    ul, ol {
+        padding-left: 20px;
+    }
+
+    p:last-child, ul:last-child, ol:last-child {
+        margin-bottom: 0;
+    }
+}
+
+.CombatActionListCard-outcome-table {
+    width: 100%;
+    max-width: calc(100% - 110px);
+    margin-top: 8px;
+    border-collapse: collapse;
+    font-size: 12px;
+
+    th, td {
+        border: 1px solid var(--jnj-color-border);
+        padding: 4px 8px;
+        text-align: left;
+    }
+
+    th {
+        width: 30%;
+        font-weight: 600;
+        color: var(--jnj-color-text);
+    }
+
+    td {
+        color: var(--jnj-color-text-muted);
+    }
 }
 
 .CombatActionList-tag {
@@ -125,8 +174,12 @@
 // width, and isn't a real touch-friendly target - it moves into normal card
 // flow as a full-width button below the description instead.
 @media (max-width: 640px) {
-    .CombatActionListCard-header, .CombatActionListCard-description {
+    .CombatActionListCard-header, .CombatActionListCard-description, .CombatActionListCard-meta-lines {
         padding-right: 0;
+    }
+
+    .CombatActionListCard-outcome-table {
+        max-width: 100%;
     }
 
     .CombatActionList-use-action-button {

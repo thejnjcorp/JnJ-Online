@@ -22,6 +22,7 @@ import { ReactComponent as NoteIcon } from '../icons/note.svg';
 import { ReactComponent as MapIcon } from '../icons/map.svg';
 import { useIsMobile } from "../utils/useIsMobile";
 import { getEffectiveCharacterStats, getGrantedActions } from "../utils/statusEffects";
+import { getActionCategory } from "../utils/classActions";
 
 export function CharacterMainTab({ characterPage, userId, characterList = [], campaignInfo = {} }) {
     const hasWritePermissions = userId ? (characterPage.userId === userId || characterPage.canWrite?.includes(userId)) : false;
@@ -85,7 +86,8 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
     };
 
     function isPassive(action) {
-        return action.tags !== undefined && action.tags.some(tag => tag.tagInfo === "Passive")
+        const category = getActionCategory(action);
+        return category === 'passive' || category === 'feat';
     }
 
     function setActionPoints(actionPoints) {
