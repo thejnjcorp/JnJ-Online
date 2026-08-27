@@ -1,250 +1,694 @@
+/* This page (and ClassTagEditDialog, rendered inside it) mixes width:100%
+   with padding/border on almost every field - without box-sizing:border-box
+   that adds up to wider-than-container boxes that bleed past their card
+   (e.g. Range/Requirement inputs overflowing to the right). Scoped here
+   rather than a real global reset, since this app has none (see
+   ClassListPage.scss/StatusPage.scss doing the same thing per-element). */
+.ClassPage-inner *,
+.ClassPage-inner *::before,
+.ClassPage-inner *::after {
+    box-sizing: border-box;
+}
+
 .ClassPage {
-    height: 90vh;
-    width: 100vw;
-    background-color: inherit;
+    box-sizing: border-box;
+    width: 100%;
+    height: calc(100vh - var(--jnj-nav-height));
     overflow-y: auto;
-    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--jnj-color-text);
 }
 
-.ClassPage-input {
-    font-size: 24px;
-}
-
-.ClassPage-input-box {
-    font-size: 18px;
-    position: relative;
-    bottom: 2px;
-    margin-left: 10px;
-}
-
-.ClassPage-input-text-area {
-    width: 80vw;
-    height: 20vh;
-    font-size: 18px;
-    resize: none;
-    overflow-y: auto;
-}
-
-.ClassPage-actions-box {
-    width: 80vw;
-    margin: 0px 10vw;
+.ClassPage-inner {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: var(--jnj-content-max);
+    padding: var(--jnj-space-6) var(--jnj-space-5) var(--jnj-space-8);
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-4);
     text-align: left;
 }
 
-.ClassPage-add-action-button {
-    margin-left: 10px;
-    width: 200px;
-    position: relative;
-    top: -4px;
-    font-size: 24px;
-    background-color: inherit;
-    border-radius: 10px;
-    border-color: white;
-    border-style: solid;
+.ClassPage-breadcrumb {
+    align-self: flex-start;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--jnj-color-text-muted);
+    font-size: 12.5px;
+    cursor: pointer;
+
+    &:hover {
+        color: var(--jnj-color-text);
+    }
+}
+
+/* --- Header ------------------------------------------------------------ */
+.ClassPage-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--jnj-space-4);
+    flex-wrap: wrap;
+}
+
+.ClassPage-header-main {
+    flex: 1;
+    min-width: 240px;
+}
+
+.ClassPage-header-side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-2);
+    align-items: flex-end;
+}
+
+.ClassPage-title-input {
+    width: 100%;
+    font-family: var(--jnj-font-display);
+    font-size: var(--jnj-text-2xl);
+    padding: var(--jnj-space-2) var(--jnj-space-3);
+    margin-bottom: var(--jnj-space-2);
+    border-radius: var(--jnj-radius-md);
+    border: 1px solid var(--jnj-color-border);
+    background: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text);
+
+    &:focus {
+        outline: none;
+        border-color: var(--jnj-color-accent);
+    }
+}
+
+.ClassPage-title-view {
+    font-family: var(--jnj-font-display);
+    font-size: var(--jnj-text-2xl);
+    margin-bottom: var(--jnj-space-2);
+}
+
+.ClassPage-header-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--jnj-space-2);
+    flex-wrap: wrap;
+}
+
+.ClassPage-type-badge {
+    padding: 4px 11px;
+    border-radius: var(--jnj-radius-pill);
+    font-size: 11px;
+    font-weight: 700;
     color: white;
+    background: var(--jnj-color-border-strong);
+}
+
+.ClassPage-type-arcane { background: var(--jnj-color-arcane); }
+.ClassPage-type-ember { background: var(--jnj-color-ember); }
+.ClassPage-type-success { background: var(--jnj-color-success); }
+.ClassPage-type-danger { background: var(--jnj-color-danger); }
+
+.ClassPage-author-line {
+    font-size: 12px;
+    color: var(--jnj-color-text-faint);
+}
+
+.ClassPage-vis-badge {
+    padding: 3px 9px;
+    border-radius: var(--jnj-radius-pill);
+    font-size: 10px;
+    font-weight: 700;
+    background: var(--jnj-color-accent-soft);
+    color: var(--jnj-color-accent);
+}
+
+.ClassPage-vis-badge-private {
+    background: transparent;
+    color: var(--jnj-color-text-faint);
+    border: 1px solid var(--jnj-color-border-strong);
+}
+
+.ClassPage-edit-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: var(--jnj-radius-pill);
+    font-size: 12px;
+    font-weight: 700;
+    border: 1px solid var(--jnj-color-border-strong);
+    background: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text);
+    cursor: pointer;
+    transition: background-color var(--jnj-transition), border-color var(--jnj-transition);
 
     &:hover {
-        background-color: white;
-        color: black;
-    }
-
-    &:disabled {
-        border-color: gray;
-        color: gray;
-
-        &:hover {
-            background-color: inherit;
-        }
+        border-color: var(--jnj-color-accent);
     }
 }
 
-.ClassPage-remove-action-button {
-    margin-left: 20px;
-    width: 200px;
-    position: relative;
-    top: -1px;
-    font-size: 24px;
-    background-color: inherit;
-    border-radius: 10px;
-    border-color: white;
-    border-style: solid;
-    color: white;
+/* --- Shared field primitives (reused by ClassDamageCard/ClassActionEditor) */
+.ClassPage-field-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--jnj-color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+}
 
-    &:hover {
-        background-color: white;
-        color: black;
-    }
+.ClassPage-field-input {
+    width: 100%;
+    padding: 9px 11px;
+    border-radius: var(--jnj-radius-md);
+    border: 1px solid var(--jnj-color-border);
+    background: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text);
+    font-size: 13px;
+    font-family: inherit;
 
-    &:disabled {
-        border-color: gray;
-        color: gray;
-
-        &:hover {
-            background-color: inherit;
-        }
+    &:focus {
+        outline: none;
+        border-color: var(--jnj-color-accent);
     }
 }
 
-.ClassPage-add-tag-button {
-    position: relative;
-    top: -2px;
-    font-size: 18px;
-    border-radius: 5px;
-    padding: 2px 5px;
-    margin-left: 10px;
-    background-color: royalblue;
-    border-style: none;
+.ClassPage-field-input-narrow {
+    width: 70px;
+}
 
-    &:hover {
-        background-color: lightblue;
-    }
+.ClassPage-field-textarea {
+    min-height: 90px;
+    resize: vertical;
+    line-height: 1.5;
+}
 
-    &:disabled {
-        color: gray;
+.ClassPage-field-value {
+    font-size: 15px;
+    font-weight: 600;
+}
 
-        &:hover {
-            background-color: royalblue;
-            color: gray;
-        }
+.ClassPage-field-row {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--jnj-space-3);
+    flex-wrap: wrap;
+    margin-bottom: var(--jnj-space-3);
+
+    &:last-child {
+        margin-bottom: 0;
     }
 }
 
-.ClassPage-tag-input-box {
-    font-size: 24px;
-    border-radius: 5px;
-    padding: 5px 5px;
-    margin-top: 5px;
-    background-color: rosybrown;
-    border-style: none;
+.ClassPage-field-grow {
+    flex: 1;
+    min-width: 160px;
 }
 
-.ClassPage-delete-tag-button {
-    margin-left: 10px;
-    width: 200px;
-    position: relative;
-    top: -3px;
-    font-size: 18px;
-    background-color: inherit;
-    border-radius: 10px;
-    border-color: inherit;
-    border-style: solid;
-    color: inherit;
+.ClassPage-pill-group {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
 
-    &:hover {
-        background-color: white;
-        color: black;
-    }
+.ClassPage-pill {
+    padding: 6px 12px;
+    border-radius: var(--jnj-radius-pill);
+    font-size: 11.5px;
+    font-weight: 600;
+    border: 1px solid var(--jnj-color-border-strong);
+    background: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text-muted);
+    cursor: pointer;
+    transition: background-color var(--jnj-transition), color var(--jnj-transition);
+}
 
-    &:disabled {
-        color: gray;
+.ClassPage-pill-selected {
+    background: var(--jnj-color-accent);
+    color: var(--jnj-color-on-accent);
+    border-color: transparent;
 
-        &:hover {
-            background-color: inherit;
-            color: gray;
-        }
-    }
+    &.ClassPage-type-arcane { background: var(--jnj-color-arcane); color: white; }
+    &.ClassPage-type-ember { background: var(--jnj-color-ember); color: white; }
+    &.ClassPage-type-success { background: var(--jnj-color-success); color: white; }
+    &.ClassPage-type-danger { background: var(--jnj-color-danger); color: white; }
 }
 
 .ClassPage-hint {
-    font-size: 14px;
-    color: gray;
-    max-width: 60vw;
+    font-size: 12px;
+    color: var(--jnj-color-text-faint);
+    margin-top: 6px;
+    max-width: 640px;
 }
 
-.ClassPage-chip {
-    margin: 4px 6px 0 0;
-    padding: 4px 12px;
-    font-size: 16px;
-    border-radius: 999px;
-    border-style: solid;
-    border-color: gray;
-    background-color: inherit;
-    color: inherit;
-
-    &:hover {
-        border-color: white;
-    }
-}
-
-.ClassPage-chip-selected {
-    border-color: royalblue;
-    background-color: royalblue;
-    color: white;
-}
-
-.ClassPage-section {
-    width: 80vw;
-    margin: 0 10vw 20px;
-    text-align: left;
+/* --- Card shell ---------------------------------------------------------*/
+.ClassPage-card {
+    background: var(--jnj-color-bg-raised);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-lg);
+    padding: var(--jnj-space-4) var(--jnj-space-5);
 }
 
 .ClassPage-section-title {
-    font-size: 20px;
-    font-weight: bold;
-    border-bottom: 1px solid gray;
-    margin-bottom: 10px;
-    padding-bottom: 4px;
+    font-family: var(--jnj-font-display);
+    font-size: 15px;
+    margin-bottom: var(--jnj-space-3);
+}
+
+/* --- Visibility ---------------------------------------------------------*/
+.ClassPage-vis-pill-group {
+    display: flex;
+    gap: var(--jnj-space-2);
+    flex-wrap: wrap;
+}
+
+.ClassPage-vis-pill {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 170px;
+    text-align: left;
+    padding: 9px 14px;
+    border-radius: var(--jnj-radius-md);
+    border: 1px solid var(--jnj-color-border);
+    background: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ClassPage-vis-pill-selected {
+    background: var(--jnj-color-accent);
+    border-color: var(--jnj-color-accent);
+    color: var(--jnj-color-on-accent);
+
+    .ClassPage-vis-pill-sub {
+        color: var(--jnj-color-on-accent);
+        opacity: 0.75;
+    }
+}
+
+.ClassPage-vis-pill-sub {
+    font-size: 10.5px;
+    font-weight: 500;
+    color: var(--jnj-color-text-faint);
+}
+
+/* --- Combat stats ---------------------------------------------------------*/
+.ClassPage-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: var(--jnj-space-3);
+}
+
+.ClassPage-stat-grid-secondary {
+    margin-top: var(--jnj-space-3);
+    max-width: 200px;
+}
+
+/* --- Damage cards (ClassDamageCard.js) -----------------------------------*/
+.ClassPage-damage-card-melee .ClassPage-section-title { color: var(--jnj-color-danger); }
+.ClassPage-damage-card-ranged .ClassPage-section-title { color: var(--jnj-color-ember); }
+
+.ClassPage-damage-row {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--jnj-space-2);
+    flex-wrap: wrap;
+}
+
+.ClassPage-damage-row-glue {
+    font-size: 18px;
+    color: var(--jnj-color-text-faint);
+    padding-bottom: 9px;
+}
+
+.ClassPage-damage-row-type {
+    flex: 1;
+    min-width: 140px;
+}
+
+.ClassPage-die-pills {
+    display: flex;
+    gap: 4px;
+}
+
+.ClassPage-die-pill {
+    padding: 8px 9px;
+    border-radius: var(--jnj-radius-md);
+    font-size: 11.5px;
+    font-weight: 600;
+    border: 1px solid var(--jnj-color-border-strong);
+    background: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text-muted);
+    cursor: pointer;
+}
+
+.ClassPage-damage-card-melee .ClassPage-die-pill-selected { background: var(--jnj-color-danger); color: white; border-color: transparent; }
+.ClassPage-damage-card-ranged .ClassPage-die-pill-selected { background: var(--jnj-color-ember); color: white; border-color: transparent; }
+
+.ClassPage-damage-preview {
+    margin-top: var(--jnj-space-3);
+    display: inline-block;
+    padding: 9px 12px;
+    border-radius: var(--jnj-radius-md);
+    font-family: var(--jnj-font-display);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.ClassPage-damage-card-melee .ClassPage-damage-preview { background: rgba(217, 83, 79, 0.14); color: var(--jnj-color-danger); }
+.ClassPage-damage-card-ranged .ClassPage-damage-preview { background: rgba(192, 86, 33, 0.14); color: var(--jnj-color-ember); }
+
+.ClassPage-damage-preview-large {
+    font-size: 19px;
+    background: transparent !important;
+    padding: 0;
+}
+
+/* --- Lore -----------------------------------------------------------------*/
+.ClassPage-lore-view {
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--jnj-color-text-muted);
+
+    p, ul, ol {
+        margin: 0 0 8px;
+    }
+
+    ul, ol {
+        padding-left: 20px;
+    }
+
+    p:last-child, ul:last-child, ol:last-child {
+        margin-bottom: 0;
+    }
+}
+
+/* --- Actions & Feats --------------------------------------------------- */
+.ClassPage-actions-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--jnj-space-2);
+    margin-bottom: var(--jnj-space-2);
+
+    .ClassPage-section-title {
+        margin-bottom: 0;
+    }
 }
 
 .ClassPage-add-action-buttons {
     display: flex;
+    gap: 6px;
     flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 10px;
+}
+
+.ClassPage-add-action-button {
+    padding: 6px 12px;
+    border-radius: var(--jnj-radius-pill);
+    border: none;
+    background: var(--jnj-color-accent-soft);
+    color: var(--jnj-color-accent);
+    font-size: 11.5px;
+    font-weight: 700;
+    cursor: pointer;
 }
 
 .ClassPage-category-group {
-    margin-top: 20px;
-    padding-top: 10px;
-    border-top: 1px dashed gray;
+    margin-top: var(--jnj-space-4);
+    padding-top: var(--jnj-space-3);
+    border-top: 1px dashed var(--jnj-color-border);
+
+    &:first-child {
+        margin-top: 0;
+        padding-top: 0;
+        border-top: none;
+    }
 }
 
 .ClassPage-category-group-title {
-    font-size: 20px;
-    color: gray;
-    margin-bottom: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--jnj-color-text-faint);
+    margin-bottom: var(--jnj-space-2);
+}
+
+.ClassPage-action-card {
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-md);
+    background: var(--jnj-color-bg-sunken);
+    margin-bottom: var(--jnj-space-2);
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+}
+
+.ClassPage-action-card-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 13px;
+    background: none;
+    border: none;
+    color: var(--jnj-color-text);
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.ClassPage-action-chevron {
+    flex-shrink: 0;
+    color: var(--jnj-color-text-faint);
+    transition: transform var(--jnj-transition);
+    font-size: 14px;
+}
+
+.ClassPage-action-chevron-open {
+    transform: rotate(90deg);
+}
+
+.ClassPage-cost-pip {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10.5px;
+    font-weight: 700;
+}
+
+.ClassPage-cost-pip-0 { background: rgba(123, 130, 144, 0.18); color: var(--jnj-color-text-faint); }
+.ClassPage-cost-pip-1 { background: rgba(79, 157, 105, 0.18); color: var(--jnj-color-success); }
+.ClassPage-cost-pip-2 { background: var(--jnj-color-accent-soft); color: var(--jnj-color-accent); }
+.ClassPage-cost-pip-3 { background: rgba(217, 83, 79, 0.18); color: var(--jnj-color-danger); }
+
+.ClassPage-action-name {
+    flex: 1;
+    font-weight: 600;
+    font-size: 13.5px;
+}
+
+.ClassPage-level-badge {
+    font-size: 11px;
+    color: var(--jnj-color-text-faint);
+}
+
+.ClassPage-frequency-badge {
+    background: var(--jnj-color-bg-hover);
+    color: var(--jnj-color-text-muted);
+    padding: 2px 8px;
+    border-radius: var(--jnj-radius-pill);
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.ClassPage-action-card-body {
+    padding: 2px 14px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ClassPage-action-meta {
+    font-size: 11.5px;
+    color: var(--jnj-color-text-faint);
+}
+
+.ClassPage-action-trigger-requirement {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 13px;
+    color: var(--jnj-color-text-muted);
+
+    strong {
+        color: var(--jnj-color-text);
+    }
+}
+
+.ClassPage-action-description {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--jnj-color-text-muted);
+
+    p, ul, ol {
+        margin: 0 0 6px;
+    }
+
+    ul, ol {
+        padding-left: 20px;
+    }
+
+    p:last-child, ul:last-child, ol:last-child {
+        margin-bottom: 0;
+    }
+}
+
+.ClassPage-outcome-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+
+    th, td {
+        border: 1px solid var(--jnj-color-border);
+        padding: 4px 8px;
+        text-align: left;
+    }
+
+    th {
+        width: 30%;
+        font-weight: 600;
+        color: var(--jnj-color-text);
+    }
+
+    td {
+        color: var(--jnj-color-text-muted);
+    }
 }
 
 .ClassPage-outcome-table-toggle {
-    display: block;
-    font-size: 16px;
-    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: var(--jnj-color-text-muted);
 }
 
 .ClassPage-outcome-rows {
-    margin-top: 5px;
-    margin-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
-.ClassPage-outcome-row {
-    font-size: 18px;
-    margin-top: 5px;
+.ClassPage-outcome-row .ClassPage-field-label {
+    margin-bottom: 3px;
 }
 
-.ClassPage-submit-button {
-    font-size: 18px;
-    padding-left: 10px;
-    padding-right: 10px;
-    padding-top: 5px;
-    padding-bottom: 5px;
-    border-radius: 10px;
-    border-style: solid;
-    border-color: white;
-    background-color: rgba(0, 0, 0, 0);
-    color: white;
+.ClassPage-tags-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .ClassPage-field-label {
+        margin-bottom: 0;
+    }
+}
+
+.ClassPage-add-tag-button {
+    padding: 4px 10px;
+    border-radius: var(--jnj-radius-pill);
+    border: 1px dashed var(--jnj-color-border-strong);
+    background: transparent;
+    color: var(--jnj-color-text-muted);
+    font-size: 10.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ClassPage-tag-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.ClassPage-tag-pill {
+    padding: 4px 11px;
+    border-radius: var(--jnj-radius-pill);
+    font-size: 11px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+}
+
+.ClassPage-remove-action-button {
+    align-self: flex-start;
+    padding: 6px 12px;
+    border-radius: var(--jnj-radius-pill);
+    border: 1px solid var(--jnj-color-danger);
+    background: transparent;
+    color: var(--jnj-color-danger);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* --- Sticky save bar ------------------------------------------------------*/
+.ClassPage-save-bar {
+    position: sticky;
+    bottom: var(--jnj-space-4);
+    margin-top: var(--jnj-space-3);
+    align-self: center;
+    display: flex;
+    align-items: center;
+    gap: var(--jnj-space-3);
+    padding: var(--jnj-space-3) var(--jnj-space-4);
+    background: var(--jnj-color-bg-raised);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-lg);
+    box-shadow: var(--jnj-shadow-md);
+    z-index: 5;
+}
+
+.ClassPage-save-bar-label {
+    font-size: 12px;
+    color: var(--jnj-color-text-muted);
+}
+
+.ClassPage-cancel-button {
+    padding: 9px 18px;
+    border-radius: var(--jnj-radius-pill);
+    background: transparent;
+    color: var(--jnj-color-text-muted);
+    border: 1px solid var(--jnj-color-border);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ClassPage-save-button {
+    padding: 9px 20px;
+    border: none;
+    border-radius: var(--jnj-radius-pill);
+    background: var(--jnj-color-accent);
+    color: var(--jnj-color-on-accent);
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
 
     &:hover {
-        background-color: white;
-        color: #282c34;
-    }
-
-    &:disabled {
-        border-color: gray;
-        color: gray;
-
-        &:hover {
-            background-color: inherit;
-            color: gray;
-        }
+        background: var(--jnj-color-accent-hover);
     }
 }

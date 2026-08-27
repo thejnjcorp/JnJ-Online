@@ -3,11 +3,13 @@ import { reverseCharacterDiceConverter, CharacterDiceConverter } from './Charact
 import { useNavigate, useLocation } from 'react-router-dom';
 import { addDoc, arrayRemove, collection, getDoc, getDocs, doc, or, query, updateDoc, where } from '@firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
+import Markdown from 'markdown-to-jsx';
 import { auth, db } from '../utils/firebase';
 import { ADMIN_UIDS } from '../utils/statusEffects';
 import { getActionCategory } from '../utils/classActions';
 import { subscribeClassToCampaign } from '../utils/campaignSubscriptions';
 import { ClassActionEditor } from './ClassActionEditor';
+import { ClassDamageCard } from './ClassDamageCard';
 import ClassLayout from '../ClassLayout.json';
 import '../styles/ClassPage.scss';
 
@@ -17,6 +19,16 @@ const CATEGORY_SECTIONS = [
     { key: 'reaction', label: 'Reactions' },
     { key: 'action', label: 'Actions' },
 ];
+
+const TYPE_OPTIONS = ['Attrionist', 'Crit Hunter', 'Manipulator', 'Snowballer'];
+// Same accent mapping ClassListPage.js's TYPE_ACCENT_CLASS uses, so a
+// class's type badge here matches its catalog card's accent color.
+const TYPE_ACCENT_CLASS = {
+    'Attrionist': 'ClassPage-type-arcane',
+    'Crit Hunter': 'ClassPage-type-ember',
+    'Manipulator': 'ClassPage-type-success',
+    'Snowballer': 'ClassPage-type-danger',
+};
 
 // Same three-tier model as StatusPage.js's getVisibilityOptions, minus the
 // campaign-lock tier (no class-creation flow asks for one yet - see the
@@ -107,17 +119,22 @@ export function ClassPage() {
     const [formData, setFormData] = useReducer(formReducer, { visibility: 'public' });
     const [isPageVisible, setIsPageVisible] = useState(true);
     const [isActionListVisible, setIsActionListVisible] = useState(true);
-    const [areTagsVisible, setAreTagsVisible] = useState(true);
     const [userId, setUserId] = useState('');
     const [myCampaigns, setMyCampaigns] = useState([]);
     const navigate = useNavigate();
     const location = useLocation();
     const classId = location.pathname.split('/').at(2);
+    const isEditingExisting = location.pathname.split('/').length > 2;
+    // Starts in View mode even for the class's own author - editing is
+    // opt-in via the header's Edit button, never automatic just because you
+    // have write access. A brand-new class has nothing to view, so it's
+    // always in edit mode instead.
+    const [isEditingMode, setIsEditingMode] = useState(!isEditingExisting);
+    const [savedSnapshot, setSavedSnapshot] = useState(null);
 
     useEffect(() => {
         document.title = "New Class";
-        console.log(location.pathname)
-        if (location.pathname.split('/').length > 2) {
+        if (isEditingExisting) {
             getClassData();
         }
         // eslint-disable-next-line
@@ -142,7 +159,7 @@ export function ClassPage() {
     }, []);
 
     async function getClassData() {
-        const docRef = await getDoc(doc(db, "classes", location.pathname.split('/').at(2)));
+        const docRef = await getDoc(doc(db, "classes", classId));
         const data = docRef.data();
         setFormData({ type: 'SET_FORM_DATA', payload: { ...data, visibility: visibilityFromDoc(data) } });
         document.title = data.class_name;
@@ -186,9 +203,8 @@ export function ClassPage() {
         setIsPageVisible(true);
     }
 
-    const canWrite = !formData.canWrite?.includes(auth.currentUser.uid) && (location.pathname.split('/').length > 2);
+    const hasWriteAccess = !isEditingExisting || Boolean(formData.canWrite?.includes(auth.currentUser.uid));
     const isAdmin = Boolean(userId) && ADMIN_UIDS.includes(userId);
-    const isEditing = location.pathname.split('/').length > 2;
     const VISIBILITIES = getVisibilityOptions(isAdmin);
 
     const handleChange = event => {
@@ -211,6 +227,10 @@ export function ClassPage() {
         });
     }
 
+    const handleSetDieType = (fieldName, dieLabel) => {
+        setFormData({ name: fieldName, value: reverseCharacterDiceConverter(dieLabel) });
+    }
+
     const handleAddAction = function(category) {
         const newAction = { actionType: "standard", toHitBool: false, category };
         if (formData.actions !== undefined) {
@@ -230,12 +250,6 @@ export function ClassPage() {
         setIsActionListVisible(false)
         await delay(1);
         setIsActionListVisible(true);
-    }
-
-    const rerenderTags = async function() {
-        setAreTagsVisible(false);
-        await delay(1);
-        setAreTagsVisible(true);
     }
 
     const handleRemoveAction = function(index) {
@@ -287,7 +301,6 @@ export function ClassPage() {
                 value: []
             })
         }
-        rerenderTags();
     }
 
     async function handleSubmit() {
@@ -306,13 +319,14 @@ export function ClassPage() {
             || formData.base_ranged_damage_dice_type === ""
             || formData.base_ranged_damage_dice === ""
             || formData.base_ranged_damage_modifier === "") {
-            return alert("invalid form value(s)");
+            alert("invalid form value(s)");
+            return false;
         }
-        if (CharacterDiceConverter(formData.base_healing_dice_type) === 'N/A') return alert("invalid base healing dice type");
-        if (CharacterDiceConverter(formData.base_melee_damage_dice_type) === 'N/A') return alert("invalid base melee damage dice type");
-        if (CharacterDiceConverter(formData.base_ranged_damage_dice_type) === 'N/A') return alert("invalid base ranged damage dice type");
+        if (CharacterDiceConverter(formData.base_healing_dice_type) === 'N/A') { alert("invalid base healing dice type"); return false; }
+        if (CharacterDiceConverter(formData.base_melee_damage_dice_type) === 'N/A') { alert("invalid base melee damage dice type"); return false; }
+        if (CharacterDiceConverter(formData.base_ranged_damage_dice_type) === 'N/A') { alert("invalid base ranged damage dice type"); return false; }
 
-        formData.actions.forEach(action => {
+        (formData.actions || []).forEach(action => {
             if (action.actionCost === ""
                 || action.range === ""
                 || action.actionName === ""
@@ -345,9 +359,9 @@ export function ClassPage() {
             ? { public: true, isDefault: isAdmin, canRead: [] }
             : { public: false, isDefault: false, canRead: [auth.currentUser.uid] };
 
-        if (location.pathname.split('/').length > 2) {
+        if (isEditingExisting) {
             try {
-                await updateDoc(doc(db, "classes", location.pathname.split('/').at(2)), {
+                await updateDoc(doc(db, "classes", classId), {
                     ...formData,
                     actions: cleanedActions,
                     ...visibilityFields,
@@ -356,19 +370,44 @@ export function ClassPage() {
                     // write access every time anyone saved an edit.
                     canWrite: Array.from(new Set([...(formData.canWrite || []), auth.currentUser.uid])),
                 });
-                alert("successfully updated the class")
+                return true;
             } catch(error) {
                 alert(`Failed to update class: ${error.message}`)
+                return false;
             }
         } else {
-            const docRef = await addDoc(collection(db, "classes"), {
-                ...formData,
-                actions: cleanedActions,
-                ...visibilityFields,
-                canWrite: [auth.currentUser.uid]
-            });
-            navigate(docRef.id);
-            alert("sucessfully created the class")
+            try {
+                const docRef = await addDoc(collection(db, "classes"), {
+                    ...formData,
+                    actions: cleanedActions,
+                    ...visibilityFields,
+                    canWrite: [auth.currentUser.uid]
+                });
+                navigate(docRef.id);
+                return true;
+            } catch (error) {
+                alert(`Failed to create class: ${error.message}`);
+                return false;
+            }
+        }
+    }
+
+    function handleEditClick() {
+        setSavedSnapshot(JSON.parse(JSON.stringify(formData)));
+        setIsEditingMode(true);
+    }
+
+    async function handleSaveClick() {
+        const ok = await handleSubmit();
+        if (ok) setIsEditingMode(false);
+    }
+
+    function handleCancelClick() {
+        if (isEditingExisting) {
+            setFormData({ type: 'SET_FORM_DATA', payload: savedSnapshot });
+            setIsEditingMode(false);
+        } else {
+            navigate('/class-list');
         }
     }
 
@@ -379,317 +418,174 @@ export function ClassPage() {
                 key={index}
                 index={index}
                 action={action}
-                onChange={handleChange}
+                onChange={setFormData}
                 onRemove={handleRemoveAction}
                 onAddTag={handleAddTag}
                 onRemoveTag={handleRemoveTag}
-                areTagsVisible={areTagsVisible}
-                canWrite={canWrite}
+                isEditable={isEditingMode}
             />
         );
     });
 
+    const visibility = formData.visibility || 'public';
+    // The doc's own isDefault field, not the current viewer's admin status
+    // - matches ClassListPage.js's visibilityOf(), so the badge here always
+    // agrees with the catalog card regardless of who's looking at it.
+    const visLabel = visibility === 'private' ? 'Private' : (formData.isDefault ? 'Default' : 'Pool');
+
     return <>{isPageVisible && <div className='ClassPage'>
-        <div className='ClassPage-section'>
-            <div className='ClassPage-section-title'>Identity</div>
-            <div className='ClassPage-input'>
-                Class Name:
-                <input
-                    className='ClassPage-input-box'
-                    name="class_name"
-                    type="text"
-                    onChange={handleChange}
-                    required
-                    defaultValue={formData.class_name}
-                    disabled={canWrite}
-                />
-            </div>
-            <div className='ClassPage-input'>
-                Author:
-                <input
-                    className='ClassPage-input-box'
-                    name="author"
-                    type="text"
-                    onChange={handleChange}
-                    required
-                    defaultValue={formData.author}
-                    disabled={canWrite}
-                />
-            </div>
-            <div className='ClassPage-input'>
-                Class Type:
-                <select
-                    className='ClassPage-input-box'
-                    name={"class_type"}
-                    onChange={handleChange}
-                    required
-                    type='dropdown'
-                    defaultValue={formData.class_type}
-                    disabled={canWrite}
-                >
-                    <option hidden></option>
-                    <option value="Attrionist">Attrionist</option>
-                    <option value="Crit Hunter">Crit Hunter</option>
-                    <option value="Manipulator">Manipulator</option>
-                    <option value="Snowballer">Snowballer</option>
-                </select>
-            </div>
-            <div className='ClassPage-input'>
-                Visibility:
-                <select
-                    className='ClassPage-input-box'
-                    name="visibility"
-                    onChange={handleChange}
-                    type='dropdown'
-                    value={formData.visibility || 'public'}
-                    disabled={canWrite}
-                >
-                    {VISIBILITIES.map(v => <option key={v.key} value={v.key}>{v.label}</option>)}
-                </select>
-                <div className='ClassPage-hint'>{VISIBILITIES.find(v => v.key === (formData.visibility || 'public'))?.hint}</div>
-            </div>
-        </div>
+        <div className='ClassPage-inner'>
+            <button type="button" className="ClassPage-breadcrumb" onClick={() => navigate('/class-list')}>&larr; Classes</button>
 
-        <div className='ClassPage-section'>
-            <div className='ClassPage-section-title'>Combat Stats</div>
-            <div className='ClassPage-input'>
-                Base Armor Class:
-                <input
-                    className='ClassPage-input-box'
-                    name="base_armor_class"
-                    type="number"
-                    onChange={handleChange}
-                    required
-                    placeholder={ClassLayout.base_armor_class}
-                    defaultValue={formData.base_armor_class}
-                    disabled={canWrite}
-                />
-            </div>
-            <div className='ClassPage-input'>
-                Base Health Dice:
-                <input
-                    className='ClassPage-input-box'
-                    name="base_health_dice"
-                    type="text"
-                    onChange={handleChangeDice}
-                    required
-                    placeholder={CharacterDiceConverter(ClassLayout.base_health_dice)}
-                    defaultValue={CharacterDiceConverter(formData.base_health_dice) === 'N/A' ? null : CharacterDiceConverter(formData.base_health_dice)}
-                    disabled={canWrite}
-                />
-            </div>
-            <div className='ClassPage-input'>
-                Base Hit Modifier:
-                <input
-                    className='ClassPage-input-box'
-                    name="base_hit_modifier"
-                    type="number"
-                    onChange={handleChange}
-                    required
-                    placeholder={ClassLayout.base_hit_modifier}
-                    defaultValue={formData.base_hit_modifier}
-                    disabled={canWrite}
-                />
-            </div>
-            <div className='ClassPage-input'>
-                Base Melee Damage:
-                <input
-                    className='ClassPage-input-box'
-                    name="base_melee_damage_dice"
-                    type="number"
-                    onChange={handleChange}
-                    required
-                    style={{width: 40}}
-                    placeholder={ClassLayout.base_melee_damage_dice}
-                    defaultValue={formData.base_melee_damage_dice}
-                    disabled={canWrite}
-                />
-                <input
-                    className='ClassPage-input-box'
-                    name="base_melee_damage_dice_type"
-                    type="text"
-                    onChange={handleChangeDice}
-                    required
-                    style={{width: 40}}
-                    placeholder={CharacterDiceConverter(ClassLayout.base_melee_damage_dice_type)}
-                    defaultValue={CharacterDiceConverter(formData.base_melee_damage_dice_type) === 'N/A' ? null : CharacterDiceConverter(formData.base_melee_damage_dice_type)}
-                    disabled={canWrite}
-                />{"\xa0"}+
-                <input
-                    className='ClassPage-input-box'
-                    name="base_melee_damage_modifier"
-                    type="number"
-                    onChange={handleChange}
-                    required
-                    style={{width: 40}}
-                    placeholder={ClassLayout.base_melee_damage_modifier}
-                    defaultValue={formData.base_melee_damage_modifier}
-                    disabled={canWrite}
-                />
-                {"\xa0"}Damage Type:
-                <input
-                    className='ClassPage-input-box'
-                    name="base_melee_damage_type"
-                    type="text"
-                    onChange={handleChange}
-                    required
-                    placeholder={ClassLayout.base_melee_damage_type}
-                    defaultValue={formData.base_melee_damage_type}
-                    disabled={canWrite}
-                />
-            </div>
-            <div className='ClassPage-input'>
-                Base Ranged Damage:
-                <input
-                    className='ClassPage-input-box'
-                    name="base_ranged_damage_dice"
-                    type="number"
-                    onChange={handleChange}
-                    required
-                    style={{width: 40}}
-                    placeholder={ClassLayout.base_ranged_damage_dice}
-                    defaultValue={formData.base_ranged_damage_dice}
-                    disabled={canWrite}
-                />
-                <input
-                    className='ClassPage-input-box'
-                    name="base_ranged_damage_dice_type"
-                    type="text"
-                    onChange={handleChangeDice}
-                    required
-                    style={{width: 40}}
-                    placeholder={CharacterDiceConverter(ClassLayout.base_ranged_damage_dice_type)}
-                    defaultValue={CharacterDiceConverter(formData.base_ranged_damage_dice_type) === 'N/A' ? null : CharacterDiceConverter(formData.base_ranged_damage_dice_type)}
-                    disabled={canWrite}
-                />{"\xa0"}+
-                <input
-                    className='ClassPage-input-box'
-                    name="base_ranged_damage_modifier"
-                    type="number"
-                    onChange={handleChange}
-                    required
-                    style={{width: 40}}
-                    placeholder={ClassLayout.base_ranged_damage_modifier}
-                    defaultValue={formData.base_ranged_damage_modifier}
-                    disabled={canWrite}
-                />
-                {"\xa0"}Damage Type:
-                <input
-                    className='ClassPage-input-box'
-                    name="base_ranged_damage_type"
-                    type="text"
-                    onChange={handleChange}
-                    required
-                    placeholder={ClassLayout.base_ranged_damage_type}
-                    defaultValue={formData.base_ranged_damage_type}
-                    disabled={canWrite}
-                />
-            </div>
-            <div className='ClassPage-input'>
-                Base Healing Dice Type:
-                <input
-                    className='ClassPage-input-box'
-                    name="base_healing_dice_type"
-                    type="text"
-                    onChange={handleChangeDice}
-                    required
-                    placeholder={CharacterDiceConverter(ClassLayout.base_healing_dice_type)}
-                    defaultValue={CharacterDiceConverter(formData.base_healing_dice_type) === 'N/A' ? null : CharacterDiceConverter(formData.base_healing_dice_type)}
-                    disabled={canWrite}
-                />
-            </div>
-            <div className='ClassPage-input'>
-                Base Class DC:
-                <input
-                    className='ClassPage-input-box'
-                    name="base_class_damage_class"
-                    type="number"
-                    onChange={handleChange}
-                    required
-                    placeholder={ClassLayout.base_class_damage_class}
-                    defaultValue={formData.base_class_damage_class}
-                    disabled={canWrite}
-                />
-            </div>
-            <div className='ClassPage-input'>
-                Base Hardness:
-                <input
-                    className='ClassPage-input-box'
-                    name="base_hardness"
-                    type="number"
-                    onChange={handleChange}
-                    required
-                    placeholder={ClassLayout.base_hardness}
-                    defaultValue={formData.base_hardness}
-                    disabled={canWrite}
-                />
-            </div>
-        </div>
-
-        <div className='ClassPage-section'>
-            <div className='ClassPage-section-title'>Flavor</div>
-            <div className='ClassPage-input'>
-                Lore/Flavor Text:<br/>
-                <textarea
-                    className='ClassPage-input-text-area'
-                    name="description"
-                    onChange={handleChange}
-                    required
-                    placeholder={ClassLayout.description}
-                    defaultValue={formData.description}
-                    disabled={canWrite}
-                />
-                <div className='ClassPage-hint'>Supports Markdown - **bold**, *italic*, and bullet lists (- item) all render on the character sheet and catalog card.</div>
-            </div>
-            <div className='ClassPage-input'>
-                Class Weapon(s):
-                <input
-                    className='ClassPage-input-box'
-                    style={{width: '50vw'}}
-                    name="class_weapons"
-                    type="text"
-                    onChange={handleChange}
-                    placeholder={ClassLayout.class_weapons}
-                    defaultValue={formData.class_weapons}
-                    disabled={canWrite}
-                />
-            </div>
-        </div>
-
-        <div className='ClassPage-actions-box'>
-            <div className='ClassPage-section-title'>Actions</div>
-            <div className='ClassPage-add-action-buttons'>
-                <button className='ClassPage-add-action-button' onClick={() => handleAddAction('feat')} disabled={canWrite}>Add Feat</button>
-                <button className='ClassPage-add-action-button' onClick={() => handleAddAction('passive')} disabled={canWrite}>Add Passive</button>
-                <button className='ClassPage-add-action-button' onClick={() => handleAddAction('reaction')} disabled={canWrite}>Add Reaction</button>
-                <button className='ClassPage-add-action-button' onClick={() => handleAddAction('action')} disabled={canWrite}>Add Action</button>
-            </div>
-            {isActionListVisible && CATEGORY_SECTIONS.map(section =>
-                categorizedActions[section.key].length > 0 && <div className='ClassPage-category-group' key={section.key}>
-                    <div className='ClassPage-category-group-title'>{section.label}</div>
-                    {categorizedActions[section.key]}
+            <div className="ClassPage-header">
+                <div className="ClassPage-header-main">
+                    {isEditingMode
+                        ? <input className="ClassPage-title-input" name="class_name" onChange={handleChange} defaultValue={formData.class_name} placeholder="Class Name"/>
+                        : <div className="ClassPage-title-view">{formData.class_name}</div>}
+                    <div className="ClassPage-header-meta">
+                        {formData.class_type && <span className={`ClassPage-type-badge ${TYPE_ACCENT_CLASS[formData.class_type] || ''}`}>{formData.class_type}</span>}
+                        {!isEditingMode && <span className="ClassPage-author-line">by {formData.author}</span>}
+                        {!isEditingMode && isEditingExisting && <span className={visibility === 'private' ? 'ClassPage-vis-badge ClassPage-vis-badge-private' : 'ClassPage-vis-badge'}>{visLabel}</span>}
+                    </div>
+                    {isEditingMode && <div className="ClassPage-field-row">
+                        <div className="ClassPage-field-grow">
+                            <span className="ClassPage-field-label">Author</span>
+                            <input className="ClassPage-field-input" name="author" onChange={handleChange} defaultValue={formData.author}/>
+                        </div>
+                    </div>}
                 </div>
-            )}
+                <div className="ClassPage-header-side">
+                    {isEditingExisting && hasWriteAccess && <button type="button" className="ClassPage-edit-button" onClick={isEditingMode ? handleSaveClick : handleEditClick}>
+                        {isEditingMode ? 'Done Editing' : 'Edit'}
+                    </button>}
+                    {isEditingMode && <>
+                        <span className="ClassPage-field-label">Class Type</span>
+                        <div className="ClassPage-pill-group">
+                            {TYPE_OPTIONS.map(t => <button
+                                type="button"
+                                key={t}
+                                className={t === formData.class_type ? `ClassPage-pill ClassPage-pill-selected ${TYPE_ACCENT_CLASS[t]}` : 'ClassPage-pill'}
+                                onClick={() => setFormData({ name: 'class_type', value: t })}
+                            >{t}</button>)}
+                        </div>
+                    </>}
+                </div>
+            </div>
+
+            {isEditingMode && <div className="ClassPage-card">
+                <div className="ClassPage-section-title">Visibility</div>
+                <div className="ClassPage-pill-group ClassPage-vis-pill-group">
+                    {VISIBILITIES.map(v => <button
+                        type="button"
+                        key={v.key}
+                        className={v.key === visibility ? 'ClassPage-vis-pill ClassPage-vis-pill-selected' : 'ClassPage-vis-pill'}
+                        onClick={() => setFormData({ name: 'visibility', value: v.key })}
+                    >
+                        <span>{v.label}</span>
+                        <span className="ClassPage-vis-pill-sub">{v.hint}</span>
+                    </button>)}
+                </div>
+            </div>}
+
+            <div className="ClassPage-card">
+                <div className="ClassPage-section-title">Combat Stats</div>
+                <div className="ClassPage-stat-grid">
+                    {[
+                        { key: 'base_armor_class', label: 'Armor Class' },
+                        { key: 'base_hit_modifier', label: 'Hit Modifier' },
+                        { key: 'base_class_damage_class', label: 'Class DC' },
+                        { key: 'base_hardness', label: 'Hardness' },
+                    ].map(s => <div key={s.key}>
+                        <span className="ClassPage-field-label">{s.label}</span>
+                        {isEditingMode
+                            ? <input className="ClassPage-field-input" name={s.key} type="number" onChange={handleChange} placeholder={ClassLayout[s.key]} defaultValue={formData[s.key]}/>
+                            : <div className="ClassPage-field-value">{formData[s.key]}</div>}
+                    </div>)}
+                </div>
+                <div className="ClassPage-stat-grid-secondary">
+                    <div>
+                        <span className="ClassPage-field-label">Base Health Dice</span>
+                        {isEditingMode
+                            ? <input className="ClassPage-field-input ClassPage-field-input-narrow" name="base_health_dice" onChange={handleChangeDice} placeholder={CharacterDiceConverter(ClassLayout.base_health_dice)} defaultValue={CharacterDiceConverter(formData.base_health_dice) === 'N/A' ? null : CharacterDiceConverter(formData.base_health_dice)}/>
+                            : <div className="ClassPage-field-value">{CharacterDiceConverter(formData.base_health_dice)}</div>}
+                    </div>
+                </div>
+            </div>
+
+            <ClassDamageCard kind="melee" label="Melee Damage" formData={formData} onChange={handleChange} onSetDieType={handleSetDieType} isEditable={isEditingMode}/>
+            <ClassDamageCard kind="ranged" label="Ranged Damage" formData={formData} onChange={handleChange} onSetDieType={handleSetDieType} isEditable={isEditingMode}/>
+
+            <div className="ClassPage-card">
+                <div className="ClassPage-section-title">Healing</div>
+                <span className="ClassPage-field-label">Base Healing Dice Type</span>
+                {isEditingMode
+                    ? <input className="ClassPage-field-input ClassPage-field-input-narrow" name="base_healing_dice_type" onChange={handleChangeDice} placeholder={CharacterDiceConverter(ClassLayout.base_healing_dice_type)} defaultValue={CharacterDiceConverter(formData.base_healing_dice_type) === 'N/A' ? null : CharacterDiceConverter(formData.base_healing_dice_type)}/>
+                    : <div className="ClassPage-field-value">{CharacterDiceConverter(formData.base_healing_dice_type)}</div>}
+            </div>
+
+            <div className="ClassPage-card">
+                <div className="ClassPage-section-title">Lore &amp; Flavor Text</div>
+                {isEditingMode
+                    ? <>
+                        <textarea className="ClassPage-field-input ClassPage-field-textarea" name="description" onChange={handleChange} placeholder={ClassLayout.description} defaultValue={formData.description}/>
+                        <div className="ClassPage-hint">Supports Markdown - **bold**, *italic*, and bullet lists (- item) all render on the character sheet and catalog card.</div>
+                      </>
+                    : <div className="ClassPage-lore-view"><Markdown>{formData.description || ''}</Markdown></div>}
+                <div className="ClassPage-field-row" style={{ marginTop: 'var(--jnj-space-3)' }}>
+                    <div className="ClassPage-field-grow">
+                        <span className="ClassPage-field-label">Class Weapon(s)</span>
+                        {isEditingMode
+                            ? <input className="ClassPage-field-input" name="class_weapons" onChange={handleChange} placeholder={ClassLayout.class_weapons} defaultValue={formData.class_weapons}/>
+                            : <div className="ClassPage-field-value">{formData.class_weapons}</div>}
+                    </div>
+                </div>
+            </div>
+
+            <div className="ClassPage-card">
+                <div className="ClassPage-actions-header">
+                    <div className="ClassPage-section-title">Actions &amp; Feats</div>
+                    {isEditingMode && <div className="ClassPage-add-action-buttons">
+                        <button type="button" className="ClassPage-add-action-button" onClick={() => handleAddAction('feat')}>+ Feat</button>
+                        <button type="button" className="ClassPage-add-action-button" onClick={() => handleAddAction('passive')}>+ Passive</button>
+                        <button type="button" className="ClassPage-add-action-button" onClick={() => handleAddAction('reaction')}>+ Reaction</button>
+                        <button type="button" className="ClassPage-add-action-button" onClick={() => handleAddAction('action')}>+ Action</button>
+                    </div>}
+                </div>
+                {isActionListVisible && CATEGORY_SECTIONS.map(section =>
+                    categorizedActions[section.key].length > 0 && <div className='ClassPage-category-group' key={section.key}>
+                        <div className='ClassPage-category-group-title'>{section.label}</div>
+                        {categorizedActions[section.key]}
+                    </div>
+                )}
+                {(formData.actions || []).length === 0 && <div className="ClassPage-hint">No actions yet.</div>}
+            </div>
+
+            {isEditingExisting && formData.public && !formData.isDefault && <div className='ClassPage-card'>
+                <div className="ClassPage-section-title">Subscribe your campaigns</div>
+                <div className='ClassPage-hint'>A pool class like this one only shows up when creating a character in a campaign once that campaign subscribes to it - not automatically, the way an admin default would.</div>
+                {myWritableCampaigns.length === 0 && <div className='ClassPage-hint'>You don't direct (or have write access to) any campaigns yet.</div>}
+                <div className="ClassPage-pill-group">
+                    {myWritableCampaigns.map(c => {
+                        const subscribed = c.subscribedClassIds?.includes(classId);
+                        return <button
+                            key={c.id}
+                            type="button"
+                            className={subscribed ? 'ClassPage-pill ClassPage-pill-selected' : 'ClassPage-pill'}
+                            onClick={() => toggleSubscription(c)}
+                        >
+                            {c.campaign_name}{subscribed ? ' ✓' : ''}
+                        </button>;
+                    })}
+                </div>
+            </div>}
+
+            {isEditingMode && <div className="ClassPage-save-bar">
+                <span className="ClassPage-save-bar-label">Unsaved changes</span>
+                <button type="button" className="ClassPage-cancel-button" onClick={handleCancelClick}>Cancel</button>
+                <button type="button" className="ClassPage-save-button" onClick={handleSaveClick}>
+                    {isEditingExisting ? "Update Class" : "Create Class"}
+                </button>
+            </div>}
         </div>
-        {isEditing && formData.public && !formData.isDefault && <div className='ClassPage-input'>
-            Subscribe your campaigns:
-            <div className='ClassPage-hint'>A pool class like this one only shows up when creating a character in a campaign once that campaign subscribes to it - not automatically, the way an admin default would.</div>
-            {myWritableCampaigns.length === 0 && <div className='ClassPage-hint'>You don't direct (or have write access to) any campaigns yet.</div>}
-            {myWritableCampaigns.map(c => {
-                const subscribed = c.subscribedClassIds?.includes(classId);
-                return <button
-                    key={c.id}
-                    type="button"
-                    className={subscribed ? 'ClassPage-chip ClassPage-chip-selected' : 'ClassPage-chip'}
-                    onClick={() => toggleSubscription(c)}
-                >
-                    {c.campaign_name}{subscribed ? ' ✓' : ''}
-                </button>;
-            })}
-        </div>}
-        <button className='ClassPage-submit-button' type='submit' onClick={() => handleSubmit()} disabled={canWrite}>
-            {location.pathname.split('/').length > 2 ? "Update Class" : "Create Class"}
-        </button>
-        <br/><br/>
     </div>}</>
 }

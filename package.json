@@ -46,7 +46,8 @@
     "firebase:test:rules": "firebase emulators:exec --only firestore --config firebase/firebase.json --project jnj-online \"node firebase/test/firestore.rules.test.js\"",
     "firebase:deploy:rules": "firebase deploy --only firestore:rules,firestore:indexes --config firebase/firebase.json --project jnj-online",
     "firebase:purge:test": "firebase emulators:exec --only firestore --config firebase/firebase.json --project jnj-online \"node firebase/test/purge-campaigns.test.js\"",
-    "firebase:purge": "node firebase/scripts/purge-campaigns.js"
+    "firebase:purge": "node firebase/scripts/purge-campaigns.js",
+    "sonar": "bash scripts/sonar-scan.sh"
   },
   "eslintConfig": {
     "extends": [

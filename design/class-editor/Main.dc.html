@@ -43,11 +43,14 @@
 
 <div style="width:100%;min-height:1600px;background:var(--bg);color:var(--text);padding:32px 40px 100px;max-width:900px;margin:0 auto;">
 
-  <!-- DEMO-ONLY viewer switcher: not a real product control, just lets you see both states of the unified page.
-       Real gating is permission-based (canWrite / ADMIN_UIDS), same as the rest of the app. -->
+  <!-- DEMO-ONLY control: not a real product element, just lets you preview this canvas as someone with
+       vs. without write access to this class. Plain language on purpose - a real viewer never sees the
+       words "canWrite" or "permission". Admin status has no visible toggle anywhere on this page, in the
+       demo or the real product - it's derived silently from ADMIN_UIDS and only ever changes the
+       Visibility card's wording below (Default vs Pool), never surfaced as a badge or switch. -->
   <div style="position:sticky;top:12px;z-index:40;display:flex;justify-content:center;margin-bottom:18px;">
     <div style="display:flex;gap:4px;padding:4px;border-radius:999px;background:var(--bg-hover);border:1px solid var(--border-strong);box-shadow:var(--shadow-md);">
-      <sc-for list="{{viewerModes}}" as="m" hint-placeholder-count="3">
+      <sc-for list="{{viewerModes}}" as="m" hint-placeholder-count="2">
         <button onClick="{{m.pick}}" style="{{m.style}}padding:6px 14px;border-radius:999px;font-size:11.5px;font-weight:700;border:none;">{{m.label}}</button>
       </sc-for>
     </div>
@@ -74,16 +77,30 @@
         <span style="{{visBadgeStyle}}padding:3px 9px;border-radius:999px;font-size:10px;font-weight:700;">{{visLabel}}</span>
       </div>
     </div>
-    <sc-if value="{{isEditable}}" hint-placeholder-val="{{true}}">
-      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+    <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+      <!-- Real control: only rendered at all when this viewer has write access to the class. Starts
+           in view mode even for an owner - editing is opt-in via this button, not the default just
+           because you're allowed to. -->
+      <sc-if value="{{hasWriteAccess}}" hint-placeholder-val="{{true}}">
+        <button onClick="{{toggleEditMode}}" style="{{editButtonStyle}}display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--radius-pill);font-size:12px;font-weight:700;border:1px solid var(--border-strong);">
+          <sc-if value="{{isView}}" hint-placeholder-val="{{true}}">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+          </sc-if>
+          <sc-if value="{{isEditable}}" hint-placeholder-val="{{false}}">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+          </sc-if>
+          {{editButtonLabel}}
+        </button>
+      </sc-if>
+      <sc-if value="{{isEditable}}" hint-placeholder-val="{{true}}">
         <span class="faint" style="font-size:10.5px;">Class Type</span>
         <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;max-width:220px;">
           <sc-for list="{{typeOptions}}" as="t" hint-placeholder-count="4">
             <button onClick="{{t.pick}}" style="{{t.style}}padding:5px 11px;border-radius:999px;font-size:11px;font-weight:600;border:1px solid var(--border-strong);">{{t.label}}</button>
           </sc-for>
         </div>
-      </div>
-    </sc-if>
+      </sc-if>
+    </div>
   </div>
 
   <!-- VISIBILITY (editable only) -->
@@ -375,7 +392,10 @@ class Component extends DCLogic {
   constructor(props) {
     super(props);
     this.state = {
-      viewerMode: 'author', // 'visitor' | 'author' | 'admin'
+      hasWriteAccess: true, // demo-only stand-in for the real canWrite check
+      isEditingMode: false, // starts OFF even for an owner - opt in via the Edit button, never automatic
+      isAdminAccount: false, // no visible toggle anywhere - derived from ADMIN_UIDS in the real app;
+                              // only ever changes the Visibility card's wording, never shown as a badge
       className: 'Warden',
       author: 'JnJ Team',
       classType: 'Attrionist',
@@ -408,7 +428,11 @@ class Component extends DCLogic {
     };
   }
 
-  pickViewerMode(mode) { return () => this.setState({ viewerMode: mode }); }
+  pickWriteAccess(hasWriteAccess) {
+    // flipping write access off always drops out of edit mode too - you can't be mid-edit with no access
+    return () => this.setState({ hasWriteAccess, isEditingMode: hasWriteAccess && this.state.isEditingMode });
+  }
+  toggleEditMode() { return () => this.setState({ isEditingMode: !this.state.isEditingMode }); }
   pickClassType(type) { return () => this.setState({ classType: type }); }
   pickVisibility(v) { return () => this.setState({ visibility: v }); }
   pickMeleeDie(n) { return () => this.setState({ meleeDieType: n }); }
@@ -479,20 +503,24 @@ class Component extends DCLogic {
   }
 
   renderVals() {
-    const viewerMode = this.state.viewerMode;
-    const isEditable = viewerMode !== 'visitor';
+    const hasWriteAccess = this.state.hasWriteAccess;
+    const isEditable = hasWriteAccess && this.state.isEditingMode;
     const isView = !isEditable;
-    const isAdmin = viewerMode === 'admin';
+    const isAdmin = isEditable && this.state.isAdminAccount;
 
     const viewerModes = [
-      { key: 'visitor', label: 'Visitor (read-only)' },
-      { key: 'author', label: 'Author (editing)' },
-      { key: 'admin', label: 'Admin (editing)' }
+      { key: 'no-access', label: "Someone else's class" },
+      { key: 'has-access', label: 'A class you can edit' }
     ].map(m => ({
       ...m,
-      style: m.key === viewerMode ? 'background:var(--accent);color:var(--on-accent);' : 'background:transparent;color:var(--text-muted);',
-      pick: this.pickViewerMode(m.key)
+      style: (m.key === 'has-access') === hasWriteAccess ? 'background:var(--accent);color:var(--on-accent);' : 'background:transparent;color:var(--text-muted);',
+      pick: this.pickWriteAccess(m.key === 'has-access')
     }));
+
+    const editButtonLabel = isEditable ? 'Done Editing' : 'Edit';
+    const editButtonStyle = isEditable
+      ? 'background:var(--accent);color:var(--on-accent);border-color:transparent;'
+      : 'background:var(--bg-sunken);color:var(--text);';
 
     const typeColor = TYPE_COLOR[this.state.classType] || 'var(--border-strong)';
     const typeOptions = Object.keys(TYPE_COLOR).map(t => ({
@@ -590,6 +618,10 @@ class Component extends DCLogic {
 
     return {
       viewerModes,
+      hasWriteAccess,
+      toggleEditMode: this.toggleEditMode(),
+      editButtonLabel,
+      editButtonStyle,
       isEditable,
       isView,
       isAdmin,

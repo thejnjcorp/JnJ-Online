@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import Markdown from 'markdown-to-jsx';
+import { ClassTagEditDialog } from './ClassTagEditDialog';
 
 const OUTCOME_ROWS = [
     { key: 'criticalSuccess', label: 'Critical Success' },
@@ -7,265 +9,190 @@ const OUTCOME_ROWS = [
     { key: 'criticalFailure', label: 'Critical Failure' },
 ];
 
-// One action/passive/reaction/feat's editor row, extracted out of
-// ClassPage.js (which was a single 795-line file, ~180 of them for one
-// generic action block) so the new per-category fields (trigger,
-// requirement, outcome table) don't push it further into unmaintainable
-// territory. Keeps using the exact same `onChange({name, value})` shape
-// ClassPage.js's dotted-path formReducer already parses (e.g.
-// `actions[3].outcomeTable.success`), so no changes were needed to that
-// reducer to support the new nested fields.
-export function ClassActionEditor({ action, index, onChange, onRemove, onAddTag, onRemoveTag, areTagsVisible, canWrite }) {
-    const [showOutcomeTable, setShowOutcomeTable] = useState(Boolean(action.outcomeTable));
-    const category = action.category || 'action';
+const ACTION_TYPE_OPTIONS = [
+    { key: 'standard', label: 'Standard' },
+    { key: 'perDay', label: 'Per Day' },
+    { key: 'perShortRest', label: 'Per Short Rest' },
+    { key: 'perCombat', label: 'Per Combat' },
+];
 
+const CATEGORY_OPTIONS = [
+    { key: 'feat', label: 'Feat' },
+    { key: 'passive', label: 'Passive' },
+    { key: 'reaction', label: 'Reaction' },
+    { key: 'action', label: 'Action' },
+];
+
+function PillGroup({ options, selected, onPick, groupClassName = 'ClassPage-pill-group' }) {
+    return <div className={groupClassName}>
+        {options.map(o => <button
+            type="button"
+            key={o.key}
+            className={o.key === selected ? 'ClassPage-pill ClassPage-pill-selected' : 'ClassPage-pill'}
+            onClick={() => onPick(o.key)}
+        >{o.label}</button>)}
+    </div>;
+}
+
+function frequencyLabel(action) {
+    const base = ACTION_TYPE_OPTIONS.find(o => o.key === action.actionType)?.label || action.actionType;
+    return action.actionType !== 'standard' && action.actionTypeCount ? `${base} ×${action.actionTypeCount}` : base;
+}
+
+function resolveSummary(action) {
+    return action.toHitBool ? `+${action.toHit || 0} to hit` : `DC (${action.difficultyClass || '—'})`;
+}
+
+// One action/passive/reaction/feat's collapsible card - handles both the
+// read-only View rendering and the Edit form for the same action, since
+// they share the open/close and tag-dialog state. `isEditable` is only ever
+// true for someone with write access who has explicitly opted into edit
+// mode on the page (see ClassPage.js) - there is no third "disabled input"
+// state anymore, View mode replaces it.
+export function ClassActionEditor({ action, index, onChange, onRemove, onAddTag, onRemoveTag, isEditable }) {
+    const [open, setOpen] = useState(false);
+    const [showOutcomeTable, setShowOutcomeTable] = useState(Boolean(action.outcomeTable));
+    const [openTagIndex, setOpenTagIndex] = useState(null);
+    const category = action.category || 'action';
+    const hasOutcomeTable = action.outcomeTable && Object.values(action.outcomeTable).some(Boolean);
+
+    const set = (name, value) => onChange({ name: `actions[${index}].${name}`, value });
     const handleChange = event => {
         const { name, type, checked, value } = event.target;
         const newValue = type === 'checkbox' ? checked : value;
-        const newValue2 = type === 'number' ? Number(newValue) : value;
-        onChange({ name, value: newValue2 });
+        set(name, type === 'number' ? Number(newValue) : newValue);
     };
 
-    return <div className='ClassPage-input'>
-        Action Cost:
-        <input
-            className='ClassPage-input-box'
-            style={{ width: 30 }}
-            name={`actions[${index}].actionCost`}
-            onChange={handleChange}
-            required
-            type='number' min={0} max={3}
-            placeholder={0}
-            defaultValue={action.actionCost}
-            disabled={canWrite}
-        />
-        {"\xa0Range:"}
-        <input
-            className='ClassPage-input-box'
-            name={`actions[${index}].range`}
-            onChange={handleChange}
-            required
-            type='text'
-            placeholder='1 Zone'
-            defaultValue={action.range}
-            disabled={canWrite}
-        />
-        {"\xa0To-Hit Action:"}
-        <input
-            className='ClassPage-input-box'
-            name={`actions[${index}].toHitBool`}
-            onChange={handleChange}
-            required
-            type='checkbox'
-            defaultChecked={action.toHitBool}
-            disabled={canWrite}
-        />
-        {action.toHitBool && <>
-            {"\xa0To Hit Modifier:"}
-            <input
-                className='ClassPage-input-box'
-                style={{ width: 40 }}
-                name={`actions[${index}].toHit`}
-                onChange={handleChange}
-                required
-                type="number"
-                placeholder={1}
-                defaultValue={action.toHit}
-                disabled={canWrite}
-            />
-        </>}
-        {!action.toHitBool && <>
-            {"\xa0DC Modifier:"}
-            <input
-                className='ClassPage-input-box'
-                style={{ width: 60 }}
-                name={`actions[${index}].difficultyClass`}
-                onChange={handleChange}
-                required
-                type="text"
-                placeholder="Dex,0"
-                defaultValue={action.difficultyClass}
-                disabled={canWrite}
-            />
-        </>}
-        {"\xa0Action Name:"}
-        <input
-            className='ClassPage-input-box'
-            name={`actions[${index}].actionName`}
-            onChange={handleChange}
-            required
-            type="text"
-            defaultValue={action.actionName}
-            disabled={canWrite}
-        />
-        <button className='ClassPage-add-tag-button' onClick={() => onAddTag(index)} disabled={canWrite}>
-            Add Tag
+    return <div className="ClassPage-action-card">
+        <button type="button" className="ClassPage-action-card-header" onClick={() => setOpen(!open)}>
+            <span className={open ? 'ClassPage-action-chevron ClassPage-action-chevron-open' : 'ClassPage-action-chevron'}>›</span>
+            <span className={`ClassPage-cost-pip ClassPage-cost-pip-${Math.min(action.actionCost || 0, 3)}`}>{action.actionCost || 0}</span>
+            <span className="ClassPage-action-name">{action.actionName || 'Unnamed'}</span>
+            <span className="ClassPage-level-badge">Lvl {action.actionLevel || 1}</span>
+            <span className="ClassPage-frequency-badge">{frequencyLabel(action)}</span>
         </button>
-        <button className='ClassPage-remove-action-button' onClick={() => onRemove(index)} disabled={canWrite}>
-            Remove Action
-        </button>
-        <br/>
-        Action Level:
-        <input
-            className='ClassPage-input-box'
-            style={{ width: 40 }}
-            name={`actions[${index}].actionLevel`}
-            onChange={handleChange}
-            required
-            type='number' min={1} max={15}
-            placeholder={1}
-            defaultValue={action.actionLevel}
-            disabled={canWrite}
-        />
-        {"\xa0Action Type:"}
-        <select
-            className='ClassPage-input-box'
-            name={`actions[${index}].actionType`}
-            onChange={handleChange}
-            required
-            type='dropdown'
-            defaultValue={action.actionType}
-            disabled={canWrite}
-        >
-            <option value="standard">Standard</option>
-            <option value="perDay">Per Day</option>
-            <option value="perShortRest">Per Short Rest</option>
-            <option value="perCombat">Per Combat</option>
-        </select>
-        {action.actionType !== "standard" && <input
-            className='ClassPage-input-box'
-            style={{ width: 30 }}
-            name={`actions[${index}].actionTypeCount`}
-            onChange={handleChange}
-            required
-            type='number' min={0}
-            placeholder={0}
-            defaultValue={action.actionTypeCount}
-            disabled={canWrite}
-        />}
-        {"\xa0Category:"}
-        <select
-            className='ClassPage-input-box'
-            name={`actions[${index}].category`}
-            onChange={handleChange}
-            type='dropdown'
-            defaultValue={category}
-            disabled={canWrite}
-        >
-            <option value="feat">Feat</option>
-            <option value="passive">Passive</option>
-            <option value="reaction">Reaction</option>
-            <option value="action">Action</option>
-        </select>
-        <br/>
-        {category === 'reaction' && <div className='ClassPage-input'>
-            Trigger:
-            <input
-                className='ClassPage-input-box'
-                style={{ width: 400 }}
-                name={`actions[${index}].trigger`}
-                onChange={handleChange}
-                type="text"
-                placeholder="A Physical ranged attack targeting you"
-                defaultValue={action.trigger}
-                disabled={canWrite}
-            />
-        </div>}
-        {(category === 'reaction' || category === 'action') && <div className='ClassPage-input'>
-            Requirement:
-            <input
-                className='ClassPage-input-box'
-                style={{ width: 400 }}
-                name={`actions[${index}].requirement`}
-                onChange={handleChange}
-                type="text"
-                placeholder="You are not Engaged"
-                defaultValue={action.requirement}
-                disabled={canWrite}
-            />
-        </div>}
-        {areTagsVisible && action.tags !== undefined && action.tags.map((tag, tagIndex) => {
-            return <div className='ClassPage-tag-input-box' key={tagIndex}
-                style={tag.tagColor !== undefined ? tag.textColor !== undefined ? { backgroundColor: tag.tagColor, color: tag.textColor } : { backgroundColor: tag.tagColor } : { color: tag.textColor }}>
-                Tag Information:
-                <input
-                    className='ClassPage-input-box'
-                    name={`actions[${index}].tags[${tagIndex}].tagInfo`}
-                    onChange={handleChange}
-                    required
-                    type="text"
-                    defaultValue={tag.tagInfo}
-                    disabled={canWrite}
-                />
-                {"\xa0Tag Color"}
-                <input
-                    className='ClassPage-input-box'
-                    name={`actions[${index}].tags[${tagIndex}].tagColor`}
-                    onChange={handleChange}
-                    required
-                    type="color"
-                    defaultValue={tag.tagColor}
-                    disabled={canWrite}
-                />
-                {"\xa0Text Color"}
-                <input
-                    className='ClassPage-input-box'
-                    name={`actions[${index}].tags[${tagIndex}].textColor`}
-                    onChange={handleChange}
-                    required
-                    type="color"
-                    defaultValue={tag.textColor}
-                    disabled={canWrite}
-                />
-                {"\xa0Tag Description"}
-                <input
-                    className='ClassPage-input-box'
-                    style={{ width: 400 }}
-                    name={`actions[${index}].tags[${tagIndex}].tagDescription`}
-                    onChange={handleChange}
-                    required
-                    type="text"
-                    defaultValue={tag.tagDescription}
-                    disabled={canWrite}
-                />
-                <button className='ClassPage-delete-tag-button' onClick={() => onRemoveTag(index, tagIndex)} disabled={canWrite}>
-                    Delete Tag
-                </button>
+
+        {open && <div className="ClassPage-action-card-body">
+            {isEditable ? <>
+                <div className="ClassPage-field-row">
+                    <div className="ClassPage-field-grow">
+                        <span className="ClassPage-field-label">Action Name</span>
+                        <input className="ClassPage-field-input" name="actionName" onChange={handleChange} defaultValue={action.actionName}/>
+                    </div>
+                    <div>
+                        <span className="ClassPage-field-label">Cost</span>
+                        <input className="ClassPage-field-input ClassPage-field-input-narrow" name="actionCost" type="number" min={0} max={3} onChange={handleChange} defaultValue={action.actionCost}/>
+                    </div>
+                    <div>
+                        <span className="ClassPage-field-label">Level</span>
+                        <input className="ClassPage-field-input ClassPage-field-input-narrow" name="actionLevel" type="number" min={1} max={15} onChange={handleChange} defaultValue={action.actionLevel}/>
+                    </div>
+                    <div>
+                        <span className="ClassPage-field-label">Range</span>
+                        <input className="ClassPage-field-input" name="range" onChange={handleChange} defaultValue={action.range} placeholder="1 Zone"/>
+                    </div>
+                </div>
+
+                <div className="ClassPage-field-row">
+                    <div>
+                        <span className="ClassPage-field-label">Frequency</span>
+                        <PillGroup options={ACTION_TYPE_OPTIONS} selected={action.actionType} onPick={v => set('actionType', v)}/>
+                    </div>
+                    {action.actionType !== 'standard' && <div>
+                        <span className="ClassPage-field-label">Times</span>
+                        <input className="ClassPage-field-input ClassPage-field-input-narrow" name="actionTypeCount" type="number" min={0} onChange={handleChange} defaultValue={action.actionTypeCount}/>
+                    </div>}
+                    <div>
+                        <span className="ClassPage-field-label">Resolves via</span>
+                        <PillGroup
+                            options={[{ key: 'toHit', label: 'To-Hit' }, { key: 'dc', label: 'Difficulty Class' }]}
+                            selected={action.toHitBool ? 'toHit' : 'dc'}
+                            onPick={v => set('toHitBool', v === 'toHit')}
+                        />
+                    </div>
+                    {action.toHitBool ? <div>
+                        <span className="ClassPage-field-label">To-Hit Mod</span>
+                        <input className="ClassPage-field-input ClassPage-field-input-narrow" name="toHit" type="number" onChange={handleChange} defaultValue={action.toHit}/>
+                    </div> : <div>
+                        <span className="ClassPage-field-label">DC (stat, mod)</span>
+                        <input className="ClassPage-field-input" name="difficultyClass" onChange={handleChange} defaultValue={action.difficultyClass} placeholder="Dex,0"/>
+                    </div>}
+                </div>
+
+                <div className="ClassPage-field-row">
+                    <div>
+                        <span className="ClassPage-field-label">Category</span>
+                        <PillGroup options={CATEGORY_OPTIONS} selected={category} onPick={v => set('category', v)}/>
+                    </div>
+                    {category === 'reaction' && <div className="ClassPage-field-grow">
+                        <span className="ClassPage-field-label">Trigger</span>
+                        <input className="ClassPage-field-input" name="trigger" onChange={handleChange} defaultValue={action.trigger} placeholder="A Physical ranged attack targeting you"/>
+                    </div>}
+                    {(category === 'reaction' || category === 'action') && <div className="ClassPage-field-grow">
+                        <span className="ClassPage-field-label">Requirement</span>
+                        <input className="ClassPage-field-input" name="requirement" onChange={handleChange} defaultValue={action.requirement} placeholder="You are not Engaged"/>
+                    </div>}
+                </div>
+
+                <div>
+                    <span className="ClassPage-field-label">Description</span>
+                    <textarea className="ClassPage-field-input ClassPage-field-textarea" name="description" onChange={handleChange} defaultValue={action.description}/>
+                    <div className="ClassPage-hint">Supports Markdown - **bold**, *italic*, and bullet lists (- item).</div>
+                </div>
+
+                <label className="ClassPage-outcome-table-toggle">
+                    <input type="checkbox" checked={showOutcomeTable} onChange={e => setShowOutcomeTable(e.target.checked)}/>
+                    {"\xa0Has outcome table? (Critical Success / Success / Failure / Critical Failure)"}
+                </label>
+                {showOutcomeTable && <div className="ClassPage-outcome-rows">
+                    {OUTCOME_ROWS.map(row => <div className="ClassPage-outcome-row" key={row.key}>
+                        <span className="ClassPage-field-label">{row.label}</span>
+                        <input
+                            className="ClassPage-field-input"
+                            onChange={e => set(`outcomeTable.${row.key}`, e.target.value)}
+                            defaultValue={action.outcomeTable?.[row.key]}
+                        />
+                    </div>)}
+                </div>}
+            </> : <>
+                <div className="ClassPage-action-meta">
+                    {[action.range, resolveSummary(action), action.actionType !== 'standard' ? frequencyLabel(action) : null].filter(Boolean).join(' · ')}
+                </div>
+                {(action.trigger || action.requirement) && <div className="ClassPage-action-trigger-requirement">
+                    {action.trigger && <div><strong>Trigger:</strong> {action.trigger}</div>}
+                    {action.requirement && <div><strong>Requirement:</strong> {action.requirement}</div>}
+                </div>}
+                <div className="ClassPage-action-description"><Markdown>{action.description || ''}</Markdown></div>
+                {hasOutcomeTable && <table className="ClassPage-outcome-table">
+                    <tbody>
+                        {OUTCOME_ROWS.map(row => action.outcomeTable[row.key] &&
+                            <tr key={row.key}><th>{row.label}</th><td>{action.outcomeTable[row.key]}</td></tr>
+                        )}
+                    </tbody>
+                </table>}
+            </>}
+
+            <div className="ClassPage-tags-row">
+                <span className="ClassPage-field-label">Tags</span>
+                {isEditable && <button type="button" className="ClassPage-add-tag-button" onClick={() => onAddTag(index)}>+ Tag</button>}
             </div>
-        })}
-        Description:
-        <textarea
-            className='ClassPage-input-text-area'
-            name={`actions[${index}].description`}
-            onChange={handleChange}
-            required
-            type="textarea"
-            defaultValue={action.description}
-            disabled={canWrite}
-        />
-        <div className='ClassPage-hint'>Supports Markdown - **bold**, *italic*, and bullet lists (- item) all render on the character sheet.</div>
-        <label className='ClassPage-outcome-table-toggle'>
-            <input
-                type='checkbox'
-                checked={showOutcomeTable}
-                onChange={e => setShowOutcomeTable(e.target.checked)}
-                disabled={canWrite}
-            />
-            {"\xa0Has outcome table? (Critical Success / Success / Failure / Critical Failure)"}
-        </label>
-        {showOutcomeTable && <div className='ClassPage-outcome-rows'>
-            {OUTCOME_ROWS.map(row => <div className='ClassPage-outcome-row' key={row.key}>
-                {row.label + ":"}
-                <input
-                    className='ClassPage-input-box'
-                    style={{ width: 400 }}
-                    name={`actions[${index}].outcomeTable.${row.key}`}
-                    onChange={handleChange}
-                    type="text"
-                    defaultValue={action.outcomeTable?.[row.key]}
-                    disabled={canWrite}
-                />
-            </div>)}
+            <div className="ClassPage-tag-pills">
+                {(action.tags || []).map((tag, tagIndex) => isEditable
+                    ? <button type="button" key={tagIndex} className="ClassPage-tag-pill" style={{ backgroundColor: tag.tagColor, color: tag.textColor }} onClick={() => setOpenTagIndex(tagIndex)}>{tag.tagInfo}</button>
+                    : <span key={tagIndex} className="ClassPage-tag-pill" style={{ backgroundColor: tag.tagColor, color: tag.textColor }} title={tag.tagDescription}>{tag.tagInfo}</span>
+                )}
+            </div>
+
+            {isEditable && <button type="button" className="ClassPage-remove-action-button" onClick={() => onRemove(index)}>Remove Action</button>}
         </div>}
-    </div>
+
+        {openTagIndex !== null && action.tags?.[openTagIndex] && <ClassTagEditDialog
+            actionIndex={index}
+            tagIndex={openTagIndex}
+            tag={action.tags[openTagIndex]}
+            onChange={onChange}
+            onClose={() => setOpenTagIndex(null)}
+            onDelete={() => { onRemoveTag(index, openTagIndex); setOpenTagIndex(null); }}
+        />}
+    </div>;
 }
