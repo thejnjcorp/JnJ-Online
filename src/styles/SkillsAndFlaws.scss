@@ -33,6 +33,10 @@
     color: var(--jnj-color-danger);
 }
 
+.SkillsAndFlaws-group-label-feat {
+    color: var(--jnj-color-success);
+}
+
 .SkillsAndFlaws-empty-group {
     margin: 0 16px;
     padding: 14px 12px;
@@ -117,6 +121,10 @@
     border-color: var(--jnj-color-danger);
 }
 
+.SkillsAndFlaws-feat {
+    border-color: var(--jnj-color-success);
+}
+
 .SkillsAndFlaws-trigger {
     display: flex;
     align-items: center;
@@ -172,6 +180,28 @@
     line-height: 1.5;
     color: var(--jnj-color-text-muted);
     white-space: pre-wrap;
+}
+
+/* Feat descriptions come from the class's action markdown (see
+   CombatActionList.js) rather than the plain-text skill/flaw description
+   field, so this renders real <p>/<ul> elements instead of a single
+   pre-wrapped <p>. */
+.SkillsAndFlaws-feat-description {
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--jnj-color-text-muted);
+
+    p, ul, ol {
+        margin: 0 0 6px;
+    }
+
+    ul, ol {
+        padding-left: 20px;
+    }
+
+    p:last-child, ul:last-child, ol:last-child {
+        margin-bottom: 0;
+    }
 }
 
 .SkillsAndFlaws-trash-button {

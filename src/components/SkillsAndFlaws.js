@@ -1,4 +1,5 @@
 import Collapsible from 'react-collapsible';
+import Markdown from 'markdown-to-jsx';
 import starIcon from '../icons/star.svg';
 import { useState, useReducer } from 'react';
 import { db } from '../utils/firebase';
@@ -6,6 +7,7 @@ import '../styles/SkillsAndFlaws.scss';
 import { formReducer } from './NewCharacterPage';
 import { arrayRemove, arrayUnion, doc, updateDoc } from 'firebase/firestore';
 import trashCanIcon from '../icons/trash_can.svg';
+import { getActionCategory } from '../utils/classActions';
 
 export function SkillsAndFlaws({characterPage, userId}) {
     const [addSkillFLawVisible, setAddSkillFlawVisible] = useState(false);
@@ -113,13 +115,41 @@ export function SkillsAndFlaws({characterPage, userId}) {
         </Collapsible>
     }
 
+    // Feats are granted by the character's class (denormalized onto
+    // characterPage.actions at creation, see NewCharacterPage.js) rather
+    // than authored here, so this list is read-only - no Add/Remove
+    // toolbar, no degree stars (feats don't have one).
+    function renderFeat(feat, index) {
+        return <Collapsible
+            key={feat.actionName + index}
+            id={feat.actionName + index}
+            trigger={<>
+                <span className="SkillsAndFlaws-chevron">›</span>
+                <span className="SkillsAndFlaws-name">{feat.actionName}</span>
+            </>}
+            className="SkillsAndFlaws SkillsAndFlaws-feat FeatsOverride"
+            openedClassName="SkillsAndFlaws SkillsAndFlaws-feat SkillsAndFlaws-open FeatsOverride"
+            contentInnerClassName='SkillsAndFlaws-inner-div'
+            triggerClassName='SkillsAndFlaws-trigger'
+            triggerOpenedClassName='SkillsAndFlaws-trigger SkillsAndFlaws-trigger-open'
+            transitionTime={180}
+            easing="ease"
+            open={false}
+        >
+            <div className="SkillsAndFlaws-feat-description">
+                <Markdown>{feat.description || ""}</Markdown>
+            </div>
+        </Collapsible>
+    }
+
     const skills = characterPage.skills_and_flaws.filter(item => item.isSkill);
     const flaws = characterPage.skills_and_flaws.filter(item => !item.isSkill);
+    const feats = (characterPage.actions || []).filter(action => getActionCategory(action) === 'feat');
 
     return <>
         <div className="SkillsAndFlaws-header">
             <div className="SkillsAndFlaws-title">Skills &amp; Flaws</div>
-            <div className="SkillsAndFlaws-count">{skills.length} skill{skills.length === 1 ? "" : "s"} · {flaws.length} flaw{flaws.length === 1 ? "" : "s"}</div>
+            <div className="SkillsAndFlaws-count">{skills.length} skill{skills.length === 1 ? "" : "s"} · {flaws.length} flaw{flaws.length === 1 ? "" : "s"} · {feats.length} feat{feats.length === 1 ? "" : "s"}</div>
         </div>
 
         {hasWritePermissions && <div className='SkillsAndFlaws-toolbar'>
@@ -140,6 +170,11 @@ export function SkillsAndFlaws({characterPage, userId}) {
         <div className="SkillsAndFlaws-group-label SkillsAndFlaws-group-label-flaw">Flaws</div>
         {flaws.length > 0
             ? flaws.map((flaw, index) => renderEntry(flaw, index))
+            : <div className="SkillsAndFlaws-empty-group">None recorded yet</div>}
+
+        <div className="SkillsAndFlaws-group-label SkillsAndFlaws-group-label-feat">Feats</div>
+        {feats.length > 0
+            ? feats.map((feat, index) => renderFeat(feat, index))
             : <div className="SkillsAndFlaws-empty-group">None recorded yet</div>}
 
         {addSkillFLawVisible && <>
