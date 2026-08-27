@@ -23,6 +23,9 @@ if [ -z "${SONAR_TOKEN:-}" ]; then
   exit 1
 fi
 
+echo "Generating coverage (npm run test:tst:coverage)..."
+npm run test:tst:coverage
+
 docker run --rm \
   --network sonarnet \
   -e SONAR_HOST_URL="http://sonarqube:9000" \

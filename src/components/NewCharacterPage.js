@@ -6,19 +6,9 @@ import { collection, addDoc, getDocs, getDoc, doc, or, query, where } from 'fire
 import { onAuthStateChanged } from "firebase/auth";
 import { CharacterDiceConverter } from './CharacterStatCalculator';
 import { CombatActionList } from './CombatActionList';
+import { newCharacterFormReducer } from '../utils/newCharacterFormReducer';
 
-export const formReducer = (state, event) => {
-    if (event.type === 'SET_FORM_DATA') {
-        return {
-            ...state,
-            ...event.payload,
-        };
-    }
-    return {
-        ...state,
-        [event.name]: event.value
-    }
-}
+export const formReducer = newCharacterFormReducer;
 
 export function NewCharacterPage() {
     document.title = "New Character";

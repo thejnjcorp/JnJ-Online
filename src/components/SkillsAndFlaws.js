@@ -4,7 +4,7 @@ import circleIcon from '../icons/circle.svg';
 import { useState, useReducer } from 'react';
 import { db } from '../utils/firebase';
 import '../styles/SkillsAndFlaws.scss';
-import { formReducer } from './NewCharacterPage';
+import { newCharacterFormReducer as formReducer } from '../utils/newCharacterFormReducer';
 import { arrayRemove, arrayUnion, doc, updateDoc } from 'firebase/firestore';
 import trashCanIcon from '../icons/trash_can.svg';
 import { getActionCategory } from '../utils/classActions';
@@ -38,7 +38,8 @@ export function SkillsAndFlaws({characterPage, userId}) {
 
     function closeAddForm() {
         setAddSkillFlawVisible(false);
-        // formReducer (from NewCharacterPage.js) has no dedicated reset action -
+        // formReducer (newCharacterFormReducer, also used by NewCharacterPage.js)
+        // has no dedicated reset action -
         // it only merges a payload over existing state or sets one field at a
         // time - so clearing has to explicitly overwrite every field rather
         // than rely on a {reset: true} shape (that's a different reducer's

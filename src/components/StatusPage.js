@@ -5,14 +5,10 @@ import { onAuthStateChanged } from 'firebase/auth';
 import TextareaAutosize from 'react-textarea-autosize';
 import { auth, db } from '../utils/firebase';
 import { ADMIN_UIDS, STATUS_STAT_DEFINITIONS, getEffectsArray } from '../utils/statusEffects';
+import { statusFormReducer } from '../utils/statusFormReducer';
 import '../styles/StatusPage.scss';
 
-const formReducer = (state, event) => {
-    if (event.type === 'SET_FORM_DATA') {
-        return { ...state, ...event.payload };
-    }
-    return { ...state, [event.name]: event.value };
-};
+const formReducer = statusFormReducer;
 
 const POLARITIES = ['buff', 'debuff', 'neutral'];
 
