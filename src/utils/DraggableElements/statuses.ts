@@ -1,10 +1,8 @@
 import type { Post } from "./Post.ts";
 
-export type Status = string; // or a union if you want stricter typing
+export type PostsByStatus = Record<string, Post[]>;
 
-export type PostsByStatus = Record<Status, Post[]>;
-
-export const getPostsByStatus = (unorderedPosts: Post[], statuses: Status[]) => {
+export const getPostsByStatus = (unorderedPosts: Post[], statuses: string[]) => {
   // Initialize all statuses as empty arrays
   const postsByStatus: PostsByStatus = statuses.reduce(
     (obj, status) => ({ ...obj, [status]: [] }),
@@ -21,9 +19,7 @@ export const getPostsByStatus = (unorderedPosts: Post[], statuses: Status[]) => 
   });
   // Sort each column by index
   statuses.forEach((status) => {
-    postsByStatus[status] = postsByStatus[status].sort(
-      (a, b) => a.index - b.index
-    );
+    postsByStatus[status].sort((a, b) => a.index - b.index);
   });
   return postsByStatus;
 };

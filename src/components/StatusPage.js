@@ -59,6 +59,12 @@ function visibilityFromDoc(data) {
     return 'private';
 }
 
+function parseFieldValue(type, checked, value) {
+    if (type === 'checkbox') return checked;
+    if (type === 'number') return Number(value);
+    return value;
+}
+
 export function StatusPage() {
     const [formData, setFormData] = useReducer(formReducer, EMPTY_STATUS);
     const [classOptions, setClassOptions] = useState([]);
@@ -144,8 +150,7 @@ export function StatusPage() {
 
     const handleChange = event => {
         const { name, type, checked, value } = event.target;
-        const parsedValue = type === 'checkbox' ? checked : (type === 'number' ? Number(value) : value);
-        setFormData({ name, value: parsedValue });
+        setFormData({ name, value: parseFieldValue(type, checked, value) });
     };
 
     function toggleClass(className) {
@@ -227,8 +232,7 @@ export function StatusPage() {
 
     function handleGrantedActionChange(event) {
         const { name, type, checked, value } = event.target;
-        const parsedValue = type === 'checkbox' ? checked : (type === 'number' ? Number(value) : value);
-        setFormData({ name: 'grantedAction', value: { ...formData.grantedAction, [name]: parsedValue } });
+        setFormData({ name: 'grantedAction', value: { ...formData.grantedAction, [name]: parseFieldValue(type, checked, value) } });
     }
 
     async function handleSubmit() {
@@ -294,6 +298,9 @@ export function StatusPage() {
         }
     }
 
+    let submitButtonLabel = isEditing ? 'Update Status' : 'Create Status';
+    if (submitting) submitButtonLabel = 'Saving…';
+
     return <div className="StatusPage">
         <div className="StatusPage-inner">
         <div className="StatusPage-header">
@@ -302,8 +309,9 @@ export function StatusPage() {
         </div>
 
         <div className="StatusPage-field">
-            <label className="StatusPage-label">Name</label>
+            <label className="StatusPage-label" htmlFor="status-name">Name</label>
             <input
+                id="status-name"
                 className="StatusPage-input"
                 name="name"
                 type="text"
@@ -315,8 +323,9 @@ export function StatusPage() {
         </div>
 
         <div className="StatusPage-field">
-            <label className="StatusPage-label">Description</label>
+            <label className="StatusPage-label" htmlFor="status-description">Description</label>
             <TextareaAutosize
+                id="status-description"
                 className="StatusPage-textarea"
                 name="description"
                 placeholder="Gain a single action for a certain number of rounds..."
@@ -328,7 +337,7 @@ export function StatusPage() {
         </div>
 
         <div className="StatusPage-field">
-            <label className="StatusPage-label">Polarity</label>
+            <span className="StatusPage-label">Polarity</span>
             <div className="StatusPage-chip-row">
                 {POLARITIES.map(polarity =>
                     <button
@@ -345,8 +354,9 @@ export function StatusPage() {
         </div>
 
         <div className="StatusPage-field">
-            <label className="StatusPage-label">Default stacks / duration</label>
+            <label className="StatusPage-label" htmlFor="status-default-stacks">Default stacks / duration</label>
             <input
+                id="status-default-stacks"
                 className="StatusPage-input StatusPage-input-narrow"
                 name="defaultStacks"
                 type="number"
@@ -359,7 +369,7 @@ export function StatusPage() {
         </div>
 
         <div className="StatusPage-field">
-            <label className="StatusPage-label">Class scoping</label>
+            <span className="StatusPage-label">Class scoping</span>
             <div className="StatusPage-chip-row">
                 {classOptions.length === 0 && <span className="StatusPage-hint">No classes exist yet.</span>}
                 {classOptions.map(className =>
@@ -378,7 +388,7 @@ export function StatusPage() {
         </div>
 
         <div className="StatusPage-field">
-            <label className="StatusPage-label">Visibility</label>
+            <span className="StatusPage-label">Visibility</span>
             <div className="StatusPage-chip-row">
                 {VISIBILITIES.map(v =>
                     <button
@@ -408,14 +418,14 @@ export function StatusPage() {
         </div>
 
         <div className="StatusPage-field">
-            <label className="StatusPage-label">Mechanical effects</label>
+            <span className="StatusPage-label">Mechanical effects</span>
             <p className="StatusPage-hint">Action Points is a turn-based resource - its effect applies once per "Next Turn" while stacks remain (Haste/Slowed/Stunned). Every other stat is a continuous modifier, applied everywhere that stat is shown or used (AC, hit rolls, ability scores, hardness) for as long as this status is on the character (Exhaustion, a temporary Strength buff, Frightened's hit penalty).</p>
             {(formData.effects || []).map((effect, index) => {
                 const definition = STATUS_STAT_DEFINITIONS.find(s => s.key === effect.stat) || STATUS_STAT_DEFINITIONS[0];
                 const isScaled = effect.mode === 'scaled';
                 return <div className="StatusPage-effect-row" key={index}>
                     <div className="StatusPage-effect-row-main">
-                        Adjust
+                        Adjust{' '}
                         <select
                             className="StatusPage-input StatusPage-input-narrow"
                             value={effect.stat}
@@ -433,7 +443,7 @@ export function StatusPage() {
                     </div>
 
                     {!isScaled && <div className="StatusPage-effect-row-flat">
-                        by
+                        by{' '}
                         <input
                             className="StatusPage-input StatusPage-input-narrow"
                             type="number"
@@ -478,7 +488,7 @@ export function StatusPage() {
                     checked={Boolean(formData.decaysPerTurn)}
                     onChange={e => setFormData({ name: 'decaysPerTurn', value: e.target.checked })}
                     disabled={canWrite}
-                />
+                />{' '}
                 Counts down by 1 stack each "Next Turn"
             </label>
             <p className="StatusPage-hint">On by default for an Action Points effect (Haste/Slowed/Stunned). Turn on for a passive effect that should still wear off over time (Frightened); leave off for one that persists until removed by hand or a rest (Exhaustion, Wounded, a temporary buff with no fixed duration).</p>
@@ -491,7 +501,7 @@ export function StatusPage() {
                     checked={Boolean(formData.grantedAction)}
                     onChange={toggleGrantsAction}
                     disabled={canWrite}
-                />
+                />{' '}
                 Grants a special action while active
             </label>
             <p className="StatusPage-hint">Shows up alongside the character's own class actions on the Combat tab for as long as this status is active (e.g. an "Identify" status granting a free Identify action).</p>
@@ -506,7 +516,7 @@ export function StatusPage() {
                     disabled={canWrite}
                 />
                 <div>
-                    Cost:
+                    Cost:{' '}
                     <input
                         className="StatusPage-input StatusPage-input-narrow"
                         name="actionCost"
@@ -516,8 +526,8 @@ export function StatusPage() {
                         value={formData.grantedAction.actionCost}
                         onChange={handleGrantedActionChange}
                         disabled={canWrite}
-                    />
-                    Range:
+                    />{' '}
+                    Range:{' '}
                     <input
                         className="StatusPage-input StatusPage-input-narrow"
                         name="range"
@@ -529,7 +539,7 @@ export function StatusPage() {
                     />
                 </div>
                 <label className="StatusPage-checkbox-label">
-                    <input type="checkbox" name="toHitBool" checked={formData.grantedAction.toHitBool} onChange={handleGrantedActionChange} disabled={canWrite}/>
+                    <input type="checkbox" name="toHitBool" checked={formData.grantedAction.toHitBool} onChange={handleGrantedActionChange} disabled={canWrite}/>{' '}
                     To-hit action (unchecked = DC check)
                 </label>
                 {formData.grantedAction.toHitBool
@@ -564,7 +574,7 @@ export function StatusPage() {
         </div>
 
         {isEditing && formData.public && !formData.isDefault && <div className="StatusPage-field">
-            <label className="StatusPage-label">Subscribe your campaigns</label>
+            <span className="StatusPage-label">Subscribe your campaigns</span>
             <p className="StatusPage-hint">A pool status like this one only shows up as an addable preset for a campaign's characters once that campaign subscribes to it - not automatically, the way an admin default would.</p>
             {myWritableCampaigns.length === 0 && <p className="StatusPage-hint">You don't direct (or have write access to) any campaigns yet.</p>}
             <div className="StatusPage-chip-row">
@@ -583,10 +593,10 @@ export function StatusPage() {
         </div>}
 
         <div className="StatusPage-actions">
-            <button className="StatusPage-submit-button" onClick={handleSubmit} disabled={canWrite || submitting}>
-                {submitting ? 'Saving…' : (isEditing ? 'Update Status' : 'Create Status')}
+            <button type="button" className="StatusPage-submit-button" onClick={handleSubmit} disabled={canWrite || submitting}>
+                {submitButtonLabel}
             </button>
-            {isEditing && !canWrite && <button className="StatusPage-delete-button" onClick={handleDelete}>Delete Status</button>}
+            {isEditing && !canWrite && <button type="button" className="StatusPage-delete-button" onClick={handleDelete}>Delete Status</button>}
         </div>
         </div>
     </div>

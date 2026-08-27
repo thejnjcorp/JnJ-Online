@@ -37,7 +37,6 @@ export function Campaigns() {
             getCampaigns(user);
         });
         return () => unsubscribe();
-        // eslint-disable-next-line
     },[])
 
     async function getCampaigns(user) {
@@ -68,15 +67,15 @@ export function Campaigns() {
             {status === "loading" && <img src={loadingIcon} alt="Loading" className="Campaigns-loading-icon"/>}
 
             {status === "ready" && <div className="Campaigns-grid">
-                {activeCampaigns.map((campaign, index) =>
-                    <button className='CampaignCard' key={index} onClick={() => handleCampaignCardSelect(campaign)}>
+                {activeCampaigns.map((campaign) =>
+                    <button type="button" className='CampaignCard' key={campaign.id} onClick={() => handleCampaignCardSelect(campaign)}>
                         <div className="CampaignCard-name">{campaign.campaign_name}</div>
                         <div className="CampaignCard-small-text">
                             Director: {campaign.director_name}
                             {campaign.players?.length > 0 && <> · {campaign.players.length} player{campaign.players.length === 1 ? "" : "s"}</>}
                         </div>
                     </button>)}
-                <button className='CampaignCard CampaignCard-create' onClick={() => handleCreateCampaign()}>
+                <button type="button" className='CampaignCard CampaignCard-create' onClick={() => handleCreateCampaign()}>
                     + Create Campaign
                 </button>
                 {activeCampaigns.length === 0 && <div className="Campaigns-empty-state Campaigns-empty-state-grid">
@@ -85,12 +84,12 @@ export function Campaigns() {
             </div>}
 
             {status === "ready" && archivedCampaigns.length > 0 && <div className="Campaigns-archived-section">
-                <button className="Campaigns-archived-toggle" onClick={() => setShowArchived(v => !v)}>
+                <button type="button" className="Campaigns-archived-toggle" onClick={() => setShowArchived(v => !v)}>
                     {showArchived ? "Hide" : "Show"} Archived ({archivedCampaigns.length})
                 </button>
                 {showArchived && <div className="Campaigns-grid Campaigns-archived-grid">
-                    {archivedCampaigns.map((campaign, index) =>
-                        <button className='CampaignCard CampaignCard-archived' key={index} onClick={() => handleCampaignCardSelect(campaign)}>
+                    {archivedCampaigns.map((campaign) =>
+                        <button type="button" className='CampaignCard CampaignCard-archived' key={campaign.id} onClick={() => handleCampaignCardSelect(campaign)}>
                             <div className="CampaignCard-name">{campaign.campaign_name}</div>
                             <div className="CampaignCard-small-text">
                                 Director: {campaign.director_name}

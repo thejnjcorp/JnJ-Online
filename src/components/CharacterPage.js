@@ -47,7 +47,6 @@ export function CharacterPage() {
     const charactersQuery = useMemo(() => hasCampaign ? query(collection(db, "characters"), where("campaign", "==", campaignId)) : null, [campaignId, hasCampaign]);
 
     useEffect(() => {
-        // eslint-disable-next-line
         const unsubscribe = onSnapshot(docQuery, { includeMetadataChanges: true }, (docSnap) => {
             if (document.title !== docSnap.data().character_name) document.title = docSnap.data().character_name;
             if (docSnap.metadata.hasPendingWrites || loadingScreen) {
@@ -61,31 +60,29 @@ export function CharacterPage() {
             }
         });
         return () => unsubscribe();
-        // eslint-disable-next-line
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [docQuery, location.pathname]);
 
     useEffect(() => {
         if (!campaignDocQuery) return;
-        // eslint-disable-next-line
         const unsubscribe = onSnapshot(campaignDocQuery, (docSnap) => {
             if (docSnap.metadata.hasPendingWrites || campaignInfo !== docSnap.data()) {
                 setCampaignInfo(docSnap.data());
             }
         });
         return () => unsubscribe();
-        // eslint-disable-next-line
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [campaignDocQuery]);
 
     useEffect(() => {
         if (!charactersQuery) return;
-        // eslint-disable-next-line
         const unsubscribe = onSnapshot(charactersQuery, (querySnapshot) => {
             if (querySnapshot.metadata.hasPendingWrites || characterList.length === 0) {
                 setCharacterList(querySnapshot.docs.map(doc => ({character_id: doc.id, ...doc.data()})));
             }
         });
         return () => unsubscribe();
-        // eslint-disable-next-line
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [charactersQuery]);
 
     useEffect(() => {
@@ -102,7 +99,7 @@ export function CharacterPage() {
     return <>
         {!loadingScreen && <div className={"CharacterPage " + pageTheme}>
             {isMobile
-                ? <button className='CharacterPage-skills-summary-button' onClick={() => setSkillsDrawerOpen(true)}>
+                ? <button type="button" className='CharacterPage-skills-summary-button' onClick={() => setSkillsDrawerOpen(true)}>
                     <span>Skills &amp; Flaws · {skillsCount} · {flawsCount}</span>
                     <ChevronDownIcon className='CharacterPage-skills-summary-chevron'/>
                 </button>
@@ -118,9 +115,14 @@ export function CharacterPage() {
                 slide-up drawer instead of the persistent sidebar - see
                 design/character-page-v2 section 9. */}
             {isMobile && skillsDrawerOpen && <>
-                <div className='CharacterPage-skills-drawer-scrim' onClick={() => setSkillsDrawerOpen(false)}/>
+                <button
+                    type="button"
+                    className='CharacterPage-skills-drawer-scrim'
+                    aria-label="Close"
+                    onClick={() => setSkillsDrawerOpen(false)}
+                />
                 <div className='CharacterPage-skills-drawer SkillsAndFlawsPanelOverride'>
-                    <button className='CharacterPage-skills-drawer-close' onClick={() => setSkillsDrawerOpen(false)}>×</button>
+                    <button type="button" className='CharacterPage-skills-drawer-close' onClick={() => setSkillsDrawerOpen(false)}>×</button>
                     <SkillsAndFlaws characterPage={characterPage} userId={userId}/>
                 </div>
             </>}

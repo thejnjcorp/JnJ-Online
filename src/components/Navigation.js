@@ -1,10 +1,9 @@
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { auth, db } from "../utils/firebase";
+import { auth, db, signInWithGooglePopup } from "../utils/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import '../styles/Navigation.scss';
 import defaultProfileIcon from '../icons/default_profile.svg';
-import { signInWithGooglePopup } from "../utils/firebase";
 import { useEffect, useRef, useState } from "react";
 
 const NAV_LINKS = [
@@ -132,11 +131,11 @@ export function Navigation({userInfo, setUserInfo}) {
         </div>
 
         <div className="Navigation-account" ref={menuRef}>
-            {!userInfo && <button onClick={logGoogleUser} className="Navigation-signin">
+            {!userInfo && <button type="button" onClick={logGoogleUser} className="Navigation-signin">
                 Sign In
             </button>}
             {userInfo && <>
-                <button
+                <button type="button"
                     className="Navigation-avatar-button"
                     onClick={() => setMenuOpen(open => !open)}
                     aria-expanded={menuOpen}
@@ -155,16 +154,16 @@ export function Navigation({userInfo, setUserInfo}) {
                         <div className="Navigation-menu-email">{userInfo.email}</div>
                     </div>
                     <Link to="/account" className="Navigation-menu-item" role="menuitem">Account</Link>
-                    <button className="Navigation-menu-item" role="menuitem" onClick={handleCopyPlayerId}>
+                    <button type="button" className="Navigation-menu-item" role="menuitem" onClick={handleCopyPlayerId}>
                         {copiedId ? "Player ID copied" : "Copy Player ID"}
                     </button>
-                    <button className="Navigation-menu-item Navigation-menu-item-danger" role="menuitem" onClick={handleSignOut}>
+                    <button type="button" className="Navigation-menu-item Navigation-menu-item-danger" role="menuitem" onClick={handleSignOut}>
                         Sign Out
                     </button>
                 </div>}
             </>}
 
-            <button
+            <button type="button"
                 className="Navigation-hamburger"
                 onClick={() => setDrawerOpen(open => !open)}
                 aria-expanded={drawerOpen}
@@ -195,7 +194,7 @@ export function Navigation({userInfo, setUserInfo}) {
                     onChange={(e) => setPlayerName(e.target.value)}
                     placeholder="Player name"
                 />
-                <button
+                <button type="button"
                     className="Navigation-new-player-button"
                     onClick={() => handleNewPlayer()}
                     disabled={playerName.trim() === ""}

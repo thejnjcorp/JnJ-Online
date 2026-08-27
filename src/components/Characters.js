@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import '../styles/Characters.scss';
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { CharacterPage } from "./CharacterPage";
-import { useLocation } from "react-router-dom";
 import { getDocs, query, collection, where, or, documentId } from "firebase/firestore";
 import { auth, db } from "../utils/firebase";
 import { onAuthStateChanged } from "firebase/auth";
@@ -32,7 +31,7 @@ export function Characters() {
             getCharacterList(user);
         });
         return () => unsubscribe();
-        // eslint-disable-next-line
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     },[])
 
     async function getCharacterList(user) {
@@ -98,10 +97,10 @@ export function Characters() {
             {status === "loading" && <img src={loadingIcon} alt="Loading" className="Characters-loading-icon"/>}
 
             {status === "ready" && <div className="Characters-grid">
-                {characterList.map((character, index) =>
-                    <button
+                {characterList.map((character) =>
+                    <button type="button"
                         className='CharacterCard'
-                        key={index}
+                        key={character.id}
                         onClick={() => handleCharacterCardSelect(character)}
                         style={character.navigation_color ? {"--character-accent": character.navigation_color} : undefined}
                     >
@@ -113,7 +112,7 @@ export function Characters() {
                         </div>
                     </button>
                 )}
-                <button className='CharacterCard CharacterCard-create' onClick={() => navigate("/campaigns")}>
+                <button type="button" className='CharacterCard CharacterCard-create' onClick={() => navigate("/campaigns")}>
                     + Create one from a campaign
                 </button>
                 {characterList.length === 0 && <div className="Characters-empty-state Characters-empty-state-grid">

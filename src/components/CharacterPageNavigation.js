@@ -55,7 +55,7 @@ export function CharacterPageNavigation({characterPage, userId}) {
                         : <PersonIcon/>}
                 </div>
                 {hasWritePermissions && <>
-                    <button
+                    <button type="button"
                         className="CharacterPage-masthead-avatar-badge"
                         style={{borderColor: characterPage.navigation_color}}
                         onClick={() => fileInputRef.current.click()}

@@ -53,63 +53,61 @@ function visibilityFromDoc(data) {
 }
 
 const formReducer = (state, event) => {
-    switch(event.type) {
-        case 'SET_FORM_DATA':
+    if (event.type === 'SET_FORM_DATA') {
         return {
             ...state,
             ...event.payload,
         };
-        default:
-        const { name, value } = event;
-        const arrayRegex = /(\w+)\[(\d+)\](\.\w+|\[\d+\])*/g;
-        let newState = { ...state };
+    }
+    const { name, value } = event;
+    const arrayRegex = /(\w+)\[(\d+)\](\.\w+|\[\d+\])*/g;
+    let newState = { ...state };
 
-        if (arrayRegex.test(name)) {
-            const keys = name.split('.');
-            let currentObject = newState;
-            keys.forEach((key, index) => {
-                // If the key contains an array index (e.g., "actions[0]")
-                const arrayMatch = key.match(/(\w+)\[(\d+)\]/);
+    if (arrayRegex.test(name)) {
+        const keys = name.split('.');
+        let currentObject = newState;
+        keys.forEach((key, index) => {
+            // If the key contains an array index (e.g., "actions[0]")
+            const arrayMatch = key.match(/(\w+)\[(\d+)\]/);
 
-                if (arrayMatch) {
-                    const arrayName = arrayMatch[1]; // Array name, like 'actions'
-                    const arrayIndex = parseInt(arrayMatch[2], 10); // Index, like 0 or 1
+            if (arrayMatch) {
+                const arrayName = arrayMatch[1]; // Array name, like 'actions'
+                const arrayIndex = Number.parseInt(arrayMatch[2], 10); // Index, like 0 or 1
 
-                    // Ensure the array exists
-                    if (!currentObject[arrayName]) {
-                    currentObject[arrayName] = [];
-                    }
-
-                    // Navigate to the array at the specified index
-                    if (!currentObject[arrayName][arrayIndex]) {
-                    currentObject[arrayName][arrayIndex] = {};
-                    }
-
-                    // Move down to the array item
-                    currentObject = currentObject[arrayName][arrayIndex];
-                } else {
-                    // If it's a regular object property (e.g., "tags" or "tagInfo")
-                    if (!currentObject[key]) {
-                    currentObject[key] = {};  // Initialize if the key doesn't exist yet
-                    }
-
-                    if (keys.length - 1 !== index) {
-                        // Move down to the nested object
-                        currentObject = currentObject[key];
-                    }
+                // Ensure the array exists
+                if (!currentObject[arrayName]) {
+                currentObject[arrayName] = [];
                 }
-            });
 
-            // Set the final value
-            currentObject[keys[keys.length - 1]] = value;
-            return newState;
-        } else {
-            // If there are no arrays or nested objects, handle the flat properties
-            return {
-            ...state,
-            [name]: value
-            };
-        }
+                // Navigate to the array at the specified index
+                if (!currentObject[arrayName][arrayIndex]) {
+                currentObject[arrayName][arrayIndex] = {};
+                }
+
+                // Move down to the array item
+                currentObject = currentObject[arrayName][arrayIndex];
+            } else {
+                // If it's a regular object property (e.g., "tags" or "tagInfo")
+                if (!currentObject[key]) {
+                currentObject[key] = {};  // Initialize if the key doesn't exist yet
+                }
+
+                if (keys.length - 1 !== index) {
+                    // Move down to the nested object
+                    currentObject = currentObject[key];
+                }
+            }
+        });
+
+        // Set the final value
+        currentObject[keys[keys.length - 1]] = value;
+        return newState;
+    } else {
+        // If there are no arrays or nested objects, handle the flat properties
+        return {
+        ...state,
+        [name]: value
+        };
     }
 };
 
@@ -137,7 +135,7 @@ export function ClassPage() {
         if (isEditingExisting) {
             getClassData();
         }
-        // eslint-disable-next-line
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [location])
 
     useEffect(() => {
@@ -255,7 +253,7 @@ export function ClassPage() {
     const handleRemoveAction = function(index) {
         if (formData.actions.length > 1) {
             const newActions = [];
-            for (var i = 0; i < formData.actions.length; i++) {
+            for (let i = 0; i < formData.actions.length; i++) {
                 if (i !== index) newActions.push(formData.actions[i]);
             }
             setFormData({
@@ -288,7 +286,7 @@ export function ClassPage() {
     const handleRemoveTag = function(index, tagIndex) {
         if (formData.actions[index].tags.length > 1) {
             const newTags = [];
-            for (var i = 0; i < formData.actions[index].tags.length; i++) {
+            for (let i = 0; i < formData.actions[index].tags.length; i++) {
                 if (i !== tagIndex) newTags.push(formData.actions[index].tags[i]);
             }
             setFormData({
@@ -393,7 +391,7 @@ export function ClassPage() {
     }
 
     function handleEditClick() {
-        setSavedSnapshot(JSON.parse(JSON.stringify(formData)));
+        setSavedSnapshot(structuredClone(formData));
         setIsEditingMode(true);
     }
 
@@ -431,7 +429,9 @@ export function ClassPage() {
     // The doc's own isDefault field, not the current viewer's admin status
     // - matches ClassListPage.js's visibilityOf(), so the badge here always
     // agrees with the catalog card regardless of who's looking at it.
-    const visLabel = visibility === 'private' ? 'Private' : (formData.isDefault ? 'Default' : 'Pool');
+    let visLabel = 'Pool';
+    if (visibility === 'private') visLabel = 'Private';
+    else if (formData.isDefault) visLabel = 'Default';
 
     return <>{isPageVisible && <div className='ClassPage'>
         <div className='ClassPage-inner'>

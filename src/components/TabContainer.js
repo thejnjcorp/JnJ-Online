@@ -20,15 +20,15 @@ export function TabContainer({tabs, container_height, content_height}) {
     // wouldn't even clip anything - content would just spill past the box's own
     // background/rounded corners, which is exactly the bug this replaces.
     const containerStyle = container_height ? {maxHeight: container_height} : undefined;
-    const contentStyle = activeTab.contentHeight
-        ? {height: activeTab.contentHeight, maxHeight: activeTab.contentHeight}
-        : (content_height ? {maxHeight: content_height} : undefined);
+    let contentStyle;
+    if (activeTab.contentHeight) contentStyle = {height: activeTab.contentHeight, maxHeight: activeTab.contentHeight};
+    else if (content_height) contentStyle = {maxHeight: content_height};
 
     return <div className='TabContainer' style={containerStyle}>
         <div className='TabContainer-tabs'>
             {tabs.map((tab, index) =>
-        <button
-            key={index}
+        <button type="button"
+            key={tab.tabName}
             className={selectedTab !== index ? 'TabButton' : 'TabButton TabButtonSelected'}
             onClick={() => setSelectedTab(index)}
         >

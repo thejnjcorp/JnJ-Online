@@ -13,7 +13,12 @@ export function ClassTagEditDialog({ actionIndex, tagIndex, tag, onChange, onClo
     };
 
     return <>
-        <div className="ClassTagEditDialog-scrim" onClick={onClose}/>
+        <button
+            type="button"
+            className="ClassTagEditDialog-scrim"
+            aria-label="Close"
+            onClick={onClose}
+        />
         <div className="ClassTagEditDialog">
             <div className="ClassTagEditDialog-title">Edit Tag</div>
             <div>

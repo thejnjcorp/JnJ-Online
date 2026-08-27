@@ -22,7 +22,6 @@ export function PostListContentCombatMap({ campaignId, activeMap, entities = [],
     const zoneNames = useMemo(() => zones.map((zone) => zone.name), [zones]);
 
     useEffect(() => {
-        // eslint-disable-next-line
         const unsubscribe = onSnapshot(docQuery, (docSnap) => {
             if (docSnap.metadata.hasPendingWrites || loading) {
                 setPosts((docSnap.data()?.combat_tracker as unknown as Post[]) ?? []);
@@ -31,7 +30,7 @@ export function PostListContentCombatMap({ campaignId, activeMap, entities = [],
         });
 
         return () => unsubscribe();
-        // eslint-disable-next-line
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [docQuery]);
 
     // keep combat_tracker in sync with who's actually in the fight, without

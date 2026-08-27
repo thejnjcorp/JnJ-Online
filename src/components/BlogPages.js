@@ -26,9 +26,9 @@ const BlogPages =(props)=> {
 
     const extractHeaders = (markdown) => {
         const headers = [];
-        var subHeaders = [];
+        let subHeaders = [];
         const lines = markdown.split('\n');
-        var tempHeader;
+        let tempHeader;
         lines.forEach((line) => {
             const match = line.match(/^(#{1,6})\s+(.*)/);
             if (match) {
@@ -93,30 +93,41 @@ const BlogPages =(props)=> {
     }, [props.post, file_name])
 
     const navigationButtons = <div className="BlogPage-nav-buttons">
-        <button onClick={prevPage} disabled={currentPage === 1}>
+        <button type="button" onClick={prevPage} disabled={currentPage === 1}>
             Previous Page
         </button>
-        <button onClick={nextPage} disabled={currentPage === post.length - 1}>
+        <button type="button" onClick={nextPage} disabled={currentPage === post.length - 1}>
             Next Page
         </button>
     </div>
     
     return <div className="BlogPage-content">
-        <div className="BlogPage-summary-sidebar" onMouseOver={() => setShowSidebar(true)} onMouseOut={() => setShowSidebar(false)}>
+        <div className="BlogPage-summary-sidebar" onMouseOver={() => setShowSidebar(true)} onMouseOut={() => setShowSidebar(false)} onFocus={() => setShowSidebar(true)} onBlur={() => setShowSidebar(false)}>
             {showSidebar && <div className="BlogPage-summary-sidebar-content">
                 <h2>Pages:</h2>
                 {headers?.map((header, index) => {
                     return <Collapsible
-                        key={`sidebar-header-${index}`}
-                        trigger={<div style={{fontSize: 24}} onClick={() => {
-                            setCurrentPage(index + 1);
-                            window.scrollTo(0, 0);
-                        }}>{header?.text || "Placeholder"}</div>}
+                        key={header?.text || index}
+                        trigger={<div
+                            style={{fontSize: 24}}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => {
+                                setCurrentPage(index + 1);
+                                window.scrollTo(0, 0);
+                            }}
+                            onKeyDown={e => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    setCurrentPage(index + 1);
+                                    window.scrollTo(0, 0);
+                                }
+                            }}
+                        >{header?.text || "Placeholder"}</div>}
                         transitionTime={100}
                     >
                         {header?.subHeaders?.map((subHeader, subIndex) => {
                             return <div key={`sidebar-header-${index}-${subIndex}`} style={{ marginLeft: (subHeader.level - 1) * 20}}><a 
-                            // eslint-disable-next-line
+                            // eslint-disable-next-line no-useless-escape
                             href={`#${subHeader.text.slice(0, -1).replace(/\s+/g, '-').replace(/[\\\/]/g, "").toLowerCase()}`}
                             className="BlogPage-summary-sidebar-subheader-href"
                             >- {subHeader.text}</a></div>

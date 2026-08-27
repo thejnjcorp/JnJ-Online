@@ -10,7 +10,6 @@ export function PostListContentInventoryPocket({ inputStatuses, characterId, cla
     const docQuery = useMemo(() => doc(db, "characters", characterId), [characterId]);
 
     useEffect(() => {
-        // eslint-disable-next-line
         const unsubscribe = onSnapshot(docQuery, (docSnap) => {
             if (docSnap.metadata.hasPendingWrites || loading) {
                 setPosts((docSnap.data()?.inventory_pocket as unknown as Post[]) ?? []);
@@ -19,7 +18,7 @@ export function PostListContentInventoryPocket({ inputStatuses, characterId, cla
         });
 
         return () => unsubscribe();
-        // eslint-disable-next-line
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [docQuery]);
 
     const useCombatTrackerPosts = () => {

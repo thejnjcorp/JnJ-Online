@@ -142,7 +142,7 @@ export function CharacterPageVitalsPanel({characterPageLayoutLive, userId}) {
                 <div className="CharacterPage-vitals-health-bar-fill" style={{width: healthPercent + "%"}}/>
             </div>
             <div className="CharacterPage-vitals-temp-row">
-                Temp HP:
+                Temp HP:{' '}
                 <input
                     value={localScores.temporary_health}
                     className="CharacterPage-vitals-temp-input"

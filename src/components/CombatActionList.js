@@ -25,14 +25,14 @@ const OUTCOME_TABLE_ROWS = [
 // `character_id`/`characters` doc to write to, see DirectorsPage.js's
 // setEnemyActionPoints). Omitted, this defaults to exactly the original
 // character-doc behavior.
-export function CombatActionList({actions, experience_points, baseArmorClass, baseHitModifier, baseDamageModifier, baseDamageDice, baseDamageDiceType, baseHealingDiceType, canUseActions = false, locked = false, characterPage, userId, onUseAction, hasWritePermissions: hasWritePermissionsProp}) {
-    const hasWritePermissions = hasWritePermissionsProp !== undefined
-        ? hasWritePermissionsProp
-        : (userId ? (characterPage.userId === userId || characterPage.canWrite?.includes(userId)) : false);
+function containsReaction(action){
+    return getActionCategory(action) === 'reaction';
+}
 
-    function containsReaction(action){
-        return getActionCategory(action) === 'reaction';
-    }
+export function CombatActionList({actions, experience_points, baseArmorClass, baseHitModifier, baseDamageModifier, baseDamageDice, baseDamageDiceType, baseHealingDiceType, canUseActions = false, locked = false, characterPage, userId, onUseAction, hasWritePermissions: hasWritePermissionsProp}) {
+    let hasWritePermissions = false;
+    if (hasWritePermissionsProp !== undefined) hasWritePermissions = hasWritePermissionsProp;
+    else if (userId) hasWritePermissions = characterPage.userId === userId || characterPage.canWrite?.includes(userId);
 
     function toHitInterperlator(toHit) {
         const characterStats = CharacterStatCalculator(experience_points, baseArmorClass, baseHitModifier, baseDamageModifier, baseDamageDice, baseDamageDiceType, baseHealingDiceType);
@@ -104,7 +104,7 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
                     </tbody>
                 </table>}
 
-                {!locked && canUseActions && hasWritePermissions && <button className='CombatActionList-use-action-button' onClick={() => {
+                {!locked && canUseActions && hasWritePermissions && <button type="button" className='CombatActionList-use-action-button' onClick={() => {
                     try {
                         if (onUseAction) {
                             onUseAction(action);

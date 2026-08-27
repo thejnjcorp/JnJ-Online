@@ -58,7 +58,6 @@ export function Homepage() {
             if (user) loadDashboard(user);
         });
         return () => unsubscribe();
-        // eslint-disable-next-line
     }, []);
 
     async function loadDashboard(user) {
@@ -108,8 +107,8 @@ function SignedOutHome() {
         </section>
 
         <section className="Homepage-features">
-            {FEATURES.map((feature, index) =>
-                <div className="Homepage-feature-card" key={index}>
+            {FEATURES.map((feature) =>
+                <div className="Homepage-feature-card" key={feature.title}>
                     <div className="Homepage-feature-icon">
                         <MaskIcon src={feature.icon} className="Homepage-feature-icon-glyph"/>
                     </div>
@@ -141,8 +140,8 @@ function SignedInHome({userInfo, characterList, campaignList}) {
                 createTo="/campaigns"
                 createLabel="Create one from a campaign"
             >
-                {characterList.slice(0, 4).map((character, index) =>
-                    <Link to={`/characters/${character.id}`} className="Homepage-entity-card" key={index}>
+                {characterList.slice(0, 4).map((character) =>
+                    <Link to={`/characters/${character.id}`} className="Homepage-entity-card" key={character.id}>
                         <div className="Homepage-entity-card-title">{character.character_name}</div>
                         <div className="Homepage-entity-card-meta">
                             {character.class}{character.campaign ? ` · ${character.campaign}` : ""}
@@ -158,8 +157,8 @@ function SignedInHome({userInfo, characterList, campaignList}) {
                 createTo="/campaigns/new"
                 createLabel="Create a Campaign"
             >
-                {campaignList.slice(0, 4).map((campaign, index) =>
-                    <Link to={`/campaigns/${campaign.id}`} className="Homepage-entity-card" key={index}>
+                {campaignList.slice(0, 4).map((campaign) =>
+                    <Link to={`/campaigns/${campaign.id}`} className="Homepage-entity-card" key={campaign.id}>
                         <div className="Homepage-entity-card-title">{campaign.campaign_name}</div>
                         <div className="Homepage-entity-card-meta">Director: {campaign.director_name}</div>
                     </Link>

@@ -8,17 +8,15 @@ import { CharacterDiceConverter } from './CharacterStatCalculator';
 import { CombatActionList } from './CombatActionList';
 
 export const formReducer = (state, event) => {
-    switch(event.type) {
-        case 'SET_FORM_DATA':
+    if (event.type === 'SET_FORM_DATA') {
         return {
             ...state,
             ...event.payload,
         };
-        default: 
-        return {
-            ...state,
-            [event.name]: event.value
-        }
+    }
+    return {
+        ...state,
+        [event.name]: event.value
     }
 }
 
@@ -40,7 +38,7 @@ export function NewCharacterPage() {
             getClassList(user.uid);
             unsubscribe();
         });
-        // eslint-disable-next-line
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [location]);
 
     useEffect(() => {
@@ -186,8 +184,8 @@ export function NewCharacterPage() {
 
     return <div className="NewCharacterPage">
         <div className='NewCharacterPage-input'>
-            Character Name:
-            <input 
+            Character Name:{' '}
+            <input
                 className='NewCharacterPage-input-box' 
                 name="character_name" 
                 type="text"
@@ -243,8 +241,8 @@ export function NewCharacterPage() {
             />
         </div>
         <div className='NewCharacterPage-input'>
-            Race:
-            <select 
+            Race:{' '}
+            <select
                 className='NewCharacterPage-input-box' 
                 name="race_id" 
                 type="text"
@@ -262,17 +260,17 @@ export function NewCharacterPage() {
                 key={"race-feats"}
                 actions={[raceList.filter(race => race.id === formData.race_id)?.at(0).feat]}
                 experience_points={0}
-                baseArmorClass={parseInt(selectedClassInfo.base_armor_class)}
-                baseHitModifier={parseInt(selectedClassInfo.base_hit_modifier)}
-                baseDamageModifier={parseInt(selectedClassInfo.base_damage_modifier)}
-                baseDamageDice={parseInt(selectedClassInfo.base_damage_dice)}
-                baseDamageDiceType={parseInt(selectedClassInfo.base_damage_dice_type)}
-                baseHealingDiceType={parseInt(selectedClassInfo.base_healing_dice_type)}
+                baseArmorClass={Number.parseInt(selectedClassInfo.base_armor_class)}
+                baseHitModifier={Number.parseInt(selectedClassInfo.base_hit_modifier)}
+                baseDamageModifier={Number.parseInt(selectedClassInfo.base_damage_modifier)}
+                baseDamageDice={Number.parseInt(selectedClassInfo.base_damage_dice)}
+                baseDamageDiceType={Number.parseInt(selectedClassInfo.base_damage_dice_type)}
+                baseHealingDiceType={Number.parseInt(selectedClassInfo.base_healing_dice_type)}
             />
         </div>}
         <div className='NewCharacterPage-input'>
-            Class:
-            <select 
+            Class:{' '}
+            <select
                 className='NewCharacterPage-input-box' 
                 name="class_id" 
                 type="text"
@@ -286,8 +284,8 @@ export function NewCharacterPage() {
             </select>
         </div>
         {formData.class_id && <div>
-            <button className='NewCharacterPage-submit-button' 
-            onClick={() => setSelectedClassInfo(classList.filter(individualClass => individualClass.id === formData.class_id).at(0))}>View Class Info</button>
+            <button type="button" className='NewCharacterPage-submit-button' 
+            onClick={() => setSelectedClassInfo(classList.find(individualClass => individualClass.id === formData.class_id))}>View Class Info</button>
             {selectedClassInfo && <><br/>
                 {selectedClassInfo.class_name}:<br/>
                 {selectedClassInfo.class_type}<br/>
@@ -311,12 +309,12 @@ export function NewCharacterPage() {
                         key={"class-actions"}
                         actions={selectedClassInfo.actions}
                         experience_points={0}
-                        baseArmorClass={parseInt(selectedClassInfo.base_armor_class)}
-                        baseHitModifier={parseInt(selectedClassInfo.base_hit_modifier)}
-                        baseDamageModifier={parseInt(selectedClassInfo.base_damage_modifier)}
-                        baseDamageDice={parseInt(selectedClassInfo.base_damage_dice)}
-                        baseDamageDiceType={parseInt(selectedClassInfo.base_damage_dice_type)}
-                        baseHealingDiceType={parseInt(selectedClassInfo.base_healing_dice_type)}
+                        baseArmorClass={Number.parseInt(selectedClassInfo.base_armor_class)}
+                        baseHitModifier={Number.parseInt(selectedClassInfo.base_hit_modifier)}
+                        baseDamageModifier={Number.parseInt(selectedClassInfo.base_damage_modifier)}
+                        baseDamageDice={Number.parseInt(selectedClassInfo.base_damage_dice)}
+                        baseDamageDiceType={Number.parseInt(selectedClassInfo.base_damage_dice_type)}
+                        baseHealingDiceType={Number.parseInt(selectedClassInfo.base_healing_dice_type)}
                     />
                 </div>}
             </>}

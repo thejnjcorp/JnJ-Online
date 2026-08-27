@@ -121,7 +121,12 @@ export function AddStatusDialog({characterPage, userId, onClose, onUpdateStatuse
     }
 
     return <>
-        <div className="CharacterPage-status-scrim" onClick={onClose}/>
+        <button
+            type="button"
+            className="CharacterPage-status-scrim"
+            aria-label="Close"
+            onClick={onClose}
+        />
         <div className="CharacterPage-status-dialog">
             <h3>Add Status</h3>
 
@@ -129,7 +134,7 @@ export function AddStatusDialog({characterPage, userId, onClose, onUpdateStatuse
                 <div className="CharacterPage-vitals-label">Choose a status</div>
                 <div className="CharacterPage-status-dialog-chip-row">
                     {options.map(option =>
-                        <button
+                        <button type="button"
                             key={option.id}
                             className={option.id === selectedId ? `CharacterPage-status-preset-chip CharacterPage-status-chip-${option.polarity} CharacterPage-status-preset-chip-selected` : 'CharacterPage-status-preset-chip'}
                             onClick={() => selectPreset(option)}
@@ -161,9 +166,9 @@ export function AddStatusDialog({characterPage, userId, onClose, onUpdateStatuse
             <div className="CharacterPage-status-dialog-section">
                 <div className="CharacterPage-vitals-label">Stacks / duration</div>
                 <div className="CharacterPage-status-dialog-stepper">
-                    <button onClick={() => setStacks(s => Math.max(0, s - 1))}>&minus;</button>
+                    <button type="button" onClick={() => setStacks(s => Math.max(0, s - 1))}>&minus;</button>
                     <span>{stacks}</span>
-                    <button onClick={() => setStacks(s => Math.min(9, s + 1))}>+</button>
+                    <button type="button" onClick={() => setStacks(s => Math.min(9, s + 1))}>+</button>
                 </div>
             </div>
 
@@ -171,7 +176,7 @@ export function AddStatusDialog({characterPage, userId, onClose, onUpdateStatuse
                 <div className="CharacterPage-vitals-label">Polarity</div>
                 <div className="CharacterPage-status-dialog-chip-row">
                     {POLARITIES.map(pol =>
-                        <button
+                        <button type="button"
                             key={pol.key}
                             className={polarity === pol.key ? `CharacterPage-status-preset-chip CharacterPage-status-chip-${pol.key} CharacterPage-status-preset-chip-selected` : 'CharacterPage-status-preset-chip'}
                             onClick={() => setPolarity(pol.key)}
@@ -185,10 +190,10 @@ export function AddStatusDialog({characterPage, userId, onClose, onUpdateStatuse
             {!isCustom && description && <div className="CharacterPage-status-dialog-preview">{description}</div>}
 
             <div className="CharacterPage-status-dialog-actions">
-                <button className="CharacterPage-status-dialog-button CharacterPage-status-dialog-button-primary" onClick={handleConfirm} disabled={submitting}>
+                <button type="button" className="CharacterPage-status-dialog-button CharacterPage-status-dialog-button-primary" onClick={handleConfirm} disabled={submitting}>
                     {submitting ? "Adding…" : "Add Status"}
                 </button>
-                <button className="CharacterPage-status-dialog-button" onClick={onClose}>Cancel</button>
+                <button type="button" className="CharacterPage-status-dialog-button" onClick={onClose}>Cancel</button>
             </div>
         </div>
     </>

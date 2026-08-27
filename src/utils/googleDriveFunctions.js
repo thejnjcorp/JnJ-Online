@@ -11,7 +11,7 @@ export async function updateJSONFile(json, access_token, filename, fileId) {
     const jsonString = JSON.stringify(json);
     const file = new File([jsonString], filename, {type: 'application/json'});
 
-    return await uploadFileToDrive(file, access_token, true, fileId);
+    return await uploadFileToDrive(file, access_token, fileId, true);
 }
 
 export async function getJSONFile(fileId) {
@@ -49,7 +49,7 @@ export async function watchFile(fileId, characterPageUrl) {
     return response;
 }
 
-function uploadFileToDrive(file, access_token, fileIdExists = false, fileId) {
+function uploadFileToDrive(file, access_token, fileId, fileIdExists = false) {
     return new Promise(function (resolve, reject) {
         // https://stackoverflow.com/questions/46160511/how-to-upload-files-to-google-drive-using-gapi-and-resumable-uploads
         const initResumable = new XMLHttpRequest();
@@ -67,29 +67,27 @@ function uploadFileToDrive(file, access_token, fileIdExists = false, fileId) {
         initResumable.onreadystatechange = function() {
             if(initResumable.readyState === XMLHttpRequest.DONE && initResumable.status === 200) {
                 const locationUrl = initResumable.getResponseHeader('Location');
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                const uploadResumable = new XMLHttpRequest();
-                uploadResumable.open('PUT', locationUrl, true);
-                uploadResumable.setRequestHeader('Content-Type', file.type);
-                uploadResumable.setRequestHeader('X-Upload-Content-Type', file.type);
-                uploadResumable.onreadystatechange = function() {
-                    if(uploadResumable.readyState === XMLHttpRequest.DONE && uploadResumable.status === 200) {
-                        console.log(uploadResumable.response);
-                        resolve(uploadResumable.response);
-                    }
-                };
-                uploadResumable.send(reader.result);
-                };
-                reader.readAsArrayBuffer(file);
+                file.arrayBuffer().then((fileContents) => {
+                    const uploadResumable = new XMLHttpRequest();
+                    uploadResumable.open('PUT', locationUrl, true);
+                    uploadResumable.setRequestHeader('Content-Type', file.type);
+                    uploadResumable.setRequestHeader('X-Upload-Content-Type', file.type);
+                    uploadResumable.onreadystatechange = function() {
+                        if(uploadResumable.readyState === XMLHttpRequest.DONE && uploadResumable.status === 200) {
+                            console.log(uploadResumable.response);
+                            resolve(uploadResumable.response);
+                        }
+                    };
+                    uploadResumable.send(fileContents);
+                });
             }
         };
 
         initResumable.onerror = function() {
-            reject({
-                status: this.status,
-                statusText: initResumable.statusText
-            });
+            const error = new Error('Failed to upload file to Google Drive');
+            error.status = this.status;
+            error.statusText = initResumable.statusText;
+            reject(error);
         }
 
         const payloadJSON = {

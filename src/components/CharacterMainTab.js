@@ -24,6 +24,11 @@ import { useIsMobile } from "../utils/useIsMobile";
 import { getEffectiveCharacterStats, getGrantedActions } from "../utils/statusEffects";
 import { getActionCategory } from "../utils/classActions";
 
+function isPassive(action) {
+    const category = getActionCategory(action);
+    return category === 'passive' || category === 'feat';
+}
+
 export function CharacterMainTab({ characterPage, userId, characterList = [], campaignInfo = {} }) {
     const hasWritePermissions = userId ? (characterPage.userId === userId || characterPage.canWrite?.includes(userId)) : false;
     const isMobile = useIsMobile();
@@ -84,11 +89,6 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
             }
         }, 1000);
     };
-
-    function isPassive(action) {
-        const category = getActionCategory(action);
-        return category === 'passive' || category === 'feat';
-    }
 
     function setActionPoints(actionPoints) {
         try {
@@ -309,7 +309,7 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                 <Link to="/campaigns" className="CharacterMainTab-no-campaign-link">Join or create a campaign</Link>
             </div> : <div className="CharacterMainTab-combat-map">
                 <div className="CharacterMainTab-combat-map-header">
-                    <button className="CharacterMainTab-open-map-button" onClick={() => setMapOverlayOpen(true)}>
+                    <button type="button" className="CharacterMainTab-open-map-button" onClick={() => setMapOverlayOpen(true)}>
                         <MapIcon/> Open Combat Map
                     </button>
                 </div>
@@ -324,9 +324,14 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
     return <>
         <TabContainer tabs={tabs}/>
         {mapOverlayOpen && <>
-            <div className="CharacterMainTab-map-overlay-scrim" onClick={() => setMapOverlayOpen(false)}/>
+            <button
+                type="button"
+                className="CharacterMainTab-map-overlay-scrim"
+                aria-label="Close"
+                onClick={() => setMapOverlayOpen(false)}
+            />
             <div className="CharacterMainTab-map-overlay">
-                <button className="CharacterMainTab-map-overlay-close" onClick={() => setMapOverlayOpen(false)} aria-label="Close">×</button>
+                <button type="button" className="CharacterMainTab-map-overlay-close" onClick={() => setMapOverlayOpen(false)} aria-label="Close">×</button>
                 <PostListContentCombatMap
                     campaignId={characterPage.campaign}
                     activeMap={activeMap}

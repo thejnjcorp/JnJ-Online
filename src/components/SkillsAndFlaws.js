@@ -10,7 +10,7 @@ import trashCanIcon from '../icons/trash_can.svg';
 import { getActionCategory } from '../utils/classActions';
 
 export function SkillsAndFlaws({characterPage, userId}) {
-    const [addSkillFLawVisible, setAddSkillFlawVisible] = useState(false);
+    const [addSkillFlawVisible, setAddSkillFlawVisible] = useState(false);
     const [removeSkillFlawVisible, setRemoveSkillFlawVisible] = useState(false);
     const [confirmRemoveSkillFlaw, setConfirmRemoveSkillFlaw] = useState(false);
     const [submitting, setSubmitting] = useState(false);
@@ -28,7 +28,7 @@ export function SkillsAndFlaws({characterPage, userId}) {
     }
 
     const handleBooleanChange = event => {
-        const value = event.target.value === 'true' ? true : false;
+        const value = event.target.value === 'true';
 
         setFormData({
             name: event.target.name,
@@ -92,7 +92,7 @@ export function SkillsAndFlaws({characterPage, userId}) {
                         <img key={index} src={circleIcon} alt='circle' className='SkillsAndFlaws-circle' width={18}/>
                     ))}
                 </span>
-                {removeSkillFlawVisible && <button className='SkillsAndFlaws-trash-button'
+                {removeSkillFlawVisible && <button type="button" className='SkillsAndFlaws-trash-button'
                     onClick={(e) => {
                         e.stopPropagation();
                         setConfirmRemoveSkillFlaw(skill_or_flaw);
@@ -153,8 +153,8 @@ export function SkillsAndFlaws({characterPage, userId}) {
         </div>
 
         {hasWritePermissions && <div className='SkillsAndFlaws-toolbar'>
-            <button className='SkillsAndFlaws-toolbar-button' onClick={() => setAddSkillFlawVisible(true)}>+ Add</button>
-            <button
+            <button type="button" className='SkillsAndFlaws-toolbar-button' onClick={() => setAddSkillFlawVisible(true)}>+ Add</button>
+            <button type="button"
                 className={removeSkillFlawVisible ? 'SkillsAndFlaws-toolbar-button SkillsAndFlaws-toolbar-button-active' : 'SkillsAndFlaws-toolbar-button'}
                 onClick={() => setRemoveSkillFlawVisible(!removeSkillFlawVisible)}
             >
@@ -177,7 +177,7 @@ export function SkillsAndFlaws({characterPage, userId}) {
             ? feats.map((feat, index) => renderFeat(feat, index))
             : <div className="SkillsAndFlaws-empty-group">None recorded yet</div>}
 
-        {addSkillFLawVisible && <>
+        {addSkillFlawVisible && <>
             <div className="SkillsAndFlaws-scrim"/>
             <div className="SkillsAndFlaws-dialog">
                 <h3>Add Skill or Flaw</h3>
@@ -221,10 +221,10 @@ export function SkillsAndFlaws({characterPage, userId}) {
                     />
                 </div>
                 <div className="SkillsAndFlaws-dialog-actions">
-                    <button className="SkillsAndFlaws-dialog-button SkillsAndFlaws-dialog-button-primary" onClick={handleAdd} disabled={submitting}>
+                    <button type="button" className="SkillsAndFlaws-dialog-button SkillsAndFlaws-dialog-button-primary" onClick={handleAdd} disabled={submitting}>
                         {submitting ? "Adding…" : "Add"}
                     </button>
-                    <button className="SkillsAndFlaws-dialog-button" onClick={closeAddForm}>Cancel</button>
+                    <button type="button" className="SkillsAndFlaws-dialog-button" onClick={closeAddForm}>Cancel</button>
                 </div>
             </div>
         </>}
@@ -235,10 +235,10 @@ export function SkillsAndFlaws({characterPage, userId}) {
                 <h3>Remove "{confirmRemoveSkillFlaw.name}"?</h3>
                 <p className="SkillsAndFlaws-dialog-help">This can't be undone.</p>
                 <div className="SkillsAndFlaws-dialog-actions">
-                    <button className="SkillsAndFlaws-dialog-button SkillsAndFlaws-dialog-button-danger" onClick={handleConfirmRemove} disabled={submitting}>
+                    <button type="button" className="SkillsAndFlaws-dialog-button SkillsAndFlaws-dialog-button-danger" onClick={handleConfirmRemove} disabled={submitting}>
                         {submitting ? "Removing…" : "Remove"}
                     </button>
-                    <button className="SkillsAndFlaws-dialog-button" onClick={() => setConfirmRemoveSkillFlaw(false)}>Cancel</button>
+                    <button type="button" className="SkillsAndFlaws-dialog-button" onClick={() => setConfirmRemoveSkillFlaw(false)}>Cancel</button>
                 </div>
             </div>
         </>}

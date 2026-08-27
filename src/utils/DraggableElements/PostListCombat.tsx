@@ -10,7 +10,6 @@ export function PostListContentCombat({ inputStatuses, campaignId, className, Po
     const docQuery = useMemo(() => doc(db, "campaigns", campaignId), [campaignId]);
 
     useEffect(() => {
-        // eslint-disable-next-line
         const unsubscribe = onSnapshot(docQuery, (docSnap) => {
             if (docSnap.metadata.hasPendingWrites || loading) {
                 setPosts((docSnap.data()?.combat_tracker as unknown as Post[]) ?? []);
@@ -19,7 +18,7 @@ export function PostListContentCombat({ inputStatuses, campaignId, className, Po
         });
 
         return () => unsubscribe();
-        // eslint-disable-next-line
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [docQuery]);
 
     const useCombatTrackerPosts = () => {

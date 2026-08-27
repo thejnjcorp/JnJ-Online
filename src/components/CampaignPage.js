@@ -72,7 +72,7 @@ export function CampaignPage() {
             unsubscribe();
             document.removeEventListener('mousedown', clickOutsidePopupScreen);
         }
-        // eslint-disable-next-line
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     },[location]);
 
     const canWrite = Boolean(user?.uid && campaignInfo?.canWrite?.includes(user.uid));
@@ -197,8 +197,8 @@ export function CampaignPage() {
         </div>}
 
         <div className="CampaignPage-character-grid">
-            {characterList.map((character, index) =>
-                <button className='CharacterCard' key={index} onClick={() => navigate("/characters/" + character.id)}>
+            {characterList.map((character) =>
+                <button type="button" className='CharacterCard' key={character.id} onClick={() => navigate("/characters/" + character.id)}>
                     <div className="CharacterCard-name">{character.character_name}</div>
                     <div className="CharacterCard-small-text">
                         {character.class}<br/>
@@ -206,19 +206,19 @@ export function CampaignPage() {
                     </div>
                 </button>
             )}
-            <button className='CharacterCard CharacterCard-create' onClick={() => navigate("/campaigns/" + campaignId + "/newCharacter")}>
+            <button type="button" className='CharacterCard CharacterCard-create' onClick={() => navigate("/campaigns/" + campaignId + "/newCharacter")}>
                 + New Character
             </button>
         </div>
 
         <div className="CampaignPage-actions">
-            <button className='CampaignPage-secondary-button' onClick={() => navigate("/directors/" + campaignId)}>
+            <button type="button" className='CampaignPage-secondary-button' onClick={() => navigate("/directors/" + campaignId)}>
                 Director Mode
             </button>
-            <button className='CampaignPage-secondary-button' onClick={() => navigate("/campaigns/" + campaignId + "/classes")}>
+            <button type="button" className='CampaignPage-secondary-button' onClick={() => navigate("/campaigns/" + campaignId + "/classes")}>
                 Manage Classes
             </button>
-            <button className='CampaignPage-secondary-button' onClick={() => navigate("/campaigns/" + campaignId + "/statuses")}>
+            <button type="button" className='CampaignPage-secondary-button' onClick={() => navigate("/campaigns/" + campaignId + "/statuses")}>
                 Manage Statuses
             </button>
         </div>
@@ -226,17 +226,17 @@ export function CampaignPage() {
         <section className="CampaignPage-players">
             <div className="CampaignPage-players-header">
                 <h2>Players</h2>
-                {canWrite && <button className="CampaignPage-add-player-button" onClick={() => setVisibleAddPlayerScreen(true)}>
+                {canWrite && <button type="button" className="CampaignPage-add-player-button" onClick={() => setVisibleAddPlayerScreen(true)}>
                     + Add a Player
                 </button>}
             </div>
             {campaignInfo?.players?.length > 0 ? <div className="CampaignPage-players-list">
                 {campaignInfo.players.map((rawPlayer, index) => {
                     const player = resolvePlayerDisplay(rawPlayer);
-                    return <div className="CampaignPage-player-row" key={index}>
+                    return <div className="CampaignPage-player-row" key={player.uid || index}>
                         <span className="CampaignPage-player-name">{player.name || "Unknown Player"}</span>
                         <span className="CampaignPage-player-id">{player.uid || "—"}</span>
-                        {canWrite && player.kickable && <button
+                        {canWrite && player.kickable && <button type="button"
                             className="CampaignPage-kick-button"
                             onClick={() => { setKickTarget(player); setVisibleKickPlayerScreen(true); }}
                         >
@@ -261,7 +261,7 @@ export function CampaignPage() {
                     <div className="CampaignPage-danger-title">Archive this campaign</div>
                     <p className="CampaignPage-danger-help">Hides it from the main campaigns list. Fully reversible.</p>
                 </div>
-                <button className="CampaignPage-danger-button" onClick={handleArchive}>Archive</button>
+                <button type="button" className="CampaignPage-danger-button" onClick={handleArchive}>Archive</button>
             </div>}
 
             {campaignInfo.archived && <div className="CampaignPage-danger-row">
@@ -269,7 +269,7 @@ export function CampaignPage() {
                     <div className="CampaignPage-danger-title">Unarchive</div>
                     <p className="CampaignPage-danger-help">Restores it to the main campaigns list{campaignInfo.scheduledDeletionAt ? " and cancels the scheduled deletion." : "."}</p>
                 </div>
-                <button className="CampaignPage-danger-button" onClick={handleUnarchive}>Unarchive</button>
+                <button type="button" className="CampaignPage-danger-button" onClick={handleUnarchive}>Unarchive</button>
             </div>}
 
             {campaignInfo.archived && !campaignInfo.scheduledDeletionAt && <div className="CampaignPage-danger-row">
@@ -277,7 +277,7 @@ export function CampaignPage() {
                     <div className="CampaignPage-danger-title">Schedule deletion</div>
                     <p className="CampaignPage-danger-help">Permanently deletes this campaign in 30 days. Its characters are kept - just unlinked, not deleted. You can cancel any time before then.</p>
                 </div>
-                <button className="CampaignPage-danger-button CampaignPage-danger-button-severe" onClick={() => setVisibleScheduleDeletionScreen(true)}>
+                <button type="button" className="CampaignPage-danger-button CampaignPage-danger-button-severe" onClick={() => setVisibleScheduleDeletionScreen(true)}>
                     Schedule Deletion
                 </button>
             </div>}
@@ -287,7 +287,7 @@ export function CampaignPage() {
                     <div className="CampaignPage-danger-title">Cancel deletion</div>
                     <p className="CampaignPage-danger-help">Keeps the campaign archived, but stops the countdown.</p>
                 </div>
-                <button className="CampaignPage-danger-button" onClick={handleCancelDeletion}>Cancel Deletion</button>
+                <button type="button" className="CampaignPage-danger-button" onClick={handleCancelDeletion}>Cancel Deletion</button>
             </div>}
         </section>}
 
@@ -300,10 +300,10 @@ export function CampaignPage() {
                     deleted - they'll just be unlinked from this campaign. You can cancel any time before then.
                 </p>
                 <div className="CampaignPage-dialog-actions">
-                    <button className="CampaignPage-dialog-button CampaignPage-dialog-button-danger" onClick={handleScheduleDeletion}>
+                    <button type="button" className="CampaignPage-dialog-button CampaignPage-dialog-button-danger" onClick={handleScheduleDeletion}>
                         Schedule Deletion
                     </button>
-                    <button className="CampaignPage-dialog-button" onClick={() => setVisibleScheduleDeletionScreen(false)}>
+                    <button type="button" className="CampaignPage-dialog-button" onClick={() => setVisibleScheduleDeletionScreen(false)}>
                         Cancel
                     </button>
                 </div>
@@ -316,10 +316,10 @@ export function CampaignPage() {
                 <h3>Kick {kickTarget?.name}?</h3>
                 <p className="CampaignPage-dialog-help">They'll lose access to this campaign and its characters.</p>
                 <div className="CampaignPage-dialog-actions">
-                    <button className="CampaignPage-dialog-button CampaignPage-dialog-button-danger" onClick={() => handleKickPlayer(kickTarget.name, kickTarget.uid)}>
+                    <button type="button" className="CampaignPage-dialog-button CampaignPage-dialog-button-danger" onClick={() => handleKickPlayer(kickTarget.name, kickTarget.uid)}>
                         Kick Player
                     </button>
-                    <button className="CampaignPage-dialog-button" onClick={() => setVisibleKickPlayerScreen(false)}>
+                    <button type="button" className="CampaignPage-dialog-button" onClick={() => setVisibleKickPlayerScreen(false)}>
                         Cancel
                     </button>
                 </div>
@@ -342,14 +342,14 @@ export function CampaignPage() {
                     autoFocus
                 />
                 <div className="CampaignPage-dialog-actions">
-                    <button
+                    <button type="button"
                         className="CampaignPage-dialog-button CampaignPage-dialog-button-primary"
                         onClick={() => handleNewPlayer()}
                         disabled={addingPlayer || playerId.trim() === ""}
                     >
                         {addingPlayer ? "Adding…" : "Add Player"}
                     </button>
-                    <button className="CampaignPage-dialog-button" onClick={() => { setVisibleAddPlayerScreen(false); setPlayerId(""); }}>
+                    <button type="button" className="CampaignPage-dialog-button" onClick={() => { setVisibleAddPlayerScreen(false); setPlayerId(""); }}>
                         Cancel
                     </button>
                 </div>

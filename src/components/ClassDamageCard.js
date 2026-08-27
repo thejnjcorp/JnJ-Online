@@ -4,7 +4,8 @@ const DIE_TYPES = [1, 2, 3, 4, 5, 6]; // CharacterDiceConverter codes for d4..d2
 
 function diceFormat(count, dieTypeCode, modifier, type) {
     const die = CharacterDiceConverter(dieTypeCode);
-    const mod = modifier ? (modifier > 0 ? ` + ${modifier}` : ` - ${Math.abs(modifier)}`) : '';
+    let mod = '';
+    if (modifier) mod = modifier > 0 ? ` + ${modifier}` : ` - ${Math.abs(modifier)}`;
     return `${count || 0}${die === 'N/A' ? '' : die}${mod}${type ? ' · ' + type : ''}`;
 }
 

@@ -30,12 +30,11 @@ function App() {
     fetch('/JnJ-Online/allFileNames.txt')
       .then((r) => r.text())
       .then(text  => {
-        var array = text.split(/\r?\n/);
+        const array = text.split(/\r?\n/);
         array.pop();
         setMarkdowns(array);
       })
       .catch(err => console.log(err));
-      // eslint-disable-next-line
     const unsubscribe = auth.onAuthStateChanged((currentUser) => setUserInfo(currentUser));
     return () => unsubscribe();
   },[]);
@@ -49,8 +48,8 @@ function App() {
     return () => document.documentElement.classList.remove(siteTheme);
   }, []);
   
-  const routeMarkdownFiles = markdowns.map((file, index) =>
-    <Route key={index} path={"blog/" + file} element={ <BlogPages post={file} /> } />
+  const routeMarkdownFiles = markdowns.map((file) =>
+    <Route key={file} path={"blog/" + file} element={ <BlogPages post={file} /> } />
   );
 
   return (

@@ -641,11 +641,11 @@
     margin-top: 5px;
     border-radius: 5px;
     border-style: none;
-    background: rgba(0, 151, 25, 0.6);
+    background: rgb(0, 110, 20);
     color: white;
 
     &:hover:not(:disabled) {
-        background: rgba(0, 151, 25, 0.9);
+        background: rgb(0, 90, 16);
     }
 
     &:disabled {

@@ -126,7 +126,7 @@ function DirectorsEntityCard({
     const hasWeakRes = kind === 'enemy' && ((weaknesses?.length || 0) + (resistances?.length || 0) > 0);
 
     return <div className={`DirectorsPage-entity-card DirectorsPage-entity-card-${kind}`}>
-        <button className="DirectorsPage-entity-header" onClick={() => setOpen(o => !o)}>
+        <button type="button" className="DirectorsPage-entity-header" onClick={() => setOpen(o => !o)}>
             <ChevronDownIcon className={open ? "DirectorsPage-chevron DirectorsPage-chevron-open" : "DirectorsPage-chevron"}/>
             <span className="DirectorsPage-entity-name">{name}</span>
             {subtitle && <span className="DirectorsPage-entity-subtitle">{subtitle}</span>}
@@ -146,12 +146,12 @@ function DirectorsEntityCard({
                 </div>
                 <div className={`DirectorsPage-ap-circles DirectorsPage-ap-circles-${kind}`}>
                     {[1, 2, 3, 4].map(n =>
-                        <button key={n} disabled={!onSetAp} onClick={() => onSetAp && onSetAp(n)}>
+                        <button type="button" key={n} disabled={!onSetAp} onClick={() => onSetAp?.(n)}>
                             <img src={ap >= n ? circleFilledIcon : circleIcon} alt="" width={15}/>
                         </button>
                     )}
                 </div>
-                {canAdvanceTurn && <button className={`DirectorsPage-next-turn-button DirectorsPage-next-turn-button-${kind}`} onClick={onNextTurn}>Next Turn</button>}
+                {canAdvanceTurn && <button type="button" className={`DirectorsPage-next-turn-button DirectorsPage-next-turn-button-${kind}`} onClick={onNextTurn}>Next Turn</button>}
             </div>
 
             {hasWeakRes && <div className="DirectorsPage-weakres-row">
@@ -162,7 +162,7 @@ function DirectorsEntityCard({
             <Statuses characterPage={statusEntity} userId={userId} onUpdateStatuses={onUpdateStatuses} hasWritePermissions={hasStatusWrite}/>
 
             <div>
-                <button className="DirectorsPage-actions-toggle" onClick={() => setActionsOpen(a => !a)}>
+                <button type="button" className="DirectorsPage-actions-toggle" onClick={() => setActionsOpen(a => !a)}>
                     <ChevronDownIcon className={actionsOpen ? "DirectorsPage-chevron-sm DirectorsPage-chevron-open" : "DirectorsPage-chevron-sm"}/>
                     Actions
                 </button>
@@ -224,7 +224,6 @@ export function DirectorsPage() {
     const charactersQuery = useMemo(() => query(collection(db, "characters"), where("campaign", "==", campaignId)), [campaignId]);
 
     useEffect(() => {
-        // eslint-disable-next-line
         const unsubscribe = onSnapshot(campaignDoc, { includeMetadataChanges: true }, (docSnap) => {
             if (docSnap.metadata.hasPendingWrites || !isLoaded) {
                 setCampaignInfo(prevData => ({
@@ -239,7 +238,6 @@ export function DirectorsPage() {
     }, [campaignDoc]);
 
     useEffect(() => {
-        // eslint-disable-next-line
         const unsubscribe = onSnapshot(charactersQuery, { includeMetadataChanges: true }, (querySnapshot) => {
             if (querySnapshot.metadata.hasPendingWrites || !isLoaded) {
                 setCharacterList(querySnapshot.docs.map(doc => ({character_id: doc.id, ...doc.data()})));
@@ -339,10 +337,10 @@ export function DirectorsPage() {
 
     return <div className="DirectorsPage">
         <div className={'DirectorsPage-sidebar ' + pageTheme}>
-            {characterList.map((character, index) => {
+            {characterList.map((character) => {
                 const actualCharacter = { ...characterPageLayout, ...character }
                 return <Collapsible
-                    key={index}
+                    key={character.character_id}
                     trigger={<>
                         <PersonIcon className="DirectorsPage-sidebar-char-icon"/>
                         <span className="DirectorsPage-sidebar-char-name">{character.character_name}</span>
@@ -370,7 +368,7 @@ export function DirectorsPage() {
                         <div className="DirectorsPage-panel-title">
                             <PersonIcon className="DirectorsPage-panel-title-icon"/>
                             {!playersCollapsed && <span className="DirectorsPage-panel-title-name">Player Characters</span>}
-                            <button
+                            <button type="button"
                                 className="DirectorsPage-panel-collapse-button"
                                 onClick={() => setPlayersCollapsed(c => !c)}
                                 aria-label={playersCollapsed ? "Expand Player Characters" : "Collapse Player Characters"}
@@ -378,7 +376,7 @@ export function DirectorsPage() {
                                 <ChevronDownIcon className={playersCollapsed ? "DirectorsPage-chevron" : "DirectorsPage-chevron DirectorsPage-chevron-open"}/>
                             </button>
                         </div>
-                        {!playersCollapsed && characterList.map((character, index) => {
+                        {!playersCollapsed && characterList.map((character) => {
                             const actualCharacter = { ...characterPageLayout, ...character }
                             // NOTE: gated the same way the pre-existing AP star buttons are
                             // - firestore.rules only grants a character's owner/canWrite
@@ -425,7 +423,7 @@ export function DirectorsPage() {
                                 actualCharacter.base_healing_dice_type
                             ).ArmorClass;
                             return <DirectorsEntityCard
-                                key={index}
+                                key={character.character_id}
                                 kind="player"
                                 name={character.character_name}
                                 subtitle={actualCharacter.class_name || actualCharacter.class}
@@ -458,16 +456,16 @@ export function DirectorsPage() {
                         </div>
                         <div className="DirectorsPage-tracker-mode-row-wrap">
                             <div className="DirectorsPage-tracker-mode-row">
-                                <button
+                                <button type="button"
                                     className={trackerMode === 'line' ? "DirectorsPage-mode-btn DirectorsPage-mode-btn-active" : "DirectorsPage-mode-btn"}
                                     onClick={() => setTrackerMode('line')}
                                 >Line View</button>
-                                <button
+                                <button type="button"
                                     className={trackerMode === 'map' ? "DirectorsPage-mode-btn DirectorsPage-mode-btn-active" : "DirectorsPage-mode-btn"}
                                     onClick={() => setTrackerMode('map')}
                                 >Map View</button>
                             </div>
-                            {trackerMode === 'map' && <button
+                            {trackerMode === 'map' && <button type="button"
                                 className="DirectorsPage-tracker-expand-button"
                                 onClick={() => setMapOverlayOpen(true)}
                             >
@@ -508,7 +506,7 @@ export function DirectorsPage() {
                         <div className="DirectorsPage-panel-title">
                             <SwordsIcon className="DirectorsPage-panel-title-icon"/>
                             {!enemiesCollapsed && <span className="DirectorsPage-panel-title-name">Enemies</span>}
-                            <button
+                            <button type="button"
                                 className="DirectorsPage-panel-collapse-button"
                                 onClick={() => setEnemiesCollapsed(c => !c)}
                                 aria-label={enemiesCollapsed ? "Expand Enemies" : "Collapse Enemies"}
@@ -516,7 +514,7 @@ export function DirectorsPage() {
                                 <ChevronDownIcon className={enemiesCollapsed ? "DirectorsPage-chevron" : "DirectorsPage-chevron DirectorsPage-chevron-open"}/>
                             </button>
                         </div>
-                        {!enemiesCollapsed && campaignInfo.enemy_list.map((enemy, index) => {
+                        {!enemiesCollapsed && campaignInfo.enemy_list.map((enemy) => {
                             const actualEnemy = { ...npcLayout, ...enemy, campaign: campaignId }
                             function setActionPoints(actionPoints) {
                                 updateEnemy(actualEnemy.id, { action_points: actionPoints }).catch(e => alert(e));
@@ -533,7 +531,7 @@ export function DirectorsPage() {
                             const effectiveEnemy = getEffectiveCharacterStats(actualEnemy);
                             const grantedActions = getGrantedActions(actualEnemy);
                             return <DirectorsEntityCard
-                                key={index}
+                                key={enemy.id}
                                 kind="enemy"
                                 name={actualEnemy.enemy_name}
                                 subtitle={"Lvl " + actualEnemy.level}
@@ -573,7 +571,7 @@ export function DirectorsPage() {
                             type="file"
                             onChange={onMapFileChange}
                         />
-                        <button onClick={() => uploadNewMapToCampaign(mapFile)} disabled={mapFile === undefined}>Upload</button>
+                        <button type="button" onClick={() => uploadNewMapToCampaign(mapFile)} disabled={mapFile === undefined}>Upload</button>
                         {mapFile && <div>
                             Preview:<br/>
                             <img src={URL.createObjectURL(mapFile)} alt="Map Preview" className='DirectorsPage-map-preview'/>
@@ -583,14 +581,14 @@ export function DirectorsPage() {
                                 const isActive = campaignInfo.active_map === map.map_id;
                                 return <div key={map.map_id} className='DirectorsPage-map-item'>
                                     <MapRenderer map={map} userId={userId}/>
-                                    <button
+                                    <button type="button"
                                         className='DirectorsPage-set-active-map-button'
                                         disabled={isActive}
                                         onClick={() => updateDoc(campaignDoc, { active_map: map.map_id })}
                                     >
                                         {isActive ? "Active Map" : "Set as Active"}
                                     </button>
-                                    <button
+                                    <button type="button"
                                         className='DirectorsPage-delete-map-button'
                                         onClick={() => deleteMap(map)}
                                     >
@@ -604,9 +602,14 @@ export function DirectorsPage() {
             ]}/>
         </div>
         {mapOverlayOpen && <>
-            <div className="CharacterMainTab-map-overlay-scrim" onClick={() => setMapOverlayOpen(false)}/>
+            <button
+                type="button"
+                className="CharacterMainTab-map-overlay-scrim"
+                aria-label="Close"
+                onClick={() => setMapOverlayOpen(false)}
+            />
             <div className="CharacterMainTab-map-overlay">
-                <button className="CharacterMainTab-map-overlay-close" onClick={() => setMapOverlayOpen(false)} aria-label="Close">×</button>
+                <button type="button" className="CharacterMainTab-map-overlay-close" onClick={() => setMapOverlayOpen(false)} aria-label="Close">×</button>
                 <PostListContentCombatMap
                     key={activeMap?.map_id || "no-active-map"}
                     campaignId={campaignId}

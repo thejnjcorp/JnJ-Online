@@ -13,7 +13,7 @@ import { ReactComponent as PaletteIcon } from '../icons/palette.svg';
 // state - CharacterPage.js's onSnapshot listener already picks up the change
 // live, the same way every other editable field on this page persists.
 export function CharacterPageNavigationColorPickerButton({characterPageLayoutLive}) {
-    const [showColorpicker, setShowColorPicker] = useState(false);
+    const [showColorPicker, setShowColorPicker] = useState(false);
     const [selectedColor, setSelectedColor] = useState(characterPageLayoutLive.navigation_color);
 
     function handleSetColor() {
@@ -24,15 +24,20 @@ export function CharacterPageNavigationColorPickerButton({characterPageLayoutLiv
     }
 
     return <>
-        <button className="CharacterPage-masthead-color-button" data-tooltip-id="navigation-color-picker" onClick={() => setShowColorPicker(!showColorpicker)}>
+        <button type="button" className="CharacterPage-masthead-color-button" data-tooltip-id="navigation-color-picker" onClick={() => setShowColorPicker(!showColorPicker)}>
             <PaletteIcon/>
         </button>
-        {showColorpicker && <>
-            <div className="CharacterPage-colorpicker-scrim" onClick={() => setShowColorPicker(false)}/>
+        {showColorPicker && <>
+            <button
+                type="button"
+                className="CharacterPage-colorpicker-scrim"
+                aria-label="Close"
+                onClick={() => setShowColorPicker(false)}
+            />
             <div className="CharacterPage-colorpicker-panel">
                 <HexColorPicker className="CharacterPage-colorpicker-actual" color={selectedColor} onChange={setSelectedColor}/>
-                <button className="CharacterPage-colorpicker-select-button" onClick={handleSetColor}>Set Color</button>
-                <button className="CharacterPage-colorpicker-cancel-button" onClick={() => setShowColorPicker(false)}>Cancel</button>
+                <button type="button" className="CharacterPage-colorpicker-select-button" onClick={handleSetColor}>Set Color</button>
+                <button type="button" className="CharacterPage-colorpicker-cancel-button" onClick={() => setShowColorPicker(false)}>Cancel</button>
             </div>
         </>}
 

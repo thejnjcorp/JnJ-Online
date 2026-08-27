@@ -20,6 +20,13 @@ function effectLabel(effect) {
     return `${sign}${effect.delta} ${label}`;
 }
 
+function visibilityLabel(status) {
+    if (status.isDefault) return 'Admin Default';
+    if (status.public) return 'Pool (subscribe to use)';
+    if (status.campaignId) return 'Campaign-locked';
+    return 'Creator-locked';
+}
+
 const POLARITY_FILTERS = ['all', 'buff', 'debuff', 'neutral'];
 const OWNERSHIP_FILTERS = [
     { key: 'all', label: 'All' },
@@ -76,7 +83,7 @@ export function StatusListPage() {
         <div className="StatusListPage-filter-groups">
             <div className="StatusListPage-filters">
                 {OWNERSHIP_FILTERS.map(o =>
-                    <button
+                    <button type="button"
                         key={o.key}
                         className={filterOwnership === o.key ? 'StatusListPage-filter-button StatusListPage-filter-button-active' : 'StatusListPage-filter-button'}
                         onClick={() => setFilterOwnership(o.key)}
@@ -87,7 +94,7 @@ export function StatusListPage() {
             </div>
             <div className="StatusListPage-filters">
                 {POLARITY_FILTERS.map(polarity =>
-                    <button
+                    <button type="button"
                         key={polarity}
                         className={filterPolarity === polarity ? 'StatusListPage-filter-button StatusListPage-filter-button-active' : 'StatusListPage-filter-button'}
                         onClick={() => setFilterPolarity(polarity)}
@@ -100,7 +107,7 @@ export function StatusListPage() {
 
         <div className="StatusListPage-grid">
             {visibleStatuses.map(status =>
-                <button
+                <button type="button"
                     key={status.id}
                     className={`StatusListPage-card StatusListPage-card-${status.polarity || 'neutral'}`}
                     onClick={() => navigate('/statuses/' + status.id)}
@@ -113,7 +120,7 @@ export function StatusListPage() {
                         {status.grantedAction && <span className="StatusListPage-card-effect-badge StatusListPage-card-effect-badge-action">Grants: {status.grantedAction.actionName}</span>}
                     </div>}
                     <div className="StatusListPage-card-visibility">
-                        {status.isDefault ? 'Admin Default' : status.public ? 'Pool (subscribe to use)' : status.campaignId ? 'Campaign-locked' : 'Creator-locked'}
+                        {visibilityLabel(status)}
                     </div>
                     {status.classes?.length > 0 && <div className="StatusListPage-card-classes">{status.classes.join(', ')}</div>}
                     <div className="StatusListPage-card-description">{status.description}</div>
@@ -122,7 +129,7 @@ export function StatusListPage() {
             {visibleStatuses.length === 0 && <div className="StatusListPage-empty">No statuses match these filters.</div>}
         </div>
 
-        <button className="StatusListPage-create-button" onClick={() => navigate('/statuses')}>
+        <button type="button" className="StatusListPage-create-button" onClick={() => navigate('/statuses')}>
             + Create New Status
         </button>
         </div>

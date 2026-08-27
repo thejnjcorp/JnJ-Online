@@ -6,6 +6,28 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import defaultProfileIcon from '../icons/default_profile.svg';
 import '../styles/AccountPage.scss';
 
+async function getCampaigns(user) {
+    try {
+        const campaigns = query(collection(db, "campaigns"), or(where("canRead", "array-contains", user.uid), where("canWrite", "array-contains", user.uid)));
+        const querySnapshot = await getDocs(campaigns);
+        return querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+    } catch (e) {
+        console.log("Failed to get campaign info: " + e)
+        return [];
+    }
+}
+
+async function getCharacters(user) {
+    try {
+        const characters = query(collection(db, "characters"), where("playerId", "==", user.uid));
+        const querySnapshot = await getDocs(characters);
+        return querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+    } catch (e) {
+        console.log("Failed to get character info: " + e)
+        return [];
+    }
+}
+
 export function AccountPage({setUserInfo}) {
     // Tracked independently from the App-level userInfo prop, which starts as
     // null both before auth resolves and after a confirmed sign-out - trusting
@@ -27,7 +49,7 @@ export function AccountPage({setUserInfo}) {
             if (authUser) getAccountInfo(authUser);
         });
         return () => unsubscribe();
-        // eslint-disable-next-line
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     },[]);
 
     async function getAccountInfo(user) {
@@ -43,28 +65,6 @@ export function AccountPage({setUserInfo}) {
             setNameDraft(docAccountInfo.name || "");
         } catch(e) {
             console.log("Failed to get account info: " + e)
-        }
-    }
-
-    async function getCampaigns(user) {
-        try {
-            const campaigns = query(collection(db, "campaigns"), or(where("canRead", "array-contains", user.uid), where("canWrite", "array-contains", user.uid)));
-            const querySnapshot = await getDocs(campaigns);
-            return querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
-        } catch (e) {
-            console.log("Failed to get campaign info: " + e)
-            return [];
-        }
-    }
-
-    async function getCharacters(user) {
-        try {
-            const characters = query(collection(db, "characters"), where("playerId", "==", user.uid));
-            const querySnapshot = await getDocs(characters);
-            return querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
-        } catch (e) {
-            console.log("Failed to get character info: " + e)
-            return [];
         }
     }
 
@@ -118,7 +118,7 @@ export function AccountPage({setUserInfo}) {
             <div className="AccountPage-profile-details">
                 {!editingName && <div className="AccountPage-name-row">
                     <h1 className="AccountPage-name">{accountInfo?.name || user?.displayName}</h1>
-                    <button
+                    <button type="button"
                         className="AccountPage-edit-name-button"
                         onClick={() => { setNameDraft(accountInfo?.name || ""); setEditingName(true); }}
                     >
@@ -133,23 +133,23 @@ export function AccountPage({setUserInfo}) {
                         onChange={(e) => setNameDraft(e.target.value)}
                         autoFocus
                     />
-                    <button
+                    <button type="button"
                         className="AccountPage-save-name-button"
                         onClick={handleSaveName}
                         disabled={savingName || nameDraft.trim() === ""}
                     >
                         Save
                     </button>
-                    <button className="AccountPage-cancel-name-button" onClick={() => setEditingName(false)}>
+                    <button type="button" className="AccountPage-cancel-name-button" onClick={() => setEditingName(false)}>
                         Cancel
                     </button>
                 </div>}
                 <div className="AccountPage-email">{user?.email}</div>
-                <button className="AccountPage-copy-id-button" onClick={handleCopyPlayerId}>
+                <button type="button" className="AccountPage-copy-id-button" onClick={handleCopyPlayerId}>
                     {copiedId ? "Player ID copied" : `Player ID: ${user?.uid}`}
                 </button>
             </div>
-            <button className="AccountPage-signout-button" onClick={handleSignOut}>Sign Out</button>
+            <button type="button" className="AccountPage-signout-button" onClick={handleSignOut}>Sign Out</button>
         </section>
 
         <AccountSection
@@ -158,8 +158,8 @@ export function AccountPage({setUserInfo}) {
             createTo="/campaigns"
             createLabel="Start one from a campaign"
         >
-            {accountInfo?.characters?.map((character, index) =>
-                <Link to={`/characters/${character.id}`} className="AccountPage-entity-card" key={index}>
+            {accountInfo?.characters?.map((character) =>
+                <Link to={`/characters/${character.id}`} className="AccountPage-entity-card" key={character.id}>
                     <div className="AccountPage-entity-card-title">{character.character_name}</div>
                     <div className="AccountPage-entity-card-meta">
                         {character.class}{character.campaign ? ` · ${character.campaign}` : ""}
@@ -174,8 +174,8 @@ export function AccountPage({setUserInfo}) {
             createTo="/campaigns/new"
             createLabel="Create a Campaign"
         >
-            {accountInfo?.campaigns?.map((campaign, index) =>
-                <Link to={`/campaigns/${campaign.id}`} className="AccountPage-entity-card" key={index}>
+            {accountInfo?.campaigns?.map((campaign) =>
+                <Link to={`/campaigns/${campaign.id}`} className="AccountPage-entity-card" key={campaign.id}>
                     <div className="AccountPage-entity-card-title">{campaign.campaign_name}</div>
                     <div className="AccountPage-entity-card-meta">Director: {campaign.director_name}</div>
                 </Link>

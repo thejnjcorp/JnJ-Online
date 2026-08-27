@@ -25,7 +25,9 @@ const VISIBILITY_FILTERS = [
 ];
 
 function visibilityOf(c) {
-    return c.isDefault ? 'default' : c.public ? 'pool' : 'private';
+    if (c.isDefault) return 'default';
+    if (c.public) return 'pool';
+    return 'private';
 }
 
 export function ClassListPage() {
@@ -111,7 +113,7 @@ export function ClassListPage() {
             <div className="ClassListPage-filter-groups">
                 <div className="ClassListPage-filters">
                     {TYPE_FILTERS.map(t =>
-                        <button
+                        <button type="button"
                             key={t}
                             className={filterType === t ? 'ClassListPage-filter-button ClassListPage-filter-button-active' : 'ClassListPage-filter-button'}
                             onClick={() => setFilterType(t)}
@@ -122,7 +124,7 @@ export function ClassListPage() {
                 </div>
                 <div className="ClassListPage-filters">
                     {VISIBILITY_FILTERS.map(v =>
-                        <button
+                        <button type="button"
                             key={v.key}
                             className={filterVisibility === v.key ? 'ClassListPage-filter-button ClassListPage-filter-button-active' : 'ClassListPage-filter-button'}
                             onClick={() => setFilterVisibility(v.key)}
@@ -137,19 +139,22 @@ export function ClassListPage() {
                 {visibleClasses.map(c => {
                     const visibility = visibilityOf(c);
                     const canSubscribe = visibility === 'default' || visibility === 'pool';
+                    let visLabel = 'Private';
+                    if (visibility === 'default') visLabel = 'Default';
+                    else if (visibility === 'pool') visLabel = 'Pool';
                     return <div key={c.id} className={`ClassListPage-card ${TYPE_ACCENT_CLASS[c.class_type] || ''}`}>
                         <div className="ClassListPage-card-header">
                             <span className="ClassListPage-card-name">{c.class_name}</span>
                             <span className={`ClassListPage-card-vis-badge ClassListPage-card-vis-badge-${visibility}`}>
-                                {visibility === 'default' ? 'Default' : visibility === 'pool' ? 'Pool' : 'Private'}
+                                {visLabel}
                             </span>
                         </div>
                         <div className="ClassListPage-card-meta">by {c.author} &middot; {c.class_type}</div>
                         {c.class_weapons && <div className="ClassListPage-card-weapons">Weapons: {c.class_weapons}</div>}
                         <div className="ClassListPage-card-description"><Markdown>{c.description || ""}</Markdown></div>
                         <div className="ClassListPage-card-actions">
-                            <button className="ClassListPage-card-view-button" onClick={() => navigate('/classes/' + c.id)}>View Class</button>
-                            {canSubscribe && <button
+                            <button type="button" className="ClassListPage-card-view-button" onClick={() => navigate('/classes/' + c.id)}>View Class</button>
+                            {canSubscribe && <button type="button"
                                 className="ClassListPage-card-add-button"
                                 onClick={() => setOpenAddId(openAddId === c.id ? null : c.id)}
                             >
@@ -161,7 +166,7 @@ export function ClassListPage() {
                             {myWritableCampaigns.length === 0 && <div className="ClassListPage-hint">You don't direct (or have write access to) any campaigns yet.</div>}
                             {myWritableCampaigns.map(camp => {
                                 const subscribed = camp.subscribedClassIds?.includes(c.id);
-                                return <button
+                                return <button type="button"
                                     key={camp.id}
                                     className={subscribed ? 'ClassListPage-add-popover-chip ClassListPage-add-popover-chip-selected' : 'ClassListPage-add-popover-chip'}
                                     onClick={() => toggleSubscription(c, camp)}
@@ -170,14 +175,14 @@ export function ClassListPage() {
                                     {subscribed && <span className="ClassListPage-add-popover-check">&#10003;</span>}
                                 </button>;
                             })}
-                            <button className="ClassListPage-add-popover-done" onClick={() => setOpenAddId(null)}>Done</button>
+                            <button type="button" className="ClassListPage-add-popover-done" onClick={() => setOpenAddId(null)}>Done</button>
                         </div>}
                     </div>;
                 })}
                 {visibleClasses.length === 0 && <div className="ClassListPage-empty">No classes match these filters.</div>}
             </div>
 
-            <button className="ClassListPage-create-button" onClick={() => navigate('/classes')}>
+            <button type="button" className="ClassListPage-create-button" onClick={() => navigate('/classes')}>
                 + Create New Class
             </button>
 

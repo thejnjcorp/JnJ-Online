@@ -16,8 +16,9 @@ code {
   font-family: var(--jnj-font-mono);
 }
 
-/* The shell's own type ramp. Scoped to the shell so it can't reflow the
-   character sheet or director view, which do their own sizing. */
+/* The shell's own type ramp (scoped so it can't reflow the character sheet
+   or director view, which do their own sizing), plus a visible focus ring
+   for keyboard users everywhere in the shell. */
 .Navigation,
 .Homepage {
   h1, h2, h3, h4 {
@@ -25,11 +26,7 @@ code {
     letter-spacing: var(--jnj-tracking-display);
     margin: 0;
   }
-}
 
-/* Keyboard users get a visible ring everywhere in the shell. */
-.Navigation,
-.Homepage {
   :focus-visible {
     outline: 2px solid var(--jnj-color-accent);
     outline-offset: 2px;

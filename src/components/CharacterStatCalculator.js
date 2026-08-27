@@ -127,18 +127,6 @@ export function CharacterStatCalculator(experience, baseArmorClass, baseHitModif
                 AttuneRelics: baseAttuneRelics + 1
             };
         case 7:
-            return {
-                ArmorClass: baseArmorClass + 1,
-                HitModifier: baseHitModifier + 2,
-                DamageModifier: baseDamageModifier + 4,
-                DamageDice: baseDamageDice + 1,
-                DamageDiceType: baseDamageDiceType,
-                HealingModifier: baseHealingModifier + 4,
-                HealingDice: baseHealingDice + 2,
-                HealingDiceType: baseHealingDiceType + 1,
-                ClassDifficultyClass: baseClassDifficultyClass + 2,
-                AttuneRelics: baseAttuneRelics + 1
-            };
         case 8:
             return {
                 ArmorClass: baseArmorClass + 1,
@@ -192,18 +180,6 @@ export function CharacterStatCalculator(experience, baseArmorClass, baseHitModif
                 AttuneRelics: baseAttuneRelics + 2
             };
         case 12:
-            return {
-                ArmorClass: baseArmorClass + 2,
-                HitModifier: baseHitModifier + 3,
-                DamageModifier: baseDamageModifier + 7,
-                DamageDice: baseDamageDice + 2,
-                DamageDiceType: baseDamageDiceType + 1,
-                HealingModifier: baseHealingModifier + 7,
-                HealingDice: baseHealingDice + 3,
-                HealingDiceType: baseHealingDiceType + 2,
-                ClassDifficultyClass: baseClassDifficultyClass + 3,
-                AttuneRelics: baseAttuneRelics + 2
-            };
         case 13:
             return {
                 ArmorClass: baseArmorClass + 2,
@@ -231,18 +207,6 @@ export function CharacterStatCalculator(experience, baseArmorClass, baseHitModif
                 AttuneRelics: baseAttuneRelics + 2
             };
         case 15:
-            return {
-                ArmorClass: baseArmorClass + 3,
-                HitModifier: baseHitModifier + 4,
-                DamageModifier: baseDamageModifier + 8,
-                DamageDice: baseDamageDice + 3,
-                DamageDiceType: baseDamageDiceType + 2,
-                HealingModifier: baseHealingModifier + 8,
-                HealingDice: baseHealingDice + 3,
-                HealingDiceType: baseHealingDiceType + 3,
-                ClassDifficultyClass: baseClassDifficultyClass + 4,
-                AttuneRelics: baseAttuneRelics + 2
-            };
         default:
             return {
                 ArmorClass: baseArmorClass + 3,

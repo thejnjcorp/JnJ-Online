@@ -5,5 +5,5 @@
 import '@testing-library/jest-dom';
 
 // jsdom's test environment doesn't expose TextEncoder/TextDecoder, which react-router needs.
-import { TextEncoder, TextDecoder } from 'util';
+import { TextEncoder, TextDecoder } from 'node:util';
 Object.assign(global, { TextEncoder, TextDecoder });

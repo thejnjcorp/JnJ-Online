@@ -4,7 +4,7 @@ export async function uploadImageToImgur(file) {
         auth = "Client-ID " + clientId;
     const formData = new FormData();
     formData.append('image', file);
-    var numTries = 0;
+    let numTries = 0;
 
     while (true) {
         numTries++;

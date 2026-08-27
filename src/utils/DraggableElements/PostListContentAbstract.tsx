@@ -1,7 +1,6 @@
 import { DragDropContext, OnDragEndResponder, OnDragStartResponder } from "@hello-pangea/dnd";
 import { useEffect, useMemo, useState } from "react";
 import type { Post } from "./Post.ts";
-import type { Status } from "./statuses.ts";
 import { PostsByStatus, getPostsByStatus } from "./statuses.ts";
 import { PostColumn, PostCardComponentType } from "./PostColumn.tsx";
 
@@ -47,7 +46,7 @@ export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, 
     }
   }, [inputStatuses]);
 
-  const statuses: Status[] = useMemo(() => {
+  const statuses: string[] = useMemo(() => {
     return (
       foundStatuses.concat(
         flatInputStatuses.filter((status) => !foundStatuses.includes(status))
@@ -229,7 +228,7 @@ export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, 
             style={renderedSize ? { width: renderedSize.width, height: renderedSize.height, display: "block" } : { width: "100%", height: "auto", display: "block" }}
             onLoad={handleMapImageLoad}
           />
-          {referenceHeight && zoneLayout.map((zone) => (
+          {Boolean(referenceHeight) && zoneLayout.map((zone) => (
             <PostColumn
               status={zone.name}
               posts={postsByStatus[zone.name] ?? []}
@@ -254,7 +253,7 @@ export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, 
   return (
     <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
       <div style={{ display: "flex", width: "100%", height: "100%",
-        flexDirection: grid ? (columnFormat ? "column" : "row") : (columnFormat ? "row" : "column") }}>
+        flexDirection: grid === columnFormat ? "column" : "row" }}>
         {!grid && statuses.map((status) => (
           <PostColumn
             status={status}
@@ -266,8 +265,8 @@ export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, 
           />
         ))}
 
-        {grid && gridStatuses.map((statusRow, index) => (
-          <div key={index} style={{ display: "flex", flexDirection: columnFormat ? "row" : "column", width: "100%" }}>
+        {grid && gridStatuses.map((statusRow) => (
+          <div key={statusRow.join('-')} style={{ display: "flex", flexDirection: columnFormat ? "row" : "column", width: "100%" }}>
             {statusRow.map((status) => (
               <PostColumn
                 status={status}
@@ -364,7 +363,7 @@ const updateUnorderedPosts = (
 
         const updatedPosts = unorderedPosts.map(post => {
             const updatedPost = postsToUpdate.find(p => p.id === post.id);
-            return updatedPost ? updatedPost : post;
+            return updatedPost ?? post;
         });
 
         return updatedPosts;

@@ -40,7 +40,7 @@ export function CharacterPortrait({characterPage, userId}) {
                 <div className="CharacterPage-portrait-placeholder-text">No portrait yet</div>
             </>}
         {hasWritePermissions && <>
-            <button
+            <button type="button"
                 className="CharacterPage-portrait-edit-button"
                 onClick={() => fileInputRef.current.click()}
                 disabled={uploading}

@@ -13,7 +13,6 @@ export function PostListContentInventory({ inputStatuses, characterId, className
     const docQuery = useMemo(() => doc(db, "characters", characterId), [characterId]);
 
     useEffect(() => {
-        // eslint-disable-next-line
         const unsubscribe = onSnapshot(docQuery, (docSnap) => {
             if (docSnap.metadata.hasPendingWrites || loading) {
                 setPosts((docSnap.data()?.inventory as unknown as Post[]) ?? []);
@@ -22,7 +21,7 @@ export function PostListContentInventory({ inputStatuses, characterId, className
         });
 
         return () => unsubscribe();
-        // eslint-disable-next-line
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [docQuery]);
 
     const useCombatTrackerPosts = () => {
@@ -70,6 +69,9 @@ export function PostListContentInventory({ inputStatuses, characterId, className
             }
         }, [bothTradeConfirmed, characterData, tradePartnerData, tradeAcked, bothTradeAcked]);
 
+        let tradePartnerWindowColor = "";
+        if (hasTradePartner) tradePartnerWindowColor = tradePartnerData?.trading_metadata?.trade_confirmed ? "#07840bff" : "#880a01ff";
+
         return (
             <div onMouseLeave={() => {
                 setIsMenuVisible(false); 
@@ -100,17 +102,17 @@ export function PostListContentInventory({ inputStatuses, characterId, className
                     {post.content}
                 </div>}
                 {isMenuVisible && <div className={extraClassNames.at(0) || "PostCardMenu-default"}>
-                    <button className={extraClassNames.at(1) || "PostCardMenuButton-default"} onClick={() => {
+                    <button type="button" className={extraClassNames.at(1) || "PostCardMenuButton-default"} onClick={() => {
 
                     }}>
                         Drop
                     </button>
-                    <button className={extraClassNames.at(1) || "PostCardMenuButton-default"} onClick={() => {
+                    <button type="button" className={extraClassNames.at(1) || "PostCardMenuButton-default"} onClick={() => {
                         setIsSendMenuVisible(true);
                     }}>
                         Send To
                     </button>
-                    <button className={extraClassNames.at(1) || "PostCardMenuButton-default"} onClick={() => {
+                    <button type="button" className={extraClassNames.at(1) || "PostCardMenuButton-default"} onClick={() => {
                         setIsTradingMenuVisible(true);
                     }}>
                         Trade
@@ -119,14 +121,14 @@ export function PostListContentInventory({ inputStatuses, characterId, className
                 {isSendMenuVisible && <div className={extraClassNames.at(2) || "PostCardSendMenu-default"}>
                     {campaignCharacterList// .filter((character) => character.character_id !== characterId)
                         .map((character, index) => 
-                    <button key={"inventory-send-button-" + index} className={extraClassNames.at(1) || "PostCardMenuButton-default"}>
+                    <button type="button" key={"inventory-send-button-" + index} className={extraClassNames.at(1) || "PostCardMenuButton-default"}>
                         {character.character_name}
                     </button>)}
                 </div>}
                 {(isTradingMenuVisible || hasTradePartner) && 
                 <div className={extraClassNames.at(3) || "PostCardTradeMenu-default"}>
                     <div className="PostCardTradeMenuHeader">
-                        Trade with:
+                        Trade with:{' '}
                         <select className="PostCardTradeMenuSelect" onChange={(e) => {
                             const selectedCharacterId = e.target.value;
                             updateDoc(docQuery, {
@@ -146,7 +148,7 @@ export function PostListContentInventory({ inputStatuses, characterId, className
                                 </option>
                             )}
                         </select>
-                        <button className="PostCardTradeMenuCloseButton" onClick={() => {
+                        <button type="button" className="PostCardTradeMenuCloseButton" onClick={() => {
                             setIsTradingMenuVisible(false);
                             updateDoc(docQuery, {
                                 trading_metadata: {
@@ -165,7 +167,7 @@ export function PostListContentInventory({ inputStatuses, characterId, className
                             </div>
                             <div className="PostCardTradeActions">
                                 <img src={doubleArrowIcon} className="PostCardTradeDoubleArrow" alt="double_arrow.svg"/>
-                                <button className="PostCardTradeConfirmButton" onClick={() => {
+                                <button type="button" className="PostCardTradeConfirmButton" onClick={() => {
                                     if (hasTradePartner) {
                                         updateDoc(docQuery, {
                                             trading_metadata: {
@@ -177,7 +179,7 @@ export function PostListContentInventory({ inputStatuses, characterId, className
                                 }}>
                                     Confirm Trade
                                 </button>
-                                <button className="PostCardTradeCancelButton" onClick={() => {
+                                <button type="button" className="PostCardTradeCancelButton" onClick={() => {
                                     if (hasTradePartner) {
                                         updateDoc(docQuery, {
                                             trading_metadata: {
@@ -190,8 +192,7 @@ export function PostListContentInventory({ inputStatuses, characterId, className
                                     Cancel Trade
                                 </button>
                             </div>
-                            <div className="PostCardTradeWindow" style={{ backgroundColor: !hasTradePartner ? "" :
-                                tradePartnerData?.trading_metadata?.trade_confirmed ? "#07840bff" : "#880a01ff" }}>
+                            <div className="PostCardTradeWindow" style={{ backgroundColor: tradePartnerWindowColor }}>
 
                             </div>
                     </div>

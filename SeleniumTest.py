@@ -3,6 +3,8 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 
+LINK_XPATH = "//a[@href]"
+
 options = Options()
 options.add_experimental_option("detach", False)
 options.add_experimental_option('excludeSwitches', ['enable-logging'])
@@ -25,17 +27,17 @@ driver.get("https://otakuo402.github.io/#/home")
 driver.maximize_window()
 
 # get links on the home page and find the Blogs link and press it
-links = driver.find_elements("xpath", "//a[@href]")
+links = driver.find_elements("xpath", LINK_XPATH)
 for link in links:
     if "Blog" in link.get_attribute("innerHTML"):
         link.click()
         break;
 
 # get links on the Blog page and test all of them
-linkElements = driver.find_elements("xpath", "//a[@href]")
+linkElements = driver.find_elements("xpath", LINK_XPATH)
 links = [linkElement.get_attribute('href') for linkElement in linkElements]
 for i in range(len(links)):
-    links = driver.find_elements("xpath", "//a[@href]")
+    links = driver.find_elements("xpath", LINK_XPATH)
     link = links[i]
     print("testing " + link.get_attribute("innerHTML") + " button")
     # Test Home button

@@ -14,7 +14,7 @@ export function MapRenderer({ map, userId }) {
     const canEdit = map?.canWrite?.includes(userId);
     const [selectedZone, setSelectedZone] = useState(null);
 
-    const [showColorpicker, setShowColorPicker] = useState(false);
+    const [showColorPicker, setShowColorPicker] = useState(false);
     const [selectedColor, setSelectedColor] = useState(map?.borderColor || "red");
     const [zoneTextColor, setZoneTextColor] = useState(map?.zoneTextColor || "white");
     const [showTextColorPicker, setShowTextColorPicker] = useState(false);
@@ -26,7 +26,7 @@ export function MapRenderer({ map, userId }) {
     // only reflects the current count, not what names are actually taken
     const zoneCounterRef = useRef((map?.zones || []).reduce((max, zone) => {
         const match = /^Zone (\d+)$/.exec(zone.name);
-        return match ? Math.max(max, parseInt(match[1], 10)) : max;
+        return match ? Math.max(max, Number.parseInt(match[1], 10)) : max;
     }, 0));
 
     function changeColor() {
@@ -86,8 +86,8 @@ export function MapRenderer({ map, userId }) {
 
     return <div className="MapRenderer">
         <div className="MapRenderer-header">
-            {canEdit && <button className="MapRenderer-button" onClick={() => setIsEditing(!isEditing)}>{isEditing ? "Stop Editing" : "Edit"}</button>}
-            {isEditing && <button className="MapRenderer-button" onClick={() => {
+            {canEdit && <button type="button" className="MapRenderer-button" onClick={() => setIsEditing(!isEditing)}>{isEditing ? "Stop Editing" : "Edit"}</button>}
+            {isEditing && <button type="button" className="MapRenderer-button" onClick={() => {
                 zoneCounterRef.current += 1;
                 setZones(prev => [
                     ...prev,
@@ -100,47 +100,47 @@ export function MapRenderer({ map, userId }) {
                     }
                 ]);
             }}>Add Zone</button>}
-            {isEditing && <button className="MapRenderer-button" onClick={() => {
+            {isEditing && <button type="button" className="MapRenderer-button" onClick={() => {
                 if (selectedZone !== null) {
                     setZones(prev => prev.filter((_, index) => index !== selectedZone));
                     setSelectedZone(null);
                 }
             }}>Remove Zone</button>}
-            {isEditing && zones.length > 0 && <button className="MapRenderer-button" onClick={() => {
+            {isEditing && zones.length > 0 && <button type="button" className="MapRenderer-button" onClick={() => {
                 if (window.confirm("Clear all zones on this map? This isn't saved until you hit Save Map.")) {
                     setZones([]);
                     setSelectedZone(null);
                 }
             }}>Clear Zones</button>}
-            {isEditing && <button className="MapRenderer-color-picker-button" onClick={() => {
-                setShowColorPicker(!showColorpicker);
+            {isEditing && <button type="button" className="MapRenderer-color-picker-button" onClick={() => {
+                setShowColorPicker(!showColorPicker);
                 setShowTextColorPicker(false);
             }}>
                 <img src={colorpickerIcon} className="MapRenderer-colorpicker" alt="colorpicker.svg"/>
             </button>}
-            {isEditing && showColorpicker && <div className="MapRenderer-colorpicker-panel">
+            {isEditing && showColorPicker && <div className="MapRenderer-colorpicker-panel">
                 <div>
-                    <button className="MapRenderer-colorpicker-quick-select-button"
+                    <button type="button" className="MapRenderer-colorpicker-quick-select-button"
                     style={{background: map?.borderColor || "red"}}
                     onClick={() => setSelectedColor(map?.borderColor || "red")}/>
                 </div>
                 <HexColorPicker className="MapRenderer-colorpicker-actual" color={selectedColor} onChange={setSelectedColor}/>
-                <button className="MapRenderer-colorpicker-select-button" onClick={() => changeColor()}>set color</button>
+                <button type="button" className="MapRenderer-colorpicker-select-button" onClick={() => changeColor()}>set color</button>
             </div>}
-            {isEditing && <button className="MapRenderer-button" onClick={() => {
+            {isEditing && <button type="button" className="MapRenderer-button" onClick={() => {
                 setShowTextColorPicker(!showTextColorPicker);
                 setShowColorPicker(false);
             }}>Text Color</button>}
             {isEditing && showTextColorPicker && <div className="MapRenderer-colorpicker-panel">
                 <div>
-                    <button className="MapRenderer-colorpicker-quick-select-button"
+                    <button type="button" className="MapRenderer-colorpicker-quick-select-button"
                     style={{background: map?.zoneTextColor || "white"}}
                     onClick={() => setSelectedTextColor(map?.zoneTextColor || "white")}/>
                 </div>
                 <HexColorPicker className="MapRenderer-colorpicker-actual" color={selectedTextColor} onChange={setSelectedTextColor}/>
-                <button className="MapRenderer-colorpicker-select-button" onClick={() => changeTextColor()}>set color</button>
+                <button type="button" className="MapRenderer-colorpicker-select-button" onClick={() => changeTextColor()}>set color</button>
             </div>}
-            {isEditing && <button className="MapRenderer-button" onClick={() => {
+            {isEditing && <button type="button" className="MapRenderer-button" onClick={() => {
                 updateDoc(doc(db, "maps", map.map_id), {
                     borderColor: mapBorderColor,
                     zoneTextColor: zoneTextColor,

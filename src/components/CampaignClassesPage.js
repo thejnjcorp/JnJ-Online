@@ -85,7 +85,7 @@ export function CampaignClassesPage() {
     return <div className="CampaignClassesPage">
         <div className="CampaignClassesPage-inner">
             <div className="CampaignClassesPage-breadcrumb">
-                <button onClick={() => navigate('/campaigns/' + campaignId)}>&larr; {campaignInfo.campaign_name}</button>
+                <button type="button" onClick={() => navigate('/campaigns/' + campaignId)}>&larr; {campaignInfo.campaign_name}</button>
             </div>
             <div className="CampaignClassesPage-header">
                 <h1 className="CampaignClassesPage-title">Manage Classes</h1>
@@ -128,7 +128,7 @@ export function CampaignClassesPage() {
                                 <span className="CampaignClassesPage-card-type">{c.class_type}</span>
                             </div>
                             <div className="CampaignClassesPage-card-description">{c.description}</div>
-                            {hasWritePermissions && <button
+                            {hasWritePermissions && <button type="button"
                                 className="CampaignClassesPage-remove-button"
                                 onClick={() => toggleSubscription(c, false)}
                             >
@@ -144,7 +144,7 @@ export function CampaignClassesPage() {
                     <span className="CampaignClassesPage-section-title">Browse Pool Classes</span>
                     <div className="CampaignClassesPage-filters">
                         {TYPE_FILTERS.map(t =>
-                            <button
+                            <button type="button"
                                 key={t}
                                 className={typeFilter === t ? 'CampaignClassesPage-filter-button CampaignClassesPage-filter-button-active' : 'CampaignClassesPage-filter-button'}
                                 onClick={() => setTypeFilter(t)}
@@ -163,7 +163,7 @@ export function CampaignClassesPage() {
                             </div>
                             <div className="CampaignClassesPage-card-type">{c.class_type}</div>
                             <div className="CampaignClassesPage-card-description">{c.description}</div>
-                            {hasWritePermissions && <button
+                            {hasWritePermissions && <button type="button"
                                 className="CampaignClassesPage-add-button"
                                 onClick={() => toggleSubscription(c, true)}
                             >

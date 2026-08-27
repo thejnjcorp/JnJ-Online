@@ -11,9 +11,9 @@ import { AddStatusDialog } from './AddStatusDialog';
 export function Statuses({characterPage, userId, onUpdateStatuses, hasWritePermissions: hasWritePermissionsProp}) {
     const [expandedIds, setExpandedIds] = useState([]);
     const [addDialogOpen, setAddDialogOpen] = useState(false);
-    const hasWritePermissions = hasWritePermissionsProp !== undefined
-        ? hasWritePermissionsProp
-        : (userId ? (characterPage.userId === userId || characterPage.canWrite?.includes(userId)) : false);
+    let hasWritePermissions = false;
+    if (hasWritePermissionsProp !== undefined) hasWritePermissions = hasWritePermissionsProp;
+    else if (userId) hasWritePermissions = characterPage.userId === userId || characterPage.canWrite?.includes(userId);
     const statuses = characterPage.statuses || [];
 
     function toggleExpanded(statusId) {
@@ -59,7 +59,7 @@ export function Statuses({characterPage, userId, onUpdateStatuses, hasWritePermi
         <div className="CharacterPage-status-list">
             {statuses.map(status =>
                 <div className="CharacterPage-status-wrap" key={status.id}>
-                    <button
+                    <button type="button"
                         className={`CharacterPage-status-chip CharacterPage-status-chip-${status.polarity || 'neutral'}`}
                         onClick={() => toggleExpanded(status.id)}
                     >
@@ -73,17 +73,17 @@ export function Statuses({characterPage, userId, onUpdateStatuses, hasWritePermi
                             <span className="CharacterPage-vitals-label">Stacks</span>
                             {hasWritePermissions
                                 ? <div className="CharacterPage-status-detail-stepper">
-                                    <button onClick={() => handleStacksChange(status, -1)} disabled={status.stacks <= 0}>&minus;</button>
+                                    <button type="button" onClick={() => handleStacksChange(status, -1)} disabled={status.stacks <= 0}>&minus;</button>
                                     <span>{status.stacks}</span>
-                                    <button onClick={() => handleStacksChange(status, 1)} disabled={status.stacks >= 9}>+</button>
+                                    <button type="button" onClick={() => handleStacksChange(status, 1)} disabled={status.stacks >= 9}>+</button>
                                 </div>
                                 : <span className="CharacterPage-status-detail-stacks-value">{status.stacks}</span>}
                         </div>
-                        {hasWritePermissions && <button className="CharacterPage-status-detail-remove" onClick={() => handleRemove(status)}>Remove</button>}
+                        {hasWritePermissions && <button type="button" className="CharacterPage-status-detail-remove" onClick={() => handleRemove(status)}>Remove</button>}
                     </div>}
                 </div>
             )}
-            {hasWritePermissions && <button className="CharacterPage-status-add-button" onClick={() => setAddDialogOpen(true)}>
+            {hasWritePermissions && <button type="button" className="CharacterPage-status-add-button" onClick={() => setAddDialogOpen(true)}>
                 + Add Status
             </button>}
         </div>

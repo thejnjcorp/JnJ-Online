@@ -1,6 +1,5 @@
-import { useReducer } from 'react';
+import { useReducer, useState, useEffect, useRef } from 'react';
 import { auth, db } from '../utils/firebase';
-import { useState, useEffect, useRef } from 'react';
 import { collection, addDoc, getDoc, doc } from 'firebase/firestore';
 import '../styles/NewCampaignPage.scss';
 import { useNavigate } from 'react-router-dom';
