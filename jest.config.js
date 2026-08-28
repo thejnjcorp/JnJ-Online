@@ -17,6 +17,7 @@ module.exports = {
     roots: ['<rootDir>/tst', '<rootDir>/src'],
     testMatch: ['<rootDir>/tst/**/*.test.{js,jsx,ts,tsx}'],
     testEnvironment: 'jsdom',
+    setupFilesAfterEnv: ['<rootDir>/tst/setupTests.js'],
     transform: {
         '^.+\\.(js|jsx|mjs|cjs|ts|tsx)$': require.resolve('react-scripts/config/jest/babelTransform.js'),
         '^.+\\.css$': require.resolve('react-scripts/config/jest/cssTransform.js'),

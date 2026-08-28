@@ -7,8 +7,7 @@ import {
     watchFile,
 } from '../../src/utils/googleDriveFunctions';
 
-// This test environment's Blob/File implementation (shadowed by the
-// whatwg-fetch polyfill react-app-polyfill/jsdom installs) doesn't implement
+// This jsdom version's Blob/File implementation doesn't implement
 // Blob#arrayBuffer(), unlike every real browser - polyfilled here so
 // uploadFileToDrive's real upload step can actually run under test. This is
 // a test-environment gap, not something to work around in the app itself.

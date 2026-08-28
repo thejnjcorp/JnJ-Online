@@ -51,6 +51,7 @@ export function CharacterPortrait({characterPage, userId}) {
             <input
                 ref={fileInputRef}
                 type="file"
+                aria-label="Portrait image file"
                 accept="image/*"
                 onChange={handleFileChange}
                 style={{display: 'none'}}
