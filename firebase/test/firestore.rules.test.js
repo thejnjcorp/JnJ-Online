@@ -44,6 +44,37 @@ async function main() {
                 director_name: 'Alice',
                 director_uid: 'alice',
                 canWrite: ['alice'],
+                admins: ['alice'],
+            })
+        );
+    });
+
+    console.log('\nCreation is restricted to the person creating (admins field):');
+
+    await check('a signed-in user cannot create a campaign without listing themselves as an admin', async () => {
+        await testEnv.clearFirestore();
+        const alice = testEnv.authenticatedContext('alice');
+        await assertFails(
+            addDoc(collection(alice.firestore(), 'campaigns'), {
+                campaign_name: 'No Admins Field',
+                director_name: 'Alice',
+                director_uid: 'alice',
+                canWrite: ['alice'],
+                // admins deliberately omitted
+            })
+        );
+    });
+
+    await check('a signed-in user cannot name someone else as director_uid on a campaign they create', async () => {
+        await testEnv.clearFirestore();
+        const alice = testEnv.authenticatedContext('alice');
+        await assertFails(
+            addDoc(collection(alice.firestore(), 'campaigns'), {
+                campaign_name: 'Impersonation Attempt',
+                director_name: 'Bob',
+                director_uid: 'bob', // not alice, the actual creator
+                canWrite: ['alice'],
+                admins: ['alice'],
             })
         );
     });
@@ -58,6 +89,7 @@ async function main() {
             director_name: 'Alice',
             director_uid: 'alice',
             canWrite: ['alice'],
+            admins: ['alice'],
         });
         // Mirrors CampaignPage.js's getCharacterList: a `where` query, not a
         // single-document get - this is the operation under suspicion, since
@@ -109,9 +141,9 @@ async function main() {
         await assertSucceeds(getDoc(doc(alice.firestore(), 'campaigns', 'camp1')));
     });
 
-    console.log('\nArchive / schedule deletion (CampaignPage.js Danger Zone):');
+    console.log('\nArchive / schedule deletion (CampaignPage.js Danger Zone, admin-only):');
 
-    await check('the director can archive their own campaign', async () => {
+    await check('the director, who is also a doc admin, can archive their own campaign', async () => {
         await testEnv.clearFirestore();
         await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
             await setDoc(doc(adminCtx.firestore(), 'campaigns', 'camp1'), {
@@ -119,6 +151,7 @@ async function main() {
                 director_uid: 'bob',
                 canRead: ['bob'],
                 canWrite: ['bob'],
+                admins: ['bob'],
             });
         });
         const bob = testEnv.authenticatedContext('bob');
@@ -135,6 +168,7 @@ async function main() {
                 director_uid: 'bob',
                 canRead: ['bob'],
                 canWrite: ['bob'],
+                admins: ['bob'],
             });
         });
         const mallory = testEnv.authenticatedContext('mallory');
@@ -143,7 +177,7 @@ async function main() {
         );
     });
 
-    await check('the director can schedule and then cancel a deletion', async () => {
+    await check('a director who is not a doc admin (a legacy campaign predating the admins field) cannot archive', async () => {
         await testEnv.clearFirestore();
         await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
             await setDoc(doc(adminCtx.firestore(), 'campaigns', 'camp1'), {
@@ -151,6 +185,44 @@ async function main() {
                 director_uid: 'bob',
                 canRead: ['bob'],
                 canWrite: ['bob'],
+                // admins deliberately omitted
+            });
+        });
+        const bob = testEnv.authenticatedContext('bob');
+        await assertFails(
+            updateDoc(doc(bob.firestore(), 'campaigns', 'camp1'), { archived: true })
+        );
+    });
+
+    await check('a plain canWrite collaborator (not the director, not a doc admin) cannot archive, but can still edit other fields', async () => {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'campaigns', 'camp1'), {
+                campaign_name: 'Bob\'s Campaign',
+                director_uid: 'bob',
+                canRead: ['bob', 'alice'],
+                canWrite: ['bob', 'alice'],
+                admins: ['bob'],
+            });
+        });
+        const alice = testEnv.authenticatedContext('alice');
+        await assertFails(
+            updateDoc(doc(alice.firestore(), 'campaigns', 'camp1'), { archived: true })
+        );
+        await assertSucceeds(
+            updateDoc(doc(alice.firestore(), 'campaigns', 'camp1'), { campaign_name: 'Renamed by Alice' })
+        );
+    });
+
+    await check('the director, who is also a doc admin, can schedule and then cancel a deletion', async () => {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'campaigns', 'camp1'), {
+                campaign_name: 'Bob\'s Campaign',
+                director_uid: 'bob',
+                canRead: ['bob'],
+                canWrite: ['bob'],
+                admins: ['bob'],
                 archived: true,
             });
         });
@@ -178,6 +250,7 @@ async function main() {
                 effect: { stat: 'action_points', delta: 1, trigger: 'turn_start' },
                 classes: [],
                 canWrite: ['alice'],
+                admins: ['alice'],
             })
         );
     });
@@ -316,7 +389,7 @@ async function main() {
         const mallory = testEnv.authenticatedContext('mallory');
         await assertFails(
             addDoc(collection(mallory.firestore(), 'statuses'), {
-                name: 'Self-Promoted Default', isDefault: true, public: true, canRead: [], canWrite: ['mallory'],
+                name: 'Self-Promoted Default', isDefault: true, public: true, canRead: [], canWrite: ['mallory'], admins: ['mallory'],
             })
         );
     });
@@ -326,7 +399,7 @@ async function main() {
         const mallory = testEnv.authenticatedContext('mallory');
         await assertSucceeds(
             addDoc(collection(mallory.firestore(), 'statuses'), {
-                name: 'Homebrew Curse', isDefault: false, public: true, canRead: [], canWrite: ['mallory'],
+                name: 'Homebrew Curse', isDefault: false, public: true, canRead: [], canWrite: ['mallory'], admins: ['mallory'],
             })
         );
     });
@@ -336,7 +409,7 @@ async function main() {
         const admin = testEnv.authenticatedContext(ADMIN_UID);
         await assertSucceeds(
             addDoc(collection(admin.firestore(), 'statuses'), {
-                name: 'Haste', isDefault: true, public: true, canRead: [], canWrite: [ADMIN_UID],
+                name: 'Haste', isDefault: true, public: true, canRead: [], canWrite: [ADMIN_UID], admins: [ADMIN_UID],
             })
         );
     });
@@ -383,6 +456,7 @@ async function main() {
                 isDefault: false,
                 canRead: [],
                 canWrite: ['alice'],
+                admins: ['alice'],
             })
         );
     });
@@ -465,7 +539,7 @@ async function main() {
         const mallory = testEnv.authenticatedContext('mallory');
         await assertFails(
             addDoc(collection(mallory.firestore(), 'classes'), {
-                class_name: 'Self-Promoted Default', isDefault: true, public: true, canRead: [], canWrite: ['mallory'],
+                class_name: 'Self-Promoted Default', isDefault: true, public: true, canRead: [], canWrite: ['mallory'], admins: ['mallory'],
             })
         );
     });
@@ -475,7 +549,7 @@ async function main() {
         const mallory = testEnv.authenticatedContext('mallory');
         await assertSucceeds(
             addDoc(collection(mallory.firestore(), 'classes'), {
-                class_name: 'Ashwake Cultist', isDefault: false, public: true, canRead: [], canWrite: ['mallory'],
+                class_name: 'Ashwake Cultist', isDefault: false, public: true, canRead: [], canWrite: ['mallory'], admins: ['mallory'],
             })
         );
     });
@@ -485,7 +559,7 @@ async function main() {
         const admin = testEnv.authenticatedContext(ADMIN_UID);
         await assertSucceeds(
             addDoc(collection(admin.firestore(), 'classes'), {
-                class_name: 'Warden', isDefault: true, public: true, canRead: [], canWrite: [ADMIN_UID],
+                class_name: 'Warden', isDefault: true, public: true, canRead: [], canWrite: [ADMIN_UID], admins: [ADMIN_UID],
             })
         );
     });
@@ -514,6 +588,167 @@ async function main() {
         const mallory = testEnv.authenticatedContext('mallory');
         await assertFails(
             updateDoc(doc(mallory.firestore(), 'classes', 'warden'), { class_name: 'Hijacked' })
+        );
+    });
+
+    console.log('\nCharacter creation (characters collection - previously had no ownership check at all):');
+
+    await check('a signed-in user can create their own character', async () => {
+        await testEnv.clearFirestore();
+        const alice = testEnv.authenticatedContext('alice');
+        await assertSucceeds(
+            addDoc(collection(alice.firestore(), 'characters'), {
+                character_name: 'Aria',
+                playerId: 'alice',
+                canWrite: ['alice'],
+                canRead: [],
+                admins: ['alice'],
+            })
+        );
+    });
+
+    await check('a signed-in user cannot create a character with someone else\'s playerId', async () => {
+        await testEnv.clearFirestore();
+        const alice = testEnv.authenticatedContext('alice');
+        await assertFails(
+            addDoc(collection(alice.firestore(), 'characters'), {
+                character_name: 'Impersonation Attempt',
+                playerId: 'bob', // not alice, the actual creator
+                canWrite: ['alice'],
+                canRead: [],
+                admins: ['alice'],
+            })
+        );
+    });
+
+    await check('a signed-in user cannot create a character without listing themselves as an admin', async () => {
+        await testEnv.clearFirestore();
+        const alice = testEnv.authenticatedContext('alice');
+        await assertFails(
+            addDoc(collection(alice.firestore(), 'characters'), {
+                character_name: 'No Admins Field',
+                playerId: 'alice',
+                canWrite: ['alice'],
+                canRead: [],
+                // admins deliberately omitted
+            })
+        );
+    });
+
+    await check('a signed-out visitor cannot create a character', async () => {
+        await testEnv.clearFirestore();
+        const anon = testEnv.unauthenticatedContext();
+        await assertFails(
+            addDoc(collection(anon.firestore(), 'characters'), { character_name: 'Should Fail' })
+        );
+    });
+
+    console.log('\nMap and race creation (previously had no ownership check at all):');
+
+    await check('a signed-in user cannot create a map without listing themselves as an admin', async () => {
+        await testEnv.clearFirestore();
+        const alice = testEnv.authenticatedContext('alice');
+        await assertFails(
+            addDoc(collection(alice.firestore(), 'maps'), {
+                link: 'https://example.com/map.png',
+                canWrite: ['alice'],
+                zones: [],
+                // admins deliberately omitted
+            })
+        );
+    });
+
+    await check('a signed-in user can create a map when they list themselves as admin', async () => {
+        await testEnv.clearFirestore();
+        const alice = testEnv.authenticatedContext('alice');
+        await assertSucceeds(
+            addDoc(collection(alice.firestore(), 'maps'), {
+                link: 'https://example.com/map.png',
+                canWrite: ['alice'],
+                admins: ['alice'],
+                zones: [],
+            })
+        );
+    });
+
+    await check('a signed-in user cannot create a race without listing themselves as an admin', async () => {
+        await testEnv.clearFirestore();
+        const alice = testEnv.authenticatedContext('alice');
+        await assertFails(
+            addDoc(collection(alice.firestore(), 'races'), {
+                name: 'Should Fail',
+                canWrite: ['alice'],
+                // admins deliberately omitted
+            })
+        );
+    });
+
+    console.log('\nDocument admins vs. plain canWrite collaborators (permission fields are admin-only):');
+
+    await check('a plain canWrite collaborator (not an admin) can still edit ordinary content', async () => {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'campaigns', 'camp1'), {
+                campaign_name: 'Shared Campaign',
+                director_uid: 'bob',
+                canRead: ['bob', 'alice'],
+                canWrite: ['bob', 'alice'],
+                admins: ['bob'],
+            });
+        });
+        const alice = testEnv.authenticatedContext('alice');
+        await assertSucceeds(
+            updateDoc(doc(alice.firestore(), 'campaigns', 'camp1'), { campaign_name: 'Renamed Campaign' })
+        );
+    });
+
+    await check('a plain canWrite collaborator cannot grant themselves broader canRead access', async () => {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'campaigns', 'camp1'), {
+                campaign_name: 'Shared Campaign',
+                director_uid: 'bob',
+                canRead: ['bob', 'alice'],
+                canWrite: ['bob', 'alice'],
+                admins: ['bob'],
+            });
+        });
+        const alice = testEnv.authenticatedContext('alice');
+        await assertFails(
+            updateDoc(doc(alice.firestore(), 'campaigns', 'camp1'), { canRead: ['bob', 'alice', 'mallory'] })
+        );
+    });
+
+    await check('a plain canWrite collaborator cannot add themselves to admins', async () => {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'campaigns', 'camp1'), {
+                campaign_name: 'Shared Campaign',
+                director_uid: 'bob',
+                canRead: ['bob', 'alice'],
+                canWrite: ['bob', 'alice'],
+                admins: ['bob'],
+            });
+        });
+        const alice = testEnv.authenticatedContext('alice');
+        await assertFails(
+            updateDoc(doc(alice.firestore(), 'campaigns', 'camp1'), { admins: ['bob', 'alice'] })
+        );
+    });
+
+    await check('a document admin can change canRead, canWrite, and admins', async () => {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'classes', 'warden'), {
+                class_name: 'Warden',
+                canWrite: ['bob'],
+                canRead: [],
+                admins: ['bob'],
+            });
+        });
+        const bob = testEnv.authenticatedContext('bob');
+        await assertSucceeds(
+            updateDoc(doc(bob.firestore(), 'classes', 'warden'), { canWrite: ['bob', 'alice'], admins: ['bob', 'alice'] })
         );
     });
 

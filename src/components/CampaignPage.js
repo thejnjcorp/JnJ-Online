@@ -5,6 +5,7 @@ import { auth, db } from "../utils/firebase";
 import '../styles/CampaignPage.scss';
 import { onAuthStateChanged } from "firebase/auth";
 import loadingIcon from '../icons/loading.svg';
+import { DocAdminManager } from "./DocAdminManager";
 
 // campaigns.players holds three different shapes across live data: the
 // current { name, uid } map (e.g. PentGuard), a bare uid string, or a
@@ -76,6 +77,12 @@ export function CampaignPage() {
     },[location]);
 
     const canWrite = Boolean(user?.uid && campaignInfo?.canWrite?.includes(user.uid));
+    // Archiving/scheduling deletion is admin-only (see firestore.rules) -
+    // narrower than canWrite, which everyday actions like Add/Kick Player
+    // still use. A campaign's director is always also a doc admin (both the
+    // create flow and the one-time admins backfill guarantee that), so this
+    // doesn't take the ability away from anyone who currently has it.
+    const isDocAdmin = Boolean(user?.uid && campaignInfo?.admins?.includes(user.uid));
 
     const handleNewPlayer = async() => {
         if (playerId === user.uid) return alert("Cannot add yourself as a player!");
@@ -253,7 +260,9 @@ export function CampaignPage() {
             </div> : <p className="CampaignPage-empty-text">No players yet.</p>}
         </section>
 
-        {canWrite && <section className="CampaignPage-danger-zone">
+        <DocAdminManager docRef={doc(db, "campaigns", campaignId)} admins={campaignInfo.admins} userId={user?.uid} onChanged={getCharacterList}/>
+
+        {isDocAdmin && <section className="CampaignPage-danger-zone">
             <h2>Danger Zone</h2>
 
             {!campaignInfo.archived && <div className="CampaignPage-danger-row">

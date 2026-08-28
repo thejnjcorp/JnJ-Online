@@ -65,7 +65,8 @@ export function NewCampaignPage() {
                 ...formData,
                 director_name: userInfo.name,
                 director_uid: userInfo.uid,
-                canWrite: [auth.currentUser.uid]
+                canWrite: [auth.currentUser.uid],
+                admins: [auth.currentUser.uid]
             });
             // Must be absolute: Campaigns.js renders NewCampaignPage from a
             // manual location.pathname check rather than a nested <Route>, so

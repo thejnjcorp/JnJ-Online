@@ -14,5 +14,5 @@ Object.assign(global, { TextEncoder, TextDecoder });
 
 // jsdom's test environment doesn't expose structuredClone either, unlike every real browser.
 if (typeof global.structuredClone !== 'function') {
-    global.structuredClone = (value) => JSON.parse(JSON.stringify(value));
+    global.structuredClone = (value) => JSON.parse(JSON.stringify(value)); // NOSONAR - this *is* the structuredClone fallback, only reached when the real one is missing, so calling structuredClone here would be circular.
 }

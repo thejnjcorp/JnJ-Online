@@ -15,11 +15,14 @@ service cloud.firestore {
     match /campaigns/{campaignId} {
     	allow read: if isSignedIn() && uid() in canReadField();
 
-      allow read, write: if isSignedIn() && uid() in canWriteField();
+      allow read, write: if isSignedIn() && uid() in canWriteField() && permissionFieldsUnchanged() && archiveFieldsUnchanged();
 
-      allow read, write: if isSignedIn() && uid() == resource.data.director_uid;
+      allow read, write: if isSignedIn() && uid() == resource.data.director_uid && archiveFieldsUnchanged();
 
-      allow create: if isSignedIn() && !documentExists("campaigns", campaignId);
+      allow read, write: if isSignedIn() && isDocAdmin();
+
+      allow create: if isSignedIn() && !documentExists("campaigns", campaignId)
+        && isCreatorDocAdmin() && request.resource.data.director_uid == uid();
     }
 
     match /characters/{characterId} {
@@ -29,9 +32,12 @@ service cloud.firestore {
 
       allow read: if isSignedIn() && inCampaign();
 
-      allow read, write: if isSignedIn() && uid() in canWriteField();
+      allow read, write: if isSignedIn() && uid() in canWriteField() && permissionFieldsUnchanged();
 
-      allow create: if isSignedIn() && !documentExists("characters", characterId);
+      allow read, write: if isSignedIn() && isDocAdmin();
+
+      allow create: if isSignedIn() && !documentExists("characters", characterId)
+        && isCreatorDocAdmin() && request.resource.data.playerId == uid();
     }
 
     // Same three-tier model as statuses above (public/isDefault/canRead,
@@ -54,25 +60,34 @@ service cloud.firestore {
       // manually deleting a test status through this exact rule shape - see
       // the identical fix on the statuses block below, which had the same
       // latent bug (StatusPage.js's delete button would have hit this too).
-      allow write: if isSignedIn() && uid() in canWriteField() && (request.resource == null || !('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
+      allow write: if isSignedIn() && uid() in canWriteField() && permissionFieldsUnchanged()
+        && (request.resource == null || !('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
 
-      allow create: if isSignedIn() && !documentExists("classes", classId) && (!('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
+      allow write: if isSignedIn() && isDocAdmin()
+        && (request.resource == null || !('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
+
+      allow create: if isSignedIn() && !documentExists("classes", classId) && isCreatorDocAdmin()
+        && (!('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
     }
 
     match /races/{raceId} {
     	allow read: if isSignedIn();
 
-      allow read, write: if isSignedIn() && uid() in canWriteField();
+      allow read, write: if isSignedIn() && uid() in canWriteField() && permissionFieldsUnchanged();
 
-      allow create: if isSignedIn() && !documentExists("races", raceId);
+      allow read, write: if isSignedIn() && isDocAdmin();
+
+      allow create: if isSignedIn() && !documentExists("races", raceId) && isCreatorDocAdmin();
     }
 
     match /maps/{mapId} {
     	allow read: if isSignedIn();
 
-      allow read, write: if isSignedIn() && uid() in canWriteField();
+      allow read, write: if isSignedIn() && uid() in canWriteField() && permissionFieldsUnchanged();
 
-      allow create: if isSignedIn() && !documentExists("maps", mapId);
+      allow read, write: if isSignedIn() && isDocAdmin();
+
+      allow create: if isSignedIn() && !documentExists("maps", mapId) && isCreatorDocAdmin();
     }
 
     // A status is public (readable by anyone signed in), or locked down via
@@ -108,9 +123,14 @@ service cloud.firestore {
       // .data of a null resource. StatusPage.js's delete button would hit
       // this on any status - found by hand while cleaning up a test status
       // through this exact path.
-      allow write: if isSignedIn() && uid() in canWriteField() && (request.resource == null || !('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
+      allow write: if isSignedIn() && uid() in canWriteField() && permissionFieldsUnchanged()
+        && (request.resource == null || !('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
 
-      allow create: if isSignedIn() && !documentExists("statuses", statusId) && (!('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
+      allow write: if isSignedIn() && isDocAdmin()
+        && (request.resource == null || !('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
+
+      allow create: if isSignedIn() && !documentExists("statuses", statusId) && isCreatorDocAdmin()
+        && (!('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
     }
 
     // Functions \\
@@ -123,6 +143,9 @@ service cloud.firestore {
     	return request.auth.uid;
     }
 
+    // The single app-wide admin account (see ADMIN_UIDS in
+    // src/utils/statusEffects.js) - distinct from isDocAdmin() below, which
+    // is per-document and settable by any user who creates one.
     function isAdmin() {
     	return uid() == "wmJQbIlzX9RydXFmh3DzSBpIqHa2";
     }
@@ -133,6 +156,51 @@ service cloud.firestore {
 
     function canReadField() {
     	return resource.data.canRead;
+    }
+
+    // A document's own admins - always granted full read/write on that
+    // document (including changing canRead/canWrite/admins itself), unlike
+    // a plain canWrite collaborator (see permissionFieldsUnchanged() below).
+    // Every create sets this to (at least) the creator - see
+    // isCreatorDocAdmin() - so every new document always has at least one
+    // admin able to manage it later. Legacy documents predating this field
+    // simply have no doc-admins (resource.data.get('admins', []) is empty)
+    // until someone with write access saves them forward with one; their
+    // existing owner-style grants (director_uid, playerId, canWrite) keep
+    // working exactly as before in the meantime.
+    function isDocAdmin() {
+      return uid() in resource.data.get('admins', []);
+    }
+
+    function isCreatorDocAdmin() {
+      return uid() in request.resource.data.get('admins', []);
+    }
+
+    // A plain canWrite collaborator (someone who isn't this document's
+    // owner/admin) can freely edit its regular content, but not who else
+    // can read, write, or administer it - otherwise any collaborator could
+    // silently grant themselves (or anyone else) broader access than they
+    // were actually given. True on a delete (request.resource == null,
+    // nothing to compare) since deletion is already gated by canWrite alone,
+    // same as before this field existed.
+    function permissionFieldsUnchanged() {
+      return request.resource == null
+        || (request.resource.data.get('canRead', null) == resource.data.get('canRead', null)
+          && request.resource.data.get('canWrite', null) == resource.data.get('canWrite', null)
+          && request.resource.data.get('admins', null) == resource.data.get('admins', null));
+    }
+
+    // Only a document's admin can archive/unarchive a campaign or schedule/
+    // cancel its deletion (see CampaignPage.js's Danger Zone) - a plain
+    // canWrite collaborator or even the campaign's own director can still
+    // edit everything else about it. True on a delete for the same reason
+    // permissionFieldsUnchanged() is - deletion is already gated by
+    // canWrite/director_uid alone, unrelated to these fields.
+    function archiveFieldsUnchanged() {
+      return request.resource == null
+        || (request.resource.data.get('archived', null) == resource.data.get('archived', null)
+          && request.resource.data.get('archivedAt', null) == resource.data.get('archivedAt', null)
+          && request.resource.data.get('scheduledDeletionAt', null) == resource.data.get('scheduledDeletionAt', null));
     }
 
     function documentExists(docName, documentId) {

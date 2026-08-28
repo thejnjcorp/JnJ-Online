@@ -51,6 +51,9 @@ jest.mock('../../src/components/CombatActionList', () => ({
 jest.mock('../../src/components/MapRenderer', () => ({
     MapRenderer: ({ map, userId }) => <div>MapRenderer-stub:{map.map_id}:{userId}</div>,
 }));
+jest.mock('../../src/components/DocAdminManager', () => ({
+    DocAdminManager: ({ admins, userId }) => <div>DocAdminManager-stub:{JSON.stringify(admins)}:{userId}</div>,
+}));
 jest.mock('../../src/utils/DraggableElements/PostListCombat.tsx', () => ({
     PostListContentCombat: ({ campaignId, inputStatuses }) => <div>Combat-stub:{campaignId}:{inputStatuses.length}</div>,
 }));
@@ -354,6 +357,18 @@ describe('DirectorsPage', () => {
             expect(screen.getByAltText('Map Preview')).toBeInTheDocument();
         });
 
+        test('choosing a non-image file is rejected immediately, with no preview and Upload still disabled', async () => {
+            await renderReady();
+            goToTab('Maps');
+            const file = new File(['not an image'], 'notes.txt', { type: 'text/plain' });
+
+            fireEvent.change(fileInput(), { target: { files: [file] } });
+
+            expect(window.alert).toHaveBeenCalledWith('Please select an image file.');
+            expect(screen.queryByAltText('Map Preview')).not.toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Upload' })).toBeDisabled();
+        });
+
         test('Upload uploads the image, creates the map doc, and links it into the campaign', async () => {
             await renderReady();
             goToTab('Maps');
@@ -364,7 +379,7 @@ describe('DirectorsPage', () => {
 
             await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['campaigns', 'camp-1'] }, { maps: ['new-map-id'] }));
             expect(mockUploadImageToImgur).toHaveBeenCalledWith(file);
-            expect(mockAddDoc).toHaveBeenCalledWith({ __collection: 'maps' }, { canWrite: ['owner-1'], link: 'https://imgur.example/map.png', zones: [] });
+            expect(mockAddDoc).toHaveBeenCalledWith({ __collection: 'maps' }, { canWrite: ['owner-1'], admins: ['owner-1'], link: 'https://imgur.example/map.png', zones: [] });
             expect(window.alert).toHaveBeenCalledWith('Map added to campaign successfully!');
         });
 
@@ -383,7 +398,7 @@ describe('DirectorsPage', () => {
         });
 
         describe('existing maps', () => {
-            const map = { map_id: 'map-1', link: 'map.png' };
+            const map = { map_id: 'map-1', link: 'map.png', admins: ['owner-1'] };
 
             test('renders each map and marks the active one', async () => {
                 mockUseCampaignMaps.mockReturnValue({ maps: [map], activeMap: null });
@@ -391,6 +406,13 @@ describe('DirectorsPage', () => {
                 goToTab('Maps');
                 expect(screen.getByText('MapRenderer-stub:map-1:owner-1')).toBeInTheDocument();
                 expect(screen.getByRole('button', { name: 'Active Map' })).toBeDisabled();
+            });
+
+            test('passes the map\'s admins list and the signed-in user down to DocAdminManager', async () => {
+                mockUseCampaignMaps.mockReturnValue({ maps: [map], activeMap: null });
+                await renderReady();
+                goToTab('Maps');
+                expect(screen.getByText('DocAdminManager-stub:["owner-1"]:owner-1')).toBeInTheDocument();
             });
 
             test('Set as Active writes active_map', async () => {

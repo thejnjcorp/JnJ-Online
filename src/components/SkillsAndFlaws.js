@@ -138,7 +138,7 @@ export function SkillsAndFlaws({characterPage, userId}) {
             open={false}
         >
             <div className="SkillsAndFlaws-feat-description">
-                <Markdown>{feat.description || ""}</Markdown>
+                <Markdown options={{ disableParsingRawHTML: true }}>{feat.description || ""}</Markdown>
             </div>
         </Collapsible>
     }

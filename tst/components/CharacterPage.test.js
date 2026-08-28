@@ -25,6 +25,7 @@ jest.mock('../../src/components/CharacterPageVitalsPanel', () => ({ CharacterPag
 jest.mock('../../src/components/CharacterPageNavigation', () => ({ CharacterPageNavigation: ({ characterPage }) => <div>Navigation-stub:{characterPage.character_name}</div> }));
 jest.mock('../../src/components/SkillsAndFlaws', () => ({ SkillsAndFlaws: () => <div>SkillsAndFlaws-stub</div> }));
 jest.mock('../../src/components/CharacterMainTab', () => ({ CharacterMainTab: ({ characterList, campaignInfo }) => <div>MainTab-stub:{characterList.length}:{campaignInfo.enemy_list.length}</div> }));
+jest.mock('../../src/components/DocAdminManager', () => ({ DocAdminManager: ({ admins, userId }) => <div>DocAdminManager-stub:{JSON.stringify(admins)}:{userId}</div> }));
 
 // eslint-disable-next-line import/first
 import { screen, fireEvent, act } from '@testing-library/react';
@@ -85,6 +86,16 @@ describe('CharacterPage', () => {
         expect(screen.queryByAltText('loading')).not.toBeInTheDocument();
         expect(document.title).toBe('Aria');
         expect(screen.getByText('Navigation-stub:Aria')).toBeInTheDocument();
+    });
+
+    test('passes the character\'s admins list and the signed-in user down to DocAdminManager', () => {
+        const router = installSnapshotRouter();
+        renderWithRouter(<CharacterPage />, { route: '/characters/char-1' });
+        const target = mockDoc.mock.results.find(r => r.value.__doc === 'characters/char-1').value;
+
+        router.fire(target, characterDoc({ character_name: 'Aria', skills_and_flaws: [], admins: ['owner-1'] }));
+
+        expect(screen.getByText('DocAdminManager-stub:["owner-1"]:')).toBeInTheDocument();
     });
 
     describe('skills & flaws count', () => {

@@ -110,6 +110,7 @@ describe('NewCampaignPage', () => {
             director_name: 'Sam',
             director_uid: 'user-1',
             canWrite: ['user-1'],
+            admins: ['user-1'],
         });
         expect(mockNavigate).toHaveBeenCalledWith('/campaigns/new-campaign-id');
     });

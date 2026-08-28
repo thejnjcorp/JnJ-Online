@@ -50,6 +50,9 @@ jest.mock('../../src/components/ClassDamageCard', () => ({
         <button type="button" onClick={() => onChange({ target: { name: `base_${kind}_damage_modifier`, value: '0', type: 'number' } })}>Fill {kind} modifier</button>
     </div>,
 }));
+jest.mock('../../src/components/DocAdminManager', () => ({
+    DocAdminManager: ({ admins, userId }) => <div>DocAdminManager-stub:{JSON.stringify(admins)}:{userId}</div>,
+}));
 
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
@@ -244,6 +247,7 @@ describe('ClassPage', () => {
                 expect(payload.public).toBe(true);
                 expect(payload.isDefault).toBe(false); // non-admin selecting "public" lands in the pool, not as a default
                 expect(payload.canWrite).toEqual(['user-1']);
+                expect(payload.admins).toEqual(['user-1']); // firestore.rules requires the creator to be a doc admin to create at all
             });
 
             test('a private class sets canRead to just the author', async () => {
@@ -289,7 +293,7 @@ describe('ClassPage', () => {
         function classDoc(overrides = {}) {
             return {
                 class_name: 'Fighter', author: 'Sam', class_type: 'Attrionist', public: true,
-                canWrite: ['user-1'], actions: [{ id: 'a1', actionName: 'Stab', category: 'action' }],
+                canWrite: ['user-1'], admins: ['user-1'], actions: [{ id: 'a1', actionName: 'Stab', category: 'action' }],
                 base_armor_class: 12, base_health_dice: 3, base_hit_modifier: 2, base_healing_dice_type: 2,
                 base_class_damage_class: 12, base_hardness: 0,
                 base_melee_damage_dice_type: 2, base_melee_damage_dice: 1, base_melee_damage_modifier: 0,
@@ -308,6 +312,13 @@ describe('ClassPage', () => {
             await screen.findByText('Fighter');
             expect(mockDoc).toHaveBeenCalledWith({}, 'classes', 'class-1');
             expect(document.title).toBe('Fighter');
+        });
+
+        test('passes the class\'s admins list and the signed-in user down to DocAdminManager', async () => {
+            signIn({ uid: 'user-1' });
+            renderExisting(classDoc());
+            await screen.findByText('Fighter');
+            expect(await screen.findByText('DocAdminManager-stub:["user-1"]:user-1')).toBeInTheDocument();
         });
 
         test('starts in view mode: static title, author line, and visibility badge', async () => {

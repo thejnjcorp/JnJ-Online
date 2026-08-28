@@ -130,6 +130,7 @@ export function NewCharacterPage() {
         newData.actions = newData.actions.concat(raceData.feat);
         newData.player_name = playerInfo.name;
         newData.playerId = playerInfo.uid;
+        newData.admins = [playerInfo.uid];
         const membersOfCampaign = await getMembersOfCampaign();
         newData.canWrite = [playerInfo.uid].concat(membersOfCampaign.canWrite);
         newData.canRead = membersOfCampaign.canRead

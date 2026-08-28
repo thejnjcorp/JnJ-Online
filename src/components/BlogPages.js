@@ -141,9 +141,9 @@ const BlogPages =(props)=> {
                 })}
             </div>}
         </div>
-        <Markdown>{post?.at(0)}</Markdown>
+        <Markdown options={{ disableParsingRawHTML: true }}>{post?.at(0)}</Markdown>
         {navigationButtons}
-        <Markdown>{post?.at(currentPage)}</Markdown>
+        <Markdown options={{ disableParsingRawHTML: true }}>{post?.at(currentPage)}</Markdown>
         {navigationButtons}
         <br/>
     </div>

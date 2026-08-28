@@ -151,7 +151,7 @@ export function ClassListPage() {
                         </div>
                         <div className="ClassListPage-card-meta">by {c.author} &middot; {c.class_type}</div>
                         {c.class_weapons && <div className="ClassListPage-card-weapons">Weapons: {c.class_weapons}</div>}
-                        <div className="ClassListPage-card-description"><Markdown>{c.description || ""}</Markdown></div>
+                        <div className="ClassListPage-card-description"><Markdown options={{ disableParsingRawHTML: true }}>{c.description || ""}</Markdown></div>
                         <div className="ClassListPage-card-actions">
                             <button type="button" className="ClassListPage-card-view-button" onClick={() => navigate('/classes/' + c.id)}>View Class</button>
                             {canSubscribe && <button type="button"

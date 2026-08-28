@@ -1,0 +1,99 @@
+.DocAdminManager {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-3);
+    padding: var(--jnj-space-5);
+    background-color: var(--jnj-color-bg-raised);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-lg);
+}
+
+.DocAdminManager-title {
+    font-family: var(--jnj-font-display);
+    font-size: var(--jnj-text-sm);
+    letter-spacing: var(--jnj-tracking-caps);
+    text-transform: uppercase;
+    color: var(--jnj-color-text-faint);
+}
+
+.DocAdminManager-hint {
+    margin: 0;
+    font-size: var(--jnj-text-sm);
+    color: var(--jnj-color-text-muted);
+}
+
+.DocAdminManager-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-2);
+}
+
+.DocAdminManager-row {
+    display: flex;
+    align-items: center;
+    gap: var(--jnj-space-3);
+    padding: var(--jnj-space-2) var(--jnj-space-3);
+    background-color: var(--jnj-color-bg-sunken);
+    border-radius: var(--jnj-radius-md);
+}
+
+.DocAdminManager-name {
+    font-weight: 600;
+    color: var(--jnj-color-text);
+}
+
+.DocAdminManager-uid {
+    flex: 1;
+    font-family: var(--jnj-font-mono);
+    font-size: var(--jnj-text-xs);
+    color: var(--jnj-color-text-faint);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.DocAdminManager-revoke-button {
+    padding: var(--jnj-space-1) var(--jnj-space-3);
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-sm);
+    background: none;
+    color: var(--jnj-color-danger);
+    cursor: pointer;
+
+    &:disabled {
+        color: var(--jnj-color-text-faint);
+        cursor: not-allowed;
+    }
+}
+
+.DocAdminManager-promote-row {
+    display: flex;
+    gap: var(--jnj-space-2);
+}
+
+.DocAdminManager-promote-input {
+    flex: 1;
+    padding: var(--jnj-space-2) var(--jnj-space-3);
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-sm);
+    background-color: var(--jnj-color-bg);
+    color: var(--jnj-color-text);
+}
+
+.DocAdminManager-promote-button {
+    padding: var(--jnj-space-2) var(--jnj-space-4);
+    border: none;
+    border-radius: var(--jnj-radius-sm);
+    background-color: var(--jnj-color-accent);
+    color: var(--jnj-color-on-accent);
+    cursor: pointer;
+
+    &:disabled {
+        background-color: var(--jnj-color-border-strong);
+        color: var(--jnj-color-text-faint);
+        cursor: not-allowed;
+    }
+}

@@ -1,5 +1,9 @@
 // returns the Imgur image link after uploading an image to Imgur
 export async function uploadImageToImgur(file) {
+    if (!file?.type?.startsWith("image/")) {
+        alert("Please select an image file.");
+        return null;
+    }
     const clientId = process.env.REACT_APP_IMGUR_CLIENT_ID,
         auth = "Client-ID " + clientId;
     const formData = new FormData();

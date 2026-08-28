@@ -42,6 +42,10 @@ jest.mock('react-router-dom', () => ({
     useNavigate: () => mockNavigate,
 }));
 
+jest.mock('../../src/components/DocAdminManager', () => ({
+    DocAdminManager: ({ admins, userId }) => <div>DocAdminManager-stub:{JSON.stringify(admins)}:{userId}</div>,
+}));
+
 // eslint-disable-next-line import/first
 import { screen, fireEvent, waitFor, act } from '@testing-library/react';
 // eslint-disable-next-line import/first
@@ -123,6 +127,13 @@ describe('CampaignPage', () => {
             expect(document.title).toBe('The Iron Vale');
             expect(screen.getByText(/Fighter/)).toBeInTheDocument();
             expect(screen.getByText(/Player: Sam/)).toBeInTheDocument();
+        });
+
+        test('passes the campaign\'s admins list and the signed-in user down to DocAdminManager', async () => {
+            signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale', admins: ['director-1'] }, [character]);
+            renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
+            await screen.findByText('Aria');
+            expect(screen.getByText('DocAdminManager-stub:["director-1"]:user-1')).toBeInTheDocument();
         });
 
         test('queries characters belonging to this campaign', async () => {
@@ -236,15 +247,22 @@ describe('CampaignPage', () => {
         });
 
         describe('danger zone', () => {
-            test('hidden entirely without write access', async () => {
+            test('hidden entirely without admin access', async () => {
                 signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale' });
                 renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
                 await screen.findByText('The Iron Vale');
                 expect(screen.queryByText('Danger Zone')).not.toBeInTheDocument();
             });
 
+            test('hidden for a plain canWrite collaborator who is not a doc admin', async () => {
+                signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale', canWrite: ['user-1'], admins: ['director-1'] });
+                renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
+                await screen.findByText('The Iron Vale');
+                expect(screen.queryByText('Danger Zone')).not.toBeInTheDocument();
+            });
+
             test('an active campaign shows only Archive', async () => {
-                signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale', canWrite: ['user-1'] });
+                signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale', canWrite: ['user-1'], admins: ['user-1'] });
                 renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
                 await screen.findByText('The Iron Vale');
                 expect(screen.getByRole('button', { name: 'Archive' })).toBeInTheDocument();
@@ -252,7 +270,7 @@ describe('CampaignPage', () => {
             });
 
             test('an archived campaign with no scheduled deletion shows Unarchive and Schedule Deletion', async () => {
-                signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale', canWrite: ['user-1'], archived: true });
+                signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale', canWrite: ['user-1'], admins: ['user-1'], archived: true });
                 renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
                 await screen.findByText('The Iron Vale');
                 expect(screen.getByRole('button', { name: 'Unarchive' })).toBeInTheDocument();
@@ -262,7 +280,7 @@ describe('CampaignPage', () => {
 
             test('an archived campaign with a scheduled deletion shows Unarchive and Cancel Deletion, and mentions canceling in the Unarchive help text', async () => {
                 signIn({ uid: 'user-1' }, {
-                    campaign_name: 'The Iron Vale', canWrite: ['user-1'], archived: true,
+                    campaign_name: 'The Iron Vale', canWrite: ['user-1'], admins: ['user-1'], archived: true,
                     scheduledDeletionAt: { toDate: () => new Date(2026, 0, 15) },
                 });
                 renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
@@ -273,7 +291,7 @@ describe('CampaignPage', () => {
             });
 
             test('Archive writes archived + archivedAt and refreshes the campaign', async () => {
-                signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale', canWrite: ['user-1'] });
+                signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale', canWrite: ['user-1'], admins: ['user-1'] });
                 renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
                 await screen.findByText('The Iron Vale');
 
@@ -287,7 +305,7 @@ describe('CampaignPage', () => {
             });
 
             test('Unarchive clears archived, archivedAt, and scheduledDeletionAt', async () => {
-                signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale', canWrite: ['user-1'], archived: true });
+                signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale', canWrite: ['user-1'], admins: ['user-1'], archived: true });
                 renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
                 await screen.findByText('The Iron Vale');
 
@@ -302,7 +320,7 @@ describe('CampaignPage', () => {
 
             test('a failed danger-zone action is alerted', async () => {
                 mockUpdateDoc.mockRejectedValue(new Error('offline'));
-                signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale', canWrite: ['user-1'] });
+                signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale', canWrite: ['user-1'], admins: ['user-1'] });
                 renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
                 await screen.findByText('The Iron Vale');
 
@@ -313,7 +331,7 @@ describe('CampaignPage', () => {
 
             describe('schedule/cancel deletion dialog', () => {
                 test('Schedule Deletion opens a confirmation dialog naming the campaign; Cancel dismisses it', async () => {
-                    signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale', canWrite: ['user-1'], archived: true });
+                    signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale', canWrite: ['user-1'], admins: ['user-1'], archived: true });
                     renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
                     await screen.findByText('The Iron Vale');
                     fireEvent.click(screen.getByRole('button', { name: 'Schedule Deletion' }));
@@ -325,7 +343,7 @@ describe('CampaignPage', () => {
                 });
 
                 test('confirming writes a scheduledDeletionAt roughly 30 days out', async () => {
-                    signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale', canWrite: ['user-1'], archived: true });
+                    signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale', canWrite: ['user-1'], admins: ['user-1'], archived: true });
                     renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
                     await screen.findByText('The Iron Vale');
                     fireEvent.click(screen.getByRole('button', { name: 'Schedule Deletion' }));
@@ -340,7 +358,7 @@ describe('CampaignPage', () => {
 
                 test('Cancel Deletion clears scheduledDeletionAt', async () => {
                     signIn({ uid: 'user-1' }, {
-                        campaign_name: 'The Iron Vale', canWrite: ['user-1'], archived: true,
+                        campaign_name: 'The Iron Vale', canWrite: ['user-1'], admins: ['user-1'], archived: true,
                         scheduledDeletionAt: { toDate: () => new Date(2026, 0, 15) },
                     });
                     renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });

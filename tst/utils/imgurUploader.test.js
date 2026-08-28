@@ -22,10 +22,32 @@ describe('uploadImageToImgur', () => {
         jest.restoreAllMocks();
     });
 
+    test('rejects a non-image file without ever calling fetch', async () => {
+        const result = await uploadImageToImgur(new File(['content'], 'notes.txt', { type: 'text/plain' }));
+
+        expect(result).toBeNull();
+        expect(global.fetch).not.toHaveBeenCalled();
+        expect(window.alert).toHaveBeenCalledWith('Please select an image file.');
+    });
+
+    test('rejects a file with no type at all', async () => {
+        const result = await uploadImageToImgur(new Blob(['content']));
+
+        expect(result).toBeNull();
+        expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    test('rejects a missing file', async () => {
+        const result = await uploadImageToImgur(null);
+
+        expect(result).toBeNull();
+        expect(global.fetch).not.toHaveBeenCalled();
+    });
+
     test('a successful upload on the first try returns the link, alerts success, and calls fetch exactly once', async () => {
         global.fetch.mockResolvedValue(jsonResponse({ success: true, data: { link: 'https://i.imgur.com/abc.png' } }));
 
-        const result = await uploadImageToImgur(new Blob());
+        const result = await uploadImageToImgur(new Blob([], { type: 'image/png' }));
 
         expect(result).toBe('https://i.imgur.com/abc.png');
         expect(global.fetch).toHaveBeenCalledTimes(1);
@@ -35,7 +57,7 @@ describe('uploadImageToImgur', () => {
     test('posts to the Imgur upload endpoint with a Client-ID auth header built from REACT_APP_IMGUR_CLIENT_ID', async () => {
         global.fetch.mockResolvedValue(jsonResponse({ success: true, data: { link: 'x' } }));
 
-        await uploadImageToImgur(new Blob());
+        await uploadImageToImgur(new Blob([], { type: 'image/png' }));
 
         expect(global.fetch).toHaveBeenCalledWith(
             'https://api.imgur.com/3/image/',
@@ -55,7 +77,7 @@ describe('uploadImageToImgur', () => {
         // bare Blob: FormData.append() only preserves the exact reference for
         // an already-named File - a nameless Blob gets spec-wrapped into a
         // new File on append, so `.get()` would return a different object.
-        const file = new File(['content'], 'test.png');
+        const file = new File(['content'], 'test.png', { type: 'image/png' });
 
         await uploadImageToImgur(file);
 
@@ -74,7 +96,7 @@ describe('uploadImageToImgur', () => {
             .mockResolvedValueOnce(jsonResponse({ success: false, data: { error: 'rate limited' } }))
             .mockResolvedValueOnce(jsonResponse({ success: true, data: { link: 'https://i.imgur.com/retry.png' } }));
 
-        const result = await uploadImageToImgur(new Blob());
+        const result = await uploadImageToImgur(new Blob([], { type: 'image/png' }));
 
         expect(result).toBe('https://i.imgur.com/retry.png');
         expect(global.fetch).toHaveBeenCalledTimes(2);
@@ -83,7 +105,7 @@ describe('uploadImageToImgur', () => {
     test('gives up and returns null after exactly 3 failed attempts, alerting failure', async () => {
         global.fetch.mockResolvedValue(jsonResponse({ success: false, data: { error: 'server error' } }));
 
-        const result = await uploadImageToImgur(new Blob());
+        const result = await uploadImageToImgur(new Blob([], { type: 'image/png' }));
 
         expect(result).toBeNull();
         expect(global.fetch).toHaveBeenCalledTimes(3);
@@ -95,7 +117,7 @@ describe('uploadImageToImgur', () => {
             .mockResolvedValueOnce(jsonResponse({ success: false, data: { error: 'rate limited' } }))
             .mockResolvedValueOnce(jsonResponse({ success: true, data: { link: 'x' } }));
 
-        await uploadImageToImgur(new Blob());
+        await uploadImageToImgur(new Blob([], { type: 'image/png' }));
 
         expect(window.alert).toHaveBeenCalledTimes(1);
         expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('successfully'));

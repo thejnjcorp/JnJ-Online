@@ -29,6 +29,7 @@ import { ReactComponent as ChevronDownIcon } from '../icons/chevron_down.svg';
 import { PostListContentCombatMap } from '../utils/DraggableElements/PostListCombatMap.tsx';
 import { PostListContentCombat } from '../utils/DraggableElements/PostListCombat.tsx';
 import { MapRenderer } from './MapRenderer';
+import { DocAdminManager } from './DocAdminManager';
 import { useCampaignMaps, useCombatEntities } from '../utils/useCampaignCombat';
 import { advanceTurnStatuses, getEffectiveCharacterStats, getGrantedActions } from '../utils/statusEffects';
 import { CharacterStatCalculator } from './CharacterStatCalculator';
@@ -252,10 +253,15 @@ export function DirectorsPage() {
             alert("Please select an image to upload.");
             return;
         }
+        if (!mapFile.type.startsWith("image/")) {
+            alert("Please select an image file.");
+            return;
+        }
         try {
             const imageLink = await uploadImageToImgur(mapFile);
             const docRef = await addDoc(collection(db, "maps"), {
                 canWrite: [userId],
+                admins: [userId],
                 link: imageLink,
                 zones: [],
             });
@@ -272,7 +278,14 @@ export function DirectorsPage() {
 
     const [mapFile, setMapFile] = useState();
     const onMapFileChange = (event) => {
-        setMapFile(event.target.files[0]);
+        const file = event.target.files[0];
+        if (file && !file.type.startsWith("image/")) {
+            alert("Please select an image file.");
+            event.target.value = "";
+            setMapFile(undefined);
+            return;
+        }
+        setMapFile(file);
     };
 
     const deleteMap = async (map) => {
@@ -594,6 +607,7 @@ export function DirectorsPage() {
                                     >
                                         Delete Map
                                     </button>
+                                    <DocAdminManager docRef={doc(db, "maps", map.map_id)} admins={map.admins} userId={userId}/>
                                 </div>
                             })}
                         </div>

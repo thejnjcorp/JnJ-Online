@@ -443,9 +443,9 @@
     background: var(--jnj-color-bg-sunken);
     border: none;
     color: var(--jnj-color-text);
+    font: inherit;
     font-weight: 700;
     text-align: center;
-    font: inherit;
 
     &:focus {
         outline: 1px solid var(--jnj-color-accent);

@@ -38,6 +38,10 @@ jest.mock('react-router-dom', () => ({
     useNavigate: () => mockNavigate,
 }));
 
+jest.mock('../../src/components/DocAdminManager', () => ({
+    DocAdminManager: ({ admins, userId }) => <div>DocAdminManager-stub:{JSON.stringify(admins)}:{userId}</div>,
+}));
+
 // eslint-disable-next-line import/first
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 // eslint-disable-next-line import/first
@@ -148,6 +152,7 @@ describe('StatusPage', () => {
                 expect(payload.public).toBe(true);
                 expect(payload.isDefault).toBe(false);
                 expect(payload.canWrite).toEqual(['user-1']);
+                expect(payload.admins).toEqual(['user-1']); // firestore.rules requires the creator to be a doc admin to create at all
                 expect(window.alert).toHaveBeenCalledWith('Status created.');
             });
 
@@ -308,7 +313,7 @@ describe('StatusPage', () => {
         function statusDoc(overrides = {}) {
             return {
                 name: 'Haste', description: '', polarity: 'buff', defaultStacks: 2,
-                classes: [], effects: [], public: true, canWrite: ['user-1'],
+                classes: [], effects: [], public: true, canWrite: ['user-1'], admins: ['user-1'],
                 ...overrides,
             };
         }
@@ -323,6 +328,13 @@ describe('StatusPage', () => {
             expect(await screen.findByDisplayValue('Haste')).toBeInTheDocument();
             expect(mockDoc).toHaveBeenCalledWith({}, 'statuses', 'status-1');
             expect(document.title).toBe('Haste');
+        });
+
+        test('passes the status\'s admins list and the signed-in user down to DocAdminManager', async () => {
+            signIn({ uid: 'user-1' });
+            renderExisting(statusDoc());
+            await screen.findByDisplayValue('Haste');
+            expect(await screen.findByText('DocAdminManager-stub:["user-1"]:user-1')).toBeInTheDocument();
         });
 
         test('fields are enabled for a writer (the current user is on canWrite)', async () => {
@@ -353,6 +365,20 @@ describe('StatusPage', () => {
 
             await waitFor(() => expect(window.alert).toHaveBeenCalledWith('Status updated.'));
             expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['statuses', 'status-1'] }, expect.objectContaining({ name: 'Haste' }));
+        });
+
+        test('updating merges the editor into canWrite instead of clobbering existing co-authors, and never touches admins', async () => {
+            signIn({ uid: 'user-1' });
+            renderExisting(statusDoc({ canWrite: ['director-1', 'user-1'] }));
+            await screen.findByDisplayValue('Haste');
+            await screen.findByLabelText('Name');
+
+            fireEvent.click(screen.getByRole('button', { name: 'Update Status' }));
+
+            await waitFor(() => expect(window.alert).toHaveBeenCalledWith('Status updated.'));
+            const [, payload] = mockUpdateDoc.mock.calls[0];
+            expect(payload.canWrite.sort()).toEqual(['director-1', 'user-1']);
+            expect(payload.admins).toBeUndefined(); // only an existing doc admin can change who else administers it - see firestore.rules
         });
 
         describe('Delete Status', () => {

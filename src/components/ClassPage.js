@@ -11,6 +11,7 @@ import { subscribeClassToCampaign } from '../utils/campaignSubscriptions';
 import { classFormReducer } from '../utils/classFormReducer';
 import { ClassActionEditor } from './ClassActionEditor';
 import { ClassDamageCard } from './ClassDamageCard';
+import { DocAdminManager } from './DocAdminManager';
 import ClassLayout from '../ClassLayout.json';
 import '../styles/ClassPage.scss';
 
@@ -324,7 +325,8 @@ export function ClassPage() {
                     ...formData,
                     actions: cleanedActions,
                     ...visibilityFields,
-                    canWrite: [auth.currentUser.uid]
+                    canWrite: [auth.currentUser.uid],
+                    admins: [auth.currentUser.uid]
                 });
                 navigate(docRef.id);
                 return true;
@@ -475,7 +477,7 @@ export function ClassPage() {
                         <textarea className="ClassPage-field-input ClassPage-field-textarea" name="description" onChange={handleChange} placeholder={ClassLayout.description} defaultValue={formData.description}/>
                         <div className="ClassPage-hint">Supports Markdown - **bold**, *italic*, and bullet lists (- item) all render on the character sheet and catalog card.</div>
                       </>
-                    : <div className="ClassPage-lore-view"><Markdown>{formData.description || ''}</Markdown></div>}
+                    : <div className="ClassPage-lore-view"><Markdown options={{ disableParsingRawHTML: true }}>{formData.description || ''}</Markdown></div>}
                 <div className="ClassPage-field-row" style={{ marginTop: 'var(--jnj-space-3)' }}>
                     <div className="ClassPage-field-grow">
                         <span className="ClassPage-field-label">Class Weapon(s)</span>
@@ -523,6 +525,8 @@ export function ClassPage() {
                     })}
                 </div>
             </div>}
+
+            {isEditingExisting && <DocAdminManager docRef={doc(db, "classes", classId)} admins={formData.admins} userId={userId} onChanged={getClassData}/>}
 
             {isEditingMode && <div className="ClassPage-save-bar">
                 <span className="ClassPage-save-bar-label">Unsaved changes</span>

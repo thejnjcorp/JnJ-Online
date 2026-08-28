@@ -6,6 +6,7 @@ import TextareaAutosize from 'react-textarea-autosize';
 import { auth, db } from '../utils/firebase';
 import { ADMIN_UIDS, STATUS_STAT_DEFINITIONS, getEffectsArray } from '../utils/statusEffects';
 import { statusFormReducer } from '../utils/statusFormReducer';
+import { DocAdminManager } from './DocAdminManager';
 import '../styles/StatusPage.scss';
 
 const formReducer = statusFormReducer;
@@ -72,10 +73,8 @@ export function StatusPage() {
     const statusId = location.pathname.split('/').at(2);
     const isEditing = Boolean(statusId);
 
-    useEffect(() => {
-        document.title = isEditing ? 'Edit Status' : 'New Status';
-        if (!isEditing) return;
-        getDoc(doc(db, 'statuses', statusId)).then(snap => {
+    function loadStatus() {
+        return getDoc(doc(db, 'statuses', statusId)).then(snap => {
             if (!snap.exists()) return;
             const data = snap.data();
             const effects = getEffectsArray(data);
@@ -83,6 +82,12 @@ export function StatusPage() {
             setFormData({ type: 'SET_FORM_DATA', payload: { ...EMPTY_STATUS, ...data, effects, decaysPerTurn, visibility: visibilityFromDoc(data) } });
             document.title = data.name;
         }).catch(error => console.log(error));
+    }
+
+    useEffect(() => {
+        document.title = isEditing ? 'Edit Status' : 'New Status';
+        if (!isEditing) return;
+        loadStatus();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [statusId]);
 
@@ -268,13 +273,26 @@ export function StatusPage() {
                 decaysPerTurn: Boolean(formData.decaysPerTurn),
                 grantedAction: formData.grantedAction?.actionName ? formData.grantedAction : null,
                 ...visibilityFields,
-                canWrite: [uid],
             };
             if (isEditing) {
-                await updateDoc(doc(db, 'statuses', statusId), payload);
+                await updateDoc(doc(db, 'statuses', statusId), {
+                    ...payload,
+                    // Merge rather than clobber - a bare overwrite here used
+                    // to silently drop any co-authors previously granted
+                    // write access every time anyone saved an edit. Mirrors
+                    // ClassPage.js's identical fix. admins is deliberately
+                    // left out of this update - only an existing doc admin
+                    // can change it (see firestore.rules), and the editor
+                    // here isn't necessarily one.
+                    canWrite: Array.from(new Set([...(formData.canWrite || []), uid])),
+                });
                 alert('Status updated.');
             } else {
-                const docRef = await addDoc(collection(db, 'statuses'), payload);
+                const docRef = await addDoc(collection(db, 'statuses'), {
+                    ...payload,
+                    canWrite: [uid],
+                    admins: [uid],
+                });
                 navigate('/statuses/' + docRef.id);
                 alert('Status created.');
             }
@@ -587,6 +605,8 @@ export function StatusPage() {
                 })}
             </div>
         </div>}
+
+        {isEditing && <DocAdminManager docRef={doc(db, 'statuses', statusId)} admins={formData.admins} userId={userId} onChanged={loadStatus}/>}
 
         <div className="StatusPage-actions">
             <button type="button" className="StatusPage-submit-button" onClick={handleSubmit} disabled={canWrite || submitting}>

@@ -232,6 +232,7 @@ describe('NewCharacterPage', () => {
             expect(payload.playerId).toBe('user-1');
             expect(payload.campaign).toBe('camp-1');
             expect(payload.canWrite).toEqual(['user-1', 'director-1']);
+            expect(payload.admins).toEqual(['user-1']); // firestore.rules requires the creator to be a doc admin to create at all
             expect(payload.strength_stat).toBe(4);
             expect(payload.dexterity_stat).toBe(3);
             expect(payload.intelligence_stat).toBe(2);

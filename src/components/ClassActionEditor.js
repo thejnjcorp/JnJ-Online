@@ -162,7 +162,7 @@ export function ClassActionEditor({ action, index, onChange, onRemove, onAddTag,
                     {action.trigger && <div><strong>Trigger:</strong> {action.trigger}</div>}
                     {action.requirement && <div><strong>Requirement:</strong> {action.requirement}</div>}
                 </div>}
-                <div className="ClassPage-action-description"><Markdown>{action.description || ''}</Markdown></div>
+                <div className="ClassPage-action-description"><Markdown options={{ disableParsingRawHTML: true }}>{action.description || ''}</Markdown></div>
                 {hasOutcomeTable && <table className="ClassPage-outcome-table">
                     <tbody>
                         {OUTCOME_ROWS.map(row => action.outcomeTable[row.key] &&

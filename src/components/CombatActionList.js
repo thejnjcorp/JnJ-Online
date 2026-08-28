@@ -91,7 +91,7 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
                     {action.requirement && <div className='CombatActionListCard-requirement'><strong>Requirement:</strong> {action.requirement}</div>}
                 </div>}
 
-                {!locked && <div className='CombatActionListCard-description'><Markdown>{action.description || ""}</Markdown></div>}
+                {!locked && <div className='CombatActionListCard-description'><Markdown options={{ disableParsingRawHTML: true }}>{action.description || ""}</Markdown></div>}
 
                 {!locked && hasOutcomeTable && <table className='CombatActionListCard-outcome-table'>
                     <tbody>

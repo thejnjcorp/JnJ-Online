@@ -15,6 +15,7 @@ import { CharacterMainTab } from './CharacterMainTab';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useIsMobile } from '../utils/useIsMobile';
 import { ReactComponent as ChevronDownIcon } from '../icons/chevron_down.svg';
+import { DocAdminManager } from './DocAdminManager';
 
 export function CharacterPage() {
     const [characterPage, setCharacterPage] = useState(characterPageLayout);
@@ -110,6 +111,7 @@ export function CharacterPage() {
                 <CharacterPageNavigation characterPage={characterPage} userId={userId}/>
                 <CharacterPageVitalsPanel characterPageLayoutLive={characterPage} userId={userId}/>
                 <CharacterMainTab characterPage={characterPage} userId={userId} characterList={characterList} campaignInfo={campaignInfo} />
+                <DocAdminManager docRef={docQuery} admins={characterPage.admins} userId={userId}/>
             </div>
             {/* Mobile only: Skills & Flaws content is unchanged, just moved into a
                 slide-up drawer instead of the persistent sidebar - see
