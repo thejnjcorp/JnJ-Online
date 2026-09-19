@@ -56,6 +56,10 @@
     "firebase:backfill-class-links": "node firebase/scripts/backfill-class-links.js",
     "firebase:backfill-race-links:test": "firebase emulators:exec --only firestore --config firebase/firebase.json --project jnj-online \"node firebase/test/backfill-race-links.test.js\"",
     "firebase:backfill-race-links": "node firebase/scripts/backfill-race-links.js",
+    "firebase:publish-class-updates:test": "firebase emulators:exec --only firestore --config firebase/firebase.json --project jnj-online \"node firebase/test/publish-class-updates.test.js\"",
+    "firebase:publish-class-updates": "node firebase/scripts/publish-class-updates.js",
+    "firebase:publish-class-statuses:test": "firebase emulators:exec --only firestore --config firebase/firebase.json --project jnj-online \"node firebase/test/publish-class-statuses.test.js\"",
+    "firebase:publish-class-statuses": "node firebase/scripts/publish-class-statuses.js",
     "sonar": "bash scripts/sonar-scan.sh"
   },
   "eslintConfig": {
