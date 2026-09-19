@@ -31,6 +31,7 @@ jest.mock('../../src/components/CampaignPage', () => ({ CampaignPage: () => <div
 jest.mock('../../src/components/NewCampaignPage', () => ({ NewCampaignPage: () => <div>NewCampaignPage-stub</div> }));
 jest.mock('../../src/components/NewCharacterPage', () => ({ NewCharacterPage: () => <div>NewCharacterPage-stub</div> }));
 jest.mock('../../src/components/CampaignClassesPage', () => ({ CampaignClassesPage: () => <div>CampaignClassesPage-stub</div> }));
+jest.mock('../../src/components/CampaignRacesPage', () => ({ CampaignRacesPage: () => <div>CampaignRacesPage-stub</div> }));
 jest.mock('../../src/components/CampaignStatusesPage', () => ({ CampaignStatusesPage: () => <div>CampaignStatusesPage-stub</div> }));
 
 // eslint-disable-next-line import/first
@@ -186,6 +187,12 @@ describe('Campaigns', () => {
         test('/campaigns/:id/classes renders CampaignClassesPage', async () => {
             renderWithRouter(<Campaigns />, { route: '/campaigns/camp-a/classes' });
             expect(await screen.findByText('CampaignClassesPage-stub')).toBeInTheDocument();
+        });
+
+        test('/campaigns/:id/races renders CampaignRacesPage, not the campaign detail page', async () => {
+            renderWithRouter(<Campaigns />, { route: '/campaigns/camp-a/races' });
+            expect(await screen.findByText('CampaignRacesPage-stub')).toBeInTheDocument();
+            expect(screen.queryByText('CampaignPage-stub')).not.toBeInTheDocument();
         });
 
         test('/campaigns/:id/statuses renders CampaignStatusesPage', async () => {

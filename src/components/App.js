@@ -12,6 +12,8 @@ import { AccountPage } from './AccountPage.js';
 import { DirectorsPage } from './DirectorsPage.js';
 import { ClassPage } from './ClassPage.js';
 import { ClassListPage } from './ClassListPage.js';
+import { RacePage } from './RacePage.js';
+import { RaceListPage } from './RaceListPage.js';
 import { StatusPage } from './StatusPage.js';
 import { StatusListPage } from './StatusListPage.js';
 import { auth } from '../utils/firebase.js';
@@ -70,6 +72,8 @@ function App() {
             <Route path='/directors/*' element={<DirectorsPage/>} />
             <Route path='/classes/*' element={<ClassPage/>} />
             <Route path='/class-list' element={<ClassListPage/>} />
+            <Route path='/races/*' element={<RacePage/>} />
+            <Route path='/race-list' element={<RaceListPage/>} />
             <Route path='/statuses/*' element={<StatusPage/>} />
             <Route path='/status-list' element={<StatusListPage/>} />
             {routeMarkdownFiles}

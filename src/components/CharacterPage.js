@@ -16,7 +16,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { useIsMobile } from '../utils/useIsMobile';
 import { ReactComponent as ChevronDownIcon } from '../icons/chevron_down.svg';
 import { DocAdminManager } from './DocAdminManager';
-import { useClassVersion } from '../utils/useClassVersion';
+import { useClassVersion, useRaceVersion } from '../utils/useClassVersion';
 import { resolveCharacter } from '../utils/characterClass';
 
 export function CharacterPage() {
@@ -96,13 +96,17 @@ export function CharacterPage() {
         });
     }, [location])
 
-    // Class data (actions, base AC/hit/healing, class name) comes from the
-    // class version this character is pinned to, not from the copy made at
-    // creation - see useClassVersion.js. Everything below renders
+    // Class data (actions, base AC/hit/healing, class name) and race data
+    // (name, racial actions) come from the versions this character is pinned
+    // to, not from the copies made at creation - see useClassVersion.js. Everything below renders
     // `character`; writes still go straight to the character doc by field, so
     // nothing derived here is ever written back.
     const classInfo = useClassVersion(characterPage.class_id, characterPage.class_version);
-    const character = useMemo(() => resolveCharacter(characterPage, classInfo.classData), [characterPage, classInfo.classData]);
+    const raceInfo = useRaceVersion(characterPage.race_id, characterPage.race_version);
+    const character = useMemo(
+        () => resolveCharacter(characterPage, classInfo.classData, raceInfo.raceData),
+        [characterPage, classInfo.classData, raceInfo.raceData]
+    );
 
     const skillsCount = character.skills_and_flaws.filter(item => item.isSkill).length;
     const flawsCount = character.skills_and_flaws.length - skillsCount;
@@ -118,7 +122,7 @@ export function CharacterPage() {
                     <SkillsAndFlaws characterPage={character} userId={userId}/>
                 </div>}
             <div className='CharacterPage-right-content'>
-                <CharacterPageNavigation characterPage={character} userId={userId} classInfo={classInfo}/>
+                <CharacterPageNavigation characterPage={character} userId={userId} classInfo={classInfo} raceInfo={raceInfo}/>
                 <CharacterPageVitalsPanel characterPageLayoutLive={character} userId={userId}/>
                 <CharacterMainTab characterPage={character} userId={userId} characterList={characterList} campaignInfo={campaignInfo} />
                 <DocAdminManager docRef={docQuery} admins={characterPage.admins} userId={userId}/>

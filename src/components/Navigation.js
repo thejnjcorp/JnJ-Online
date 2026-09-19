@@ -11,6 +11,7 @@ const NAV_LINKS = [
     { to: "/characters", label: "Characters" },
     { to: "/campaigns", label: "Campaigns" },
     { to: "/class-list", label: "Classes" },
+    { to: "/race-list", label: "Races" },
     { to: "/status-list", label: "Statuses" },
     { to: "/blog/JnJ_Ruleset", label: "Rules" },
 ];

@@ -161,3 +161,10 @@
     font-weight: 600;
     cursor: pointer;
 }
+
+.CharacterPage-masthead-versions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--jnj-space-2);
+}

@@ -71,29 +71,46 @@ service cloud.firestore {
 
       // classes/{classId} is always the current version; this holds immutable
       // snapshots of superseded ones, written when a new version is
-      // published (see src/utils/classVersions.js). Readable by whoever can
+      // published (see src/utils/versionedDocs.js). Readable by whoever can
       // read the class itself - the check only depends on the path, not on
       // this document's contents, so a list over the subcollection stays
       // provable. Created (never updated or deleted) by the class's own
       // writers/admins.
       match /versions/{versionId} {
-        allow read: if isSignedIn() && (classDoc(classId).get('public', false) == true
-          || uid() in classDoc(classId).get('canWrite', [])
-          || uid() in classDoc(classId).get('canRead', []));
+        allow read: if isSignedIn() && (parentDoc('classes', classId).get('public', false) == true
+          || uid() in parentDoc('classes', classId).get('canWrite', [])
+          || uid() in parentDoc('classes', classId).get('canRead', []));
 
-        allow create: if isSignedIn() && (uid() in classDoc(classId).get('canWrite', [])
-          || uid() in classDoc(classId).get('admins', []));
+        allow create: if isSignedIn() && (uid() in parentDoc('classes', classId).get('canWrite', [])
+          || uid() in parentDoc('classes', classId).get('admins', []));
       }
     }
 
+    // Races follow the classes model exactly (Default / Pool / Private,
+    // subscribed via campaigns.subscribedRaceIds, versioned - see the classes
+    // block above for why each rule is shaped the way it is). A race doc that
+    // predates this has no `public` field and so is unreadable until
+    // firebase/scripts/backfill-race-links.js marks it a Default.
     match /races/{raceId} {
-    	allow read: if isSignedIn();
+    	allow read: if isSignedIn() && (resource.data.public == true || uid() in canWriteField() || uid() in canReadField());
 
-      allow read, write: if isSignedIn() && uid() in canWriteField() && permissionFieldsUnchanged();
+      allow write: if isSignedIn() && uid() in canWriteField() && permissionFieldsUnchanged()
+        && (request.resource == null || !('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
 
-      allow read, write: if isSignedIn() && isDocAdmin();
+      allow write: if isSignedIn() && isDocAdmin()
+        && (request.resource == null || !('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
 
-      allow create: if isSignedIn() && !documentExists("races", raceId) && isCreatorDocAdmin();
+      allow create: if isSignedIn() && !documentExists("races", raceId) && isCreatorDocAdmin()
+        && (!('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
+
+      match /versions/{versionId} {
+        allow read: if isSignedIn() && (parentDoc('races', raceId).get('public', false) == true
+          || uid() in parentDoc('races', raceId).get('canWrite', [])
+          || uid() in parentDoc('races', raceId).get('canRead', []));
+
+        allow create: if isSignedIn() && (uid() in parentDoc('races', raceId).get('canWrite', [])
+          || uid() in parentDoc('races', raceId).get('admins', []));
+      }
     }
 
     match /maps/{mapId} {
@@ -222,8 +239,8 @@ service cloud.firestore {
           && request.resource.data.get('scheduledDeletionAt', null) == resource.data.get('scheduledDeletionAt', null));
     }
 
-    function classDoc(classId) {
-      return get(/databases/$(database)/documents/classes/$(classId)).data;
+    function parentDoc(collectionName, docId) {
+      return get(/databases/$(database)/documents/$(collectionName)/$(docId)).data;
     }
 
     function documentExists(docName, documentId) {

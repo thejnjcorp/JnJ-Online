@@ -21,10 +21,15 @@ jest.mock('../../src/utils/classVersions', () => ({
     resolveClassVersion: (...args) => mockResolveClassVersion(...args),
 }));
 
+const mockResolveRaceVersion = jest.fn();
+jest.mock('../../src/utils/raceVersions', () => ({
+    resolveRaceVersion: (...args) => mockResolveRaceVersion(...args),
+}));
+
 jest.mock('../../src/utils/useIsMobile', () => ({ useIsMobile: () => false }));
 
 jest.mock('../../src/components/CharacterPageVitalsPanel', () => ({ CharacterPageVitalsPanel: ({ characterPageLayoutLive }) => <div>Vitals-AC:{characterPageLayoutLive.base_armor_class}</div> }));
-jest.mock('../../src/components/CharacterPageNavigation', () => ({ CharacterPageNavigation: ({ characterPage, classInfo }) => <div>Nav:{characterPage.class_name}:{classInfo.status}:{classInfo.latestVersion}</div> }));
+jest.mock('../../src/components/CharacterPageNavigation', () => ({ CharacterPageNavigation: ({ characterPage, classInfo, raceInfo }) => <div>Nav:{characterPage.class_name}:{classInfo.status}:{classInfo.latestVersion}|Race:{characterPage.race_name}:{raceInfo.status}:{raceInfo.latestVersion}</div> }));
 jest.mock('../../src/components/SkillsAndFlaws', () => ({ SkillsAndFlaws: ({ characterPage }) => <div>Feats:{characterPage.actions.filter(a => a.category === 'feat').map(a => a.actionName).join(',')}</div> }));
 jest.mock('../../src/components/CharacterMainTab', () => ({ CharacterMainTab: ({ characterPage }) => <div>Actions:{characterPage.actions.map(a => a.actionName).join(',')}</div> }));
 jest.mock('../../src/components/DocAdminManager', () => ({ DocAdminManager: () => null }));
@@ -72,7 +77,7 @@ describe('CharacterPage class resolution', () => {
         expect(await screen.findByText('Actions:Fleetfoot,Adaptability,Mild Fire')).toBeInTheDocument();
         expect(screen.getByText('Vitals-AC:16')).toBeInTheDocument();
         expect(screen.getByText('Feats:Adaptability,Mild Fire')).toBeInTheDocument();
-        expect(screen.getByText('Nav:Monk:ready:3')).toBeInTheDocument();
+        expect(screen.getByText(/^Nav:Monk:ready:3/)).toBeInTheDocument();
         expect(mockResolveClassVersion).toHaveBeenCalledWith('monk', 2);
     });
 
@@ -116,5 +121,29 @@ describe('CharacterPage class resolution', () => {
 
         expect(await screen.findByText('Actions:Fleetfoot,Adaptability,Mild Fire')).toBeInTheDocument();
         expect(mockResolveClassVersion).toHaveBeenLastCalledWith('monk', 2);
+    });
+
+    test('a race the character is pinned to is read live: its actions and name replace the saved race copy', async () => {
+        mockResolveClassVersion.mockResolvedValue({ data: liveClass, version: 1, latestVersion: 1 });
+        mockResolveRaceVersion.mockResolvedValue({
+            data: { name: 'Kobold', actions: [{ actionName: 'Pack Tactics', category: 'feat' }, { actionName: 'Sunlight Sensitivity', category: 'feat' }] },
+            version: 2, latestVersion: 4,
+        });
+
+        mount({ ...savedCopy, class_version: 1, race_id: 'kobold', race_version: 2, race_name: 'Kobold (saved)', race_actions: [raceFeat] });
+
+        expect(await screen.findByText('Actions:Fleetfoot,Adaptability,Pack Tactics,Sunlight Sensitivity')).toBeInTheDocument();
+        expect(screen.getByText(/\|Race:Kobold:ready:4/)).toBeInTheDocument();
+        expect(mockResolveRaceVersion).toHaveBeenCalledWith('kobold', 2);
+    });
+
+    test('a race that cannot be read leaves the saved racial actions in place', async () => {
+        mockResolveClassVersion.mockResolvedValue({ data: liveClass, version: 1, latestVersion: 1 });
+        mockResolveRaceVersion.mockRejectedValue(new Error('permission-denied'));
+
+        mount({ ...savedCopy, class_version: 1, race_id: 'kobold', race_version: 1, race_name: 'Kobold (saved)', race_actions: [raceFeat] });
+
+        expect(await screen.findByText(/\|Race:Kobold \(saved\):fallback/)).toBeInTheDocument();
+        expect(screen.getByText('Actions:Fleetfoot,Adaptability,Mild Fire')).toBeInTheDocument();
     });
 });

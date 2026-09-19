@@ -19,7 +19,7 @@ jest.mock('firebase/firestore', () => ({
 }));
 
 // eslint-disable-next-line import/first
-import { subscribeClassToCampaign } from '../../src/utils/campaignSubscriptions';
+import { subscribeClassToCampaign, subscribeRaceToCampaign } from '../../src/utils/campaignSubscriptions';
 
 // resetMocks:true (jest.config.js) wipes implementations before every test,
 // so defaults live here rather than inline in the jest.fn(impl) calls above.
@@ -83,5 +83,18 @@ describe('subscribeClassToCampaign', () => {
     test('updates the campaign doc identified by campaignId', async () => {
         await subscribeClassToCampaign('campaign-42', { id: 'class-1' });
         expect(mockDoc).toHaveBeenCalledWith({}, 'campaigns', 'campaign-42');
+    });
+});
+
+describe('subscribeRaceToCampaign', () => {
+    test('records only the race id on the campaign - races have no statuses to cascade', async () => {
+        await subscribeRaceToCampaign('campaign-1', { id: 'race-1', name: 'Kobold' });
+
+        expect(mockGetDocs).not.toHaveBeenCalled();
+        expect(mockDoc).toHaveBeenCalledWith({}, 'campaigns', 'campaign-1');
+        expect(mockUpdateDoc).toHaveBeenCalledWith(
+            { __doc: ['campaigns', 'campaign-1'] },
+            { subscribedRaceIds: { __arrayUnion: ['race-1'] } }
+        );
     });
 });

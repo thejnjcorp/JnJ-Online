@@ -1,4 +1,4 @@
-import { applyClassToCharacter, isLinkedToClass, resolveCharacter, savedActions } from '../../src/utils/characterClass';
+import { applyClassToCharacter, isLinkedToClass, isLinkedToRace, raceActionsOf, resolveCharacter, savedActions, savedRaceActions } from '../../src/utils/characterClass';
 
 const raceFeat = { actionName: 'Mild Fire', category: 'feat' };
 const classData = {
@@ -101,5 +101,65 @@ describe('resolveCharacter', () => {
     test('a legacy (unlinked) character is returned as-is even if class data is supplied', () => {
         const legacy = { character_id: 'old', class_name: 'Fighter', actions: [{ actionName: 'Stab' }] };
         expect(resolveCharacter(legacy, classData)).toBe(legacy);
+    });
+});
+
+describe('isLinkedToRace', () => {
+    test('needs an integer race_version and a real race_id', () => {
+        expect(isLinkedToRace({ race_id: 'kobold', race_version: 1 })).toBe(true);
+        expect(isLinkedToRace({ race_id: 'kobold' })).toBe(false);
+        expect(isLinkedToRace({ race_version: 1 })).toBe(false);
+        expect(isLinkedToRace({ race_id: 'id', race_version: 1 })).toBe(false);
+        expect(isLinkedToRace(undefined)).toBe(false);
+    });
+});
+
+describe('raceActionsOf', () => {
+    test('uses the actions list, falling back to the older single feat, or nothing', () => {
+        expect(raceActionsOf({ actions: [raceFeat] })).toEqual([raceFeat]);
+        expect(raceActionsOf({ feat: raceFeat })).toEqual([raceFeat]);
+        expect(raceActionsOf({ name: 'Featless' })).toEqual([]);
+        expect(raceActionsOf(null)).toEqual([]);
+    });
+});
+
+describe('savedRaceActions', () => {
+    test('prefers race_actions, falls back to the legacy race_feat, or nothing', () => {
+        expect(savedRaceActions({ race_actions: [raceFeat], race_feat: { actionName: 'x' } })).toEqual([raceFeat]);
+        expect(savedRaceActions({ race_feat: raceFeat })).toEqual([raceFeat]);
+        expect(savedRaceActions({})).toEqual([]);
+    });
+});
+
+describe('resolveCharacter with races', () => {
+    const raceData = { name: 'Kobold Prime', actions: [{ actionName: 'Pack Tactics' }, { actionName: 'Fleetfoot' }] };
+    const raced = { ...linked, race_feat: undefined, race_id: 'kobold', race_version: 1, race_name: 'Kobold', race_actions: [raceFeat] };
+
+    test('a linked race with data loaded replaces the saved race actions and sets the race name', () => {
+        const result = resolveCharacter(raced, classData, raceData);
+        expect(result.race_name).toBe('Kobold Prime');
+        expect(result.actions.map(a => a.actionName)).toEqual(['Fleetfoot', 'Unpoachable', 'Pack Tactics']);
+    });
+
+    test('a linked race that could not be loaded keeps the saved race actions', () => {
+        const result = resolveCharacter(raced, classData, null);
+        expect(result.race_name).toBe('Kobold');
+        expect(result.actions.map(a => a.actionName)).toEqual(['Fleetfoot', 'Unpoachable', 'Mild Fire']);
+    });
+
+    test('a live race works even when the class is unlinked or unreadable', () => {
+        const result = resolveCharacter(raced, null, raceData);
+        expect(result.actions.map(a => a.actionName)).toEqual(['Old action', 'Pack Tactics', 'Fleetfoot']);
+    });
+
+    test('race data is ignored for a character not linked to a race', () => {
+        const result = resolveCharacter({ ...raced, race_version: undefined }, classData, raceData);
+        expect(result.race_name).toBe('Kobold');
+        expect(result.actions.map(a => a.actionName)).toEqual(['Fleetfoot', 'Unpoachable', 'Mild Fire']);
+    });
+
+    test('a race with no actions contributes none', () => {
+        const result = resolveCharacter(raced, classData, { name: 'Plain' });
+        expect(result.actions.map(a => a.actionName)).toEqual(['Fleetfoot', 'Unpoachable']);
     });
 });

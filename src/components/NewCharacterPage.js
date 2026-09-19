@@ -7,6 +7,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { CharacterDiceConverter } from './CharacterStatCalculator';
 import { CombatActionList } from './CombatActionList';
 import { newCharacterFormReducer } from '../utils/newCharacterFormReducer';
+import { raceActionsOf } from '../utils/characterClass';
 
 export const formReducer = newCharacterFormReducer;
 
@@ -21,11 +22,11 @@ export function NewCharacterPage() {
     const location = useLocation();
 
     useEffect(() => {
-        getRaceList();
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (!user) return;
             getPlayerInfo(user);
             getClassList(user.uid);
+            getRaceList(user.uid);
             unsubscribe();
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -48,6 +49,16 @@ export function NewCharacterPage() {
         console.log("ready to submit!")
     },[formData])
 
+    async function getSubscribedIds(field) {
+        try {
+            const campaignSnap = await getDoc(doc(db, "campaigns", location.pathname.split("/").at(2)));
+            return campaignSnap.data()?.[field] || [];
+        } catch (e) {
+            console.log(e);
+            return [];
+        }
+    }
+
     async function getClassList(uid) {
         try {
             // Same visibility scoping StatusListPage.js/AddStatusDialog.js
@@ -58,13 +69,7 @@ export function NewCharacterPage() {
             // character can't be given a class outside that set. See
             // design/classes-page/handoff/CLASSES_REDESIGN_HANDOFF.md's
             // "Consuming the subscription" section.
-            let subscribedClassIds = [];
-            try {
-                const campaignSnap = await getDoc(doc(db, "campaigns", location.pathname.split("/").at(2)));
-                subscribedClassIds = campaignSnap.data()?.subscribedClassIds || [];
-            } catch (e) {
-                console.log(e);
-            }
+            const subscribedClassIds = await getSubscribedIds("subscribedClassIds");
             const classesQuery = query(collection(db, "classes"),
                 or(where("public", "==", true), where("canRead", "array-contains", uid), where("canWrite", "array-contains", uid)));
             const docsSnapshot = await getDocs(classesQuery);
@@ -76,10 +81,17 @@ export function NewCharacterPage() {
         }
     }
 
-    async function getRaceList() {
+    // Scoped exactly like the class list: what this viewer can read, narrowed
+    // to what the campaign offers (an admin default, a race this viewer
+    // authored, or one the campaign has subscribed to).
+    async function getRaceList(uid) {
         try {
-            const docsSnapshot = await getDocs(collection(db, "races"));
-            setRaceList(docsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
+            const subscribedRaceIds = await getSubscribedIds("subscribedRaceIds");
+            const racesQuery = query(collection(db, "races"),
+                or(where("public", "==", true), where("canRead", "array-contains", uid), where("canWrite", "array-contains", uid)));
+            const docsSnapshot = await getDocs(racesQuery);
+            const all = docsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+            setRaceList(all.filter(r => r.isDefault || r.canWrite?.includes(uid) || subscribedRaceIds.includes(r.id)));
         } catch(e) {
             console.log("Failed to get Race list: " + e)
         }
@@ -124,9 +136,9 @@ export function NewCharacterPage() {
         // (class_id + class_version - see useClassVersion.js), so what's
         // copied here is only the saved copy it falls back to when that class
         // can't be read. Class-level bookkeeping (id, permissions, visibility,
-        // version metadata) stays on the class. The race feat is kept in its
-        // own field rather than merged into `actions`, so a live class can
-        // replace `actions` without dropping it.
+        // version metadata) stays on the class. The race's actions are kept in
+        // their own field rather than merged into `actions`, so a live class
+        // can replace `actions` without dropping them.
         const { id, canWrite, description, public: isPublic, isDefault, visibility, version, versionNotes, publishedAt, ...classFields } = selectedClass;
         const newData = {
             ...classFields,
@@ -134,8 +146,9 @@ export function NewCharacterPage() {
             class_version: version ?? 1,
             actions: classFields.actions || [],
         };
-        if (raceData.feat) newData.race_feat = raceData.feat;
         newData.race_name = raceData.name;
+        newData.race_version = raceData.version ?? 1;
+        newData.race_actions = raceActionsOf(raceData);
         newData.player_name = playerInfo.name;
         newData.playerId = playerInfo.uid;
         newData.admins = [playerInfo.uid];
@@ -254,10 +267,10 @@ export function NewCharacterPage() {
                 })}
             </select>
         </div>
-        {formData.race_id && formData.class_id && selectedClassInfo && <div className='NewCharacterPage-actions'>
+        {formData.race_id && formData.class_id && selectedClassInfo && raceActionsOf(raceList.find(race => race.id === formData.race_id)).length > 0 && <div className='NewCharacterPage-actions'>
             <CombatActionList 
                 key={"race-feats"}
-                actions={[raceList.filter(race => race.id === formData.race_id)?.at(0).feat]}
+                actions={raceActionsOf(raceList.find(race => race.id === formData.race_id))}
                 experience_points={0}
                 baseArmorClass={Number.parseInt(selectedClassInfo.base_armor_class)}
                 baseHitModifier={Number.parseInt(selectedClassInfo.base_hit_modifier)}

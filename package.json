@@ -54,6 +54,8 @@
     "firebase:backfill-admins": "node firebase/scripts/backfill-admins.js",
     "firebase:backfill-class-links:test": "firebase emulators:exec --only firestore --config firebase/firebase.json --project jnj-online \"node firebase/test/backfill-class-links.test.js\"",
     "firebase:backfill-class-links": "node firebase/scripts/backfill-class-links.js",
+    "firebase:backfill-race-links:test": "firebase emulators:exec --only firestore --config firebase/firebase.json --project jnj-online \"node firebase/test/backfill-race-links.test.js\"",
+    "firebase:backfill-race-links": "node firebase/scripts/backfill-race-links.js",
     "sonar": "bash scripts/sonar-scan.sh"
   },
   "eslintConfig": {

@@ -21,6 +21,8 @@ jest.mock('../../src/components/AccountPage.js', () => ({ AccountPage: () => <di
 jest.mock('../../src/components/DirectorsPage.js', () => ({ DirectorsPage: () => <div>DirectorsPage-stub</div> }));
 jest.mock('../../src/components/ClassPage.js', () => ({ ClassPage: () => <div>ClassPage-stub</div> }));
 jest.mock('../../src/components/ClassListPage.js', () => ({ ClassListPage: () => <div>ClassListPage-stub</div> }));
+jest.mock('../../src/components/RacePage.js', () => ({ RacePage: () => <div>RacePage-stub</div> }));
+jest.mock('../../src/components/RaceListPage.js', () => ({ RaceListPage: () => <div>RaceListPage-stub</div> }));
 jest.mock('../../src/components/StatusPage.js', () => ({ StatusPage: () => <div>StatusPage-stub</div> }));
 jest.mock('../../src/components/StatusListPage.js', () => ({ StatusListPage: () => <div>StatusListPage-stub</div> }));
 
@@ -91,6 +93,9 @@ describe('App', () => {
         ['/directors', 'DirectorsPage-stub'],
         ['/classes', 'ClassPage-stub'],
         ['/class-list', 'ClassListPage-stub'],
+        ['/races', 'RacePage-stub'],
+        ['/races/race-1', 'RacePage-stub'],
+        ['/race-list', 'RaceListPage-stub'],
         ['/statuses', 'StatusPage-stub'],
         ['/status-list', 'StatusListPage-stub'],
         ['/blog', 'Blog-stub:'],

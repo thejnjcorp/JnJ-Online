@@ -867,6 +867,137 @@ async function main() {
         await assertSucceeds(batch.commit());
     });
 
+    console.log('\nRace catalog (races collection, same model as classes):');
+
+    await check('a signed-in user can create a pool race, a signed-out visitor cannot', async () => {
+        await testEnv.clearFirestore();
+        const alice = testEnv.authenticatedContext('alice');
+        const anon = testEnv.unauthenticatedContext();
+        await assertSucceeds(addDoc(collection(alice.firestore(), 'races'), {
+            name: 'Elf', author: 'alice', public: true, isDefault: false, canRead: [], canWrite: ['alice'], admins: ['alice'], actions: [],
+        }));
+        await assertFails(addDoc(collection(anon.firestore(), 'races'), { name: 'Should Fail' }));
+    });
+
+    await check('a non-admin cannot create a Default race or promote their own race to one; the admin account can create one', async () => {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'races', 'homebrew'), {
+                name: 'Homebrew', isDefault: false, public: true, canRead: [], canWrite: ['mallory'],
+            });
+        });
+        const mallory = testEnv.authenticatedContext('mallory');
+        const admin = testEnv.authenticatedContext(ADMIN_UID);
+        await assertFails(addDoc(collection(mallory.firestore(), 'races'), {
+            name: 'Self-Promoted', isDefault: true, public: true, canRead: [], canWrite: ['mallory'], admins: ['mallory'],
+        }));
+        await assertFails(updateDoc(doc(mallory.firestore(), 'races', 'homebrew'), { isDefault: true }));
+        await assertSucceeds(addDoc(collection(admin.firestore(), 'races'), {
+            name: 'Kobold', isDefault: true, public: true, canRead: [], canWrite: [ADMIN_UID], admins: [ADMIN_UID],
+        }));
+    });
+
+    await check('a public race is readable by any signed-in user; a private one only by its readers/writers', async () => {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'races', 'pool'), { name: 'Elf', public: true, canRead: [], canWrite: ['bob'] });
+            await setDoc(doc(adminCtx.firestore(), 'races', 'secret'), { name: 'Secret', public: false, canRead: ['carol'], canWrite: ['bob'] });
+        });
+        const mallory = testEnv.authenticatedContext('mallory');
+        await assertSucceeds(getDoc(doc(mallory.firestore(), 'races', 'pool')));
+        await assertFails(getDoc(doc(mallory.firestore(), 'races', 'secret')));
+        await assertSucceeds(getDoc(doc(testEnv.authenticatedContext('carol').firestore(), 'races', 'secret')));
+        await assertSucceeds(getDoc(doc(testEnv.authenticatedContext('bob').firestore(), 'races', 'secret')));
+    });
+
+    await check('a race with no visibility fields at all (an unmigrated legacy doc) is not readable', async () => {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'races', 'kobold'), { name: 'Kobold', feat: { actionName: 'Mild Fire' } });
+        });
+        await assertFails(getDoc(doc(testEnv.authenticatedContext('alice').firestore(), 'races', 'kobold')));
+    });
+
+    await check('the app\'s scoped list query (public, or readable/writable by me) is accepted and returns only readable races', async () => {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'races', 'pool'), { name: 'Elf', public: true, canRead: [], canWrite: ['bob'] });
+            await setDoc(doc(adminCtx.firestore(), 'races', 'mine'), { name: 'Mine', public: false, canRead: ['alice'], canWrite: ['alice'] });
+            await setDoc(doc(adminCtx.firestore(), 'races', 'theirs'), { name: 'Theirs', public: false, canRead: ['bob'], canWrite: ['bob'] });
+        });
+        const alice = testEnv.authenticatedContext('alice');
+        const snap = await getDocs(query(collection(alice.firestore(), 'races'),
+            or(where('public', '==', true), where('canRead', 'array-contains', 'alice'), where('canWrite', 'array-contains', 'alice'))));
+        const ids = snap.docs.map(d => d.id).sort();
+        if (ids.join(',') !== 'mine,pool') throw new Error(`expected [mine, pool], got [${ids.join(', ')}]`);
+    });
+
+    await check('an unscoped list of the races collection is rejected outright', async () => {
+        await testEnv.clearFirestore();
+        await assertFails(getDocs(collection(testEnv.authenticatedContext('alice').firestore(), 'races')));
+    });
+
+    await check('a non-author cannot edit someone else\'s race', async () => {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'races', 'elf'), { name: 'Elf', public: true, canWrite: ['bob'] });
+        });
+        await assertFails(updateDoc(doc(testEnv.authenticatedContext('mallory').firestore(), 'races', 'elf'), { name: 'Hijacked' }));
+    });
+
+    await check('a plain canWrite collaborator cannot grant write access; a doc admin can', async () => {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'races', 'elf'), {
+                name: 'Elf', public: true, canRead: [], canWrite: ['bob', 'carol'], admins: ['bob'],
+            });
+        });
+        await assertFails(updateDoc(doc(testEnv.authenticatedContext('carol').firestore(), 'races', 'elf'), { canWrite: ['bob', 'carol', 'mallory'] }));
+        await assertSucceeds(updateDoc(doc(testEnv.authenticatedContext('bob').firestore(), 'races', 'elf'), { canWrite: ['bob', 'carol', 'dave'] }));
+    });
+
+    console.log('\nRace versions (races/{id}/versions - immutable snapshots):');
+
+    async function seedRaceWithVersion({ isPublic }) {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'races', 'kobold'), {
+                name: 'Kobold', version: 2, public: isPublic, isDefault: false,
+                canWrite: ['bob'], canRead: isPublic ? [] : ['bob'], admins: ['bob'],
+            });
+            await setDoc(doc(adminCtx.firestore(), 'races', 'kobold', 'versions', '1'), { name: 'Kobold', version: 1 });
+        });
+    }
+
+    await check('anyone signed in can read and list versions of a public race; only its readers can for a private one', async () => {
+        await seedRaceWithVersion({ isPublic: true });
+        const alice = testEnv.authenticatedContext('alice');
+        await assertSucceeds(getDoc(doc(alice.firestore(), 'races', 'kobold', 'versions', '1')));
+        await assertSucceeds(getDocs(collection(alice.firestore(), 'races', 'kobold', 'versions')));
+
+        await seedRaceWithVersion({ isPublic: false });
+        await assertFails(getDoc(doc(testEnv.authenticatedContext('mallory').firestore(), 'races', 'kobold', 'versions', '1')));
+        await assertSucceeds(getDoc(doc(testEnv.authenticatedContext('bob').firestore(), 'races', 'kobold', 'versions', '1')));
+    });
+
+    await check('a race writer can create a version snapshot, a non-writer cannot, and a snapshot can never be changed or deleted', async () => {
+        await seedRaceWithVersion({ isPublic: true });
+        const bob = testEnv.authenticatedContext('bob');
+        await assertSucceeds(setDoc(doc(bob.firestore(), 'races', 'kobold', 'versions', '2'), { name: 'Kobold', version: 2 }));
+        await assertFails(setDoc(doc(testEnv.authenticatedContext('mallory').firestore(), 'races', 'kobold', 'versions', '3'), { name: 'Kobold', version: 3 }));
+        await assertFails(updateDoc(doc(bob.firestore(), 'races', 'kobold', 'versions', '1'), { name: 'Tampered' }));
+        await assertFails(deleteDoc(doc(bob.firestore(), 'races', 'kobold', 'versions', '1')));
+    });
+
+    await check('publishing (snapshot + bump in one batch) works for a race writer', async () => {
+        await seedRaceWithVersion({ isPublic: true });
+        const bob = testEnv.authenticatedContext('bob');
+        const batch = writeBatch(bob.firestore());
+        batch.set(doc(bob.firestore(), 'races', 'kobold', 'versions', '2'), { name: 'Kobold', version: 2 });
+        batch.update(doc(bob.firestore(), 'races', 'kobold'), { version: 3, versionNotes: 'More scales' });
+        await assertSucceeds(batch.commit());
+    });
+
     await testEnv.cleanup();
 
     if (failures > 0) {

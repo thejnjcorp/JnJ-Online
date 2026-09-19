@@ -1,91 +1,21 @@
-import { useState } from 'react';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../utils/firebase';
 import { listClassVersions } from '../utils/classVersions';
 import { isLinkedToClass } from '../utils/characterClass';
-import '../styles/ClassVersionControl.scss';
+import { VersionControl } from './VersionControl';
 
-function formatDate(timestamp) {
-    if (!timestamp?.toDate) return '';
-    return timestamp.toDate().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-}
-
-// Shows which version of its class a character is pinned to, and lets people
-// who can write to the character move it to any other version - up to a
-// newer one, or back down to an older one. Only rendered for characters
-// linked to a class (see isLinkedToClass); legacy ones just show the saved copy.
+// Only rendered for characters linked to a class (see isLinkedToClass);
+// legacy ones just show the saved copy.
 export function ClassVersionControl({ characterPage, userId, status, latestVersion }) {
-    const [open, setOpen] = useState(false);
-    const [versions, setVersions] = useState(null);
-    const [error, setError] = useState('');
-    const [switching, setSwitching] = useState(false);
-
     if (!isLinkedToClass(characterPage)) return null;
-
-    const pinned = characterPage.class_version;
-    const canSwitch = Boolean(userId && characterPage.canWrite?.includes(userId));
-    const hasUpdate = latestVersion !== null && latestVersion !== undefined && latestVersion > pinned;
-
-    async function openDialog() {
-        setOpen(true);
-        setError('');
-        try {
-            setVersions(await listClassVersions(characterPage.class_id));
-        } catch {
-            setVersions([]);
-            setError("Couldn't load this class's versions.");
-        }
-    }
-
-    async function switchToVersion(version) {
-        setSwitching(true);
-        try {
-            await updateDoc(doc(db, 'characters', characterPage.character_id), { class_version: version });
-            setOpen(false);
-        } catch (e) {
-            setError(String(e.message || e));
-        }
-        setSwitching(false);
-    }
-
-    if (status === 'fallback') {
-        return <div className="ClassVersionControl-fallback">Class not available - showing this character's saved copy</div>;
-    }
-
-    return <>
-        <button type="button" className="ClassVersionControl-button" onClick={openDialog}>
-            <span>Class v{pinned}</span>
-            {hasUpdate && <span className="ClassVersionControl-badge">v{latestVersion} available</span>}
-        </button>
-
-        {open && <>
-            <button type="button" className="ClassVersionControl-scrim" aria-label="Close" onClick={() => setOpen(false)}/>
-            <div className="ClassVersionControl-dialog" role="dialog" aria-label="Class versions">
-                <h3>{characterPage.class_name} versions</h3>
-                {!canSwitch && <p className="ClassVersionControl-hint">Only people who can edit this character can change its class version.</p>}
-                {error && <p className="ClassVersionControl-error">{error}</p>}
-                {versions === null && <p className="ClassVersionControl-hint">Loading&hellip;</p>}
-                <ul className="ClassVersionControl-list">
-                    {(versions || []).map(entry => <li key={entry.version} className={entry.version === pinned ? 'ClassVersionControl-row ClassVersionControl-row-pinned' : 'ClassVersionControl-row'}>
-                        <div className="ClassVersionControl-row-main">
-                            <span className="ClassVersionControl-row-title">
-                                v{entry.version}
-                                {entry.version === latestVersion && <em> latest</em>}
-                                {entry.version === pinned && <em> current</em>}
-                            </span>
-                            {entry.notes && <span className="ClassVersionControl-row-notes">{entry.notes}</span>}
-                            {formatDate(entry.publishedAt) && <span className="ClassVersionControl-row-date">{formatDate(entry.publishedAt)}</span>}
-                        </div>
-                        {canSwitch && entry.version !== pinned && <button
-                            type="button"
-                            className="ClassVersionControl-use-button"
-                            disabled={switching}
-                            onClick={() => switchToVersion(entry.version)}
-                        >{entry.version > pinned ? 'Upgrade to this' : 'Switch back to this'}</button>}
-                    </li>)}
-                </ul>
-                <button type="button" className="ClassVersionControl-close-button" onClick={() => setOpen(false)}>Close</button>
-            </div>
-        </>}
-    </>;
+    return <VersionControl
+        kind="Class"
+        name={characterPage.class_name}
+        docId={characterPage.class_id}
+        pinned={characterPage.class_version}
+        versionField="class_version"
+        listVersions={listClassVersions}
+        characterPage={characterPage}
+        userId={userId}
+        status={status}
+        latestVersion={latestVersion}
+    />;
 }

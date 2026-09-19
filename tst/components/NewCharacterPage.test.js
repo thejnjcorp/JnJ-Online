@@ -37,7 +37,11 @@ import { NewCharacterPage } from '../../src/components/NewCharacterPage';
 // eslint-disable-next-line import/first
 import { renderWithRouter } from '../testUtils/renderWithRouter';
 
-const humanRace = { id: 'race-1', name: 'Human', feat: { actionName: 'Adaptable', toHitBool: false, difficultyClass: 'Cha,0', actionCost: 0, category: 'feat' } };
+const adaptable = { actionName: 'Adaptable', toHitBool: false, difficultyClass: 'Cha,0', actionCost: 0, category: 'feat' };
+
+function humanRace(overrides = {}) {
+    return { id: 'race-1', name: 'Human', isDefault: true, canWrite: [], actions: [adaptable], ...overrides };
+}
 
 function fighterClass(overrides = {}) {
     return {
@@ -58,7 +62,7 @@ function docsFrom(items) {
     return { docs: items.map(item => ({ id: item.id, data: () => item })) };
 }
 
-function signIn(user, { classes = [], playerName = 'Sam', campaign = { canWrite: [], canRead: [] } } = {}) {
+function signIn(user, { classes = [], races = [humanRace()], playerName = 'Sam', campaign = { canWrite: [], canRead: [] } } = {}) {
     mockOnAuthStateChanged.mockImplementation((_auth, callback) => {
         Promise.resolve().then(() => callback(user));
         return jest.fn();
@@ -69,7 +73,7 @@ function signIn(user, { classes = [], playerName = 'Sam', campaign = { canWrite:
         return Promise.resolve({ data: () => ({}) });
     });
     mockGetDocs.mockImplementation((q) => {
-        if (q?.__collection === 'races') return Promise.resolve(docsFrom([humanRace]));
+        if (q?.__collection === 'races') return Promise.resolve(docsFrom(races));
         return Promise.resolve(docsFrom(classes));
     });
 }
@@ -81,7 +85,7 @@ beforeEach(() => {
     mockOr.mockImplementation((...args) => ({ __or: args }));
     mockWhere.mockImplementation((...args) => ({ __where: args }));
     mockOnAuthStateChanged.mockImplementation(() => jest.fn());
-    mockGetDocs.mockImplementation((q) => Promise.resolve(docsFrom(q?.__collection === 'races' ? [humanRace] : [])));
+    mockGetDocs.mockImplementation(() => Promise.resolve(docsFrom([])));
     mockGetDoc.mockResolvedValue({ data: () => ({}) });
     mockAddDoc.mockResolvedValue({ id: 'new-char-id' });
     window.alert = jest.fn();
@@ -99,15 +103,39 @@ async function renderAt(route, options) {
 
 describe('NewCharacterPage', () => {
     test('sets the document title', async () => {
-        renderWithRouter(<NewCharacterPage />, { route: '/campaigns/camp-1/newCharacter' });
+        await renderAt('/campaigns/camp-1/newCharacter');
         expect(document.title).toBe('New Character');
-        await screen.findByText('Human');
     });
 
-    test('loads the race list on mount, independent of auth', async () => {
-        renderWithRouter(<NewCharacterPage />, { route: '/campaigns/camp-1/newCharacter' });
-        expect(await screen.findByText('Human')).toBeInTheDocument();
-        expect(mockCollection).toHaveBeenCalledWith({}, 'races');
+    describe('race list scoping', () => {
+        test('asks only for races this viewer can read, not the whole collection', async () => {
+            await renderAt('/campaigns/camp-1/newCharacter');
+
+            const racesQuery = mockQuery.mock.results.map(r => r.value).find(q => q.__collection === 'races');
+            expect(racesQuery.args[0].__or).toEqual([
+                { __where: ['public', '==', true] },
+                { __where: ['canRead', 'array-contains', 'user-1'] },
+                { __where: ['canWrite', 'array-contains', 'user-1'] },
+            ]);
+        });
+
+        test('excludes a pool race the campaign has not subscribed to', async () => {
+            const pool = humanRace({ id: 'race-2', name: 'Elf', isDefault: false, public: true });
+            await renderAt('/campaigns/camp-1/newCharacter', { races: [humanRace(), pool] });
+            expect(screen.queryByRole('option', { name: 'Elf' })).not.toBeInTheDocument();
+        });
+
+        test('includes a pool race the campaign has subscribed to', async () => {
+            const pool = humanRace({ id: 'race-2', name: 'Elf', isDefault: false, public: true });
+            await renderAt('/campaigns/camp-1/newCharacter', { races: [humanRace(), pool], campaign: { canWrite: [], canRead: [], subscribedRaceIds: ['race-2'] } });
+            expect(screen.getByRole('option', { name: 'Elf' })).toBeInTheDocument();
+        });
+
+        test('includes a race the viewer authored', async () => {
+            const mine = humanRace({ id: 'race-3', name: 'Homebrew', isDefault: false, canWrite: ['user-1'] });
+            await renderAt('/campaigns/camp-1/newCharacter', { races: [humanRace(), mine] });
+            expect(screen.getByRole('option', { name: 'Homebrew' })).toBeInTheDocument();
+        });
     });
 
     test('shows the player name and uid once signed in', async () => {
@@ -164,6 +192,33 @@ describe('NewCharacterPage', () => {
             expect(screen.getByText(/Author: Admin/)).toBeInTheDocument();
             expect(screen.getByText('A frontline tank.')).toBeInTheDocument();
             expect(screen.getByText('Stab')).toBeInTheDocument(); // from the class actions CombatActionList
+        });
+
+        test('a race with several actions lists every one of them; a legacy single-feat race still shows its feat', async () => {
+            const twoActions = humanRace({ id: 'race-2', name: 'Kobold', actions: [{ ...adaptable, actionName: 'Pack Tactics' }, { ...adaptable, actionName: 'Sunlight Sensitivity' }] });
+            const legacy = humanRace({ id: 'race-3', name: 'Ancient', actions: undefined, feat: { ...adaptable, actionName: 'Old Feat' } });
+            await renderAt('/campaigns/camp-1/newCharacter', { classes: [fighterClass()], races: [humanRace(), twoActions, legacy] });
+            const [raceSelect, classSelect] = screen.getAllByRole('combobox');
+            fireEvent.change(classSelect, { target: { name: 'class_id', value: 'class-1' } });
+
+            fireEvent.change(raceSelect, { target: { name: 'race_id', value: 'race-2' } });
+            fireEvent.click(screen.getByRole('button', { name: 'View Class Info' }));
+            expect(screen.getByText('Pack Tactics')).toBeInTheDocument();
+            expect(screen.getByText('Sunlight Sensitivity')).toBeInTheDocument();
+
+            fireEvent.change(raceSelect, { target: { name: 'race_id', value: 'race-3' } });
+            expect(screen.getByText('Old Feat')).toBeInTheDocument();
+        });
+
+        test('a race with no actions shows no race action list and does not break the preview', async () => {
+            await renderAt('/campaigns/camp-1/newCharacter', { classes: [fighterClass()], races: [humanRace({ actions: [] })] });
+            const [raceSelect, classSelect] = screen.getAllByRole('combobox');
+            fireEvent.change(raceSelect, { target: { name: 'race_id', value: 'race-1' } });
+            fireEvent.change(classSelect, { target: { name: 'class_id', value: 'class-1' } });
+
+            fireEvent.click(screen.getByRole('button', { name: 'View Class Info' }));
+
+            expect(screen.getByText('Stab')).toBeInTheDocument();
         });
 
         test('selecting a race and a class, then viewing class info, also shows the race\'s feat action list', async () => {
@@ -241,7 +296,35 @@ describe('NewCharacterPage', () => {
             expect(mockNavigate).toHaveBeenCalledWith('/characters/new-char-id');
         });
 
-        test('pins the character to the class version it was built from, and keeps the race feat out of the class actions', async () => {
+        test('pins the character to the race version and saves its actions in race_actions', async () => {
+            await renderAt('/campaigns/camp-1/newCharacter', { classes: [fighterClass()], races: [humanRace({ version: 3 })] });
+            await fillRequiredFields();
+
+            fireEvent.click(screen.getByRole('button', { name: 'Create Character' }));
+
+            await waitFor(() => expect(mockAddDoc).toHaveBeenCalled());
+            const [, payload] = mockAddDoc.mock.calls[0];
+            expect(payload.race_id).toBe('race-1');
+            expect(payload.race_version).toBe(3);
+            expect(payload.race_name).toBe('Human');
+            expect(payload.race_actions).toEqual([adaptable]);
+            expect(payload).not.toHaveProperty('race_feat');
+        });
+
+        test('a race that has never been versioned pins to version 1, and a legacy single-feat race saves its feat as an action', async () => {
+            const legacy = humanRace({ actions: undefined, feat: adaptable });
+            await renderAt('/campaigns/camp-1/newCharacter', { classes: [fighterClass()], races: [legacy] });
+            await fillRequiredFields();
+
+            fireEvent.click(screen.getByRole('button', { name: 'Create Character' }));
+
+            await waitFor(() => expect(mockAddDoc).toHaveBeenCalled());
+            const [, payload] = mockAddDoc.mock.calls[0];
+            expect(payload.race_version).toBe(1);
+            expect(payload.race_actions).toEqual([adaptable]);
+        });
+
+        test('pins the character to the class version it was built from, and keeps the race actions out of the class actions', async () => {
             await renderAt('/campaigns/camp-1/newCharacter', { classes: [fighterClass({ version: 4, versionNotes: 'Rebalanced', publishedAt: 'ts', public: true, visibility: 'public' })], campaign: { canWrite: [], canRead: [] } });
             await fillRequiredFields();
 
@@ -251,8 +334,7 @@ describe('NewCharacterPage', () => {
             const [, payload] = mockAddDoc.mock.calls[0];
             expect(payload.class_id).toBe('class-1');
             expect(payload.class_version).toBe(4);
-            expect(payload.race_feat).toEqual(humanRace.feat);
-            // saved copy = the class's own actions only; the race feat lives in race_feat
+            // saved copy = the class's own actions only; racial ones live in race_actions
             expect(payload.actions).toEqual(fighterClass().actions);
             expect(payload.class_description).toBe('A frontline tank.');
             // class-level bookkeeping stays on the class

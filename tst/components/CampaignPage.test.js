@@ -160,6 +160,7 @@ describe('CampaignPage', () => {
         test.each([
             ['Director Mode', '/directors/camp-1'],
             ['Manage Classes', '/campaigns/camp-1/classes'],
+            ['Manage Races', '/campaigns/camp-1/races'],
             ['Manage Statuses', '/campaigns/camp-1/statuses'],
         ])('%s navigates to %s', async (label, route) => {
             signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale' });

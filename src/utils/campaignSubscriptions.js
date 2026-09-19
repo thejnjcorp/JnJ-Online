@@ -34,3 +34,8 @@ export async function subscribeClassToCampaign(campaignId, classDoc) {
     await updateDoc(doc(db, 'campaigns', campaignId), payload);
     return statusIds;
 }
+
+// Races carry no statuses, so subscribing one is just recording the id.
+export async function subscribeRaceToCampaign(campaignId, raceDoc) {
+    await updateDoc(doc(db, 'campaigns', campaignId), { subscribedRaceIds: arrayUnion(raceDoc.id) });
+}
