@@ -22,6 +22,7 @@ import {
 } from '@mdxeditor/editor';
 import '@mdxeditor/editor/style.css';
 import { MarkdownFallback } from './MarkdownFallback';
+import { keepBlankLines } from '../utils/markdownBlankLines';
 
 // Only what markdown-to-jsx (which renders all of this text) can show: no
 // underline (it needs raw HTML, which we don't render) and no images or code
@@ -126,7 +127,8 @@ export default function MarkdownEditorImpl({ value, onChange, placeholder, label
     // `normalize` is true when the editor is only re-serialising what it just
     // loaded (a different bullet character, extra whitespace). That isn't an
     // edit, so merely opening something mustn't change or save it.
-    function handleChange(markdown, normalize) {
+    function handleChange(reported, normalize) {
+        const markdown = keepBlankLines(reported);
         if (normalize || markdown === lastValue.current) return;
         lastValue.current = markdown;
         onChange(markdown);

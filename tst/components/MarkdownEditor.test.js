@@ -43,6 +43,15 @@ describe('MarkdownEditor', () => {
         expect(onChange).toHaveBeenCalledWith('hello **world**');
     });
 
+    test('an empty paragraph is reported as a blank line the renderer will show, not as nothing', async () => {
+        const onChange = jest.fn();
+        render(<Harness initial="hello" onChange={onChange}/>);
+
+        fireEvent.change(await editor(), { target: { value: 'hello\n\n\n\nworld' } });
+
+        expect(onChange).toHaveBeenCalledWith('hello\n\n&nbsp;\n\nworld');
+    });
+
     test('does not report a change that leaves the text as it was', async () => {
         const onChange = jest.fn();
         render(<Harness initial="same" onChange={onChange}/>);
