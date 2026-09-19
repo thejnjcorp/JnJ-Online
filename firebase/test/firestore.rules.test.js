@@ -9,7 +9,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { initializeTestEnvironment, assertSucceeds, assertFails } = require('@firebase/rules-unit-testing');
-const { collection, addDoc, doc, setDoc, getDoc, getDocs, query, where, updateDoc, deleteDoc } = require('firebase/firestore');
+const { collection, addDoc, doc, setDoc, getDoc, getDocs, query, where, or, updateDoc, deleteDoc, arrayUnion } = require('firebase/firestore');
 
 const PROJECT_ID = 'jnj-online';
 let failures = 0;
@@ -139,6 +139,56 @@ async function main() {
         });
         const alice = testEnv.authenticatedContext('alice');
         await assertSucceeds(getDoc(doc(alice.firestore(), 'campaigns', 'camp1')));
+    });
+
+    console.log('\nCampaign list queries (Campaigns.js / Homepage.js) - regression for reads hitting request.resource:');
+
+    // permissionFieldsUnchanged()/archiveFieldsUnchanged() used to reference
+    // request.resource, which doesn't exist on a get/list - that made the
+    // canWrite half of these or() queries unprovable, so the whole query was
+    // rejected and nobody's campaign list loaded (including a player their
+    // director had just added via canRead).
+    await check('a player added by their director sees the campaign in the Campaigns page query', async () => {
+        await testEnv.clearFirestore();
+        const dir = testEnv.authenticatedContext('dir');
+        const newbie = testEnv.authenticatedContext('newbie');
+        const ref = await addDoc(collection(dir.firestore(), 'campaigns'), {
+            campaign_name: 'New Campaign', director_name: 'Dir', director_uid: 'dir',
+            canWrite: ['dir'], admins: ['dir'],
+        });
+        await updateDoc(doc(dir.firestore(), 'campaigns', ref.id), {
+            canRead: arrayUnion('newbie'),
+            players: arrayUnion({ name: 'Newbie', uid: 'newbie' }),
+        });
+        const snap = await assertSucceeds(getDocs(query(collection(newbie.firestore(), 'campaigns'),
+            or(where('canRead', 'array-contains', 'newbie'), where('canWrite', 'array-contains', 'newbie')))));
+        if (snap.size !== 1) throw new Error('expected 1 campaign, got ' + snap.size);
+    });
+
+    await check('a director (canWrite only, not in canRead) can list their own campaigns', async () => {
+        await testEnv.clearFirestore();
+        const dir = testEnv.authenticatedContext('dir');
+        await addDoc(collection(dir.firestore(), 'campaigns'), {
+            campaign_name: 'Mine', director_name: 'Dir', director_uid: 'dir',
+            canWrite: ['dir'], admins: ['dir'],
+        });
+        const snap = await assertSucceeds(getDocs(query(collection(dir.firestore(), 'campaigns'),
+            or(where('canRead', 'array-contains', 'dir'), where('canWrite', 'array-contains', 'dir')))));
+        if (snap.size !== 1) throw new Error('expected 1 campaign, got ' + snap.size);
+    });
+
+    await check('the Homepage dashboard queries (characters and campaigns, with a canWrite branch) both succeed', async () => {
+        await testEnv.clearFirestore();
+        const dir = testEnv.authenticatedContext('dir');
+        await assertSucceeds(getDocs(query(collection(dir.firestore(), 'characters'), or(
+            where('playerId', '==', 'dir'),
+            where('canRead', 'array-contains', 'dir'),
+            where('canWrite', 'array-contains', 'dir')
+        ))));
+        await assertSucceeds(getDocs(query(collection(dir.firestore(), 'campaigns'), or(
+            where('canRead', 'array-contains', 'dir'),
+            where('canWrite', 'array-contains', 'dir')
+        ))));
     });
 
     console.log('\nArchive / schedule deletion (CampaignPage.js Danger Zone, admin-only):');

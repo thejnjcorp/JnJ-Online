@@ -180,11 +180,15 @@ service cloud.firestore {
     // owner/admin) can freely edit its regular content, but not who else
     // can read, write, or administer it - otherwise any collaborator could
     // silently grant themselves (or anyone else) broader access than they
-    // were actually given. True on a delete (request.resource == null,
-    // nothing to compare) since deletion is already gated by canWrite alone,
-    // same as before this field existed.
+    // were actually given. Only ever compares on an update: it's used inside
+    // `allow read, write` rules, and request.resource doesn't exist at all on
+    // a get/list (so even `request.resource == null` throws there instead of
+    // short-circuiting to true - which made every canWrite-based list query,
+    // e.g. Campaigns.js's or(canRead, canWrite), get rejected outright). True
+    // on delete too, since deletion is already gated by canWrite alone, same
+    // as before this field existed.
     function permissionFieldsUnchanged() {
-      return request.resource == null
+      return request.method != 'update'
         || (request.resource.data.get('canRead', null) == resource.data.get('canRead', null)
           && request.resource.data.get('canWrite', null) == resource.data.get('canWrite', null)
           && request.resource.data.get('admins', null) == resource.data.get('admins', null));
@@ -193,11 +197,10 @@ service cloud.firestore {
     // Only a document's admin can archive/unarchive a campaign or schedule/
     // cancel its deletion (see CampaignPage.js's Danger Zone) - a plain
     // canWrite collaborator or even the campaign's own director can still
-    // edit everything else about it. True on a delete for the same reason
-    // permissionFieldsUnchanged() is - deletion is already gated by
-    // canWrite/director_uid alone, unrelated to these fields.
+    // edit everything else about it. True on a delete (and on reads) for the
+    // same reasons permissionFieldsUnchanged() is - see its comment.
     function archiveFieldsUnchanged() {
-      return request.resource == null
+      return request.method != 'update'
         || (request.resource.data.get('archived', null) == resource.data.get('archived', null)
           && request.resource.data.get('archivedAt', null) == resource.data.get('archivedAt', null)
           && request.resource.data.get('scheduledDeletionAt', null) == resource.data.get('scheduledDeletionAt', null));
