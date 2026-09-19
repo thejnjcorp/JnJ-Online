@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Markdown from 'markdown-to-jsx';
 import MarkdownEditor from './MarkdownEditor';
 import { ClassTagEditDialog } from './ClassTagEditDialog';
+import { ActionPreview } from './ActionPreview';
 import { FieldError, invalidClass, invalidProps } from './FormErrors';
 
 const OUTCOME_ROWS = [
@@ -55,7 +56,7 @@ function resolveSummary(action) {
 // `errors` (field -> message, from validateAction) is only passed once a save
 // has been attempted. A card with problems is held open so nothing is hidden,
 // and every offending input is outlined with its message underneath.
-export function ClassActionEditor({ action, index, onChange, onRemove, onAddTag, onRemoveTag, isEditable, errors = {} }) {
+export function ClassActionEditor({ action, index, onChange, onRemove, onAddTag, onRemoveTag, isEditable, errors = {}, previewStats }) {
     const [open, setOpen] = useState(false);
     const [showOutcomeTable, setShowOutcomeTable] = useState(Boolean(action.outcomeTable));
     const [openTagIndex, setOpenTagIndex] = useState(null);
@@ -167,7 +168,7 @@ export function ClassActionEditor({ action, index, onChange, onRemove, onAddTag,
 
                 <div>
                     <span className="ClassPage-field-label">Description</span>
-                    <MarkdownEditor variant="compact" label="Description" value={action.description || ''} onChange={value => set('description', value)}/>
+                    <MarkdownEditor variant="action" label="Description" value={action.description || ''} onChange={value => set('description', value)}/>
                 </div>
 
                 <label className="ClassPage-outcome-table-toggle">
@@ -212,6 +213,8 @@ export function ClassActionEditor({ action, index, onChange, onRemove, onAddTag,
                     : <span key={tag.id || tagIndex} className="ClassPage-tag-pill" style={{ backgroundColor: tag.tagColor, color: tag.textColor }} title={tag.tagDescription}>{tag.tagInfo}</span>
                 )}
             </div>
+
+            {isEditable && <ActionPreview action={action} stats={previewStats}/>}
 
             {isEditable && <button type="button" className="ClassPage-remove-action-button" onClick={() => onRemove(index)}>Remove Action</button>}
         </div>}

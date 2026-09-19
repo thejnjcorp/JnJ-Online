@@ -73,6 +73,15 @@
         overflow-y: auto;
         box-sizing: border-box;
     }
+
+    // overflow-y:auto above makes this box the scroll container for anything
+    // position:sticky inside it - even when (as on the character page) it never
+    // scrolls itself, which leaves the sticky element with nowhere to go. A tab
+    // that needs sticky children opts out with this class; it must not also
+    // be given a height cap, or its content would spill instead of scrolling.
+    .TabContainer-content.TabContainer-content-unclipped {
+        overflow: visible;
+    }
 }
 
 // Mobile: the pill switcher becomes a fixed bottom tab bar (icon above

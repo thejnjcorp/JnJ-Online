@@ -1,3 +1,6 @@
+jest.mock('../../src/utils/firebase', () => ({ db: {} }));
+jest.mock('firebase/firestore', () => ({ doc: jest.fn(), updateDoc: jest.fn() }));
+
 jest.mock('../../src/components/ClassTagEditDialog', () => ({
     ClassTagEditDialog: ({ actionIndex, tagIndex, tag, onClose, onDelete }) => <div>
         TagDialog-stub:{actionIndex}:{tagIndex}:{tag.tagInfo}
@@ -234,6 +237,33 @@ describe('ClassActionEditor', () => {
             fireEvent.click(screen.getByRole('button', { name: '+ Tag' }));
 
             expect(onAddTag).toHaveBeenCalledWith(3);
+        });
+
+        test('shows a preview of the action as it will look on a character sheet, and not in view mode', () => {
+            open({ isEditable: true });
+            expect(screen.getByText('Preview')).toBeInTheDocument();
+            expect(document.querySelector('.ActionPreview .CombatActionListCard-name')).toHaveTextContent('Stab');
+        });
+
+        test('the preview follows the action as it is edited', () => {
+            render(<ClassActionEditor action={{ ...viewAction, actionName: 'Stab', description: 'Deal **2d6** damage.' }} index={0} onChange={jest.fn()} onRemove={jest.fn()} onAddTag={jest.fn()} onRemoveTag={jest.fn()} isEditable />);
+            fireEvent.click(screen.getByRole('button', { name: /Stab/ }));
+            expect(document.querySelector('.ActionPreview .CombatActionListCard-description strong')).toHaveTextContent('2d6');
+        });
+
+        test('the preview uses the class\'s hit modifier for a to-hit action', () => {
+            open({ isEditable: true, action: { ...viewAction, toHitBool: true, toHit: 3, actionLevel: 1 }, previewStats: { baseHitModifier: 2 } });
+            expect(document.querySelector('.ActionPreview')).toHaveTextContent('+5 to hit');
+        });
+
+        test('there is no preview in view mode', () => {
+            open({ isEditable: false });
+            expect(screen.queryByText('Preview')).not.toBeInTheDocument();
+        });
+
+        test('the description is written with the action toolbar (headings, quotes, dividers, tables)', () => {
+            open({ isEditable: true });
+            expect(screen.getByLabelText('Description')).toHaveAttribute('data-variant', 'action');
         });
 
         test('Remove Action calls onRemove with this action\'s index', () => {

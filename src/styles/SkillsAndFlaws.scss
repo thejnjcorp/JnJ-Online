@@ -1,3 +1,5 @@
+@use './mixins/actionMarkdown' as markdown;
+
 /* --- Header (title + count) ------------------------------------------------*/
 .SkillsAndFlaws-header {
     padding: 0 20px 4px;
@@ -175,6 +177,7 @@
 }
 
 .SkillsAndFlaws-description {
+    text-align: left;
     margin: 0;
     font-size: 1rem;
     line-height: 1.5;
@@ -199,6 +202,7 @@
    field, so this renders real <p>/<ul> elements instead of a single
    pre-wrapped <p>. */
 .SkillsAndFlaws-feat-description {
+    text-align: left;
     font-size: 1rem;
     line-height: 1.5;
     color: var(--jnj-color-text-muted);
@@ -214,6 +218,8 @@
     p:last-child, ul:last-child, ol:last-child {
         margin-bottom: 0;
     }
+
+    @include markdown.action-markdown;
 }
 
 .SkillsAndFlaws-trash-button {

@@ -10,6 +10,30 @@ import trashCanIcon from '../icons/trash_can.svg';
 import { getActionCategory } from '../utils/classActions';
 import MarkdownEditor from './MarkdownEditor';
 
+// One feat in the sidebar list. Exported so the class editor's action preview
+// can show a feat exactly as a character's sheet does.
+export function FeatEntry({ feat, id, open = false }) {
+    return <Collapsible
+        id={id}
+        trigger={<>
+            <span className="SkillsAndFlaws-chevron">›</span>
+            <span className="SkillsAndFlaws-name">{feat.actionName}</span>
+        </>}
+        className="SkillsAndFlaws SkillsAndFlaws-feat FeatsOverride"
+        openedClassName="SkillsAndFlaws SkillsAndFlaws-feat SkillsAndFlaws-open FeatsOverride"
+        contentInnerClassName='SkillsAndFlaws-inner-div'
+        triggerClassName='SkillsAndFlaws-trigger'
+        triggerOpenedClassName='SkillsAndFlaws-trigger SkillsAndFlaws-trigger-open'
+        transitionTime={180}
+        easing="ease"
+        open={open}
+    >
+        <div className="SkillsAndFlaws-feat-description">
+            <Markdown options={{ disableParsingRawHTML: true }}>{feat.description || ""}</Markdown>
+        </div>
+    </Collapsible>;
+}
+
 export function SkillsAndFlaws({characterPage, userId}) {
     const [addSkillFlawVisible, setAddSkillFlawVisible] = useState(false);
     const [removeSkillFlawVisible, setRemoveSkillFlawVisible] = useState(false);
@@ -122,26 +146,7 @@ export function SkillsAndFlaws({characterPage, userId}) {
     // than authored here, so this list is read-only - no Add/Remove
     // toolbar, no degree stars (feats don't have one).
     function renderFeat(feat, index) {
-        return <Collapsible
-            key={feat.actionName + index}
-            id={feat.actionName + index}
-            trigger={<>
-                <span className="SkillsAndFlaws-chevron">›</span>
-                <span className="SkillsAndFlaws-name">{feat.actionName}</span>
-            </>}
-            className="SkillsAndFlaws SkillsAndFlaws-feat FeatsOverride"
-            openedClassName="SkillsAndFlaws SkillsAndFlaws-feat SkillsAndFlaws-open FeatsOverride"
-            contentInnerClassName='SkillsAndFlaws-inner-div'
-            triggerClassName='SkillsAndFlaws-trigger'
-            triggerOpenedClassName='SkillsAndFlaws-trigger SkillsAndFlaws-trigger-open'
-            transitionTime={180}
-            easing="ease"
-            open={false}
-        >
-            <div className="SkillsAndFlaws-feat-description">
-                <Markdown options={{ disableParsingRawHTML: true }}>{feat.description || ""}</Markdown>
-            </div>
-        </Collapsible>
+        return <FeatEntry key={feat.actionName + index} id={feat.actionName + index} feat={feat}/>;
     }
 
     const skills = characterPage.skills_and_flaws.filter(item => item.isSkill);

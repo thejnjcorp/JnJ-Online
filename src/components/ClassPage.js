@@ -425,6 +425,7 @@ export function ClassPage() {
                 onRemoveTag={handleRemoveTag}
                 isEditable={isEditingMode}
                 errors={errors.actions[index]}
+                previewStats={{ baseHitModifier: Number(formData.base_hit_modifier) || 0 }}
             />
         );
     });

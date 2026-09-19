@@ -1,3 +1,5 @@
+@use './mixins/actionMarkdown' as markdown;
+
 .CombatActionList {
     display: flex;
     flex-direction: column;
@@ -61,6 +63,7 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
+    text-align: left;
     margin-top: 6px;
     padding-right: 110px;
     font-size: 0.8125rem;
@@ -72,6 +75,7 @@
 }
 
 .CombatActionListCard-description {
+    text-align: left;
     margin-top: 6px;
     font-size: 0.8125rem;
     line-height: 1.5;
@@ -89,6 +93,8 @@
     p:last-child, ul:last-child, ol:last-child {
         margin-bottom: 0;
     }
+
+    @include markdown.action-markdown;
 }
 
 .CombatActionListCard-outcome-table {
@@ -172,8 +178,10 @@
 
 // Mobile: the pinned bottom-right button doesn't leave enough room at this
 // width, and isn't a real touch-friendly target - it moves into normal card
-// flow as a full-width button below the description instead.
-@media (max-width: 640px) {
+// flow as a full-width button below the description instead. Also applied
+// inside the class editor's "Phone" preview (ActionPreview.js), which can't
+// use the media query because the editor itself is on a wide screen.
+@mixin phone-layout {
     .CombatActionListCard-header, .CombatActionListCard-description, .CombatActionListCard-meta-lines {
         padding-right: 0;
     }
@@ -190,4 +198,12 @@
         padding: 10px 14px;
         text-align: center;
     }
+}
+
+@media (max-width: 640px) {
+    @include phone-layout;
+}
+
+.ActionPreview-phone {
+    @include phone-layout;
 }

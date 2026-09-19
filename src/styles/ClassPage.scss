@@ -1,3 +1,5 @@
+@use './mixins/actionMarkdown' as markdown;
+
 /* This page (and ClassTagEditDialog, rendered inside it) mixes width:100%
    with padding/border on almost every field - without box-sizing:border-box
    that adds up to wider-than-container boxes that bleed past their card
@@ -549,6 +551,8 @@
     p:last-child, ul:last-child, ol:last-child {
         margin-bottom: 0;
     }
+
+    @include markdown.action-markdown;
 }
 
 .ClassPage-outcome-table {

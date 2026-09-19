@@ -30,9 +30,10 @@ jest.mock('../src/components/MarkdownEditor', () => {
     const React = require('react');
     return {
         __esModule: true,
-        default: function MarkdownEditorStandIn({ value, onChange, label, placeholder, readOnly, maxLength }) {
+        default: function MarkdownEditorStandIn({ value, onChange, label, placeholder, readOnly, maxLength, variant }) {
             return React.createElement('textarea', {
                 'aria-label': label,
+                'data-variant': variant,
                 placeholder,
                 readOnly,
                 maxLength,

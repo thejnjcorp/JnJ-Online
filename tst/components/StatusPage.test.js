@@ -174,6 +174,42 @@ describe('StatusPage', () => {
                 expect(payload.grantedAction.description).toBe('Move *twice*.');
             });
 
+            describe('default stacks / duration', () => {
+                async function createWithDefaultStacks(value, inspect = () => {}) {
+                    signIn({ uid: 'user-1' });
+                    renderNew();
+                    await screen.findByLabelText('Name');
+                    inspect(screen.getByLabelText('Default stacks / duration'));
+                    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Prone' } });
+                    fireEvent.change(screen.getByLabelText('Default stacks / duration'), { target: { value } });
+                    fireEvent.click(screen.getByRole('button', { name: 'Create Status' }));
+                    await waitFor(() => expect(mockAddDoc).toHaveBeenCalled());
+                    return mockAddDoc.mock.calls[0][1].defaultStacks;
+                }
+
+                test('accepts -1 for a status with no stack count, and says so', async () => {
+                    const saved = await createWithDefaultStacks('-1', input => {
+                        expect(input).toHaveAttribute('min', '-1');
+                        expect(input).toHaveAttribute('max', '9');
+                        expect(screen.getByText(/Use -1 for a status with no stack count/)).toBeInTheDocument();
+                    });
+
+                    expect(saved).toBe(-1);
+                });
+
+                test('0 is a real count and stays 0', async () => {
+                    expect(await createWithDefaultStacks('0')).toBe(0);
+                });
+
+                test('a value below -1 is saved as -1', async () => {
+                    expect(await createWithDefaultStacks('-5')).toBe(-1);
+                });
+
+                test('a value above 9 is saved as 9', async () => {
+                    expect(await createWithDefaultStacks('12')).toBe(9);
+                });
+            });
+
             test('an admin creating a public status is marked isDefault', async () => {
                 signIn({ uid: ADMIN_UID });
                 renderNew();

@@ -41,6 +41,21 @@ describe('TabContainer', () => {
         expect(screen.getByRole('button', { name: /Roleplay/ }).className).not.toContain('TabButtonSelected');
     });
 
+    test('a tab can add a class to the content wrapper, and only while it is the active tab', () => {
+        const tabsWithClass = [
+            { tabName: 'Plain', icon: null, content: <div>Plain content</div> },
+            { tabName: 'Sticky', icon: null, content: <div>Sticky content</div>, contentClassName: 'TabContainer-content-unclipped' },
+        ];
+        const { container } = render(<TabContainer tabs={tabsWithClass} />);
+        expect(container.querySelector('.TabContainer-content')).not.toHaveClass('TabContainer-content-unclipped');
+
+        fireEvent.click(screen.getByRole('button', { name: /Sticky/ }));
+        expect(container.querySelector('.TabContainer-content')).toHaveClass('TabContainer-content-unclipped');
+
+        fireEvent.click(screen.getByRole('button', { name: /Plain/ }));
+        expect(container.querySelector('.TabContainer-content')).not.toHaveClass('TabContainer-content-unclipped');
+    });
+
     test('container_height sets a maxHeight on the outer container', () => {
         const { container } = render(<TabContainer tabs={tabs} container_height="90vh" />);
         expect(container.querySelector('.TabContainer')).toHaveStyle({ maxHeight: '90vh' });

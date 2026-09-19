@@ -9,6 +9,15 @@
 // change here can't bypass.
 export const ADMIN_UIDS = ["wmJQbIlzX9RydXFmh3DzSBpIqHa2"];
 
+// A status's `stacks` (and a preset's `defaultStacks`) is a count from 0 up to
+// MAX_STACKS, or NO_STACK_COUNT (-1) for a status that has no count at all -
+// Prone, Blind, a plain "on/off" condition. It shows no badge, never counts
+// down per turn, and a scaled effect resolves as if it had no levels reached.
+export const NO_STACK_COUNT = -1;
+export const MAX_STACKS = 9;
+export const clampStacks = stacks => Math.max(NO_STACK_COUNT, Math.min(MAX_STACKS, stacks));
+export const stacksLabel = stacks => (stacks === NO_STACK_COUNT ? 'None' : String(stacks));
+
 // Shared logic for what an active status actually DOES to a character -
 // used by the character page (effective stat display, granted actions) and
 // the Director's combat tracker (turn advancement). Kept out of any one

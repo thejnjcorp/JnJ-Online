@@ -140,10 +140,14 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
         {
             tabName: "Combat",
             icon: <SwordsIcon/>,
+            contentClassName: "TabContainer-content-unclipped",
             content: <>
                 
                 <div className="CharacterMainTab-action-points">
-                    <span className="CharacterMainTab-caps-label">Action Points</span>{"\xa0\xa0"}
+                    <span className="CharacterMainTab-caps-label">
+                        <span className="CharacterMainTab-ap-full">Action Points</span>
+                        <span className="CharacterMainTab-ap-short" aria-hidden="true">AP</span>
+                    </span>{"\xa0\xa0"}
                     {/* Wrapped in a real <button> (rather than just an onClick on the
                         <img>) so mobile gets an actual 44x44 tap target - see
                         .CharacterMainTab-circle-button in CharacterMainTab.scss. */}
@@ -164,7 +168,7 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                         </button>
                     )}
                     <span className="CharacterMainTab-action-points-label">
-                        {characterPage.action_points} / 4 available{hasWritePermissions ? " · click a circle to spend" : ""}
+                        {characterPage.action_points} / 4 available<span className="CharacterMainTab-ap-hint">{hasWritePermissions ? " · click a circle to spend" : ""}</span>
                     </span>
                 </div>
                 <div className="CharacterMainTab-action-body">

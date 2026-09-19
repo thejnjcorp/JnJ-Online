@@ -77,11 +77,28 @@
     justify-content: start;
     align-items: center;
     gap: 6px;
-    padding-left: 10px;
     padding-bottom: 18px;
     margin-bottom: 20px;
     border-bottom: 1px solid var(--jnj-color-border);
     height: 5vh;
+    // Stays at the top of whatever scrolls (the right column on desktop, the
+    // page on phones) so the points are visible while scrolling the actions.
+    // It bleeds out over .TabContainer-content's 30px side padding so the
+    // background covers the full width of the panel while stuck.
+    // The right column's own top padding is part of what scrolls, so stick
+    // that far up to sit flush with the top of the column.
+    position: sticky;
+    top: calc(-1 * var(--jnj-space-5));
+    z-index: 4;
+    margin-left: -30px;
+    margin-right: -30px;
+    padding-left: 40px;
+    padding-right: 30px;
+    background-color: var(--jnj-color-bg-raised);
+}
+
+.CharacterMainTab-ap-short {
+    display: none;
 }
 
 .CharacterMainTab-action-points-label {
@@ -496,8 +513,24 @@
         flex-shrink: 0;
     }
 
+    // This bar stays on screen while scrolling (see the rule above), so on a
+    // phone it is a single compact row: AP instead of the full label, and no
+    // "click a circle" hint. The circles keep their 44px tap targets.
     .CharacterMainTab-action-points {
-        flex-wrap: wrap;
+        top: 0; // on phones the page itself scrolls, with no padding above it
         height: auto;
+        padding-bottom: 8px;
+        margin-bottom: 12px;
+        padding-top: 4px;
+        gap: 2px;
+    }
+
+    .CharacterMainTab-ap-full,
+    .CharacterMainTab-ap-hint {
+        display: none;
+    }
+
+    .CharacterMainTab-ap-short {
+        display: inline;
     }
 }

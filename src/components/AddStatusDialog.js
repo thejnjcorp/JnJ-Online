@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { arrayUnion, collection, doc, getDoc, getDocs, or, query, updateDoc, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
-import { getEffectsArray } from '../utils/statusEffects';
+import { clampStacks, getEffectsArray, stacksLabel } from '../utils/statusEffects';
 import Markdown from 'markdown-to-jsx';
 import MarkdownEditor from './MarkdownEditor';
 
@@ -167,9 +167,9 @@ export function AddStatusDialog({characterPage, userId, onClose, onUpdateStatuse
             <div className="CharacterPage-status-dialog-section">
                 <div className="CharacterPage-vitals-label">Stacks / duration</div>
                 <div className="CharacterPage-status-dialog-stepper">
-                    <button type="button" onClick={() => setStacks(s => Math.max(0, s - 1))}>&minus;</button>
-                    <span>{stacks}</span>
-                    <button type="button" onClick={() => setStacks(s => Math.min(9, s + 1))}>+</button>
+                    <button type="button" onClick={() => setStacks(s => clampStacks(s - 1))}>&minus;</button>
+                    <span>{stacksLabel(stacks)}</span>
+                    <button type="button" onClick={() => setStacks(s => clampStacks(s + 1))}>+</button>
                 </div>
             </div>
 

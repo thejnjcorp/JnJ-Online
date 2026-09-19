@@ -21,6 +21,7 @@ import {
     toolbarPlugin,
 } from '@mdxeditor/editor';
 import '@mdxeditor/editor/style.css';
+import { MarkdownFallback } from './MarkdownFallback';
 
 // Only what markdown-to-jsx (which renders all of this text) can show: no
 // underline (it needs raw HTML, which we don't render) and no images or code
@@ -65,7 +66,33 @@ const fullPlugins = [
     }),
 ];
 
-const PLUGINS = { compact: compactPlugins, full: fullPlugins };
+// Rules text for an action: enough structure to lay a long description out
+// (section headings, a quote for flavour text, dividers, tables) without the
+// large headings and links the notes and lore editors offer.
+const actionPlugins = [
+    headingsPlugin({ allowedHeadingLevels: [3, 4] }),
+    listsPlugin(),
+    quotePlugin(),
+    thematicBreakPlugin(),
+    tablePlugin(),
+    markdownShortcutPlugin(),
+    toolbarPlugin({
+        toolbarContents: () => <>
+            <UndoRedo/>
+            <Separator/>
+            <BlockTypeSelect/>
+            <Separator/>
+            <BoldItalicUnderlineToggles options={['Bold', 'Italic']}/>
+            <Separator/>
+            <ListsToggle options={['bullet', 'number']}/>
+            <Separator/>
+            <InsertTable/>
+            <InsertThematicBreak/>
+        </>,
+    }),
+];
+
+const PLUGINS = { compact: compactPlugins, full: fullPlugins, action: actionPlugins };
 // A line break within a paragraph is written as two trailing spaces: the
 // default (a bare newline, or a backslash) shows up as a space, or a stray
 // backslash, in markdown-to-jsx.
@@ -114,18 +141,11 @@ export default function MarkdownEditorImpl({ value, onChange, placeholder, label
     const classes = ['MarkdownEditor', `MarkdownEditor-${variant}`, className].filter(Boolean).join(' ');
 
     if (unparseable) {
-        return <div className={classes}>
-            <div className="MarkdownEditor-fallback-note">This text uses Markdown the visual editor can't show, so it's being edited as plain Markdown.</div>
-            <textarea
-                className="MarkdownEditor-fallback"
-                aria-label={label}
-                placeholder={placeholder}
-                value={value || ''}
-                readOnly={readOnly}
-                maxLength={maxLength}
-                onChange={event => onChange(event.target.value)}
-            />
-        </div>;
+        return <MarkdownFallback
+            value={value} onChange={onChange} label={label} placeholder={placeholder} readOnly={readOnly}
+            maxLength={maxLength} variant={variant} className={className}
+            note="This text uses Markdown the visual editor can't show, so it's being edited as plain Markdown."
+        />;
     }
 
     return <div className={classes} role="group" aria-label={label}>

@@ -128,6 +128,24 @@ describe('CharacterMainTab', () => {
             expect(screen.getByText(/2 \/ 4 available/)).toBeInTheDocument();
         });
 
+        test('the Combat tab lets its action points stick to the top while the actions scroll', () => {
+            const { container } = render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
+            expect(container.querySelector('.TabContainer-content')).not.toHaveClass('TabContainer-content-unclipped');
+
+            goToTab('Combat');
+
+            expect(container.querySelector('.TabContainer-content')).toHaveClass('TabContainer-content-unclipped');
+            expect(container.querySelector('.TabContainer-content > .CharacterMainTab-action-points')).toBeInTheDocument();
+        });
+
+        test('the label is "Action Points", shortened to "AP" (hidden from screen readers) for phones', () => {
+            render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
+            goToTab('Combat');
+
+            expect(screen.getByText('Action Points')).toBeInTheDocument();
+            expect(screen.getByText('AP')).toHaveAttribute('aria-hidden', 'true');
+        });
+
         test('the hint to click a circle only appears with write permissions', () => {
             render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
             goToTab('Combat');

@@ -77,6 +77,19 @@ describe('AddStatusDialog', () => {
             expect(mockWhere).toHaveBeenCalledWith('canWrite', 'array-contains', 'user-1');
         });
 
+        test('a preset with no stack count (-1) shows "None" and is added with stacks -1', async () => {
+            mockGetDocs.mockResolvedValue(docsFrom([{ ...poisoned, defaultStacks: -1 }]));
+            const onUpdateStatuses = jest.fn().mockResolvedValue(undefined);
+            render(<AddStatusDialog characterPage={characterPage} userId="user-1" onClose={jest.fn()} onUpdateStatuses={onUpdateStatuses} />);
+
+            await screen.findByRole('button', { name: 'Poisoned' });
+            expect(screen.getByText('None')).toBeInTheDocument();
+            fireEvent.click(screen.getByRole('button', { name: 'Add Status' }));
+
+            await waitFor(() => expect(onUpdateStatuses).toHaveBeenCalled());
+            expect(onUpdateStatuses.mock.calls[0][0].at(-1).stacks).toBe(-1);
+        });
+
         test('an in-scope preset is auto-selected, with its own polarity and default stacks', async () => {
             mockGetDocs.mockResolvedValue(docsFrom([poisoned]));
             render(<AddStatusDialog characterPage={characterPage} userId="user-1" onClose={jest.fn()} />);
@@ -122,11 +135,17 @@ describe('AddStatusDialog', () => {
     });
 
     describe('stacks stepper', () => {
-        test('increments and decrements, clamped between 0 and 9', () => {
+        test('increments and decrements, clamped between "None" (-1) and 9', () => {
             render(<AddStatusDialog characterPage={characterPage} userId={undefined} onClose={jest.fn()} />);
             const [minus, plus] = screen.getAllByRole('button', { name: /^[−+]$/ });
+            expect(screen.getByText('0')).toBeInTheDocument();
 
-            fireEvent.click(minus); // already 0, stays 0
+            fireEvent.click(minus); // 0 -> no stack count
+            expect(screen.getByText('None')).toBeInTheDocument();
+            fireEvent.click(minus); // can't go lower
+            expect(screen.getByText('None')).toBeInTheDocument();
+
+            fireEvent.click(plus);
             expect(screen.getByText('0')).toBeInTheDocument();
 
             for (let i = 0; i < 10; i++) fireEvent.click(plus);

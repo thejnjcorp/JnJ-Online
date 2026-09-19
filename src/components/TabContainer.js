@@ -1,6 +1,8 @@
 import '../styles/TabContainer.scss';
 import { useState } from 'react';
 
+// A tab can carry a `contentClassName` for its content wrapper - see
+// .TabContainer-content-unclipped in TabContainer.scss.
 export function TabContainer({tabs, container_height, content_height}) {
     const [selectedTab, setSelectedTab] = useState(0);
     const activeTab = tabs[selectedTab];
@@ -36,7 +38,7 @@ export function TabContainer({tabs, container_height, content_height}) {
             <span>{tab.tabName}</span>
         </button>)}
         </div>
-        <div className='TabContainer-content' style={contentStyle}>
+        <div className={activeTab.contentClassName ? `TabContainer-content ${activeTab.contentClassName}` : 'TabContainer-content'} style={contentStyle}>
             {activeTab.content}
         </div>
     </div>

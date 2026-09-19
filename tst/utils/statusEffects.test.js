@@ -1,6 +1,10 @@
 import {
     ADMIN_UIDS,
+    MAX_STACKS,
+    NO_STACK_COUNT,
     STATUS_STAT_DEFINITIONS,
+    clampStacks,
+    stacksLabel,
     getEffectsArray,
     getEffectiveCharacterStats,
     getPassiveDelta,
@@ -132,6 +136,10 @@ describe('getEffectiveCharacterStats', () => {
             expect(getEffectiveCharacterStats(withStacks(0)).base_hit_modifier).toBe(baseCharacter.base_hit_modifier);
         });
 
+        test('no stack count (-1) resolves to a delta of 0 too', () => {
+            expect(getEffectiveCharacterStats(withStacks(-1)).base_hit_modifier).toBe(baseCharacter.base_hit_modifier);
+        });
+
         test('exactly on a defined level uses that level', () => {
             expect(getEffectiveCharacterStats(withStacks(3)).base_hit_modifier).toBe(baseCharacter.base_hit_modifier - 2);
         });
@@ -238,7 +246,28 @@ describe('getGrantedActions', () => {
     });
 });
 
+describe('stack counts', () => {
+    test('-1 is "no stack count" and clamps at both ends', () => {
+        expect(NO_STACK_COUNT).toBe(-1);
+        expect(clampStacks(-4)).toBe(-1);
+        expect(clampStacks(3)).toBe(3);
+        expect(clampStacks(20)).toBe(MAX_STACKS);
+    });
+
+    test('-1 reads as "None"; real counts read as themselves', () => {
+        expect(stacksLabel(-1)).toBe('None');
+        expect(stacksLabel(0)).toBe('0');
+        expect(stacksLabel(4)).toBe('4');
+    });
+});
+
 describe('advanceTurnStatuses', () => {
+    test('a status with no stack count never counts down, even one that would otherwise decay', () => {
+        const status = { name: 'Odd', decaysPerTurn: true, stacks: -1, effects: [{ stat: 'action_points', trigger: 'turn_start', delta: 1 }] };
+        const result = advanceTurnStatuses({ action_points: 1, statuses: [status] });
+        expect(result).toEqual({ action_points: 1, statuses: [status] });
+    });
+
     test('a status with no statuses on the character just passes action_points through', () => {
         expect(advanceTurnStatuses({ action_points: 2, statuses: [] })).toEqual({ action_points: 2, statuses: [] });
     });

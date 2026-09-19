@@ -51,6 +51,37 @@ describe('Statuses', () => {
         expect(screen.queryByText('0')).not.toBeInTheDocument();
     });
 
+    describe('a status with no stack count (-1)', () => {
+        const prone = { id: 'status-3', name: 'Prone', polarity: 'debuff', stacks: -1, description: 'On the ground.' };
+
+        test('shows no badge on its chip and "None" for its stacks', () => {
+            render(<Statuses characterPage={characterPageWith([prone])} userId="owner-1" />);
+            expect(screen.queryByText('-1')).not.toBeInTheDocument();
+
+            fireEvent.click(screen.getByText('Prone'));
+
+            expect(screen.getByText('None')).toBeInTheDocument();
+            expect(screen.queryByText('-1')).not.toBeInTheDocument();
+        });
+
+        test('a viewer who cannot edit sees "None" too', () => {
+            render(<Statuses characterPage={characterPageWith([prone])} userId="stranger-1" />);
+
+            fireEvent.click(screen.getByText('Prone'));
+
+            expect(screen.getByText('None')).toBeInTheDocument();
+        });
+
+        test('+ gives it a count, starting at 0, and 0 can step back down to none', async () => {
+            render(<Statuses characterPage={characterPageWith([prone])} userId="owner-1" />);
+            fireEvent.click(screen.getByText('Prone'));
+
+            fireEvent.click(screen.getByRole('button', { name: '+' }));
+
+            await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { statuses: [{ ...prone, stacks: 0 }] }));
+        });
+    });
+
     test('a status description renders as Markdown', () => {
         render(<Statuses characterPage={characterPageWith([{ ...haste, description: 'You are **hasted**.' }])} userId="owner-1" />);
 
@@ -112,8 +143,8 @@ describe('Statuses', () => {
             await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { statuses: [{ ...haste, stacks: 1 }] }));
         });
 
-        test('the − stepper is disabled at 0 stacks and the + stepper is disabled at 9', () => {
-            render(<Statuses characterPage={characterPageWith([wounded, { ...haste, stacks: 9 }])} userId="owner-1" />);
+        test('the − stepper is disabled at no stack count (-1) and the + stepper is disabled at 9', () => {
+            render(<Statuses characterPage={characterPageWith([{ ...wounded, stacks: -1 }, { ...haste, stacks: 9 }])} userId="owner-1" />);
 
             fireEvent.click(screen.getByText('Wounded'));
             expect(screen.getByRole('button', { name: '−' })).toBeDisabled();

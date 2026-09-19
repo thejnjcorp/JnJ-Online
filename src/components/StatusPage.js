@@ -3,7 +3,7 @@ import { addDoc, arrayRemove, arrayUnion, collection, deleteDoc, doc, getDoc, ge
 import { useLocation, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../utils/firebase';
-import { ADMIN_UIDS, STATUS_STAT_DEFINITIONS, getEffectsArray } from '../utils/statusEffects';
+import { ADMIN_UIDS, MAX_STACKS, NO_STACK_COUNT, STATUS_STAT_DEFINITIONS, clampStacks, getEffectsArray } from '../utils/statusEffects';
 import { statusFormReducer } from '../utils/statusFormReducer';
 import { DocAdminManager } from './DocAdminManager';
 import '../styles/StatusPage.scss';
@@ -267,7 +267,7 @@ export function StatusPage() {
                 name: formData.name,
                 description: formData.description || '',
                 polarity: formData.polarity || 'neutral',
-                defaultStacks: Number(formData.defaultStacks) || 0,
+                defaultStacks: clampStacks(Math.trunc(Number(formData.defaultStacks) || 0)),
                 classes: formData.classes || [],
                 effects: formData.effects || [],
                 decaysPerTurn: Boolean(formData.decaysPerTurn),
@@ -371,12 +371,13 @@ export function StatusPage() {
                 className="StatusPage-input StatusPage-input-narrow"
                 name="defaultStacks"
                 type="number"
-                min={0}
+                min={NO_STACK_COUNT}
+                max={MAX_STACKS}
                 value={formData.defaultStacks ?? 1}
                 onChange={handleChange}
                 disabled={canWrite}
             />
-            <p className="StatusPage-hint">The stack count a character starts at when this status is added - 1 for most conditions, or a real duration/severity for ones like Haste (turns remaining) or Exhaustion (level). Adjustable per character afterward regardless of this default.</p>
+            <p className="StatusPage-hint">The stack count a character starts at when this status is added - 1 for most conditions, or a real duration/severity for ones like Haste (turns remaining) or Exhaustion (level). Use -1 for a status with no stack count at all (Prone, Blind): it shows no count on the sheet and never counts down. Adjustable per character afterward regardless of this default.</p>
         </div>
 
         <div className="StatusPage-field">

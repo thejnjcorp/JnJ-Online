@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { AddStatusDialog } from './AddStatusDialog';
+import { MAX_STACKS, NO_STACK_COUNT, clampStacks, stacksLabel } from '../utils/statusEffects';
 import Markdown from 'markdown-to-jsx';
 
 // onUpdateStatuses/hasWritePermissions let a caller point this at a
@@ -44,7 +45,7 @@ export function Statuses({characterPage, userId, onUpdateStatuses, hasWritePermi
     // Add Status dialog's stepper covers at add-time, now usable after the
     // fact too.
     async function handleStacksChange(status, delta) {
-        const newStacks = Math.max(0, Math.min(9, status.stacks + delta));
+        const newStacks = clampStacks(status.stacks + delta);
         if (newStacks === status.stacks) return;
         try {
             await writeStatuses(statuses.map(s => s.id === status.id ? { ...s, stacks: newStacks } : s));
@@ -74,11 +75,11 @@ export function Statuses({characterPage, userId, onUpdateStatuses, hasWritePermi
                             <span className="CharacterPage-vitals-label">Stacks</span>
                             {hasWritePermissions
                                 ? <div className="CharacterPage-status-detail-stepper">
-                                    <button type="button" onClick={() => handleStacksChange(status, -1)} disabled={status.stacks <= 0}>&minus;</button>
-                                    <span>{status.stacks}</span>
-                                    <button type="button" onClick={() => handleStacksChange(status, 1)} disabled={status.stacks >= 9}>+</button>
+                                    <button type="button" onClick={() => handleStacksChange(status, -1)} disabled={status.stacks <= NO_STACK_COUNT}>&minus;</button>
+                                    <span>{stacksLabel(status.stacks)}</span>
+                                    <button type="button" onClick={() => handleStacksChange(status, 1)} disabled={status.stacks >= MAX_STACKS}>+</button>
                                 </div>
-                                : <span className="CharacterPage-status-detail-stacks-value">{status.stacks}</span>}
+                                : <span className="CharacterPage-status-detail-stacks-value">{stacksLabel(status.stacks)}</span>}
                         </div>
                         {hasWritePermissions && <button type="button" className="CharacterPage-status-detail-remove" onClick={() => handleRemove(status)}>Remove</button>}
                     </div>}
