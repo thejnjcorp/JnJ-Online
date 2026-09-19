@@ -10,17 +10,43 @@
 export const rangeText = ([min, max]) => (min === max ? `${min}` : `${min}-${max}`);
 
 // --- Enemy roles ------------------------------------------------------------
-// Keyed by the enemy tier the bestiary uses. The guide calls the top role "Boss";
-// the app calls it Captain.
+// Keyed by the enemy tier the bestiary uses. The guide calls its top role "Boss":
+// that is the app's Set Piece tier. The guide gives a Captain no HP or AC row of
+// its own (it sits between an Elite and a Boss), only the "Boss / Captain" line in
+// its action economy, so a Captain is checked on actions alone.
 export const ROLE_BENCHMARKS = {
     Goon: { role: 'Goon', hp: [1, 5], ac: [13, 14], attack: '+4 to +5', abilities: '3, 2, 1, 1', damage: 'd4+1', actions: [1, 2], actionsNote: 'with only one meaningful offensive action' },
     Regular: { role: 'Regular', hp: [12, 18], ac: [14, 15], attack: '+5', abilities: '4, 3, 2, 2', damage: 'd6+1', actions: [2, 2] },
     Veteran: { role: 'Veteran', hp: [20, 28], ac: [15, 16], attack: '+6', abilities: '4, 4, 3, 2 or 5, 3, 2, 2', damage: 'd6+2 / d8+1', actions: [2, 3] },
     Elite: { role: 'Elite', hp: [30, 45], ac: [16, 16], attack: '+6 to +7', abilities: '5, 4, 3, 2', damage: 'd8+2', actions: [2, 3] },
-    Captain: { role: 'Boss / Captain', hp: [45, 70], ac: [16, 17], attack: '+7', abilities: '5, 4, 3, 3', damage: 'd8+2 / d10+1', actions: [3, 3] },
+    Captain: { role: 'Captain', hp: null, ac: null, actions: [3, 3], note: 'the guide gives no HP or AC for a Captain - it sits between an Elite and a Boss' },
+    'Set Piece': { role: 'Boss', hp: [45, 70], ac: [16, 17], attack: '+7', abilities: '5, 4, 3, 3', damage: 'd8+2 / d10+1', actions: [3, 3] },
 };
 
 export const benchmarkFor = tierKey => ROLE_BENCHMARKS[tierKey] || null;
+
+// "Regular in the guide: HP 12-18 · AC 14-15 · 2 actions", leaving out what the
+// guide doesn't give for the role.
+export function benchmarkSummary(benchmark) {
+    const parts = [];
+    if (benchmark.hp) parts.push(`HP ${rangeText(benchmark.hp)}`);
+    if (benchmark.ac) parts.push(`AC ${rangeText(benchmark.ac)}`);
+    parts.push(`${rangeText(benchmark.actions)} ${benchmark.actions[1] === 1 ? 'action' : 'actions'}`);
+    const line = `${benchmark.role} in the guide: ${parts.join(' · ')}`;
+    return benchmark.note ? `${line} (${benchmark.note})` : line;
+}
+
+// The guide's starting numbers for a new enemy of a tier: the middle of its HP
+// range, the low end of its AC range (rounded down) and of its actions. Only what
+// the guide gives - a Captain gets actions alone, an unknown tier nothing.
+export function benchmarkDefaults(tierKey) {
+    const benchmark = benchmarkFor(tierKey);
+    if (!benchmark) return null;
+    const defaults = { action_points: benchmark.actions[0] };
+    if (benchmark.hp) defaults.maximum_health = Math.round((benchmark.hp[0] + benchmark.hp[1]) / 2);
+    if (benchmark.ac) defaults.base_armor_class = Math.floor((benchmark.ac[0] + benchmark.ac[1]) / 2);
+    return defaults;
+}
 
 const FIELD_CHECKS = [
     { key: 'hp', label: 'HP', read: enemy => enemy.maximum_health, range: benchmark => benchmark.hp },
@@ -37,7 +63,9 @@ export function checkEnemy(enemy) {
     FIELD_CHECKS.forEach(check => {
         const value = Number(check.read(enemy));
         if (check.read(enemy) === undefined || check.read(enemy) === null || Number.isNaN(value)) return;
-        const [min, max] = check.range(benchmark);
+        const range = check.range(benchmark);
+        if (!range) return;
+        const [min, max] = range;
         if (value < min) issues.push({ field: check.key, label: check.label, value, range: [min, max], status: 'below' });
         else if (value > max) issues.push({ field: check.key, label: check.label, value, range: [min, max], status: 'above' });
     });

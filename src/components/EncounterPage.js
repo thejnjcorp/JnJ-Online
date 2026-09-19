@@ -4,9 +4,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { db } from '../utils/firebase';
 import { useCampaignMaps } from '../utils/useCampaignCombat';
 import { ENEMY_TIERS, removeEnemies, rosterEntry, rosterSummary, stageEncounter, summaryText, tierOf } from '../utils/enemies';
-import { checkEnemy, rangeText } from '../utils/encounterGuide';
+import { benchmarkSummary, checkEnemy, rangeText } from '../utils/encounterGuide';
 import { BalanceCheck } from './BalanceCheck';
 import { BalanceGuide } from './BalanceGuide';
+import { EncounterNewEnemy } from './EncounterNewEnemy';
 import { EnemyPicker } from './EnemyPicker';
 import MarkdownEditor from './MarkdownEditor';
 import '../styles/ClassPage.scss';
@@ -50,7 +51,7 @@ function RosterRow({ entry, zoneNames, onChange, onRemove }) {
             <button type="button" className="EncounterPage-remove" aria-label={`Remove ${label}`} onClick={onRemove}>Remove</button>
         </div>
         {benchmark && <div className="EncounterPage-benchmark" aria-label={`Guide benchmark for ${label}`}>
-            <span>{benchmark.role} in the guide: HP {rangeText(benchmark.hp)} · AC {rangeText(benchmark.ac)} · {rangeText(benchmark.actions)} {benchmark.actions[1] === 1 ? 'action' : 'actions'}</span>
+            <span>{benchmarkSummary(benchmark)}</span>
             {issues.map(issue => <span key={issue.field} className="EncounterPage-flag">{issue.label} {issue.value} is {issue.status} {rangeText(issue.range)}</span>)}
         </div>}
     </div>;
@@ -73,6 +74,7 @@ export function EncounterPage() {
     const [campaign, setCampaign] = useState(null);
     const [loadError, setLoadError] = useState(false);
     const [picking, setPicking] = useState(false);
+    const [creating, setCreating] = useState(false);
     const [busy, setBusy] = useState(false);
     const draftLoaded = useRef(false);
     const { activeMap } = useCampaignMaps(campaign || {});
@@ -185,8 +187,12 @@ export function EncounterPage() {
             <div className="ClassPage-card">
                 <div className="ClassPage-actions-header">
                     <div className="ClassPage-section-title">Enemies</div>
-                    <button type="button" className="ClassPage-add-action-button" aria-expanded={picking} onClick={() => setPicking(open => !open)}>+ Add enemy</button>
+                    <div className="ClassPage-add-action-buttons">
+                        <button type="button" className="ClassPage-add-action-button" aria-expanded={picking} onClick={() => { setPicking(open => !open); setCreating(false); }}>+ Add enemy</button>
+                        <button type="button" className="ClassPage-add-action-button" aria-expanded={creating} onClick={() => { setCreating(open => !open); setPicking(false); }}>+ Create enemy</button>
+                    </div>
                 </div>
+                {creating && <EncounterNewEnemy onClose={() => setCreating(false)} onAdd={entry => { set({ roster: [...draft.roster, entry] }); setCreating(false); }}/>}
                 {picking && <EnemyPicker onClose={() => setPicking(false)} onPick={enemy => set({ roster: [...draft.roster, rosterEntry(enemy, '')] })}/>}
                 {draft.roster.map(entry => <RosterRow
                     key={entry.id}

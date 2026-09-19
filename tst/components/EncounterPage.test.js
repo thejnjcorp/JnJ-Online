@@ -1,8 +1,13 @@
-jest.mock('../../src/utils/firebase', () => ({ db: {} }));
+const mockAuth = { currentUser: { uid: 'dm' } };
+jest.mock('../../src/utils/firebase', () => ({ get auth() { return mockAuth; }, db: {} }));
 
 const mockUpdateDoc = jest.fn();
+const mockAddDoc = jest.fn();
 const mockListeners = {};
+jest.mock('../../src/utils/useTagCatalog', () => ({ useTagCatalog: () => ({ tags: [], status: 'ready' }) }));
 jest.mock('firebase/firestore', () => ({
+    addDoc: (...args) => mockAddDoc(...args),
+    collection: (_db, name) => ({ __collection: name }),
     doc: (_db, ...path) => ({ __doc: path.join('/') }),
     onSnapshot: (ref, next, error) => { mockListeners[ref.__doc] = { next, error }; return jest.fn(); },
     serverTimestamp: () => 'now',
@@ -48,8 +53,11 @@ const twoBandits = () => ({ ...rosterEntry(bandit), count: 2 });
 beforeEach(() => {
     Object.keys(mockListeners).forEach(key => delete mockListeners[key]);
     mockUpdateDoc.mockResolvedValue(undefined);
+    mockAddDoc.mockResolvedValue({ id: 'new-enemy' });
+    mockAuth.currentUser = { uid: 'dm' };
     window.alert = jest.fn();
     window.confirm = jest.fn(() => true);
+    window.HTMLElement.prototype.scrollIntoView = jest.fn();
 });
 
 afterEach(() => {
@@ -282,6 +290,270 @@ describe('EncounterPage', () => {
             renderPage({ encounter: { name: 'Ambush', roster: [] } });
             fireEvent.click(screen.getByRole('button', { name: /Balance guide/ }));
             expect(screen.getByText('1. Quick Enemy Benchmark Bank')).toBeInTheDocument();
+        });
+    });
+
+    describe('creating an enemy for the encounter', () => {
+        const open = () => fireEvent.click(screen.getByRole('button', { name: '+ Create enemy' }));
+        const panel = () => screen.getByRole('group', { name: 'New enemy' });
+        const name = value => fireEvent.change(screen.getByLabelText('Name of the new enemy'), { target: { value } });
+        const field = label => within(panel()).getByLabelText(label);
+        const rosterNames = () => screen.queryAllByLabelText(/^Name of (?!the new enemy)/).map(input => input.value);
+
+        test('+ Create enemy opens a form for a new enemy, which starts as a Regular with the guide\'s numbers for one', () => {
+            renderPage({ encounter: { name: 'Ambush', roster: [] } });
+            expect(screen.queryByRole('group', { name: 'New enemy' })).not.toBeInTheDocument();
+
+            open();
+
+            expect(panel()).toBeInTheDocument();
+            expect(within(panel()).getByRole('button', { name: 'Regular' })).toHaveAttribute('aria-pressed', 'true');
+            expect(field('Maximum Health')).toHaveValue(15);
+            expect(field('Armor Class')).toHaveValue(14);
+            expect(field('Action Points')).toHaveValue(2);
+            expect(within(panel()).getByText('Regular in the guide: HP 12-18 · AC 14-15 · 2 actions')).toBeInTheDocument();
+        });
+
+        test('it is the full stat block: stats, weaknesses, actions and notes', () => {
+            renderPage({ encounter: { name: 'Ambush', roster: [] } });
+            open();
+            ['Level', 'Hit Modifier', 'Damage Dice', 'Hardness'].forEach(label => expect(field(label)).toBeInTheDocument());
+            expect(within(panel()).getByText('Weaknesses & Resistances')).toBeInTheDocument();
+            expect(within(panel()).getByRole('button', { name: '+ Action' })).toBeInTheDocument();
+        });
+
+        test('choosing another tier shows its benchmark, and "Use the guide\'s numbers" fills them in', () => {
+            renderPage({ encounter: { name: 'Ambush', roster: [] } });
+            open();
+
+            fireEvent.click(within(panel()).getByRole('button', { name: 'Elite' }));
+            expect(within(panel()).getByText('Elite in the guide: HP 30-45 · AC 16 · 2-3 actions')).toBeInTheDocument();
+            expect(field('Maximum Health')).toHaveValue(15); // not changed by choosing the tier
+
+            fireEvent.click(within(panel()).getByRole('button', { name: "Use the guide's numbers" }));
+
+            expect(field('Maximum Health')).toHaveValue(38);
+            expect(field('Armor Class')).toHaveValue(16);
+            expect(field('Action Points')).toHaveValue(2);
+        });
+
+        test('a Captain\'s benchmark says the guide has no HP or AC for it, and only fills the actions', () => {
+            renderPage({ encounter: { name: 'Ambush', roster: [] } });
+            open();
+            fireEvent.click(within(panel()).getByRole('button', { name: 'Captain' }));
+            expect(within(panel()).getByText(/Captain in the guide: 3 actions \(the guide gives no HP or AC/)).toBeInTheDocument();
+
+            fireEvent.click(within(panel()).getByRole('button', { name: "Use the guide's numbers" }));
+
+            expect(field('Action Points')).toHaveValue(3);
+            expect(field('Maximum Health')).toHaveValue(15);
+        });
+
+        test('Set Piece is a tier, with the guide\'s Boss numbers', () => {
+            renderPage({ encounter: { name: 'Ambush', roster: [] } });
+            open();
+            fireEvent.click(within(panel()).getByRole('button', { name: 'Set Piece' }));
+            expect(within(panel()).getByText('Boss in the guide: HP 45-70 · AC 16-17 · 3 actions')).toBeInTheDocument();
+        });
+
+        test('adding puts the enemy in the roster as a copy with what was entered, and closes the form', () => {
+            renderPage({ encounter: { name: 'Ambush', roster: [] } });
+            open();
+            name('  Ash Warden ');
+            fireEvent.change(field('Maximum Health'), { target: { value: '22' } });
+            fireEvent.click(within(panel()).getByRole('button', { name: 'Veteran' }));
+
+            fireEvent.click(within(panel()).getByRole('button', { name: 'Add to encounter' }));
+
+            expect(screen.queryByRole('group', { name: 'New enemy' })).not.toBeInTheDocument();
+            expect(screen.getByLabelText('Name of Ash Warden')).toHaveValue('Ash Warden');
+            expect(screen.getByLabelText('Tier of Ash Warden')).toHaveValue('Veteran');
+            expect(screen.getByLabelText('HP of Ash Warden')).toHaveValue(22);
+            expect(screen.getByLabelText('AC of Ash Warden')).toHaveValue(14);
+            expect(screen.getByLabelText('Number of Ash Warden')).toHaveTextContent('1');
+            expect(mockAddDoc).not.toHaveBeenCalled(); // only in this encounter
+        });
+
+        test('the new roster row is checked against the guide like any other', () => {
+            renderPage({ encounter: { name: 'Ambush', roster: [] } });
+            open();
+            name('Big Bandit');
+            fireEvent.change(field('Maximum Health'), { target: { value: '40' } });
+            fireEvent.click(within(panel()).getByRole('button', { name: 'Add to encounter' }));
+            expect(screen.getByLabelText('Guide benchmark for Big Bandit')).toHaveTextContent('HP 40 is above 12-18');
+        });
+
+        test('adding is an unsaved change to the encounter, saved with its roster', async () => {
+            renderPage({ encounter: { name: 'Ambush', roster: [] } });
+            open();
+            name('Ash Warden');
+            fireEvent.click(within(panel()).getByRole('button', { name: 'Add to encounter' }));
+            expect(save()).toHaveTextContent('Save');
+
+            fireEvent.click(save());
+
+            await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalled());
+            const saved = mockUpdateDoc.mock.calls[0][1].roster;
+            expect(saved).toHaveLength(1);
+            expect(saved[0].enemy).toMatchObject({ enemy_name: 'Ash Warden', enemy_type: 'Regular', maximum_health: 15, action_points: 2 });
+            expect(saved[0].templateId).toBeUndefined();
+        });
+
+        test('an action written in the form comes with the enemy, once it is filled in', async () => {
+            renderPage({ encounter: { name: 'Ambush', roster: [] } });
+            open();
+            name('Ash Warden');
+            fireEvent.click(within(panel()).getByRole('button', { name: '+ Action' }));
+            fireEvent.click(within(panel()).getByRole('button', { name: 'Add to encounter' }));
+            // an unnamed action is not valid, so it stays open with the problem showing
+            expect(panel()).toBeInTheDocument();
+            expect(within(panel()).getAllByText('Give this action a name.').length).toBeGreaterThan(0);
+
+            fireEvent.change(panel().querySelector('input[name="actionName"]'), { target: { value: 'Ash Cloud' } });
+            fireEvent.click(within(panel()).getByRole('button', { name: 'Add to encounter' }));
+
+            expect(screen.queryByRole('group', { name: 'New enemy' })).not.toBeInTheDocument();
+            fireEvent.click(save());
+            await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalled());
+            expect(mockUpdateDoc.mock.calls[0][1].roster[0].enemy.actions).toHaveLength(1);
+            expect(mockUpdateDoc.mock.calls[0][1].roster[0].enemy.actions[0]).toMatchObject({ actionName: 'Ash Cloud', category: 'action' });
+        });
+
+        test('without a name it will not add, and says why', () => {
+            renderPage({ encounter: { name: 'Ambush', roster: [] } });
+            open();
+
+            fireEvent.click(within(panel()).getByRole('button', { name: 'Add to encounter' }));
+
+            expect(panel()).toBeInTheDocument();
+            expect(within(panel()).getAllByText('Give the enemy a name.').length).toBeGreaterThan(0);
+            expect(rosterNames()).toEqual([]);
+        });
+
+        test('a number that is not a whole number is refused', () => {
+            renderPage({ encounter: { name: 'Ambush', roster: [] } });
+            open();
+            name('Ash Warden');
+            fireEvent.change(field('Maximum Health'), { target: { value: '' } });
+
+            fireEvent.click(within(panel()).getByRole('button', { name: 'Add to encounter' }));
+
+            expect(panel()).toBeInTheDocument();
+            expect(within(panel()).getAllByText('Enter a whole number.').length).toBeGreaterThan(0);
+        });
+
+        test('Cancel closes the form without adding anything', () => {
+            renderPage({ encounter: { name: 'Ambush', roster: [] } });
+            open();
+            name('Ash Warden');
+
+            fireEvent.click(within(panel()).getByRole('button', { name: 'Cancel' }));
+
+            expect(screen.queryByRole('group', { name: 'New enemy' })).not.toBeInTheDocument();
+            expect(rosterNames()).toEqual([]);
+            expect(save()).toHaveTextContent('Saved');
+        });
+
+        test('opening it again starts from a blank form', () => {
+            renderPage({ encounter: { name: 'Ambush', roster: [] } });
+            open();
+            name('Ash Warden');
+            fireEvent.click(within(panel()).getByRole('button', { name: 'Cancel' }));
+
+            open();
+
+            expect(screen.getByLabelText('Name of the new enemy')).toHaveValue('');
+        });
+
+        test('the button toggles the form closed again', () => {
+            renderPage({ encounter: { name: 'Ambush', roster: [] } });
+            open();
+            expect(screen.getByRole('button', { name: '+ Create enemy' })).toHaveAttribute('aria-expanded', 'true');
+            open();
+            expect(screen.queryByRole('group', { name: 'New enemy' })).not.toBeInTheDocument();
+        });
+
+        test('it and the bestiary picker take turns', () => {
+            renderPage({ encounter: { name: 'Ambush', roster: [] } });
+            fireEvent.click(screen.getByRole('button', { name: '+ Add enemy' }));
+            expect(screen.getByLabelText('Search the bestiary')).toBeInTheDocument();
+
+            open();
+            expect(screen.queryByLabelText('Search the bestiary')).not.toBeInTheDocument();
+            expect(panel()).toBeInTheDocument();
+
+            fireEvent.click(screen.getByRole('button', { name: '+ Add enemy' }));
+            expect(screen.queryByRole('group', { name: 'New enemy' })).not.toBeInTheDocument();
+            expect(screen.getByLabelText('Search the bestiary')).toBeInTheDocument();
+        });
+
+        test('several can be created, one after another', () => {
+            renderPage({ encounter: { name: 'Ambush', roster: [] } });
+            open();
+            name('First');
+            fireEvent.click(within(panel()).getByRole('button', { name: 'Add to encounter' }));
+            open();
+            name('Second');
+            fireEvent.click(within(panel()).getByRole('button', { name: 'Add to encounter' }));
+            expect(rosterNames()).toEqual(['First', 'Second']);
+        });
+
+        describe('also saving it to the bestiary', () => {
+            const tick = () => fireEvent.click(within(panel()).getByLabelText(/Also save it to my bestiary/));
+
+            test('is off to begin with', () => {
+                renderPage({ encounter: { name: 'Ambush', roster: [] } });
+                open();
+                expect(within(panel()).getByLabelText(/Also save it to my bestiary/)).not.toBeChecked();
+            });
+
+            test('when ticked, saves a private enemy of yours, and the roster entry remembers which', async () => {
+                renderPage({ encounter: { name: 'Ambush', roster: [] } });
+                open();
+                name('Ash Warden');
+                fireEvent.change(field('Maximum Health'), { target: { value: '20' } });
+                tick();
+
+                fireEvent.click(within(panel()).getByRole('button', { name: 'Add to encounter' }));
+
+                await waitFor(() => expect(screen.getByLabelText('Name of Ash Warden')).toBeInTheDocument());
+                expect(mockAddDoc).toHaveBeenCalledTimes(1);
+                const [target, data] = mockAddDoc.mock.calls[0];
+                expect(target).toEqual({ __collection: 'enemies' });
+                expect(data).toMatchObject({ enemy_name: 'Ash Warden', enemy_type: 'Regular', maximum_health: 20, public: false, canRead: ['dm'], canWrite: ['dm'], admins: ['dm'] });
+
+                fireEvent.click(save());
+                await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalled());
+                expect(mockUpdateDoc.mock.calls[0][1].roster[0].templateId).toBe('new-enemy');
+            });
+
+            test('if it cannot be saved there, it says so, and nothing is added', async () => {
+                mockAddDoc.mockRejectedValue(new Error('permission-denied'));
+                renderPage({ encounter: { name: 'Ambush', roster: [] } });
+                open();
+                name('Ash Warden');
+                tick();
+
+                fireEvent.click(within(panel()).getByRole('button', { name: 'Add to encounter' }));
+
+                await waitFor(() => expect(window.alert).toHaveBeenCalledWith("Couldn't save the enemy to your bestiary: permission-denied"));
+                expect(panel()).toBeInTheDocument();
+                expect(rosterNames()).toEqual([]);
+                expect(within(panel()).getByRole('button', { name: 'Add to encounter' })).toBeEnabled();
+            });
+
+            test('someone not signed in cannot save it there', async () => {
+                mockAuth.currentUser = null;
+                renderPage({ encounter: { name: 'Ambush', roster: [] } });
+                open();
+                name('Ash Warden');
+                tick();
+
+                fireEvent.click(within(panel()).getByRole('button', { name: 'Add to encounter' }));
+
+                await waitFor(() => expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('signed in')));
+                expect(mockAddDoc).not.toHaveBeenCalled();
+            });
         });
     });
 

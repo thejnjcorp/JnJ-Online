@@ -288,3 +288,32 @@
     font-size: var(--jnj-text-sm);
     color: var(--jnj-color-text-muted);
 }
+
+.EncounterPage-create {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-3);
+    padding: var(--jnj-space-4);
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-md);
+    background: var(--jnj-color-bg-sunken);
+}
+
+.EncounterPage-create-save {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--jnj-space-2);
+    font-size: var(--jnj-text-sm);
+    color: var(--jnj-color-text);
+    cursor: pointer;
+
+    input {
+        margin-top: 0.2rem;
+    }
+}
+
+.EncounterPage-create-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--jnj-space-3);
+}

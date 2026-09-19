@@ -30,6 +30,8 @@ import { EnemyPage } from '../../src/components/EnemyPage';
 import { renderWithRouter } from '../testUtils/renderWithRouter';
 // eslint-disable-next-line import/first
 import { validAction } from '../testUtils/actions';
+// eslint-disable-next-line import/first
+import { newEnemy } from '../../src/utils/enemies';
 
 function signIn(user) {
     mockOnAuthStateChanged.mockImplementation((_auth, callback) => {
@@ -78,10 +80,33 @@ describe('EnemyPage', () => {
             expect(screen.queryByRole('button', { name: 'Delete Enemy' })).not.toBeInTheDocument();
         });
 
-        test('offers the five tiers, and choosing one selects it', async () => {
+        test('shows the guide\'s benchmark for the chosen tier, and can fill the numbers from it', async () => {
+            signIn({ uid: 'dm' });
+            renderWithRouter(<EnemyPage />, { route: '/enemies' });
+            await screen.findByLabelText('Name');
+
+            fireEvent.click(screen.getByRole('button', { name: 'Veteran' }));
+            expect(screen.getByText('Veteran in the guide: HP 20-28 · AC 15-16 · 2-3 actions')).toBeInTheDocument();
+            fireEvent.click(screen.getByRole('button', { name: "Use the guide's numbers" }));
+
+            expect(field('Maximum Health')).toHaveValue(24);
+            expect(field('Armor Class')).toHaveValue(15);
+            expect(field('Action Points')).toHaveValue(2);
+        });
+
+        test('a read-only enemy shows the benchmark but cannot be filled from it', async () => {
+            mockGetDoc.mockResolvedValue({ exists: () => true, data: () => ({ ...newEnemy('Elite'), enemy_name: 'Theirs', canWrite: ['someone-else'], admins: ['someone-else'] }) });
+            renderWithRouter(<EnemyPage />, { route: '/enemies/e1' });
+            await screen.findByDisplayValue('Theirs');
+            await waitFor(() => expect(screen.getByLabelText('Name')).toBeDisabled());
+            expect(screen.getByText(/Elite in the guide/)).toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: "Use the guide's numbers" })).not.toBeInTheDocument();
+        });
+
+        test('offers the six tiers, and choosing one selects it', async () => {
             renderNew();
             const tiers = within(await screen.findByRole('group', { name: 'Tier' }));
-            expect(tiers.getAllByRole('button').map(button => button.textContent)).toEqual(['Goon', 'Regular', 'Veteran', 'Elite', 'Captain']);
+            expect(tiers.getAllByRole('button').map(button => button.textContent)).toEqual(['Goon', 'Regular', 'Veteran', 'Elite', 'Captain', 'Set Piece']);
 
             fireEvent.click(tiers.getByRole('button', { name: 'Elite' }));
 

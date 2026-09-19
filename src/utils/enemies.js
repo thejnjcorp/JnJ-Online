@@ -6,7 +6,7 @@
 // live enemies on the campaign (`enemy_list`, the shape the Director's page
 // already runs) and places them on the combat tracker.
 //
-// An enemy's tier (Goon ... Captain) is only a label: a badge, a filter, a
+// An enemy's tier (Goon ... Set Piece) is only a label: a badge, a filter, a
 // line in an encounter's summary. Everything that makes one stronger - HP, AC,
 // actions - is numbers the director sets.
 
@@ -18,10 +18,11 @@ export const ENEMY_TIERS = [
     { key: 'Veteran', plural: 'Veterans' },
     { key: 'Elite', plural: 'Elites' },
     { key: 'Captain', plural: 'Captains' },
+    { key: 'Set Piece', plural: 'Set Pieces' },
 ];
 
 export const tierOf = key => ENEMY_TIERS.find(tier => tier.key === key);
-export const tierClass = key => `EnemyTier-${String(key || 'unknown').toLowerCase()}`;
+export const tierClass = key => `EnemyTier-${String(key || 'unknown').toLowerCase().replace(/\s+/g, '-')}`;
 
 // The stat block fields an enemy carries from the bestiary into a fight. Same
 // names NPCLayout.json (and everything on the Director's page) already uses.
@@ -94,6 +95,22 @@ export function validateEnemy(enemy) {
 
     const actions = actionProblems(enemy.actions);
     return { fields, actions: actions.byIndex, problems: [...problems, ...actions.problems], valid: problems.length === 0 && actions.problems.length === 0 };
+}
+
+// What an enemy's form saves: its stat block, notes and actions (with an outcome
+// table that was switched on and then left empty taken off), and its trimmed name.
+export function enemyDocFields(form) {
+    const payload = { description: form.description || '' };
+    ENEMY_STAT_FIELDS.forEach(field => { payload[field] = form[field]; });
+    payload.actions = (form.actions || []).map(action => {
+        if (action.outcomeTable && !Object.values(action.outcomeTable).some(Boolean)) {
+            const { outcomeTable, ...rest } = action;
+            return rest;
+        }
+        return action;
+    });
+    payload.enemy_name = (form.enemy_name || '').trim();
+    return payload;
 }
 
 export const NO_ENEMY_ERRORS = Object.freeze({ fields: {}, actions: {}, problems: [], valid: true });

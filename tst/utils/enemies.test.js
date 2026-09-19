@@ -1,5 +1,5 @@
 import {
-    ENEMY_TIERS, ENEMY_STAT_FIELDS, enemyInstance, formatModifier, instanceNames, newEnemy, parseModifier, removeEnemies,
+    ENEMY_TIERS, ENEMY_STAT_FIELDS, enemyDocFields, enemyInstance, formatModifier, instanceNames, newEnemy, parseModifier, removeEnemies,
     rosterEntry, rosterSummary, stageEncounter, summaryText, tierClass, tierOf, uniqueEnemyName, validateEnemy,
 } from '../../src/utils/enemies';
 import { validAction } from '../testUtils/actions';
@@ -8,16 +8,44 @@ const bandit = { id: 'bestiary-bandit', ...newEnemy('Goon'), enemy_name: 'Rust B
 const captain = { id: 'bestiary-captain', ...newEnemy('Captain'), enemy_name: 'Iron Captain', maximum_health: 80, level: 4, action_points: 4 };
 
 describe('tiers', () => {
-    test('are Goon, Regular, Veteran, Elite and Captain, weakest first, each with a plural', () => {
-        expect(ENEMY_TIERS.map(tier => tier.key)).toEqual(['Goon', 'Regular', 'Veteran', 'Elite', 'Captain']);
-        expect(ENEMY_TIERS.map(tier => tier.plural)).toEqual(['Goons', 'Regulars', 'Veterans', 'Elites', 'Captains']);
+    test('are Goon, Regular, Veteran, Elite, Captain and Set Piece, weakest first, each with a plural', () => {
+        expect(ENEMY_TIERS.map(tier => tier.key)).toEqual(['Goon', 'Regular', 'Veteran', 'Elite', 'Captain', 'Set Piece']);
+        expect(ENEMY_TIERS.map(tier => tier.plural)).toEqual(['Goons', 'Regulars', 'Veterans', 'Elites', 'Captains', 'Set Pieces']);
     });
 
     test('tierOf finds one; tierClass is a class for its badge', () => {
         expect(tierOf('Elite').plural).toBe('Elites');
         expect(tierOf('Dragon')).toBeUndefined();
         expect(tierClass('Elite')).toBe('EnemyTier-elite');
+        expect(tierClass('Set Piece')).toBe('EnemyTier-set-piece'); // one class, not two
         expect(tierClass(undefined)).toBe('EnemyTier-unknown');
+    });
+});
+
+describe('enemyDocFields', () => {
+    const form = () => ({ ...newEnemy('Elite'), enemy_name: '  Ash Warden ', description: 'Loves fire', visibility: 'private', canWrite: ['dm'], actions: [validAction({ actionName: 'Ash Cloud' })] });
+
+    test('is the stat block, notes and actions, with the name trimmed', () => {
+        const fields = enemyDocFields(form());
+        expect(fields).toMatchObject({ enemy_name: 'Ash Warden', enemy_type: 'Elite', description: 'Loves fire', maximum_health: 10, level: 1 });
+        expect(fields.actions).toHaveLength(1);
+    });
+
+    test('leaves out what the form only uses to run itself (visibility, who can write)', () => {
+        const fields = enemyDocFields(form());
+        expect(fields).not.toHaveProperty('visibility');
+        expect(fields).not.toHaveProperty('canWrite');
+    });
+
+    test('an outcome table that was switched on and left empty is not saved', () => {
+        const withEmpty = { ...form(), actions: [{ ...validAction({ actionName: 'A' }), outcomeTable: { success: '', failure: '' } }, { ...validAction({ actionName: 'B' }), outcomeTable: { success: 'Hit' } }] };
+        const [first, second] = enemyDocFields(withEmpty).actions;
+        expect(first).not.toHaveProperty('outcomeTable');
+        expect(second.outcomeTable).toEqual({ success: 'Hit' });
+    });
+
+    test('a form with no name, notes or actions yet still gives a complete set', () => {
+        expect(enemyDocFields({ ...newEnemy(), enemy_name: undefined, actions: undefined, description: undefined })).toMatchObject({ enemy_name: '', description: '', actions: [] });
     });
 });
 

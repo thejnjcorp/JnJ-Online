@@ -10,7 +10,11 @@ const table = (title, columns, rows, extra = {}) => ({ type: 'table', title, col
 const callout = (title, text, tone = 'note') => ({ type: 'callout', title, text, tone });
 const text = (title, ...paragraphs) => ({ type: 'text', title, paragraphs });
 
-const roleRows = Object.entries(ROLE_BENCHMARKS).map(([, role]) => [role.role.toUpperCase(), rangeText(role.hp), rangeText(role.ac), role.attack, role.abilities, role.damage]);
+// The guide's benchmark table: the roles it gives numbers for. Its Boss is the app's
+// Set Piece enemy tier.
+const roleRows = Object.entries(ROLE_BENCHMARKS)
+    .filter(([, role]) => role.hp)
+    .map(([tier, role]) => [(tier === 'Set Piece' ? 'Boss (Set Piece)' : role.role).toUpperCase(), rangeText(role.hp), rangeText(role.ac), role.attack, role.abilities, role.damage]);
 
 export const GUIDE_SECTIONS = [
     {
@@ -60,7 +64,7 @@ export const GUIDE_SECTIONS = [
             }),
             callout('Meaningful Action', 'Count actions that attack, control, heal, summon, reposition, or advance an enemy objective. A 1-HP summon may barely affect the HP budget but can still add a recurring hostile action every round.', 'purple'),
             table(null, ['Enemy Role', 'Typical Actions'], [
-                ['Boss / Captain', '3'],
+                ['Boss (Set Piece) / Captain', '3'],
                 ['Elite / Veteran', '2-3'],
                 ['Regular', '2'],
                 ['Goon', '1-2, with only one meaningful offensive action'],

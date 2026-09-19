@@ -64,9 +64,9 @@ describe('BestiaryPage', () => {
             expect(names()).toHaveLength(3);
         });
 
-        test('the tiers offered are all five, by plural', () => {
+        test('the tiers offered are all six, by plural', () => {
             renderPage([]);
-            expect(group('Tier').getAllByRole('button').map(button => button.textContent)).toEqual(['All', 'Goons', 'Regulars', 'Veterans', 'Elites', 'Captains']);
+            expect(group('Tier').getAllByRole('button').map(button => button.textContent)).toEqual(['All', 'Goons', 'Regulars', 'Veterans', 'Elites', 'Captains', 'Set Pieces']);
         });
 
         test('Mine keeps enemies the viewer can write, Public keeps public ones', async () => {

@@ -1,5 +1,5 @@
 import {
-    ENCOUNTER_TIERS, OBJECTIVE_LOADS, ROLE_BENCHMARKS, adjustedEhpRange, benchmarkFor, checkEnemy, evaluateEncounter, landingFor,
+    ENCOUNTER_TIERS, OBJECTIVE_LOADS, ROLE_BENCHMARKS, adjustedEhpRange, benchmarkDefaults, benchmarkFor, benchmarkSummary, checkEnemy, evaluateEncounter, landingFor,
     landingText, objectiveByKey, rangeStatus, rangeText, tierByKey,
 } from '../../src/utils/encounterGuide';
 
@@ -19,15 +19,19 @@ describe('the role benchmarks (guide section 1)', () => {
         ['Regular', [12, 18], [14, 15], [2, 2]],
         ['Veteran', [20, 28], [15, 16], [2, 3]],
         ['Elite', [30, 45], [16, 16], [2, 3]],
-        ['Captain', [45, 70], [16, 17], [3, 3]],
+        ['Set Piece', [45, 70], [16, 17], [3, 3]],
     ])('%s: HP %j, AC %j, actions %j', (tier, hp, ac, actions) => {
         expect(ROLE_BENCHMARKS[tier]).toMatchObject({ hp, ac, actions });
     });
 
-    test('the guide\'s Boss is the app\'s Captain', () => {
-        expect(benchmarkFor('Captain').role).toBe('Boss / Captain');
+    test('the guide\'s Boss is the app\'s Set Piece tier', () => {
+        expect(benchmarkFor('Set Piece').role).toBe('Boss');
         expect(benchmarkFor('Boss')).toBeNull();
         expect(benchmarkFor(undefined)).toBeNull();
+    });
+
+    test('a Captain has only the guide\'s "Boss / Captain" 3 actions: no HP or AC row', () => {
+        expect(ROLE_BENCHMARKS.Captain).toMatchObject({ role: 'Captain', hp: null, ac: null, actions: [3, 3] });
     });
 });
 
@@ -58,9 +62,61 @@ describe('checkEnemy', () => {
         expect(checkEnemy(undefined)).toEqual({ benchmark: null, issues: [] });
     });
 
+    test('a Captain is checked on actions only', () => {
+        expect(checkEnemy(enemy('Captain', 500, 25, 3)).issues).toEqual([]);
+        expect(checkEnemy(enemy('Captain', 5, 5, 1)).issues).toEqual([{ field: 'actions', label: 'Actions', value: 1, range: [3, 3], status: 'below' }]);
+    });
+
+    test('a Set Piece enemy is checked against the guide\'s Boss', () => {
+        expect(checkEnemy(enemy('Set Piece', 60, 17, 3)).issues).toEqual([]);
+        expect(checkEnemy(enemy('Set Piece', 120, 20, 3)).issues.map(issue => issue.field)).toEqual(['hp', 'ac']);
+    });
+
     test('a number the enemy does not have is skipped, not flagged', () => {
         expect(checkEnemy({ enemy_type: 'Goon', maximum_health: 3 }).issues).toEqual([]);
         expect(checkEnemy({ enemy_type: 'Goon', maximum_health: 3, base_armor_class: null, action_points: 'lots' }).issues).toEqual([]);
+    });
+});
+
+describe('benchmarkDefaults: the guide\'s starting numbers for a new enemy', () => {
+    test.each([
+        ['Goon', { maximum_health: 3, base_armor_class: 13, action_points: 1 }],
+        ['Regular', { maximum_health: 15, base_armor_class: 14, action_points: 2 }],
+        ['Veteran', { maximum_health: 24, base_armor_class: 15, action_points: 2 }],
+        ['Elite', { maximum_health: 38, base_armor_class: 16, action_points: 2 }],
+        ['Set Piece', { maximum_health: 58, base_armor_class: 16, action_points: 3 }],
+    ])('%s', (tier, defaults) => {
+        expect(benchmarkDefaults(tier)).toEqual(defaults);
+    });
+
+    test('every default is inside the benchmark it came from', () => {
+        Object.keys(ROLE_BENCHMARKS).forEach(tier => {
+            const defaults = benchmarkDefaults(tier);
+            const { issues } = checkEnemy({ enemy_type: tier, maximum_health: defaults.maximum_health, base_armor_class: defaults.base_armor_class, action_points: defaults.action_points });
+            expect({ tier, issues }).toEqual({ tier, issues: [] });
+        });
+    });
+
+    test('a Captain gets actions only, and an unknown tier nothing', () => {
+        expect(benchmarkDefaults('Captain')).toEqual({ action_points: 3 });
+        expect(benchmarkDefaults('Dragon')).toBeNull();
+        expect(benchmarkDefaults(undefined)).toBeNull();
+    });
+});
+
+describe('benchmarkSummary', () => {
+    test('is the role\'s HP, AC and actions', () => {
+        expect(benchmarkSummary(benchmarkFor('Regular'))).toBe('Regular in the guide: HP 12-18 · AC 14-15 · 2 actions');
+        expect(benchmarkSummary(benchmarkFor('Goon'))).toBe('Goon in the guide: HP 1-5 · AC 13-14 · 1-2 actions');
+        expect(benchmarkSummary(benchmarkFor('Set Piece'))).toBe('Boss in the guide: HP 45-70 · AC 16-17 · 3 actions');
+    });
+
+    test('leaves out what the guide does not give, and says so', () => {
+        expect(benchmarkSummary(benchmarkFor('Captain'))).toBe('Captain in the guide: 3 actions (the guide gives no HP or AC for a Captain - it sits between an Elite and a Boss)');
+    });
+
+    test('one action is singular', () => {
+        expect(benchmarkSummary({ role: 'Trap', actions: [1, 1] })).toBe('Trap in the guide: 1 action');
     });
 });
 

@@ -35,10 +35,17 @@ describe('the guide\'s cheat sheet content', () => {
 
     test('the benchmark table is built from the role benchmarks the builder checks against', () => {
         const rows = find('1. Quick Enemy Benchmark Bank').rows;
-        expect(rows).toHaveLength(Object.keys(ROLE_BENCHMARKS).length);
+        expect(rows.map(row => row[0])).toEqual(['GOON', 'REGULAR', 'VETERAN', 'ELITE', 'BOSS (SET PIECE)']);
         expect(rows[0]).toEqual(['GOON', '1-5', '13-14', '+4 to +5', '3, 2, 1, 1', 'd4+1']);
-        expect(rows[4][0]).toBe('BOSS / CAPTAIN');
-        expect(rows[4].slice(1, 3)).toEqual([rangeText(ROLE_BENCHMARKS.Captain.hp), rangeText(ROLE_BENCHMARKS.Captain.ac)]);
+        expect(rows[4].slice(1, 3)).toEqual([rangeText(ROLE_BENCHMARKS['Set Piece'].hp), rangeText(ROLE_BENCHMARKS['Set Piece'].ac)]);
+    });
+
+    test('a Captain has no row in the benchmark table, as in the guide', () => {
+        expect(find('1. Quick Enemy Benchmark Bank').rows.flat().join(' ')).not.toMatch(/captain/i);
+    });
+
+    test('the guide\'s Boss is named for the Set Piece tier where the guide says Boss / Captain', () => {
+        expect(GUIDE_SECTIONS.flatMap(section => section.blocks).filter(block => block.type === 'table').flatMap(block => block.rows).map(row => row[0])).toContain('Boss (Set Piece) / Captain');
     });
 
     test('the EHP and action tables come from the tiers the builder checks against', () => {

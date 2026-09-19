@@ -48,3 +48,12 @@
     flex-wrap: wrap;
     gap: var(--jnj-space-3);
 }
+
+.EnemyPage-benchmark {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--jnj-space-2) var(--jnj-space-3);
+    font-size: var(--jnj-text-sm);
+    color: var(--jnj-color-text-muted);
+}
