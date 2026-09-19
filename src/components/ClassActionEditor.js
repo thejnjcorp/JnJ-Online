@@ -5,6 +5,7 @@ import { ClassTagEditDialog } from './ClassTagEditDialog';
 import { ActionPreview } from './ActionPreview';
 import { ActionTags } from './ActionTags';
 import { FieldError, invalidClass, invalidProps } from './FormErrors';
+import { ACTION_USAGES, getActionUsage, usageBadge } from '../utils/classActions';
 
 const OUTCOME_ROWS = [
     { key: 'criticalSuccess', label: 'Critical Success' },
@@ -62,6 +63,7 @@ export function ClassActionEditor({ action, index, onChange, onRemove, onAddTag,
     const [showOutcomeTable, setShowOutcomeTable] = useState(Boolean(action.outcomeTable));
     const [openTagIndex, setOpenTagIndex] = useState(null);
     const category = action.category || 'action';
+    const usage = getActionUsage(action);
     const hasOutcomeTable = action.outcomeTable && Object.values(action.outcomeTable).some(Boolean);
     const problemCount = Object.keys(errors).length;
     // Once flagged, a card stays open even after its last problem is fixed
@@ -87,9 +89,10 @@ export function ClassActionEditor({ action, index, onChange, onRemove, onAddTag,
     return <div className={problemCount > 0 ? 'ClassPage-action-card ClassPage-action-card-invalid' : 'ClassPage-action-card'}>
         <button type="button" className="ClassPage-action-card-header" onClick={() => { setOpen(!isOpen); setPinnedOpen(false); }}>
             <span className={isOpen ? 'ClassPage-action-chevron ClassPage-action-chevron-open' : 'ClassPage-action-chevron'}>›</span>
-            <span className={`ClassPage-cost-pip ClassPage-cost-pip-${Math.min(action.actionCost || 0, 3)}`}>{action.actionCost || 0}</span>
+            {usage !== 'roleplay' && <span className={`ClassPage-cost-pip ClassPage-cost-pip-${Math.min(action.actionCost || 0, 3)}`}>{action.actionCost || 0}</span>}
             <span className="ClassPage-action-name">{action.actionName || 'Unnamed'}</span>
             <span className="ClassPage-level-badge">Lvl {action.actionLevel || 1}</span>
+            {usageBadge(action) && <span className="ClassPage-usage-badge">{usageBadge(action)}</span>}
             <span className="ClassPage-frequency-badge">{frequencyLabel(action)}</span>
             {problemCount > 0 && <span className="ClassPage-action-error-pill">{problemCount === 1 ? '1 to fix' : `${problemCount} to fix`}</span>}
         </button>
@@ -102,10 +105,10 @@ export function ClassActionEditor({ action, index, onChange, onRemove, onAddTag,
                         <input {...fieldProps('actionName', 'ClassPage-field-input')} name="actionName" onChange={handleChange} defaultValue={action.actionName}/>
                         <FieldError message={errors.actionName}/>
                     </div>
-                    <div>
+                    {usage !== 'roleplay' && <div>
                         <span className="ClassPage-field-label">Cost</span>
                         <input {...fieldProps('actionCost', 'ClassPage-field-input ClassPage-field-input-narrow')} name="actionCost" type="number" min={0} max={3} onChange={handleChange} defaultValue={action.actionCost}/>
-                    </div>
+                    </div>}
                     <div>
                         <span className="ClassPage-field-label">Level</span>
                         <input {...fieldProps('actionLevel', 'ClassPage-field-input ClassPage-field-input-narrow')} name="actionLevel" type="number" min={1} max={15} onChange={handleChange} defaultValue={action.actionLevel}/>
@@ -156,6 +159,11 @@ export function ClassActionEditor({ action, index, onChange, onRemove, onAddTag,
                         <span className="ClassPage-field-label">Category</span>
                         <PillGroup options={CATEGORY_OPTIONS} selected={category} onPick={v => set('category', v)} error={errors.category} problemId={problemId('category')}/>
                         <FieldError message={errors.category}/>
+                    </div>
+                    <div>
+                        <span className="ClassPage-field-label">Used in</span>
+                        <PillGroup options={ACTION_USAGES} selected={usage} onPick={v => set('usage', v)} error={errors.usage} problemId={problemId('usage')}/>
+                        <FieldError message={errors.usage}/>
                     </div>
                     {category === 'reaction' && <div className="ClassPage-field-grow">
                         <span className="ClassPage-field-label">Trigger</span>

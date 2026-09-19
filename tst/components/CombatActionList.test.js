@@ -317,4 +317,57 @@ describe('CombatActionList', () => {
             expect(container.querySelector('.CombatActionListCard-footer')).not.toBeInTheDocument();
         });
     });
+    describe('roleplay cards', () => {
+        const persuade = { actionName: 'Silver Tongue', category: 'action', toHitBool: false, difficultyClass: 'Cha,1', actionCost: 2, range: 'Earshot' };
+        const limitedTalk = { ...persuade, actionName: 'Old Friend', actionType: 'perDay', actionTypeCount: 2 };
+        const setup = (action, props = {}) => {
+            const onActionUsesChange = jest.fn();
+            render(<CombatActionList actions={[action]} {...STAT_PROPS} characterPage={characterPage} userId="owner-1" canUseActions roleplay actionUses={{}} onActionUsesChange={onActionUsesChange} {...props} />);
+            return onActionUsesChange;
+        };
+
+        test('show the check and range, but no action point cost', () => {
+            setup(persuade);
+            expect(screen.getByText('DC 15 Cha check · Earshot')).toBeInTheDocument();
+            expect(screen.queryByText(/Actions?$/)).not.toBeInTheDocument();
+        });
+
+        test('a reaction is not called a reaction here either', () => {
+            setup({ ...persuade, category: 'reaction' });
+            expect(screen.queryByText(/Reaction/)).not.toBeInTheDocument();
+        });
+
+        test('keep the frequency of a limited action', () => {
+            setup(limitedTalk);
+            expect(screen.getByText('2/Day · DC 15 Cha check · Earshot')).toBeInTheDocument();
+        });
+
+        test('an action with no limit has no Use button: there is nothing to spend', () => {
+            setup(persuade);
+            expect(screen.queryByRole('button')).not.toBeInTheDocument();
+        });
+
+        test('a limited one has a Use button that spends a use and not action points', () => {
+            const onActionUsesChange = setup(limitedTalk);
+            fireEvent.click(screen.getByRole('button', { name: 'Use' }));
+            expect(onActionUsesChange).toHaveBeenCalledWith({ 'Old Friend': 1 });
+            expect(mockUpdateDoc).not.toHaveBeenCalled();
+        });
+
+        test('with none left, the button says so and is off', () => {
+            setup(limitedTalk, { actionUses: { 'Old Friend': 2 } });
+            expect(screen.getByRole('button', { name: 'No uses left' })).toBeDisabled();
+        });
+
+        test('someone who cannot edit the sheet gets no Use button', () => {
+            setup(limitedTalk, { userId: 'stranger-1' });
+            expect(screen.queryByRole('button', { name: 'Use' })).not.toBeInTheDocument();
+        });
+
+        test('a passive with limited uses shows them but has nothing to use', () => {
+            setup({ ...limitedTalk, category: 'passive' }, { canUseActions: false });
+            expect(screen.getByText('2 / 2')).toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: 'Use' })).not.toBeInTheDocument();
+        });
+    });
 });

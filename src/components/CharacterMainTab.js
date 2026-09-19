@@ -20,9 +20,10 @@ import { ReactComponent as SwordsIcon } from '../icons/swords.svg';
 import { ReactComponent as BagIcon } from '../icons/bag.svg';
 import { ReactComponent as NoteIcon } from '../icons/note.svg';
 import { ReactComponent as MapIcon } from '../icons/map.svg';
+import { ReactComponent as PersonIcon } from '../icons/person.svg';
 import { useIsMobile } from "../utils/useIsMobile";
 import { getEffectiveCharacterStats, getGrantedActions } from "../utils/statusEffects";
-import { getActionCategory } from "../utils/classActions";
+import { getActionCategory, isCombatAction, isRoleplayAction } from "../utils/classActions";
 import { filterActions, filterOptions, isFilterActive, sortActions } from "../utils/tags";
 import { ActionViewControls } from "./ActionViewControls";
 import { StatusChip } from "./StatusChip";
@@ -49,16 +50,21 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
     // silently hiding everything.
     const [combatFilter, setCombatFilter] = useState({ categories: [], tags: [] });
     const [combatSort, setCombatSort] = useState('default');
-    const viewOptions = filterOptions(allActions);
+    // Each action is for fights (Combat tab), scenes (Roleplay tab) or both - see
+    // getActionUsage. Only the combat ones are listed, filtered and counted there.
+    const combatActions = allActions.filter(isCombatAction);
+    const roleplayActions = allActions.filter(isRoleplayAction);
+    const viewOptions = filterOptions(combatActions);
     const activeFilter = {
         categories: combatFilter.categories.filter(key => viewOptions.categories.some(category => category.key === key)),
         tags: combatFilter.tags.filter(key => viewOptions.tags.some(tag => tag.key === key)),
     };
     const inView = list => sortActions(filterActions(list, activeFilter), combatSort);
-    const passiveActions = inView(allActions.filter(action => isPassive(action)));
-    const availableActions = inView(allActions.filter(action => action.actionCost <= characterPage.action_points).filter(action => !isPassive(action)));
-    const unavailableActions = inView(allActions.filter(action => action.actionCost > characterPage.action_points));
-    const noMatch = list => isFilterActive(activeFilter) && list.length === 0 && <p className="ActionViewControls-empty">No actions match.</p>;
+    const passiveActions = inView(combatActions.filter(action => isPassive(action)));
+    const availableActions = inView(combatActions.filter(action => action.actionCost <= characterPage.action_points).filter(action => !isPassive(action)));
+    const unavailableActions = inView(combatActions.filter(action => action.actionCost > characterPage.action_points));
+    // An empty section says so - because of the filter, or because it just is empty.
+    const emptyNote = (list, whenEmpty) => list.length === 0 && <p className="ActionViewControls-empty">{isFilterActive(activeFilter) ? 'No actions match.' : whenEmpty}</p>;
     // The Combat Map tab operates on the character's campaign (the combat
     // tracker, the active map) - a character with no campaign field has none
     // of that to show, and campaignId="" collapsing to "no campaign" makes
@@ -133,7 +139,8 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
 
     const actionUses = characterPage.action_uses || {};
     const setActionUses = next => updateDoc(doc(db, "characters", characterPage.character_id), { action_uses: next }).catch(e => alert(e));
-    const limitedActions = allActions.filter(isLimitedUse);
+    const limitedCombatActions = combatActions.filter(isLimitedUse);
+    const limitedRoleplayActions = roleplayActions.filter(isLimitedUse);
 
     function setActionPoints(actionPoints) {
         try {
@@ -169,6 +176,30 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                     />
                 </div>
             </div>
+            {roleplayActions.length > 0 && <div className="CharacterMainTab-roleplay-actions CharacterMainTab-roleplay-card CharacterMainTab-roleplay-card-actions">
+                <div className="CharacterMainTab-roleplay-card-header">
+                    <PersonIcon/>
+                    <h2>Roleplay Actions</h2>
+                    <span className="CharacterMainTab-roleplay-card-caption">For scenes, not fights</span>
+                </div>
+                {hasWritePermissions && limitedRoleplayActions.length > 0 && <ActionUsesReset actions={limitedRoleplayActions} uses={actionUses} onChange={setActionUses}/>}
+                <CombatActionList
+                    actions={roleplayActions}
+                    experience_points={characterPage.experience_points}
+                    baseArmorClass={effectiveStats.base_armor_class}
+                    baseHitModifier={effectiveStats.base_hit_modifier}
+                    baseDamageModifier={effectiveStats.base_damage_modifier}
+                    baseDamageDice={characterPage.base_damage_dice}
+                    baseDamageDiceType={characterPage.base_damage_dice_type}
+                    baseHealingDiceType={characterPage.base_healing_dice_type}
+                    canUseActions={true}
+                    roleplay={true}
+                    characterPage={characterPage}
+                    userId={userId}
+                    actionUses={actionUses}
+                    onActionUsesChange={setActionUses}
+                />
+            </div>}
             <div className="CharacterMainTab-notes CharacterMainTab-roleplay-card CharacterMainTab-roleplay-card-notes">
                 <div className="CharacterMainTab-roleplay-card-header">
                     <NoteIcon/>
@@ -229,10 +260,10 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                     </div>}
                 </div>
                 <div className="CharacterMainTab-action-body">
-                    {hasWritePermissions && limitedActions.length > 0 && <ActionUsesReset actions={limitedActions} uses={actionUses} onChange={setActionUses}/>}
-                    <ActionViewControls actions={allActions} filter={activeFilter} onFilter={setCombatFilter} sort={combatSort} onSort={setCombatSort}/>
+                    {hasWritePermissions && limitedCombatActions.length > 0 && <ActionUsesReset actions={limitedCombatActions} uses={actionUses} onChange={setActionUses}/>}
+                    <ActionViewControls actions={combatActions} filter={activeFilter} onFilter={setCombatFilter} sort={combatSort} onSort={setCombatSort}/>
                     <span className="CharacterMainTab-caps-label CharacterMainTab-section-label">Passives</span>
-                    {noMatch(passiveActions)}
+                    {emptyNote(passiveActions, 'No passive abilities.')}
                     <CombatActionList
                         actions={passiveActions}
                         experience_points={characterPage.experience_points}
@@ -249,7 +280,7 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                         onActionUsesChange={setActionUses}
                     />
                     <span className="CharacterMainTab-caps-label CharacterMainTab-section-label">Available Actions</span>
-                    {noMatch(availableActions)}
+                    {emptyNote(availableActions, 'No actions you can afford with your current action points.')}
                     <CombatActionList
                         actions={availableActions}
                         experience_points={characterPage.experience_points}
@@ -266,7 +297,7 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                         onActionUsesChange={setActionUses}
                     />
                     <span className="CharacterMainTab-caps-label CharacterMainTab-section-label">Unavailable — not enough Action Points</span>
-                    {noMatch(unavailableActions)}
+                    {emptyNote(unavailableActions, 'None - you have enough action points for every action.')}
                     <CombatActionList
                         actions={unavailableActions}
                         experience_points={characterPage.experience_points}

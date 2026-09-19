@@ -39,6 +39,7 @@ import { CharacterStatCalculator } from './CharacterStatCalculator';
 import { AddEnemyDialog } from './AddEnemyDialog';
 import { EnemyTierBadge } from './EnemyTierBadge';
 import { removeEnemies } from '../utils/enemies';
+import { isCombatAction } from '../utils/classActions';
 
 // Matches the mockup's .zone-card/.zone-title/.entity-chip recipe (see
 // design/directors-page/handoff/reference.html) rather than the generic
@@ -488,7 +489,7 @@ export function DirectorsPage() {
                                 statusEntity={actualCharacter}
                                 userId={userId}
                                 hasStatusWrite={hasWritePermissions}
-                                actions={[...actualCharacter.actions, ...grantedActions]}
+                                actions={[...actualCharacter.actions, ...grantedActions].filter(isCombatAction)}
                                 experiencePoints={actualCharacter.experience_points}
                                 baseHitModifier={effectiveCharacter.base_hit_modifier}
                                 baseDamageModifier={effectiveCharacter.base_damage_modifier}
@@ -607,7 +608,7 @@ export function DirectorsPage() {
                                 userId={userId}
                                 onUpdateStatuses={updateEnemyStatuses}
                                 hasStatusWrite={true}
-                                actions={[...actualEnemy.actions, ...grantedActions]}
+                                actions={[...actualEnemy.actions, ...grantedActions].filter(isCombatAction)}
                                 experiencePoints={0}
                                 baseHitModifier={effectiveEnemy.base_hit_modifier}
                                 baseDamageModifier={effectiveEnemy.base_damage_modifier}

@@ -39,6 +39,14 @@ describe('validateAction', () => {
         expect('actionCost' in errors).toBe(!ok);
     });
 
+    test.each([
+        ['combat', true], ['roleplay', true], ['both', true], [undefined, true], ['fight', false], ['', false], [null, false],
+    ])('usage %p valid=%p (an action from before usage existed has none, and is fine)', (usage, ok) => {
+        const errors = validateAction(validAction({ usage }));
+        expect('usage' in errors).toBe(!ok);
+        if (!ok) expect(errors.usage).toBe('Pick where this is used.');
+    });
+
     test.each([[0, false], [1, true], [15, true], [16, false], [undefined, false]])('level %p valid=%p', (level, ok) => {
         expect('actionLevel' in validateAction(validAction({ actionLevel: level }))).toBe(!ok);
     });
@@ -146,6 +154,7 @@ describe('newActionDefaults', () => {
         const action = newActionDefaults(category);
         expect(action.actionCost).toBe(cost);
         expect(action.category).toBe(category);
+        expect(action.usage).toBe('combat');
         expect(action.id).toBeTruthy();
         expect(Object.keys(validateAction(action))).toEqual(['actionName']);
         expect(validateAction({ ...action, actionName: 'Named' })).toEqual({});

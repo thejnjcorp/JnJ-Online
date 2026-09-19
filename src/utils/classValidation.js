@@ -16,6 +16,7 @@ import { validateRewards } from './levelUps';
 export const CLASS_TYPES = ['Attrionist', 'Crit Hunter', 'Manipulator', 'Snowballer'];
 export const ACTION_TYPES = ['standard', 'perDay', 'perShortRest', 'perCombat'];
 export const ACTION_CATEGORIES = ['feat', 'passive', 'reaction', 'action'];
+export const ACTION_USAGE_KEYS = ['combat', 'roleplay', 'both'];
 export const ACTION_COST_RANGE = { min: 0, max: 3 };
 export const ACTION_LEVEL_RANGE = { min: 1, max: 15 };
 
@@ -34,6 +35,7 @@ export function validateAction(action) {
     if (!ACTION_TYPES.includes(action.actionType)) errors.actionType = 'Pick how often this can be used.';
     else if (action.actionType !== 'standard' && !isWholeNumberIn(action.actionTypeCount, { min: 1 })) errors.actionTypeCount = 'Enter how many times (1 or more).';
     if (action.category !== undefined && !ACTION_CATEGORIES.includes(action.category)) errors.category = 'Pick a category.';
+    if (action.usage !== undefined && !ACTION_USAGE_KEYS.includes(action.usage)) errors.usage = 'Pick where this is used.';
     if (action.toHitBool) {
         if (!isNumber(action.toHit)) errors.toHit = 'Enter a to-hit modifier (0 is fine).';
     } else if (typeof action.difficultyClass !== 'string' || !DIFFICULTY_CLASS_PATTERN.test(action.difficultyClass)) {
@@ -48,7 +50,7 @@ function actionLabel(action, index) {
 
 const ACTION_FIELD_LABELS = {
     actionName: 'name', actionCost: 'cost', actionLevel: 'level', actionType: 'frequency',
-    actionTypeCount: 'times', category: 'category', toHit: 'to-hit', difficultyClass: 'DC',
+    actionTypeCount: 'times', category: 'category', usage: 'used in', toHit: 'to-hit', difficultyClass: 'DC',
 };
 
 export function actionProblems(actions) {
@@ -142,6 +144,7 @@ export function newActionDefaults(category) {
         actionCost: category === 'feat' || category === 'passive' ? 0 : 1,
         actionLevel: 1,
         actionType: 'standard',
+        usage: 'combat',
         toHitBool: false,
         difficultyClass: 'Dex,0',
     };

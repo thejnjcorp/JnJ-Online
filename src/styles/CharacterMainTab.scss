@@ -42,6 +42,23 @@
     }
 }
 
+.CharacterMainTab-roleplay-card-actions {
+    border-left-color: var(--jnj-color-arcane);
+
+    .CharacterMainTab-roleplay-card-header {
+        color: var(--jnj-color-arcane);
+    }
+
+    // the action cards sit on the raised surface so they read as cards inside this one
+    .CombatActionList {
+        margin-bottom: 0;
+    }
+
+    .CombatActionListCard {
+        background-color: var(--jnj-color-bg-raised);
+    }
+}
+
 .CharacterMainTab-roleplay-card-notes {
     border-left-color: var(--jnj-color-ember);
 

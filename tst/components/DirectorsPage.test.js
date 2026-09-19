@@ -223,6 +223,19 @@ describe('DirectorsPage', () => {
             expect(screen.getByText('12')).toBeInTheDocument(); // AC
         });
 
+        test('lists only the combat actions: a roleplay-only action is left off, one used in both stays', async () => {
+            const actions = [
+                { actionName: 'Stab', actionCost: 1 },
+                { actionName: 'Silver Tongue', actionCost: 0, usage: 'roleplay' },
+                { actionName: 'Parry', actionCost: 1, usage: 'both' },
+            ];
+            await renderReady({ characters: [{ ...character, actions }] });
+            goToTab('Combat');
+            fireEvent.click(screen.getByRole('button', { name: /Actions$/ }));
+
+            expect(screen.getByText(/CombatActionList-stub:2/)).toBeInTheDocument();
+        });
+
         test('the owner can spend an action point, writing to the character doc', async () => {
             await renderReady();
             goToTab('Combat');

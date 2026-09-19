@@ -451,6 +451,126 @@ describe('CharacterMainTab', () => {
             expect(mockUpdateDoc).toHaveBeenLastCalledWith({ __doc: ['characters', 'char-1'] }, { action_points: 2 });
         });
 
+        describe('combat and roleplay actions', () => {
+            const sheet = (actions, extra = {}) => ({ ...characterPage, actions, ...extra });
+            const stab = { actionName: 'Stab', actionCost: 1, category: 'action', toHitBool: true, toHit: 2 };
+            const talk = { actionName: 'Silver Tongue', actionCost: 0, category: 'action', toHitBool: false, difficultyClass: 'Cha,0', usage: 'roleplay' };
+            const parry = { actionName: 'Parry', actionCost: 1, category: 'reaction', toHitBool: true, toHit: 1, usage: 'both' };
+            const names = () => [...document.querySelectorAll('.CombatActionListCard-name')].map(el => el.textContent);
+
+            test('the Combat tab lists combat and both actions, not roleplay-only ones', () => {
+                render(<CharacterMainTab characterPage={sheet([stab, talk, parry])} userId="owner-1" />);
+                goToTab('Combat');
+                expect(names()).toEqual(['Stab', 'Parry']);
+            });
+
+            test('an action with no usage is a combat action, as it always was', () => {
+                render(<CharacterMainTab characterPage={sheet([stab])} userId="owner-1" />);
+                goToTab('Combat');
+                expect(names()).toEqual(['Stab']);
+            });
+
+            test('the Roleplay tab lists roleplay and both actions, in a card of their own above the notes', () => {
+                render(<CharacterMainTab characterPage={sheet([stab, talk, parry])} userId="owner-1" />);
+                const card = screen.getByRole('heading', { name: 'Roleplay Actions' }).closest('.CharacterMainTab-roleplay-actions');
+                expect(within(card).getAllByText(/^(Stab|Silver Tongue|Parry)$/).map(el => el.textContent)).toEqual(['Silver Tongue', 'Parry']);
+                expect(card.compareDocumentPosition(screen.getByRole('heading', { name: 'Notes' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+            });
+
+            test('there is no Roleplay Actions card when the character has none', () => {
+                render(<CharacterMainTab characterPage={sheet([stab])} userId="owner-1" />);
+                expect(screen.queryByRole('heading', { name: 'Roleplay Actions' })).not.toBeInTheDocument();
+                expect(screen.getByRole('heading', { name: 'Background' })).toBeInTheDocument();
+            });
+
+            test('roleplay cards do not cost action points, so there is no Use Action button for them', () => {
+                render(<CharacterMainTab characterPage={sheet([talk, parry])} userId="owner-1" />);
+                const card = screen.getByRole('heading', { name: 'Roleplay Actions' }).closest('.CharacterMainTab-roleplay-actions');
+                expect(within(card).queryByRole('button', { name: /^Use/ })).not.toBeInTheDocument();
+                expect(within(card).queryByText(/Action$/)).not.toBeInTheDocument();
+            });
+
+            test('a limited roleplay action can be used from the Roleplay tab, spending a use', () => {
+                const limited = { ...talk, actionName: 'Old Friend', actionType: 'perDay', actionTypeCount: 1 };
+                render(<CharacterMainTab characterPage={sheet([limited])} userId="owner-1" />);
+
+                fireEvent.click(screen.getByRole('button', { name: 'Use' }));
+
+                expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { action_uses: { 'Old Friend': 1 } });
+            });
+
+            test('an action used in both shares its uses between the tabs', () => {
+                const both = { ...parry, actionName: 'Lucky Break', actionType: 'perDay', actionTypeCount: 2 };
+                render(<CharacterMainTab characterPage={sheet([both], { action_uses: { 'Lucky Break': 1 } })} userId="owner-1" />);
+                expect(screen.getByText('1 / 2')).toBeInTheDocument(); // on the Roleplay tab
+                goToTab('Combat');
+                expect(screen.getByText('1 / 2')).toBeInTheDocument();
+            });
+
+            test('the Combat tab\'s filters and reset row only count combat actions', () => {
+                const talkLimited = { ...talk, actionType: 'perDay', actionTypeCount: 1, tags: [{ tagInfo: 'Social', tagColor: '#fff', textColor: '#000' }] };
+                render(<CharacterMainTab characterPage={sheet([stab, talkLimited], { action_uses: { 'Silver Tongue': 1 } })} userId="owner-1" />);
+                goToTab('Combat');
+                expect(screen.queryByRole('button', { name: 'Social' })).not.toBeInTheDocument(); // the roleplay action's tag
+                expect(screen.queryByRole('group', { name: 'Reset limited uses' })).not.toBeInTheDocument();
+            });
+
+            test('the Roleplay tab has its own reset row for its limited actions', () => {
+                const limited = { ...talk, actionName: 'Old Friend', actionType: 'perDay', actionTypeCount: 1 };
+                render(<CharacterMainTab characterPage={sheet([limited], { action_uses: { 'Old Friend': 1 } })} userId="owner-1" />);
+                fireEvent.click(screen.getByRole('button', { name: 'New day' }));
+                expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { action_uses: {} });
+            });
+        });
+
+        describe('sections with nothing in them', () => {
+            const only = actions => ({ ...characterPage, actions });
+            const stab = { actionName: 'Stab', actionCost: 1, category: 'action', toHitBool: true, toHit: 2 };
+            const skin = { actionName: 'Tough Skin', actionCost: 0, category: 'passive', toHitBool: false, difficultyClass: 'Dex,0' };
+
+            test('an empty Passives section says so, without any filter on', () => {
+                render(<CharacterMainTab characterPage={only([stab])} userId="owner-1" />);
+                goToTab('Combat');
+                expect(screen.getByText('No passive abilities.')).toBeInTheDocument();
+            });
+
+            test('an empty Available section says why', () => {
+                render(<CharacterMainTab characterPage={{ ...only([skin]), action_points: 0 }} userId="owner-1" />);
+                goToTab('Combat');
+                expect(screen.getByText('No actions you can afford with your current action points.')).toBeInTheDocument();
+            });
+
+            test('an empty Unavailable section says everything is affordable', () => {
+                render(<CharacterMainTab characterPage={only([stab])} userId="owner-1" />);
+                goToTab('Combat');
+                expect(screen.getByText('None - you have enough action points for every action.')).toBeInTheDocument();
+            });
+
+            test('a section that has actions has no such note', () => {
+                render(<CharacterMainTab characterPage={{ ...only([stab, skin]), action_points: 2 }} userId="owner-1" />);
+                goToTab('Combat');
+                expect(screen.queryByText('No passive abilities.')).not.toBeInTheDocument();
+                expect(screen.queryByText(/No actions you can afford/)).not.toBeInTheDocument();
+            });
+
+            test('with a filter on, an empty section says nothing matches instead', () => {
+                render(<CharacterMainTab characterPage={only([stab, skin])} userId="owner-1" />);
+                goToTab('Combat');
+                fireEvent.click(screen.getByRole('button', { name: 'Passive' })); // leaves Available and Unavailable empty
+                expect(screen.getAllByText('No actions match.')).toHaveLength(2);
+                expect(screen.queryByText(/No actions you can afford/)).not.toBeInTheDocument();
+                expect(screen.queryByText(/None - you have enough/)).not.toBeInTheDocument();
+            });
+
+            test('a character with no combat actions at all gets a note in every section', () => {
+                render(<CharacterMainTab characterPage={only([])} userId="owner-1" />);
+                goToTab('Combat');
+                expect(screen.getByText('No passive abilities.')).toBeInTheDocument();
+                expect(screen.getByText(/No actions you can afford/)).toBeInTheDocument();
+                expect(screen.getByText(/None - you have enough/)).toBeInTheDocument();
+            });
+        });
+
         describe('limited-use actions', () => {
             const limited = { actionName: 'Fleetfoot', actionCost: 1, category: 'action', toHitBool: true, toHit: 2, actionType: 'perDay', actionTypeCount: 1 };
             const withLimited = (extra = {}) => ({ ...characterPage, actions: [...characterPage.actions, limited], ...extra });

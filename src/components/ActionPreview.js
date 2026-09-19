@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { CombatActionList } from './CombatActionList';
 import { FeatEntry } from './SkillsAndFlaws';
-import { getActionCategory } from '../utils/classActions';
+import { getActionCategory, isCombatAction, isRoleplayAction } from '../utils/classActions';
 import '../styles/ActionPreview.scss';
 
 const noop = () => {};
@@ -33,17 +33,23 @@ export function ActionPreview({ action, stats = {} }) {
     const isPassive = category === 'passive' || isFeat;
     const costs = Number(action.actionCost) > 0;
 
-    const views = [{ key: 'combat', label: 'Combat tab' }];
-    if (!isPassive && costs) views.push({ key: 'locked', label: 'Not enough AP' });
+    // Where the action shows up depends on where it is used: the Combat tab (and
+    // greyed out there when it can't be afforded), the Roleplay tab, or both.
+    const views = [];
+    if (isCombatAction(action)) {
+        views.push({ key: 'combat', label: 'Combat tab' });
+        if (!isPassive && costs) views.push({ key: 'locked', label: 'Not enough AP' });
+    }
+    if (isRoleplayAction(action)) views.push({ key: 'roleplay', label: 'Roleplay tab' });
     if (isFeat) views.push({ key: 'sidebar', label: 'Skills sidebar' });
 
     const [requestedView, setView] = useState('combat');
     const [phone, setPhone] = useState(false);
     // A limited-use action's uses can be tried out here, though nothing is saved.
     const [uses, setUses] = useState({});
-    // The action's category or cost can change while previewing, which can
+    // The action's category, cost or use can change while previewing, which can
     // remove the view that was showing.
-    const view = views.some(v => v.key === requestedView) ? requestedView : 'combat';
+    const view = views.some(v => v.key === requestedView) ? requestedView : views[0].key;
 
     const shown = {
         ...action,
@@ -65,6 +71,7 @@ export function ActionPreview({ action, stats = {} }) {
         baseHealingDiceType={2}
         canUseActions={!isPassive}
         locked={view === 'locked'}
+        roleplay={view === 'roleplay'}
         hasWritePermissions={true}
         onUseAction={noop}
         actionUses={uses}

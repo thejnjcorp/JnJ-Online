@@ -511,6 +511,15 @@
     font-weight: 600;
 }
 
+.ClassPage-usage-badge {
+    background: var(--jnj-color-accent-soft);
+    color: var(--jnj-color-accent);
+    padding: 2px 8px;
+    border-radius: var(--jnj-radius-pill);
+    font-size: 0.625rem;
+    font-weight: 600;
+}
+
 .ClassPage-action-card-body {
     padding: 2px 14px 14px;
     display: flex;

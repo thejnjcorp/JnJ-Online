@@ -10,7 +10,7 @@ jest.mock('../../src/components/ClassTagEditDialog', () => ({
 }));
 
 // eslint-disable-next-line import/first
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 // eslint-disable-next-line import/first
 import { ClassActionEditor } from '../../src/components/ClassActionEditor';
 
@@ -160,6 +160,62 @@ describe('ClassActionEditor', () => {
 
             fireEvent.click(screen.getByRole('button', { name: 'Reaction' }));
             expect(onChange).toHaveBeenCalledWith({ name: 'actions[0].category', value: 'reaction' });
+        });
+
+        describe('where the action is used', () => {
+            test('offers Combat, Roleplay and Both, with Combat chosen for an action that never said', () => {
+                open({ isEditable: true });
+                const group = screen.getByText('Used in').parentElement;
+                ['Combat', 'Roleplay', 'Both'].forEach(name => expect(within(group).getByRole('button', { name })).toBeInTheDocument());
+                expect(within(group).getByRole('button', { name: 'Combat' })).toHaveClass('ClassPage-pill-selected');
+            });
+
+            test('picking one reports the new usage', () => {
+                const onChange = jest.fn();
+                open({ isEditable: true, onChange });
+
+                fireEvent.click(within(screen.getByText('Used in').parentElement).getByRole('button', { name: 'Roleplay' }));
+
+                expect(onChange).toHaveBeenCalledWith({ name: 'actions[0].usage', value: 'roleplay' });
+            });
+
+            test('shows the action\'s own choice', () => {
+                open({ isEditable: true, action: { ...viewAction, usage: 'both' } });
+                expect(within(screen.getByText('Used in').parentElement).getByRole('button', { name: 'Both' })).toHaveClass('ClassPage-pill-selected');
+            });
+
+            test('a roleplay-only action has no action point cost to set, and no cost pip', () => {
+                render(<ClassActionEditor action={{ ...viewAction, usage: 'roleplay' }} index={0} onChange={jest.fn()} onRemove={jest.fn()} onAddTag={jest.fn()} onRemoveTag={jest.fn()} isEditable />);
+                expect(document.querySelector('.ClassPage-cost-pip')).not.toBeInTheDocument();
+                fireEvent.click(screen.getByRole('button', { name: /Stab/ }));
+                expect(screen.queryByText('Cost')).not.toBeInTheDocument();
+            });
+
+            test('combat and both actions keep their cost', () => {
+                open({ isEditable: true, action: { ...viewAction, usage: 'both' } });
+                expect(screen.getByText('Cost')).toBeInTheDocument();
+            });
+        });
+
+        describe('the header badge', () => {
+            const header = usage => {
+                render(<ClassActionEditor action={{ ...viewAction, usage }} index={0} onChange={jest.fn()} onRemove={jest.fn()} onAddTag={jest.fn()} onRemoveTag={jest.fn()} isEditable={false} />);
+            };
+
+            test('says Roleplay for a roleplay action', () => {
+                header('roleplay');
+                expect(screen.getByText('Roleplay')).toHaveClass('ClassPage-usage-badge');
+            });
+
+            test('says Combat + Roleplay for both', () => {
+                header('both');
+                expect(screen.getByText('Combat + Roleplay')).toBeInTheDocument();
+            });
+
+            test('says nothing for a combat action, as before', () => {
+                header('combat');
+                expect(document.querySelector('.ClassPage-usage-badge')).not.toBeInTheDocument();
+            });
         });
 
         test('the Trigger field is visible for a reaction action, hidden for an action-category one', () => {
@@ -365,6 +421,12 @@ describe('ClassActionEditor', () => {
             const level = screen.getByDisplayValue('3');
             expect(level).not.toHaveAttribute('aria-invalid');
             expect(level).not.toHaveClass('ClassPage-field-input-invalid');
+        });
+
+        test('a where-it-is-used problem outlines its pill group', () => {
+            render_({ errors: { usage: 'Pick where this is used.' } });
+            expect(screen.getByText('Pick where this is used.')).toBeInTheDocument();
+            expect(screen.getByText('Both').parentElement).toHaveAttribute('data-problem', 'action-4-usage');
         });
 
         test('a frequency or category problem outlines its pill group', () => {

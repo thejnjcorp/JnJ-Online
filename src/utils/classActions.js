@@ -11,3 +11,22 @@ export function getActionCategory(action) {
     if (action.tags?.some(tag => tag.tagInfo === 'Reaction')) return 'reaction';
     return 'action';
 }
+
+// Where an action is used: in a fight (the Combat tab, costing action points), in
+// a scene (the Roleplay tab), or both. `usage` is optional - every action
+// authored before it existed is a combat action, exactly as it was.
+export const ACTION_USAGES = [
+    { key: 'combat', label: 'Combat' },
+    { key: 'roleplay', label: 'Roleplay' },
+    { key: 'both', label: 'Both' },
+];
+
+export function getActionUsage(action) {
+    return ACTION_USAGES.some(usage => usage.key === action?.usage) ? action.usage : 'combat';
+}
+
+export const isCombatAction = action => getActionUsage(action) !== 'roleplay';
+
+export const isRoleplayAction = action => getActionUsage(action) !== 'combat';
+
+export const usageBadge = action => ({ roleplay: 'Roleplay', both: 'Combat + Roleplay' })[getActionUsage(action)] || null;

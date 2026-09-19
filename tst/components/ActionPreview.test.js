@@ -106,6 +106,41 @@ describe('ActionPreview', () => {
         });
     });
 
+    describe('where the action is used', () => {
+        test('a combat action previews on the Combat tab only', () => {
+            render(<ActionPreview action={action} />);
+            expect(screen.queryByRole('button', { name: 'Roleplay tab' })).not.toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Use Action' })).toBeInTheDocument();
+        });
+
+        test('a roleplay action previews on the Roleplay tab, with no action point cost, and has no Combat tab view', () => {
+            render(<ActionPreview action={{ ...action, usage: 'roleplay' }} />);
+            expect(screen.queryByRole('button', { name: 'Combat tab' })).not.toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: 'Not enough AP' })).not.toBeInTheDocument();
+            expect(document.querySelector('.CombatActionListCard-subtitle').textContent).not.toMatch(/Action/);
+            expect(screen.queryByRole('button', { name: /Use/ })).not.toBeInTheDocument();
+        });
+
+        test('an action used in both can be previewed either way', () => {
+            render(<ActionPreview action={{ ...action, usage: 'both' }} />);
+            expect(document.querySelector('.CombatActionListCard-subtitle').textContent).toMatch(/1 Action/);
+
+            fireEvent.click(screen.getByRole('button', { name: 'Roleplay tab' }));
+
+            expect(document.querySelector('.CombatActionListCard-subtitle').textContent).not.toMatch(/1 Action/);
+        });
+
+        test('switching the action to roleplay-only while on the Combat view moves to the Roleplay view', () => {
+            const { rerender } = render(<ActionPreview action={action} />);
+            expect(screen.getByRole('button', { name: 'Use Action' })).toBeInTheDocument();
+
+            rerender(<ActionPreview action={{ ...action, usage: 'roleplay' }} />);
+
+            expect(screen.queryByRole('button', { name: 'Use Action' })).not.toBeInTheDocument();
+            expect(document.querySelector('.CombatActionListCard')).toBeInTheDocument();
+        });
+    });
+
     describe('a limited-use action', () => {
         const limited = { ...action, actionType: 'perDay', actionTypeCount: 1 };
 

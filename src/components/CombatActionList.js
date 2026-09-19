@@ -31,13 +31,17 @@ const OUTCOME_TABLE_ROWS = [
 // how many uses each has left, shown with the Use button, which stops working at
 // none. Without onActionUsesChange (the Director's enemy cards, the new-character
 // preview) they are just a label.
+// roleplay shows the cards as the Roleplay tab does: no action point cost, and the
+// Use button (only for an action with limited uses) just spends one of them.
 const FREQUENCY_SUFFIX = { perDay: 'Day', perShortRest: 'Short Rest', perCombat: 'Combat' };
 
-// "1/Day, 1 Action" style line under the name (frequency, then cost).
-function subtitleParts(action) {
+// "1/Day, 1 Action" style line under the name (frequency, then cost). A roleplay
+// card has no cost: action points are for fights.
+function subtitleParts(action, roleplay) {
     const parts = [];
     const suffix = FREQUENCY_SUFFIX[action.actionType];
     if (suffix) parts.push(`${action.actionTypeCount || 1}/${suffix}`);
+    if (roleplay) return parts;
     if (getActionCategory(action) === 'reaction') parts.push('Reaction');
     else if (action.actionCost > 0) parts.push(`${action.actionCost} ${action.actionCost === 1 ? 'Action' : 'Actions'}`);
     return parts;
@@ -47,7 +51,7 @@ function containsReaction(action){
     return getActionCategory(action) === 'reaction';
 }
 
-export function CombatActionList({actions, experience_points, baseArmorClass, baseHitModifier, baseDamageModifier, baseDamageDice, baseDamageDiceType, baseHealingDiceType, canUseActions = false, locked = false, characterPage, userId, onUseAction, hasWritePermissions: hasWritePermissionsProp, actionUses = {}, onActionUsesChange}) {
+export function CombatActionList({actions, experience_points, baseArmorClass, baseHitModifier, baseDamageModifier, baseDamageDice, baseDamageDiceType, baseHealingDiceType, canUseActions = false, locked = false, characterPage, userId, onUseAction, hasWritePermissions: hasWritePermissionsProp, actionUses = {}, onActionUsesChange, roleplay = false}) {
     let hasWritePermissions = false;
     if (hasWritePermissionsProp !== undefined) hasWritePermissions = hasWritePermissionsProp;
     else if (userId) hasWritePermissions = characterPage.userId === userId || characterPage.canWrite?.includes(userId);
@@ -70,7 +74,7 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
     function metaText(action) {
         const rollPart = action.toHitBool ? "+" + toHitInterperlator(action.toHit) + " to hit" : DifficultyClassInterperlator(action.difficultyClass);
         const parts = [rollPart, action.range];
-        if (locked) parts.push(`${action.actionCost} AP`);
+        if (locked && !roleplay) parts.push(`${action.actionCost} AP`);
         return parts.filter(Boolean).join(" · ");
     }
 
@@ -86,7 +90,7 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
             const hasOutcomeTable = action.outcomeTable && Object.values(action.outcomeTable).some(Boolean);
             const tracked = !locked && Boolean(onActionUsesChange) && isLimitedUse(action);
             const spentOut = tracked && usesLeft(action, actionUses) === 0;
-            const showUse = !locked && canUseActions && hasWritePermissions;
+            const showUse = !locked && canUseActions && hasWritePermissions && (!roleplay || tracked);
             const cardClass = ['CombatActionListCard', locked && 'CombatActionListCard-locked', spentOut && 'CombatActionListCard-spent'].filter(Boolean).join(' ');
             return <div className={cardClass} key={index}>
                 <div className='CombatActionListCard-header'>
@@ -105,7 +109,7 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
                         </span>
                     )}
                 </div>
-                <div className='CombatActionListCard-subtitle'>{[...subtitleParts(action), metaText(action)].join(' · ')}</div>
+                <div className='CombatActionListCard-subtitle'>{[...subtitleParts(action, roleplay), metaText(action)].join(' · ')}</div>
 
                 {!locked && (action.trigger || action.requirement) && <div className='CombatActionListCard-meta-lines'>
                     {action.trigger && <div className='CombatActionListCard-trigger'><strong>Trigger:</strong> {action.trigger}</div>}
@@ -129,7 +133,9 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
                     {tracked && <ActionUsesTracker action={action} uses={actionUses} canEdit={hasWritePermissions} onChange={onActionUsesChange}/>}
                     {showUse && <button type="button" className='CombatActionList-use-action-button' disabled={spentOut} onClick={() => {
                         try {
-                            if (onUseAction) {
+                            if (roleplay) {
+                                onActionUsesChange(spendUse(actionUses, action));
+                            } else if (onUseAction) {
                                 onUseAction(action);
                                 if (tracked) onActionUsesChange(spendUse(actionUses, action));
                             } else {
@@ -141,7 +147,7 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
                         } catch (e) {
                             alert(e);
                         }
-                    }}>{spentOut ? "No uses left" : `Use ${containsReaction(action) ? "Reaction" : "Action"}`}</button>}
+                    }}>{spentOut ? "No uses left" : (roleplay ? "Use" : `Use ${containsReaction(action) ? "Reaction" : "Action"}`)}</button>}
                 </div>}
             </div>;
         })}

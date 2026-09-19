@@ -1,4 +1,4 @@
-import { getActionCategory } from '../../src/utils/classActions';
+import { ACTION_USAGES, getActionCategory, getActionUsage, isCombatAction, isRoleplayAction, usageBadge } from '../../src/utils/classActions';
 
 describe('getActionCategory', () => {
     test('prefers an explicit category field over any tag-based inference', () => {
@@ -29,5 +29,41 @@ describe('getActionCategory', () => {
 
     test('an explicit falsy category (empty string) is treated as absent and falls through to tag inference', () => {
         expect(getActionCategory({ category: '', tags: [{ tagInfo: 'Feat' }] })).toBe('feat');
+    });
+});
+
+describe('where an action is used', () => {
+    test('is combat, roleplay or both', () => {
+        expect(ACTION_USAGES.map(usage => usage.key)).toEqual(['combat', 'roleplay', 'both']);
+    });
+
+    test('an action with no usage (every action from before it existed) is a combat action', () => {
+        expect(getActionUsage({})).toBe('combat');
+        expect(getActionUsage(undefined)).toBe('combat');
+        expect(getActionUsage({ usage: 'something else' })).toBe('combat');
+        expect(getActionUsage({ usage: null })).toBe('combat');
+    });
+
+    test('an explicit usage is used', () => {
+        expect(getActionUsage({ usage: 'roleplay' })).toBe('roleplay');
+        expect(getActionUsage({ usage: 'both' })).toBe('both');
+        expect(getActionUsage({ usage: 'combat' })).toBe('combat');
+    });
+
+    test.each([
+        [undefined, true, false],
+        ['combat', true, false],
+        ['roleplay', false, true],
+        ['both', true, true],
+    ])('usage %p: in combat=%p, in roleplay=%p', (usage, combat, roleplay) => {
+        expect(isCombatAction({ usage })).toBe(combat);
+        expect(isRoleplayAction({ usage })).toBe(roleplay);
+    });
+
+    test('only roleplay and both are worth a badge next to an action\'s name', () => {
+        expect(usageBadge({})).toBeNull();
+        expect(usageBadge({ usage: 'combat' })).toBeNull();
+        expect(usageBadge({ usage: 'roleplay' })).toBe('Roleplay');
+        expect(usageBadge({ usage: 'both' })).toBe('Combat + Roleplay');
     });
 });
