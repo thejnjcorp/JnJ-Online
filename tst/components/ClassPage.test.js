@@ -47,9 +47,13 @@ jest.mock('../../src/utils/campaignSubscriptions', () => ({
 }));
 
 jest.mock('../../src/components/ClassActionEditor', () => ({
-    ClassActionEditor: ({ action, index, onRemove }) => <div>
+    ClassActionEditor: ({ action, index, onRemove, onChange, errors }) => <div>
         ActionEditor-stub:{index}:{action.actionName || 'Unnamed'}:{action.category}
+        {errors && <span>Errors-{index}:{Object.keys(errors).join(',')}</span>}
         <button type="button" onClick={() => onRemove(index)}>StubRemove-{index}</button>
+        <button type="button" onClick={() => onChange({ name: `actions[${index}].actionName`, value: 'Named Action' })}>StubName-{index}</button>
+        <button type="button" onClick={() => onChange({ name: `actions[${index}].actionCost`, value: 7 })}>StubBadCost-{index}</button>
+        <button type="button" onClick={() => onChange({ name: `actions[${index}].range`, value: '' })}>StubBlankRange-{index}</button>
     </div>,
 }));
 jest.mock('../../src/components/ClassDamageCard', () => ({
@@ -78,6 +82,8 @@ import { ClassPage } from '../../src/components/ClassPage';
 import { renderWithRouter } from '../testUtils/renderWithRouter';
 // eslint-disable-next-line import/first
 import { auth } from '../../src/utils/firebase';
+// eslint-disable-next-line import/first
+import { validAction } from '../testUtils/actions';
 
 const ADMIN_UID = 'wmJQbIlzX9RydXFmh3DzSBpIqHa2';
 
@@ -193,44 +199,50 @@ describe('ClassPage', () => {
         });
 
         describe('validation', () => {
-            test('a field explicitly cleared back to blank alerts and does not submit', async () => {
-                // Mirrors NewCharacterPage.js's identical quirk: this check
-                // only catches a field the reducer has actually recorded as
-                // "" - a field that was simply never touched stays
-                // undefined, which doesn't equal "" and slips past this
-                // check into the dice-type checks instead (covered by the
-                // next test). So this exercises the guard the way it's
-                // actually reachable: fill out the form validly, then
-                // explicitly clear one field back to blank.
+            test('nothing is flagged until a save is attempted', () => {
+                renderNew();
+                expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+            });
+
+            test('a field cleared back to blank blocks the save and is flagged where it is, with no alert', async () => {
                 renderNew();
                 await fillRequiredFields();
-                fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: '' } }); // class_name
+                fireEvent.change(screen.getAllByRole('textbox')[0], { target: { name: 'class_name', value: '' } });
 
                 fireEvent.click(screen.getByRole('button', { name: 'Create Class' }));
 
-                expect(window.alert).toHaveBeenCalledWith('invalid form value(s)');
                 expect(mockAddDoc).not.toHaveBeenCalled();
+                expect(window.alert).not.toHaveBeenCalled();
+                expect(screen.getByText('1 thing to fix before saving')).toBeInTheDocument();
+                expect(screen.getAllByText('Give the class a name.')).toHaveLength(2); // the summary and under the field
+                expect(screen.getByPlaceholderText('Class Name')).toHaveAttribute('aria-invalid', 'true');
             });
 
-            test('an untouched (never-filled-out) form falls through to the dice-type checks instead', () => {
+            test('an untouched form lists every required field at once instead of failing one check at a time', () => {
                 renderNew();
+
                 fireEvent.click(screen.getByRole('button', { name: 'Create Class' }));
-                expect(window.alert).toHaveBeenCalledWith('invalid base healing dice type');
+
                 expect(mockAddDoc).not.toHaveBeenCalled();
+                const summary = screen.getByText(/things to fix before saving/).closest('.ClassPage-validation-summary');
+                ['Class name', 'Author', 'Class type', 'Armor Class', 'Hit Modifier', 'Class DC', 'Hardness', 'Base Health Dice',
+                    'Melee damage dice', 'Melee damage die', 'Ranged damage modifier', 'Base Healing Dice Type'].forEach(label => {
+                    expect(within(summary).getByText(label)).toBeInTheDocument();
+                });
             });
 
-            test('an unset healing dice type is caught by its own dedicated check', async () => {
+            test('an unset healing dice type is called out by name with the dice it accepts', async () => {
                 renderNew();
                 const [nameInput, authorInput, healthDice] = screen.getAllByRole('textbox');
-                fireEvent.change(nameInput, { target: { value: 'Fighter' } });
-                fireEvent.change(authorInput, { target: { value: 'Sam' } });
+                fireEvent.change(nameInput, { target: { name: 'class_name', value: 'Fighter' } });
+                fireEvent.change(authorInput, { target: { name: 'author', value: 'Sam' } });
                 fireEvent.click(screen.getByRole('button', { name: 'Attrionist' }));
                 const [armorClass, hitModifier, classDc, hardness] = screen.getAllByRole('spinbutton');
-                fireEvent.change(armorClass, { target: { value: '12' } });
-                fireEvent.change(hitModifier, { target: { value: '2' } });
-                fireEvent.change(classDc, { target: { value: '12' } });
-                fireEvent.change(hardness, { target: { value: '0' } });
-                fireEvent.change(healthDice, { target: { value: 'd8' } });
+                fireEvent.change(armorClass, { target: { name: 'base_armor_class', type: 'number', value: '12' } });
+                fireEvent.change(hitModifier, { target: { name: 'base_hit_modifier', type: 'number', value: '2' } });
+                fireEvent.change(classDc, { target: { name: 'base_class_damage_class', type: 'number', value: '12' } });
+                fireEvent.change(hardness, { target: { name: 'base_hardness', type: 'number', value: '0' } });
+                fireEvent.change(healthDice, { target: { name: 'base_health_dice', value: 'd8' } });
                 fireEvent.click(screen.getByRole('button', { name: 'Fill melee dice' }));
                 fireEvent.click(screen.getByRole('button', { name: 'Fill melee die type' }));
                 fireEvent.click(screen.getByRole('button', { name: 'Fill melee modifier' }));
@@ -240,8 +252,65 @@ describe('ClassPage', () => {
 
                 fireEvent.click(screen.getByRole('button', { name: 'Create Class' }));
 
-                expect(window.alert).toHaveBeenCalledWith('invalid base healing dice type');
                 expect(mockAddDoc).not.toHaveBeenCalled();
+                expect(screen.getByText('1 thing to fix before saving')).toBeInTheDocument();
+                expect(screen.getAllByText('Use d4, d6, d8, d10, d12 or d20.')).toHaveLength(2);
+            });
+
+            test('errors clear live as fields are fixed, and the sticky bar counts what is left', async () => {
+                renderNew();
+                fireEvent.click(screen.getByRole('button', { name: 'Create Class' }));
+                const remaining = () => Number(screen.getByRole('button', { name: /things? to fix$/ }).textContent.match(/\d+/)[0]);
+                const before = remaining();
+
+                fireEvent.change(screen.getByPlaceholderText('Class Name'), { target: { name: 'class_name', value: 'Fighter' } });
+
+                expect(remaining()).toBe(before - 1);
+                expect(screen.getByPlaceholderText('Class Name')).not.toHaveAttribute('aria-invalid');
+            });
+
+            describe('actions', () => {
+                async function renderFilledWithAction() {
+                    renderNew();
+                    await fillRequiredFields();
+                    fireEvent.click(screen.getByRole('button', { name: '+ Passive' }));
+                }
+
+                test('a brand-new action starts valid apart from its name', async () => {
+                    await renderFilledWithAction();
+
+                    fireEvent.click(screen.getByRole('button', { name: 'Create Class' }));
+
+                    expect(screen.getByText('Errors-0:actionName')).toBeInTheDocument();
+                    expect(screen.getByText(/Action #1 \(unnamed\) - name/)).toBeInTheDocument();
+                    expect(screen.getByText('1 thing to fix before saving')).toBeInTheDocument();
+                });
+
+                test('a problem is labelled with the action it belongs to', async () => {
+                    await renderFilledWithAction();
+                    fireEvent.click(screen.getByRole('button', { name: 'StubName-0' }));
+                    fireEvent.click(screen.getByRole('button', { name: 'StubBadCost-0' }));
+
+                    fireEvent.click(screen.getByRole('button', { name: 'Create Class' }));
+
+                    expect(mockAddDoc).not.toHaveBeenCalled();
+                    expect(screen.getByText(/Action "Named Action" - cost/)).toBeInTheDocument();
+                    expect(screen.getByText('Cost must be a whole number from 0 to 3.')).toBeInTheDocument();
+                    expect(screen.getByText('Errors-0:actionCost')).toBeInTheDocument();
+                });
+
+                test('an empty Range is not an error (the sheet just leaves it out)', async () => {
+                    signIn({ uid: 'user-1' });
+                    await renderFilledWithAction();
+                    fireEvent.click(screen.getByRole('button', { name: 'StubName-0' }));
+                    fireEvent.click(screen.getByRole('button', { name: 'StubBlankRange-0' }));
+
+                    fireEvent.click(screen.getByRole('button', { name: 'Create Class' }));
+
+                    await waitFor(() => expect(mockAddDoc).toHaveBeenCalled());
+                    expect(window.alert).not.toHaveBeenCalled();
+                    expect(mockAddDoc.mock.calls[0][1].actions[0].range).toBe('');
+                });
             });
         });
 
@@ -316,7 +385,7 @@ describe('ClassPage', () => {
         function classDoc(overrides = {}) {
             return {
                 class_name: 'Fighter', author: 'Sam', class_type: 'Attrionist', public: true,
-                canWrite: ['user-1'], admins: ['user-1'], actions: [{ id: 'a1', actionName: 'Stab', category: 'action' }],
+                canWrite: ['user-1'], admins: ['user-1'], actions: [validAction()],
                 base_armor_class: 12, base_health_dice: 3, base_hit_modifier: 2, base_healing_dice_type: 2,
                 base_class_damage_class: 12, base_hardness: 0,
                 base_melee_damage_dice_type: 2, base_melee_damage_dice: 1, base_melee_damage_modifier: 0,
@@ -417,6 +486,57 @@ describe('ClassPage', () => {
 
             await waitFor(() => expect(window.alert).toHaveBeenCalledWith('Failed to update class: offline'));
             expect(screen.getByRole('button', { name: 'Done Editing' })).toBeInTheDocument();
+        });
+
+        describe('validation while editing', () => {
+            async function startEditing(data) {
+                renderExisting(data);
+                await screen.findByText('Fighter');
+                fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+            }
+
+            test('a bare-minimum action, like the ones already saved with an empty Range, saves without complaint', async () => {
+                await startEditing(classDoc({ actions: [validAction({ actionName: 'Dead Eye', category: 'feat', actionCost: 0, range: '' })] }));
+
+                fireEvent.click(screen.getByRole('button', { name: 'Done Editing' }));
+
+                await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalled());
+                expect(window.alert).not.toHaveBeenCalled();
+            });
+
+            test('an existing action with a broken DC blocks the save and says which action and what to type', async () => {
+                await startEditing(classDoc({ actions: [validAction(), validAction({ id: 'a2', actionName: 'Hot Shot', difficultyClass: 'Dex' })] }));
+
+                fireEvent.click(screen.getByRole('button', { name: 'Done Editing' }));
+
+                expect(mockUpdateDoc).not.toHaveBeenCalled();
+                expect(window.alert).not.toHaveBeenCalled();
+                expect(screen.getByText(/Action "Hot Shot" - DC/)).toBeInTheDocument();
+                expect(screen.getByText('Use "Stat,Modifier", for example Dex,0.')).toBeInTheDocument();
+                expect(screen.getByText('Errors-1:difficultyClass')).toBeInTheDocument();
+                expect(screen.queryByText(/Errors-0/)).not.toBeInTheDocument(); // the good action is left alone
+            });
+
+            test('publishing is blocked the same way, without opening the publish dialog', async () => {
+                await startEditing(classDoc({ version: 2, actions: [validAction({ actionName: '' })] }));
+
+                fireEvent.click(screen.getByRole('button', { name: 'Publish as v3' }));
+
+                expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+                expect(mockPublishClassVersion).not.toHaveBeenCalled();
+                expect(screen.getByText(/Action #1 \(unnamed\) - name/)).toBeInTheDocument();
+            });
+
+            test('Cancel and then Edit again starts with no errors showing', async () => {
+                await startEditing(classDoc({ actions: [validAction({ actionName: '' })] }));
+                fireEvent.click(screen.getByRole('button', { name: 'Done Editing' }));
+                expect(screen.getByText('1 thing to fix before saving')).toBeInTheDocument();
+
+                fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+                fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+
+                expect(screen.queryByText(/thing to fix before saving/)).not.toBeInTheDocument();
+            });
         });
 
         describe('versions', () => {

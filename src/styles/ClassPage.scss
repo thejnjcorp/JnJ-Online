@@ -792,3 +792,106 @@
     font-weight: 700;
     cursor: pointer;
 }
+
+/* --- Validation feedback (see components/FormErrors.js) --- */
+.ClassPage-field-input-invalid {
+    border-color: var(--jnj-color-danger);
+    box-shadow: 0 0 0 1px var(--jnj-color-danger);
+
+    &:focus {
+        border-color: var(--jnj-color-danger);
+    }
+}
+
+.ClassPage-field-error {
+    margin-top: 4px;
+    font-size: 11.5px;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--jnj-color-danger);
+}
+
+.ClassPage-validation-summary {
+    border: 1px solid var(--jnj-color-danger);
+    border-left-width: 4px;
+    border-radius: var(--jnj-radius-md);
+    background: rgba(217, 83, 79, 0.1);
+    padding: var(--jnj-space-3) var(--jnj-space-4);
+    margin-bottom: var(--jnj-space-4);
+
+    ul {
+        list-style: none;
+        margin: var(--jnj-space-2) 0 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    li button {
+        background: none;
+        border: none;
+        padding: 3px 0;
+        text-align: left;
+        font: inherit;
+        font-size: 12.5px;
+        color: var(--jnj-color-text);
+        cursor: pointer;
+
+        strong {
+            color: var(--jnj-color-danger);
+        }
+
+        &:hover {
+            text-decoration: underline;
+        }
+    }
+}
+
+.ClassPage-validation-summary-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--jnj-color-danger);
+}
+
+.ClassPage-action-card-invalid {
+    border-color: var(--jnj-color-danger);
+}
+
+.ClassPage-action-error-pill {
+    margin-left: auto;
+    padding: 2px 9px;
+    border-radius: var(--jnj-radius-pill);
+    background: var(--jnj-color-danger);
+    color: white;
+    font-size: 10.5px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.ClassPage-pill-group-invalid {
+    outline: 1px solid var(--jnj-color-danger);
+    outline-offset: 3px;
+    border-radius: var(--jnj-radius-md);
+}
+
+.ClassPage-save-bar-label-error {
+    color: var(--jnj-color-danger);
+    font-weight: 700;
+}
+
+.ClassPage-field-row-errors {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px var(--jnj-space-4);
+    margin: calc(-1 * var(--jnj-space-2)) 0 var(--jnj-space-3);
+}
+
+button.ClassPage-save-bar-label-error {
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}

@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useState } from 'react';
+import { useEffect, useMemo, useReducer, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { addDoc, arrayRemove, collection, getDoc, getDocs, doc, or, query, updateDoc, where } from '@firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -9,6 +9,8 @@ import { getActionCategory } from '../utils/classActions';
 import { raceActionsOf } from '../utils/characterClass';
 import { subscribeRaceToCampaign } from '../utils/campaignSubscriptions';
 import { classFormReducer } from '../utils/classFormReducer';
+import { NO_ERRORS, newActionDefaults, validateRace } from '../utils/classValidation';
+import { FieldError, ValidationSummary, invalidClass, invalidProps, scrollToProblem } from './FormErrors';
 import { ClassActionEditor } from './ClassActionEditor';
 import { DocAdminManager } from './DocAdminManager';
 import { ClassPublishDialog } from './ClassPublishDialog';
@@ -80,6 +82,16 @@ export function RacePage() {
     // it's always in edit mode instead.
     const [isEditingMode, setIsEditingMode] = useState(!isEditingExisting);
     const [savedSnapshot, setSavedSnapshot] = useState(null);
+    // Errors stay hidden until the first failed save, then track the form live.
+    const [showErrors, setShowErrors] = useState(false);
+    const [jumpToken, setJumpToken] = useState(0);
+    const validation = useMemo(() => validateRace(liveFormData), [liveFormData]);
+    const errors = showErrors ? validation : NO_ERRORS;
+
+    useEffect(() => {
+        if (jumpToken === 0) return;
+        scrollToProblem();
+    }, [jumpToken]);
 
     useEffect(() => {
         document.title = "New Race";
@@ -170,7 +182,7 @@ export function RacePage() {
     }
 
     const handleAddAction = function(category) {
-        const newAction = { id: crypto.randomUUID(), actionType: "standard", toHitBool: false, category };
+        const newAction = newActionDefaults(category);
         setFormData({
             name: "actions",
             value: (formData.actions || []).concat(newAction)
@@ -206,13 +218,19 @@ export function RacePage() {
         });
     }
 
+    // False (after revealing every problem and scrolling to the first) when the
+    // form can't be saved yet - see utils/classValidation.js for the rules.
+    function checkValid() {
+        if (validateRace(liveFormData).valid) return true;
+        setShowErrors(true);
+        setJumpToken(token => token + 1);
+        return false;
+    }
+
     // publishNotes (a string, possibly empty) publishes this as a new version
     // instead of updating the current one in place - see publishRaceVersion.
     async function handleSubmit({ publishNotes } = {}) {
-        if (!formData.name || !formData.author) {
-            alert("A race needs a name and an author");
-            return false;
-        }
+        if (!checkValid()) return false;
 
         // A toggled-on-then-abandoned outcome table shouldn't write empty
         // strings into Firestore - see the same clean-up in ClassPage.js.
@@ -272,6 +290,7 @@ export function RacePage() {
     }
 
     function handleEditClick() {
+        setShowErrors(false);
         setSavedSnapshot(structuredClone(formData));
         setIsEditingMode(true);
     }
@@ -293,6 +312,7 @@ export function RacePage() {
     }
 
     function handleCancelClick() {
+        setShowErrors(false);
         if (isEditingExisting) {
             setFormData({ type: 'SET_FORM_DATA', payload: savedSnapshot });
             setIsEditingMode(false);
@@ -313,6 +333,7 @@ export function RacePage() {
                 onAddTag={handleAddTag}
                 onRemoveTag={handleRemoveTag}
                 isEditable={isEditingMode}
+                errors={errors.actions[index]}
             />
         );
     });
@@ -332,7 +353,10 @@ export function RacePage() {
             <div className="ClassPage-header">
                 <div className="ClassPage-header-main">
                     {isEditingMode
-                        ? <input className="ClassPage-title-input" name="name" onChange={handleChange} defaultValue={formData.name} placeholder="Race Name"/>
+                        ? <>
+                            <input className={invalidClass('ClassPage-title-input', errors.fields.name)} {...invalidProps('field-name', errors.fields.name)} name="name" onChange={handleChange} defaultValue={formData.name} placeholder="Race Name"/>
+                            <FieldError message={errors.fields.name}/>
+                        </>
                         : <div className="ClassPage-title-view">{formData.name}</div>}
                     <div className="ClassPage-header-meta">
                         {!isEditingMode && <span className="ClassPage-author-line">by {formData.author}</span>}
@@ -346,7 +370,8 @@ export function RacePage() {
                     {isEditingMode && <div className="ClassPage-field-row">
                         <div className="ClassPage-field-grow">
                             <span className="ClassPage-field-label">Author</span>
-                            <input className="ClassPage-field-input" name="author" onChange={handleChange} defaultValue={formData.author}/>
+                            <input className={invalidClass('ClassPage-field-input', errors.fields.author)} {...invalidProps('field-author', errors.fields.author)} name="author" onChange={handleChange} defaultValue={formData.author}/>
+                            <FieldError message={errors.fields.author}/>
                         </div>
                     </div>}
                 </div>
@@ -356,6 +381,8 @@ export function RacePage() {
                     </button>}
                 </div>
             </div>
+
+            {isEditingMode && <ValidationSummary problems={errors.problems}/>}
 
             {isEditingMode && <div className="ClassPage-card">
                 <div className="ClassPage-section-title">Visibility</div>
@@ -441,9 +468,13 @@ export function RacePage() {
             {isEditingExisting && <DocAdminManager docRef={doc(db, "races", raceId)} admins={formData.admins} userId={userId} onChanged={getRaceData}/>}
 
             {isEditingMode && <div className="ClassPage-save-bar">
-                <span className="ClassPage-save-bar-label">Unsaved changes</span>
+                {errors.problems.length > 0
+                    ? <button type="button" className="ClassPage-save-bar-label ClassPage-save-bar-label-error" onClick={() => scrollToProblem()}>
+                        {errors.problems.length === 1 ? '1 thing to fix' : `${errors.problems.length} things to fix`}
+                    </button>
+                    : <span className="ClassPage-save-bar-label">Unsaved changes</span>}
                 <button type="button" className="ClassPage-cancel-button" onClick={handleCancelClick}>Cancel</button>
-                {isEditingExisting && <button type="button" className="ClassPage-publish-button" onClick={() => setPublishDialogOpen(true)}>
+                {isEditingExisting && <button type="button" className="ClassPage-publish-button" onClick={() => { if (checkValid()) setPublishDialogOpen(true); }}>
                     Publish as v{versionOf(liveFormData) + 1}
                 </button>}
                 <button type="button" className="ClassPage-save-button" onClick={handleSaveClick}>

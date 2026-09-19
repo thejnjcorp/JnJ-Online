@@ -46,9 +46,12 @@ jest.mock('../../src/utils/campaignSubscriptions', () => ({
 }));
 
 jest.mock('../../src/components/ClassActionEditor', () => ({
-    ClassActionEditor: ({ action, index, onRemove }) => <div>
+    ClassActionEditor: ({ action, index, onRemove, onChange, errors }) => <div>
         ActionEditor-stub:{index}:{action.actionName || 'Unnamed'}:{action.category}
+        {errors && <span>Errors-{index}:{Object.keys(errors).join(',')}</span>}
         <button type="button" onClick={() => onRemove(index)}>StubRemove-{index}</button>
+        <button type="button" onClick={() => onChange({ name: `actions[${index}].actionName`, value: 'Named Feat' })}>StubName-{index}</button>
+        <button type="button" onClick={() => onChange({ name: `actions[${index}].actionCost`, value: 9 })}>StubBadCost-{index}</button>
     </div>,
 }));
 jest.mock('../../src/components/DocAdminManager', () => ({
@@ -69,6 +72,8 @@ import { RacePage } from '../../src/components/RacePage';
 import { renderWithRouter } from '../testUtils/renderWithRouter';
 // eslint-disable-next-line import/first
 import { auth } from '../../src/utils/firebase';
+// eslint-disable-next-line import/first
+import { validAction } from '../testUtils/actions';
 
 const ADMIN_UID = 'wmJQbIlzX9RydXFmh3DzSBpIqHa2';
 
@@ -167,11 +172,68 @@ describe('RacePage', () => {
         });
 
         describe('validation', () => {
-            test('a race without a name or author alerts and does not submit', () => {
+            test('nothing is flagged until a save is attempted', () => {
+                renderNew();
+                expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+            });
+
+            test('a race without a name or author is not saved, and says exactly what is missing (no alert)', () => {
+                renderNew();
+
+                fireEvent.click(screen.getByRole('button', { name: 'Create Race' }));
+
+                expect(mockAddDoc).not.toHaveBeenCalled();
+                expect(window.alert).not.toHaveBeenCalled();
+                expect(screen.getByText('2 things to fix before saving')).toBeInTheDocument();
+                expect(screen.getAllByText('Give the race a name.')).toHaveLength(2); // in the summary and under the field
+                expect(screen.getAllByText('Add an author.')).toHaveLength(2);
+                expect(screen.getByPlaceholderText('Race Name')).toHaveAttribute('aria-invalid', 'true');
+            });
+
+            test('errors clear as each field is fixed, without another save attempt', () => {
                 renderNew();
                 fireEvent.click(screen.getByRole('button', { name: 'Create Race' }));
-                expect(window.alert).toHaveBeenCalledWith('A race needs a name and an author');
+
+                fireEvent.change(screen.getByPlaceholderText('Race Name'), { target: { name: 'name', value: 'Kobold' } });
+
+                expect(screen.getByText('1 thing to fix before saving')).toBeInTheDocument();
+                expect(screen.getByPlaceholderText('Race Name')).not.toHaveAttribute('aria-invalid');
+            });
+
+            test('a new action starts valid apart from its name, and an unnamed one blocks the save with a pointer to it', () => {
+                renderNew();
+                fillRequiredFields();
+                fireEvent.click(screen.getByRole('button', { name: '+ Feat' }));
+
+                fireEvent.click(screen.getByRole('button', { name: 'Create Race' }));
+
                 expect(mockAddDoc).not.toHaveBeenCalled();
+                expect(screen.getByText('Errors-0:actionName')).toBeInTheDocument();
+                expect(screen.getByText(/Action #1 \(unnamed\) - name/)).toBeInTheDocument();
+            });
+
+            test('an out-of-range cost is caught with its own message', () => {
+                renderNew();
+                fillRequiredFields();
+                fireEvent.click(screen.getByRole('button', { name: '+ Feat' }));
+                fireEvent.click(screen.getByRole('button', { name: 'StubName-0' }));
+                fireEvent.click(screen.getByRole('button', { name: 'StubBadCost-0' }));
+
+                fireEvent.click(screen.getByRole('button', { name: 'Create Race' }));
+
+                expect(mockAddDoc).not.toHaveBeenCalled();
+                expect(screen.getByText('Cost must be a whole number from 0 to 3.')).toBeInTheDocument();
+            });
+
+            test('an action with an empty Range is fine', async () => {
+                renderNew();
+                fillRequiredFields();
+                fireEvent.click(screen.getByRole('button', { name: '+ Feat' }));
+                fireEvent.click(screen.getByRole('button', { name: 'StubName-0' }));
+
+                fireEvent.click(screen.getByRole('button', { name: 'Create Race' }));
+
+                await waitFor(() => expect(mockAddDoc).toHaveBeenCalled());
             });
         });
 
@@ -181,6 +243,7 @@ describe('RacePage', () => {
                 renderNew();
                 fillRequiredFields();
                 fireEvent.click(screen.getByRole('button', { name: '+ Feat' }));
+                fireEvent.click(screen.getByRole('button', { name: 'StubName-0' }));
 
                 fireEvent.click(screen.getByRole('button', { name: 'Create Race' }));
 
@@ -241,7 +304,7 @@ describe('RacePage', () => {
             return {
                 name: 'Kobold', author: 'Sam', description: 'Small and **scaly**.', public: true,
                 canWrite: ['user-1'], admins: ['user-1'],
-                actions: [{ id: 'a1', actionName: 'Mild Fire', category: 'feat' }],
+                actions: [validAction({ actionName: 'Mild Fire', category: 'feat', actionCost: 0 })],
                 ...overrides,
             };
         }
@@ -327,7 +390,7 @@ describe('RacePage', () => {
         });
 
         test('saving a legacy race writes its feat as the actions list', async () => {
-            renderExisting(raceDoc({ actions: undefined, feat: { id: 'f1', actionName: 'Old Feat', category: 'feat' } }));
+            renderExisting(raceDoc({ actions: undefined, feat: validAction({ id: 'f1', actionName: 'Old Feat', category: 'feat', actionCost: 0 }) }));
             await screen.findByText('Kobold');
             fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
 

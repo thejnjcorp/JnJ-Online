@@ -90,4 +90,36 @@ describe('ClassDamageCard', () => {
             expect(screen.getByText(expected)).toBeInTheDocument();
         });
     });
+
+    describe('validation errors', () => {
+        const errors = {
+            base_melee_damage_dice: 'Enter how many dice.',
+            base_melee_damage_dice_type: 'Pick a die.',
+            base_melee_damage_modifier: 'Enter a number (0 is fine).',
+        };
+        const renderWith = (props = {}) => render(
+            <ClassDamageCard kind="melee" label="Melee Damage" formData={{}} isEditable onChange={() => {}} onSetDieType={() => {}} errors={errors} {...props} />
+        );
+
+        test('outlines the dice, die and modifier that are wrong and shows each message', () => {
+            renderWith();
+            const [dice, modifier] = screen.getAllByRole('spinbutton');
+            expect(dice).toHaveAttribute('aria-invalid', 'true');
+            expect(dice).toHaveAttribute('data-problem', 'field-base_melee_damage_dice');
+            expect(modifier).toHaveAttribute('data-problem', 'field-base_melee_damage_modifier');
+            expect(screen.getByText('d4').parentElement).toHaveAttribute('data-problem', 'field-base_melee_damage_dice_type');
+            ['Enter how many dice.', 'Pick a die.', 'Enter a number (0 is fine).'].forEach(message => expect(screen.getByText(message)).toBeInTheDocument());
+        });
+
+        test('a card with no problems renders no error markers', () => {
+            renderWith({ errors: {}, formData: melee() });
+            expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+            screen.getAllByRole('spinbutton').forEach(input => expect(input).not.toHaveAttribute('aria-invalid'));
+        });
+
+        test("only the other kind's errors are ignored (a ranged error doesn't mark the melee card)", () => {
+            renderWith({ errors: { base_ranged_damage_dice: 'Enter how many dice.' }, formData: melee() });
+            expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+        });
+    });
 });

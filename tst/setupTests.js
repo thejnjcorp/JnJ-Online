@@ -16,3 +16,9 @@ Object.assign(global, { TextEncoder, TextDecoder });
 if (typeof global.structuredClone !== 'function') {
     global.structuredClone = (value) => JSON.parse(JSON.stringify(value)); // NOSONAR - this *is* the structuredClone fallback, only reached when the real one is missing, so calling structuredClone here would be circular.
 }
+
+// jsdom has no layout, so it doesn't implement scrollIntoView. Tests that care
+// about scrolling replace this with a jest.fn() of their own.
+if (typeof window !== 'undefined' && typeof window.HTMLElement.prototype.scrollIntoView !== 'function') {
+    window.HTMLElement.prototype.scrollIntoView = function scrollIntoView() {};
+}

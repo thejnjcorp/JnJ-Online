@@ -245,4 +245,80 @@ describe('ClassActionEditor', () => {
             expect(onRemove).toHaveBeenCalledWith(4);
         });
     });
+
+    describe('validation errors', () => {
+        const errors = {
+            actionName: 'Give this action a name.',
+            actionCost: 'Cost must be a whole number from 0 to 3.',
+            difficultyClass: 'Use "Stat,Modifier", for example Dex,0.',
+        };
+        const render_ = (props = {}) => render(<ClassActionEditor action={{ ...viewAction, actionName: '', actionCost: 9, difficultyClass: 'Dex' }} index={4} onChange={jest.fn()} onRemove={jest.fn()} onAddTag={jest.fn()} onRemoveTag={jest.fn()} isEditable errors={errors} {...props} />);
+
+        test('a card with problems is held open, so nothing is hidden behind a collapsed header', () => {
+            render_();
+            expect(screen.getByDisplayValue('Dex')).toBeInTheDocument();
+            expect(screen.getByText('3 to fix')).toBeInTheDocument();
+        });
+
+        test('each offending input is outlined, flagged for assistive tech, and followed by its message', () => {
+            render_();
+            const dc = screen.getByDisplayValue('Dex');
+            expect(dc).toHaveAttribute('aria-invalid', 'true');
+            expect(dc).toHaveAttribute('data-problem', 'action-4-difficultyClass');
+            expect(dc).toHaveClass('ClassPage-field-input-invalid');
+            expect(screen.getByText('Use "Stat,Modifier", for example Dex,0.')).toBeInTheDocument();
+            expect(screen.getByText('Give this action a name.')).toBeInTheDocument();
+            expect(screen.getByText('Cost must be a whole number from 0 to 3.')).toBeInTheDocument();
+        });
+
+        test('fields without a problem are left alone', () => {
+            render_();
+            const level = screen.getByDisplayValue('3');
+            expect(level).not.toHaveAttribute('aria-invalid');
+            expect(level).not.toHaveClass('ClassPage-field-input-invalid');
+        });
+
+        test('a frequency or category problem outlines its pill group', () => {
+            render_({ errors: { actionType: 'Pick how often this can be used.', category: 'Pick a category.' } });
+            expect(screen.getByText('Standard').parentElement).toHaveClass('ClassPage-pill-group-invalid');
+            expect(screen.getByText('Standard').parentElement).toHaveAttribute('data-problem', 'action-4-actionType');
+            expect(screen.getByText('Feat').parentElement).toHaveAttribute('data-problem', 'action-4-category');
+        });
+
+        test('a missing to-hit or count is flagged on its own field', () => {
+            render_({
+                action: { ...viewAction, toHitBool: true, toHit: undefined, actionType: 'perDay', actionTypeCount: undefined },
+                errors: { toHit: 'Enter a to-hit modifier (0 is fine).', actionTypeCount: 'Enter how many times (1 or more).' },
+            });
+            expect(screen.getByText('Enter a to-hit modifier (0 is fine).')).toBeInTheDocument();
+            expect(screen.getByText('Enter how many times (1 or more).')).toBeInTheDocument();
+        });
+
+        test('the card stays open after its last problem is fixed, and closes when the header is clicked', () => {
+            const props = { index: 4, onChange: jest.fn(), onRemove: jest.fn(), onAddTag: jest.fn(), onRemoveTag: jest.fn(), isEditable: true };
+            const { rerender } = render(<ClassActionEditor action={{ ...viewAction, actionName: '' }} errors={{ actionName: 'Give this action a name.' }} {...props}/>);
+            expect(screen.getByText('Give this action a name.')).toBeInTheDocument();
+
+            rerender(<ClassActionEditor action={viewAction} errors={{}} {...props}/>);
+
+            expect(screen.queryByText('1 to fix')).not.toBeInTheDocument();
+            expect(screen.getByDisplayValue('Stab')).toBeInTheDocument(); // still open
+
+            fireEvent.click(screen.getByRole('button', { name: /Stab/ }));
+
+            expect(screen.queryByDisplayValue('Stab')).not.toBeInTheDocument();
+        });
+
+        test('a card cannot be collapsed while it still has a problem showing', () => {
+            render_();
+            fireEvent.click(screen.getByRole('button', { name: /Unnamed/ }));
+            expect(screen.getByText('Give this action a name.')).toBeInTheDocument();
+        });
+
+        test('with no errors the card stays collapsed and unmarked, exactly as before', () => {
+            render(<ClassActionEditor action={viewAction} index={0} onChange={jest.fn()} onRemove={jest.fn()} onAddTag={jest.fn()} onRemoveTag={jest.fn()} isEditable errors={{}} />);
+            expect(screen.queryByText(/to fix/)).not.toBeInTheDocument();
+            expect(screen.queryByDisplayValue('Dex,0')).not.toBeInTheDocument();
+        });
+    });
 });

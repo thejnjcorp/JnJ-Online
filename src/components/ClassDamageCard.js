@@ -1,4 +1,5 @@
 import { CharacterDiceConverter } from './CharacterStatCalculator';
+import { FieldError, invalidClass, invalidProps } from './FormErrors';
 
 const DIE_TYPES = [1, 2, 3, 4, 5, 6]; // CharacterDiceConverter codes for d4..d20
 
@@ -13,7 +14,7 @@ function diceFormat(count, dieTypeCode, modifier, type) {
 // are identical apart from which fields they read/write and their accent
 // color, so this takes a `kind` ('melee'|'ranged') and derives the four real
 // field names from it rather than duplicating the card twice.
-export function ClassDamageCard({ kind, label, formData, onChange, onSetDieType, isEditable }) {
+export function ClassDamageCard({ kind, label, formData, onChange, onSetDieType, isEditable, errors = {} }) {
     const diceField = `base_${kind}_damage_dice`;
     const dieTypeField = `base_${kind}_damage_dice_type`;
     const modifierField = `base_${kind}_damage_modifier`;
@@ -28,7 +29,8 @@ export function ClassDamageCard({ kind, label, formData, onChange, onSetDieType,
                 <div>
                     <span className="ClassPage-field-label">Dice</span>
                     <input
-                        className="ClassPage-field-input ClassPage-field-input-narrow"
+                        className={invalidClass('ClassPage-field-input ClassPage-field-input-narrow', errors[diceField])}
+                        {...invalidProps(`field-${diceField}`, errors[diceField])}
                         name={diceField}
                         type="number"
                         onChange={onChange}
@@ -38,7 +40,7 @@ export function ClassDamageCard({ kind, label, formData, onChange, onSetDieType,
                 <div className="ClassPage-damage-row-glue">d</div>
                 <div>
                     <span className="ClassPage-field-label">Die</span>
-                    <div className="ClassPage-die-pills">
+                    <div className={errors[dieTypeField] ? 'ClassPage-die-pills ClassPage-pill-group-invalid' : 'ClassPage-die-pills'} {...invalidProps(`field-${dieTypeField}`, errors[dieTypeField])} tabIndex={errors[dieTypeField] ? -1 : undefined}>
                         {DIE_TYPES.map(code => <button
                             type="button"
                             key={code}
@@ -51,7 +53,8 @@ export function ClassDamageCard({ kind, label, formData, onChange, onSetDieType,
                 <div>
                     <span className="ClassPage-field-label">Mod</span>
                     <input
-                        className="ClassPage-field-input ClassPage-field-input-narrow"
+                        className={invalidClass('ClassPage-field-input ClassPage-field-input-narrow', errors[modifierField])}
+                        {...invalidProps(`field-${modifierField}`, errors[modifierField])}
                         name={modifierField}
                         type="number"
                         onChange={onChange}
@@ -70,6 +73,11 @@ export function ClassDamageCard({ kind, label, formData, onChange, onSetDieType,
                     />
                 </div>
             </div>
+            {(errors[diceField] || errors[dieTypeField] || errors[modifierField]) && <div className="ClassPage-field-row-errors">
+                <FieldError message={errors[diceField]}/>
+                <FieldError message={errors[dieTypeField]}/>
+                <FieldError message={errors[modifierField]}/>
+            </div>}
             <div className="ClassPage-damage-preview">{preview}</div>
         </> : <div className="ClassPage-damage-preview ClassPage-damage-preview-large">{preview}</div>}
     </div>;

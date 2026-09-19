@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useState } from 'react';
+import { useEffect, useMemo, useReducer, useState } from 'react';
 import { reverseCharacterDiceConverter, CharacterDiceConverter } from './CharacterStatCalculator';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { addDoc, arrayRemove, collection, getDoc, getDocs, doc, or, query, updateDoc, where } from '@firebase/firestore';
@@ -9,6 +9,8 @@ import { ADMIN_UIDS } from '../utils/statusEffects';
 import { getActionCategory } from '../utils/classActions';
 import { subscribeClassToCampaign } from '../utils/campaignSubscriptions';
 import { classFormReducer } from '../utils/classFormReducer';
+import { NO_ERRORS, newActionDefaults, validateClass } from '../utils/classValidation';
+import { FieldError, ValidationSummary, invalidClass, invalidProps, scrollToProblem } from './FormErrors';
 import { ClassActionEditor } from './ClassActionEditor';
 import { ClassDamageCard } from './ClassDamageCard';
 import { DocAdminManager } from './DocAdminManager';
@@ -95,6 +97,17 @@ export function ClassPage() {
     // always in edit mode instead.
     const [isEditingMode, setIsEditingMode] = useState(!isEditingExisting);
     const [savedSnapshot, setSavedSnapshot] = useState(null);
+    // Errors stay hidden until the first failed save, then track the form live
+    // so each one clears the moment it's fixed.
+    const [showErrors, setShowErrors] = useState(false);
+    const [jumpToken, setJumpToken] = useState(0);
+    const validation = useMemo(() => validateClass(liveFormData), [liveFormData]);
+    const errors = showErrors ? validation : NO_ERRORS;
+
+    useEffect(() => {
+        if (jumpToken === 0) return;
+        scrollToProblem();
+    }, [jumpToken]);
 
     useEffect(() => {
         document.title = "New Class";
@@ -213,7 +226,7 @@ export function ClassPage() {
     }
 
     const handleAddAction = function(category) {
-        const newAction = { id: crypto.randomUUID(), actionType: "standard", toHitBool: false, category };
+        const newAction = newActionDefaults(category);
         if (formData.actions !== undefined) {
             setFormData({
                 name: "actions",
@@ -285,41 +298,19 @@ export function ClassPage() {
         }
     }
 
+    // False (after revealing every problem and scrolling to the first) when the
+    // form can't be saved yet - see utils/classValidation.js for the rules.
+    function checkValid() {
+        if (validateClass(liveFormData).valid) return true;
+        setShowErrors(true);
+        setJumpToken(token => token + 1);
+        return false;
+    }
+
     // publishNotes (a string, possibly empty) publishes this as a new version
     // instead of updating the current one in place - see publishClassVersion.
     async function handleSubmit({ publishNotes } = {}) {
-        if (formData.class_name === ""
-            || formData.author === ""
-            || formData.class_type === ""
-            || formData.base_armor_class === ""
-            || formData.base_health_dice === ""
-            || formData.base_hit_modifier === ""
-            || formData.base_healing_dice_type === ""
-            || formData.base_class_damage_class === ""
-            || formData.base_hardness === ""
-            || formData.base_melee_damage_dice_type === ""
-            || formData.base_melee_damage_dice === ""
-            || formData.base_melee_damage_modifier === ""
-            || formData.base_ranged_damage_dice_type === ""
-            || formData.base_ranged_damage_dice === ""
-            || formData.base_ranged_damage_modifier === "") {
-            alert("invalid form value(s)");
-            return false;
-        }
-        if (CharacterDiceConverter(formData.base_healing_dice_type) === 'N/A') { alert("invalid base healing dice type"); return false; }
-        if (CharacterDiceConverter(formData.base_melee_damage_dice_type) === 'N/A') { alert("invalid base melee damage dice type"); return false; }
-        if (CharacterDiceConverter(formData.base_ranged_damage_dice_type) === 'N/A') { alert("invalid base ranged damage dice type"); return false; }
-
-        (formData.actions || []).forEach(action => {
-            if (action.actionCost === ""
-                || action.range === ""
-                || action.actionName === ""
-                || action.actionLevel === ""
-                || action.actionType === ""
-                ) {
-                    return alert("invalid action value(s)")
-                }
-        })
+        if (!checkValid()) return false;
 
         // A toggled-on-then-abandoned outcome table shouldn't write
         // {criticalSuccess:"",success:"",failure:"",...} into Firestore -
@@ -389,6 +380,7 @@ export function ClassPage() {
     }
 
     function handleEditClick() {
+        setShowErrors(false);
         setSavedSnapshot(structuredClone(formData));
         setIsEditingMode(true);
     }
@@ -410,6 +402,7 @@ export function ClassPage() {
     }
 
     function handleCancelClick() {
+        setShowErrors(false);
         if (isEditingExisting) {
             setFormData({ type: 'SET_FORM_DATA', payload: savedSnapshot });
             setIsEditingMode(false);
@@ -430,6 +423,7 @@ export function ClassPage() {
                 onAddTag={handleAddTag}
                 onRemoveTag={handleRemoveTag}
                 isEditable={isEditingMode}
+                errors={errors.actions[index]}
             />
         );
     });
@@ -449,7 +443,10 @@ export function ClassPage() {
             <div className="ClassPage-header">
                 <div className="ClassPage-header-main">
                     {isEditingMode
-                        ? <input className="ClassPage-title-input" name="class_name" onChange={handleChange} defaultValue={formData.class_name} placeholder="Class Name"/>
+                        ? <>
+                            <input className={invalidClass('ClassPage-title-input', errors.fields.class_name)} {...invalidProps('field-class_name', errors.fields.class_name)} name="class_name" onChange={handleChange} defaultValue={formData.class_name} placeholder="Class Name"/>
+                            <FieldError message={errors.fields.class_name}/>
+                        </>
                         : <div className="ClassPage-title-view">{formData.class_name}</div>}
                     <div className="ClassPage-header-meta">
                         {formData.class_type && <span className={`ClassPage-type-badge ${TYPE_ACCENT_CLASS[formData.class_type] || ''}`}>{formData.class_type}</span>}
@@ -464,7 +461,8 @@ export function ClassPage() {
                     {isEditingMode && <div className="ClassPage-field-row">
                         <div className="ClassPage-field-grow">
                             <span className="ClassPage-field-label">Author</span>
-                            <input className="ClassPage-field-input" name="author" onChange={handleChange} defaultValue={formData.author}/>
+                            <input className={invalidClass('ClassPage-field-input', errors.fields.author)} {...invalidProps('field-author', errors.fields.author)} name="author" onChange={handleChange} defaultValue={formData.author}/>
+                            <FieldError message={errors.fields.author}/>
                         </div>
                     </div>}
                 </div>
@@ -474,7 +472,7 @@ export function ClassPage() {
                     </button>}
                     {isEditingMode && <>
                         <span className="ClassPage-field-label">Class Type</span>
-                        <div className="ClassPage-pill-group">
+                        <div className={errors.fields.class_type ? 'ClassPage-pill-group ClassPage-pill-group-invalid' : 'ClassPage-pill-group'} {...invalidProps('field-class_type', errors.fields.class_type)} tabIndex={errors.fields.class_type ? -1 : undefined}>
                             {TYPE_OPTIONS.map(t => <button
                                 type="button"
                                 key={t}
@@ -482,9 +480,12 @@ export function ClassPage() {
                                 onClick={() => setFormData({ name: 'class_type', value: t })}
                             >{t}</button>)}
                         </div>
+                        <FieldError message={errors.fields.class_type}/>
                     </>}
                 </div>
             </div>
+
+            {isEditingMode && <ValidationSummary problems={errors.problems}/>}
 
             {isEditingMode && <div className="ClassPage-card">
                 <div className="ClassPage-section-title">Visibility</div>
@@ -512,7 +513,10 @@ export function ClassPage() {
                     ].map(s => <div key={s.key}>
                         <span className="ClassPage-field-label">{s.label}</span>
                         {isEditingMode
-                            ? <input className="ClassPage-field-input" name={s.key} type="number" onChange={handleChange} placeholder={ClassLayout[s.key]} defaultValue={formData[s.key]}/>
+                            ? <>
+                                <input className={invalidClass('ClassPage-field-input', errors.fields[s.key])} {...invalidProps(`field-${s.key}`, errors.fields[s.key])} name={s.key} type="number" onChange={handleChange} placeholder={ClassLayout[s.key]} defaultValue={formData[s.key]}/>
+                                <FieldError message={errors.fields[s.key]}/>
+                            </>
                             : <div className="ClassPage-field-value">{formData[s.key]}</div>}
                     </div>)}
                 </div>
@@ -520,20 +524,26 @@ export function ClassPage() {
                     <div>
                         <span className="ClassPage-field-label">Base Health Dice</span>
                         {isEditingMode
-                            ? <input className="ClassPage-field-input ClassPage-field-input-narrow" name="base_health_dice" onChange={handleChangeDice} placeholder={CharacterDiceConverter(ClassLayout.base_health_dice)} defaultValue={CharacterDiceConverter(formData.base_health_dice) === 'N/A' ? null : CharacterDiceConverter(formData.base_health_dice)}/>
+                            ? <>
+                                <input className={invalidClass('ClassPage-field-input ClassPage-field-input-narrow', errors.fields.base_health_dice)} {...invalidProps('field-base_health_dice', errors.fields.base_health_dice)} name="base_health_dice" onChange={handleChangeDice} placeholder={CharacterDiceConverter(ClassLayout.base_health_dice)} defaultValue={CharacterDiceConverter(formData.base_health_dice) === 'N/A' ? null : CharacterDiceConverter(formData.base_health_dice)}/>
+                                <FieldError message={errors.fields.base_health_dice}/>
+                            </>
                             : <div className="ClassPage-field-value">{CharacterDiceConverter(formData.base_health_dice)}</div>}
                     </div>
                 </div>
             </div>
 
-            <ClassDamageCard kind="melee" label="Melee Damage" formData={formData} onChange={handleChange} onSetDieType={handleSetDieType} isEditable={isEditingMode}/>
-            <ClassDamageCard kind="ranged" label="Ranged Damage" formData={formData} onChange={handleChange} onSetDieType={handleSetDieType} isEditable={isEditingMode}/>
+            <ClassDamageCard kind="melee" label="Melee Damage" formData={formData} onChange={handleChange} onSetDieType={handleSetDieType} isEditable={isEditingMode} errors={errors.fields}/>
+            <ClassDamageCard kind="ranged" label="Ranged Damage" formData={formData} onChange={handleChange} onSetDieType={handleSetDieType} isEditable={isEditingMode} errors={errors.fields}/>
 
             <div className="ClassPage-card">
                 <div className="ClassPage-section-title">Healing</div>
                 <span className="ClassPage-field-label">Base Healing Dice Type</span>
                 {isEditingMode
-                    ? <input className="ClassPage-field-input ClassPage-field-input-narrow" name="base_healing_dice_type" onChange={handleChangeDice} placeholder={CharacterDiceConverter(ClassLayout.base_healing_dice_type)} defaultValue={CharacterDiceConverter(formData.base_healing_dice_type) === 'N/A' ? null : CharacterDiceConverter(formData.base_healing_dice_type)}/>
+                    ? <>
+                        <input className={invalidClass('ClassPage-field-input ClassPage-field-input-narrow', errors.fields.base_healing_dice_type)} {...invalidProps('field-base_healing_dice_type', errors.fields.base_healing_dice_type)} name="base_healing_dice_type" onChange={handleChangeDice} placeholder={CharacterDiceConverter(ClassLayout.base_healing_dice_type)} defaultValue={CharacterDiceConverter(formData.base_healing_dice_type) === 'N/A' ? null : CharacterDiceConverter(formData.base_healing_dice_type)}/>
+                        <FieldError message={errors.fields.base_healing_dice_type}/>
+                    </>
                     : <div className="ClassPage-field-value">{CharacterDiceConverter(formData.base_healing_dice_type)}</div>}
             </div>
 
@@ -614,9 +624,13 @@ export function ClassPage() {
             {isEditingExisting && <DocAdminManager docRef={doc(db, "classes", classId)} admins={formData.admins} userId={userId} onChanged={getClassData}/>}
 
             {isEditingMode && <div className="ClassPage-save-bar">
-                <span className="ClassPage-save-bar-label">Unsaved changes</span>
+                {errors.problems.length > 0
+                    ? <button type="button" className="ClassPage-save-bar-label ClassPage-save-bar-label-error" onClick={() => scrollToProblem()}>
+                        {errors.problems.length === 1 ? '1 thing to fix' : `${errors.problems.length} things to fix`}
+                    </button>
+                    : <span className="ClassPage-save-bar-label">Unsaved changes</span>}
                 <button type="button" className="ClassPage-cancel-button" onClick={handleCancelClick}>Cancel</button>
-                {isEditingExisting && <button type="button" className="ClassPage-publish-button" onClick={() => setPublishDialogOpen(true)}>
+                {isEditingExisting && <button type="button" className="ClassPage-publish-button" onClick={() => { if (checkValid()) setPublishDialogOpen(true); }}>
                     Publish as v{versionOf(liveFormData) + 1}
                 </button>}
                 <button type="button" className="ClassPage-save-button" onClick={handleSaveClick}>
