@@ -36,6 +36,11 @@ jest.mock('../../src/utils/useCampaignCombat', () => ({
     useCombatEntities: (...args) => mockUseCombatEntities(...args),
 }));
 
+let mockBestiary;
+jest.mock('../../src/utils/useBestiary', () => ({ useBestiary: () => mockBestiary }));
+const mockNavigate = jest.fn();
+jest.mock('react-router-dom', () => ({ ...jest.requireActual('react-router-dom'), useNavigate: () => mockNavigate }));
+
 jest.mock('../../src/components/SkillsAndFlaws', () => ({
     SkillsAndFlaws: ({ characterPage }) => <div>SkillsAndFlaws-stub:{characterPage.character_name}</div>,
 }));
@@ -65,7 +70,7 @@ jest.mock('../../src/utils/DraggableElements/PostListCombatMap.tsx', () => ({
 }));
 
 // eslint-disable-next-line import/first
-import { screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { screen, fireEvent, waitFor, act, within } from '@testing-library/react';
 // eslint-disable-next-line import/first
 import { DirectorsPage } from '../../src/components/DirectorsPage';
 // eslint-disable-next-line import/first
@@ -141,6 +146,7 @@ beforeEach(() => {
     mockUploadImageToImgur.mockResolvedValue('https://imgur.example/map.png');
     mockUseCampaignMaps.mockReturnValue({ maps: [], activeMap: null });
     mockUseCombatEntities.mockReturnValue([]);
+    mockBestiary = { enemies: [], status: 'ready' };
     signIn({ uid: 'owner-1' });
     window.alert = jest.fn();
     window.confirm = jest.fn(() => true);
@@ -325,6 +331,124 @@ describe('DirectorsPage', () => {
                 { __doc: ['campaigns', 'camp-1'] },
                 { enemy_list: [expect.objectContaining({ action_points: 0 })] }, // 1 - 1
             ));
+        });
+
+        test('shows the enemy\'s tier as a badge beside its name', async () => {
+            await renderReady({ campaignInfo: { ...baseCampaignInfo, enemy_list: [{ ...enemy, enemy_type: 'Captain' }] } });
+            goToTab('Combat');
+            expect(screen.getByText('Captain')).toHaveClass('EnemyTier-captain');
+        });
+
+        test('an enemy with no tier (from before there were tiers) has no badge', async () => {
+            await renderReady({ campaignInfo: { ...baseCampaignInfo, enemy_list: [enemy] } });
+            goToTab('Combat');
+            expect(document.querySelector('.EnemyTier')).toBeNull();
+        });
+
+        describe('the director\'s tools', () => {
+            const directing = { ...baseCampaignInfo, director_uid: 'owner-1' };
+            const wolf = { id: 'b1', enemy_name: 'Wolf', enemy_type: 'Regular', maximum_health: 20, base_armor_class: 13, action_points: 3, actions: [] };
+
+            test('a director can add an enemy, go to encounters, and clear the fight (once there is one)', async () => {
+                await renderReady({ campaignInfo: { ...directing, enemy_list: [enemy] } });
+                goToTab('Combat');
+                expect(screen.getByRole('button', { name: '+ Add' })).toBeInTheDocument();
+                expect(screen.getByRole('button', { name: 'Encounters' })).toBeInTheDocument();
+                expect(screen.getByRole('button', { name: 'Clear all' })).toBeInTheDocument();
+                expect(screen.getByRole('button', { name: 'Remove from fight' })).toBeInTheDocument();
+            });
+
+            test('there is nothing to clear in an empty fight, which says how to fill it', async () => {
+                await renderReady({ campaignInfo: directing });
+                goToTab('Combat');
+                expect(screen.queryByRole('button', { name: 'Clear all' })).not.toBeInTheDocument();
+                expect(screen.getByText(/No enemies in the fight/)).toBeInTheDocument();
+            });
+
+            test('a player, who cannot direct, sees the enemies but none of the tools', async () => {
+                await renderReady({ campaignInfo: { ...baseCampaignInfo, enemy_list: [enemy], director_uid: 'someone-else', canRead: ['owner-1'] } });
+                goToTab('Combat');
+                expect(screen.getByText('Goblin')).toBeInTheDocument();
+                ['+ Add', 'Encounters', 'Clear all', 'Remove from fight'].forEach(name => expect(screen.queryByRole('button', { name })).not.toBeInTheDocument());
+                expect(screen.queryByText(/No enemies in the fight/)).not.toBeInTheDocument();
+            });
+
+            test('Encounters goes to this campaign\'s encounters', async () => {
+                await renderReady({ campaignInfo: directing });
+                goToTab('Combat');
+                fireEvent.click(screen.getByRole('button', { name: 'Encounters' }));
+                expect(mockNavigate).toHaveBeenCalledWith('/campaigns/camp-1/encounters');
+            });
+
+            test('+ Add opens the bestiary, and picking an enemy adds it to the campaign at full health', async () => {
+                mockBestiary = { enemies: [wolf], status: 'ready' };
+                await renderReady({ campaignInfo: { ...directing, enemy_list: [enemy] } });
+                goToTab('Combat');
+                fireEvent.click(screen.getByRole('button', { name: '+ Add' }));
+
+                fireEvent.click(screen.getByRole('button', { name: /Wolf/ }));
+
+                await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalled());
+                const [target, data] = mockUpdateDoc.mock.calls[0];
+                expect(target).toEqual({ __doc: ['campaigns', 'camp-1'] });
+                expect(data.enemy_list).toHaveLength(2);
+                expect(data.enemy_list[0]).toEqual(enemy);
+                expect(data.enemy_list[1]).toMatchObject({ enemy_name: 'Wolf', enemy_type: 'Regular', current_health: 20, maximum_health: 20, statuses: [] });
+                expect(screen.getByRole('dialog', { name: 'Add enemy' })).toBeInTheDocument(); // still open, for another
+            });
+
+            test('the dialog closes', async () => {
+                await renderReady({ campaignInfo: directing });
+                goToTab('Combat');
+                fireEvent.click(screen.getByRole('button', { name: '+ Add' }));
+                fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+                expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+            });
+
+            test('Remove from fight takes the enemy and its tracker card off the campaign, after asking', async () => {
+                const other = { ...enemy, id: 'enemy-2', enemy_name: 'Troll' };
+                await renderReady({ campaignInfo: { ...directing, enemy_list: [enemy, other], combat_tracker: [{ id: 'npc:enemy-1' }, { id: 'npc:enemy-2' }, { id: 'character:char-1' }] } });
+                goToTab('Combat');
+                const card = screen.getByText('Goblin').closest('.DirectorsPage-entity-card');
+
+                fireEvent.click(within(card).getByRole('button', { name: 'Remove from fight' }));
+
+                expect(window.confirm).toHaveBeenCalledWith('Remove Goblin from the fight?');
+                await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith(
+                    { __doc: ['campaigns', 'camp-1'] },
+                    { enemy_list: [other], combat_tracker: [{ id: 'npc:enemy-2' }, { id: 'character:char-1' }] },
+                ));
+            });
+
+            test('declining removes nothing', async () => {
+                window.confirm = jest.fn(() => false);
+                await renderReady({ campaignInfo: { ...directing, enemy_list: [enemy] } });
+                goToTab('Combat');
+                fireEvent.click(screen.getByRole('button', { name: 'Remove from fight' }));
+                expect(mockUpdateDoc).not.toHaveBeenCalled();
+            });
+
+            test('Clear all removes every enemy and their tracker cards, but not the players\'', async () => {
+                const other = { ...enemy, id: 'enemy-2', enemy_name: 'Troll' };
+                await renderReady({ campaignInfo: { ...directing, enemy_list: [enemy, other], combat_tracker: [{ id: 'npc:enemy-1' }, { id: 'npc:enemy-2' }, { id: 'character:char-1' }] } });
+                goToTab('Combat');
+
+                fireEvent.click(screen.getByRole('button', { name: 'Clear all' }));
+
+                expect(window.confirm).toHaveBeenCalledWith('Remove every enemy from the fight?');
+                await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith(
+                    { __doc: ['campaigns', 'camp-1'] },
+                    { enemy_list: [], combat_tracker: [{ id: 'character:char-1' }] },
+                ));
+            });
+
+            test('a failed write is alerted', async () => {
+                mockUpdateDoc.mockRejectedValue(new Error('offline'));
+                await renderReady({ campaignInfo: { ...directing, enemy_list: [enemy] } });
+                goToTab('Combat');
+                fireEvent.click(screen.getByRole('button', { name: 'Clear all' }));
+                await waitFor(() => expect(window.alert).toHaveBeenCalled());
+            });
         });
 
         test('the Enemies panel collapses via its own button', async () => {

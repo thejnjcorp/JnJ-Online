@@ -1,0 +1,22 @@
+.BestiaryPage-search {
+    padding: var(--jnj-space-2) var(--jnj-space-4);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-pill);
+    background: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text);
+    font: inherit;
+    font-size: var(--jnj-text-sm);
+
+    &:focus {
+        outline: none;
+        border-color: var(--jnj-color-accent);
+    }
+}
+
+.BestiaryPage-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--jnj-space-3);
+    font-size: var(--jnj-text-sm);
+    color: var(--jnj-color-text-muted);
+}

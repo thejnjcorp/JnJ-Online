@@ -14,6 +14,7 @@ const NAV_LINKS = [
     { to: "/race-list", label: "Races" },
     { to: "/status-list", label: "Statuses" },
     { to: "/tag-list", label: "Tags" },
+    { to: "/bestiary", label: "Bestiary" },
     { to: "/blog/JnJ_Ruleset", label: "Rules" },
 ];
 

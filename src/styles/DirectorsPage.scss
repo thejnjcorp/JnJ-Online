@@ -170,6 +170,7 @@
 
 .DirectorsPage-panel-title {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: var(--jnj-space-2);
 }
@@ -664,4 +665,55 @@
     &:hover {
         background: rgba(153, 50, 50, 0.9);
     }
+}
+
+.DirectorsPage-enemy-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--jnj-space-1);
+    /* its own row, under the title, so the title keeps its room */
+    order: 3;
+    flex-basis: 100%;
+
+    button {
+        padding: 2px var(--jnj-space-3);
+        border: 1px solid var(--jnj-color-border-strong);
+        border-radius: var(--jnj-radius-pill);
+        background: transparent;
+        color: var(--jnj-color-text-muted);
+        font-family: inherit;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        cursor: pointer;
+
+        &:hover {
+            border-color: var(--jnj-color-accent);
+            color: var(--jnj-color-accent-hover);
+        }
+    }
+}
+
+.DirectorsPage-remove-enemy-button {
+    align-self: flex-start;
+    margin-top: var(--jnj-space-2);
+    padding: 4px var(--jnj-space-3);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-pill);
+    background: transparent;
+    color: var(--jnj-color-text-muted);
+    font-family: inherit;
+    font-size: 0.6875rem;
+    cursor: pointer;
+
+    &:hover {
+        border-color: var(--jnj-color-danger);
+        color: var(--jnj-color-danger);
+    }
+}
+
+.DirectorsPage-enemies-empty {
+    padding: var(--jnj-space-3);
+    font-size: var(--jnj-text-sm);
+    color: var(--jnj-color-text-faint);
+    text-align: center;
 }

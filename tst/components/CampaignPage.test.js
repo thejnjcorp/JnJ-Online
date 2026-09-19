@@ -194,6 +194,22 @@ describe('CampaignPage', () => {
             expect(mockNavigate).toHaveBeenCalledWith(route);
         });
 
+        describe('Encounters button', () => {
+            test('is offered to someone who can write the campaign, and goes to its encounters', async () => {
+                signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale', canWrite: ['user-1'] });
+                renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
+                fireEvent.click(await screen.findByRole('button', { name: 'Encounters' }));
+                expect(mockNavigate).toHaveBeenCalledWith('/campaigns/camp-1/encounters');
+            });
+
+            test('is not offered to a player, who could not read them', async () => {
+                signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale', canWrite: ['someone-else'], canRead: ['user-1'] });
+                renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
+                await screen.findByText('Manage Statuses');
+                expect(screen.queryByRole('button', { name: 'Encounters' })).not.toBeInTheDocument();
+            });
+        });
+
         describe('archived banner', () => {
             test('hidden for an active campaign', async () => {
                 signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale' });

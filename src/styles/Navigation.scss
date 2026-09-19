@@ -253,7 +253,16 @@
     }
 }
 
-@media (max-width: 860px) {
+/* Nine links need more room than the bar had for seven: a little tighter until
+   there is plenty, and the menu button from 1100px down. */
+@media (max-width: 1320px) {
+    .Navigation-button {
+        padding-left: var(--jnj-space-3);
+        padding-right: var(--jnj-space-3);
+    }
+}
+
+@media (max-width: 1100px) {
     .Navigation {
         gap: var(--jnj-space-3);
         padding: 0 var(--jnj-space-4);

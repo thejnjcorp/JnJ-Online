@@ -32,6 +32,13 @@ service cloud.firestore {
       match /notes/{noteId} {
         allow read, write: if isSignedIn() && isCampaignDirector(campaignId);
       }
+
+      // Encounters a director has prepared for this campaign: a roster of
+      // enemies (each with its own copy of the stat block), where they start,
+      // and notes. Directors only, same check as the notes.
+      match /encounters/{encounterId} {
+        allow read, write: if isSignedIn() && isCampaignDirector(campaignId);
+      }
     }
 
     match /characters/{characterId} {
@@ -173,6 +180,22 @@ service cloud.firestore {
 
       allow create: if isSignedIn() && !documentExists("statuses", statusId) && isCreatorDocAdmin()
         && (!('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
+    }
+
+    // The bestiary: a director's own library of enemy stat blocks, usable in any
+    // of their campaigns. Private (canRead/canWrite) unless marked `public`, in
+    // which case any signed-in user can browse and copy it. There is no
+    // admin-default tier - an enemy is never handed to everyone automatically.
+    // Staging one into a fight copies it onto the campaign, so nothing reads the
+    // library while a fight is running.
+    match /enemies/{enemyId} {
+      allow read: if isSignedIn() && (resource.data.public == true || uid() in canWriteField() || uid() in canReadField());
+
+      allow write: if isSignedIn() && uid() in canWriteField() && permissionFieldsUnchanged();
+
+      allow write: if isSignedIn() && isDocAdmin();
+
+      allow create: if isSignedIn() && !documentExists("enemies", enemyId) && isCreatorDocAdmin();
     }
 
     // The tag catalog: the labels an author puts on a class's actions (Fire,

@@ -1146,6 +1146,79 @@ async function main() {
         }));
     });
 
+    console.log('\nBestiary (enemies collection) and encounters:');
+
+    const seedEnemies = () => testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+        await testEnv.clearFirestore();
+        await setDoc(doc(adminCtx.firestore(), 'enemies', 'goon'), { enemy_name: 'Rust Bandit', enemy_type: 'Goon', public: false, canRead: ['dm'], canWrite: ['dm', 'co'], admins: ['dm'] });
+        await setDoc(doc(adminCtx.firestore(), 'enemies', 'shared'), { enemy_name: 'Wolf', enemy_type: 'Regular', public: true, canRead: [], canWrite: ['dm'], admins: ['dm'] });
+    });
+
+    await check('a signed-in user can create an enemy as its own admin; a signed-out visitor cannot', async () => {
+        await testEnv.clearFirestore();
+        await assertSucceeds(addDoc(collection(testEnv.authenticatedContext('dm').firestore(), 'enemies'), {
+            enemy_name: 'Rust Bandit', enemy_type: 'Goon', public: false, canRead: ['dm'], canWrite: ['dm'], admins: ['dm'],
+        }));
+        await assertFails(addDoc(collection(testEnv.unauthenticatedContext().firestore(), 'enemies'), { enemy_name: 'Nope' }));
+        await assertFails(addDoc(collection(testEnv.authenticatedContext('dm').firestore(), 'enemies'), { enemy_name: 'No admin', canWrite: ['dm'] }));
+    });
+
+    await check('a private enemy is readable only by the people it is shared with; a public one by any signed-in user', async () => {
+        await seedEnemies();
+        await assertSucceeds(getDoc(doc(testEnv.authenticatedContext('dm').firestore(), 'enemies', 'goon')));
+        await assertFails(getDoc(doc(testEnv.authenticatedContext('stranger').firestore(), 'enemies', 'goon')));
+        await assertSucceeds(getDoc(doc(testEnv.authenticatedContext('stranger').firestore(), 'enemies', 'shared')));
+        await assertFails(getDoc(doc(testEnv.unauthenticatedContext().firestore(), 'enemies', 'shared')));
+    });
+
+    await check('the bestiary list query (public, or readable, or writable) is allowed; an unfiltered scan is not', async () => {
+        await seedEnemies();
+        const stranger = testEnv.authenticatedContext('stranger');
+        const snap = await assertSucceeds(getDocs(query(collection(stranger.firestore(), 'enemies'),
+            or(where('public', '==', true), where('canRead', 'array-contains', 'stranger'), where('canWrite', 'array-contains', 'stranger')))));
+        if (snap.docs.map(d => d.id).join() !== 'shared') throw new Error('expected only the public enemy, got ' + snap.docs.map(d => d.id).join());
+        await assertFails(getDocs(collection(stranger.firestore(), 'enemies')));
+    });
+
+    await check('writers can edit and delete an enemy, others cannot, and only an admin can change who has access', async () => {
+        await seedEnemies();
+        await assertSucceeds(updateDoc(doc(testEnv.authenticatedContext('co').firestore(), 'enemies', 'goon'), { level: 2 }));
+        await assertFails(updateDoc(doc(testEnv.authenticatedContext('co').firestore(), 'enemies', 'goon'), { canWrite: ['dm', 'co', 'x'] }));
+        await assertFails(updateDoc(doc(testEnv.authenticatedContext('stranger').firestore(), 'enemies', 'shared'), { level: 9 }));
+        await assertFails(deleteDoc(doc(testEnv.authenticatedContext('stranger').firestore(), 'enemies', 'shared')));
+        await assertSucceeds(updateDoc(doc(testEnv.authenticatedContext('dm').firestore(), 'enemies', 'goon'), { canWrite: ['dm', 'co', 'x'] }));
+        await assertSucceeds(deleteDoc(doc(testEnv.authenticatedContext('dm').firestore(), 'enemies', 'goon')));
+    });
+
+    const seedEncounter = () => testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+        await testEnv.clearFirestore();
+        await setDoc(doc(adminCtx.firestore(), 'campaigns', 'camp1'), { campaign_name: 'C', director_uid: 'dir', canWrite: ['dir', 'codir'], canRead: ['dir', 'codir', 'player'], admins: ['dir'] });
+        await setDoc(doc(adminCtx.firestore(), 'campaigns', 'camp1', 'encounters', 'e1'), { name: 'Ambush', roster: [] });
+    });
+
+    await check('the director and a co-director can read, create, edit, list and delete encounters', async () => {
+        await seedEncounter();
+        for (const uid of ['dir', 'codir']) {
+            const db = testEnv.authenticatedContext(uid).firestore();
+            await assertSucceeds(getDoc(doc(db, 'campaigns', 'camp1', 'encounters', 'e1')));
+            await assertSucceeds(getDocs(collection(db, 'campaigns', 'camp1', 'encounters')));
+            await assertSucceeds(updateDoc(doc(db, 'campaigns', 'camp1', 'encounters', 'e1'), { name: 'Ambush 2' }));
+            await assertSucceeds(addDoc(collection(db, 'campaigns', 'camp1', 'encounters'), { name: 'New' }));
+        }
+        await assertSucceeds(deleteDoc(doc(testEnv.authenticatedContext('dir').firestore(), 'campaigns', 'camp1', 'encounters', 'e1')));
+    });
+
+    await check('players, strangers and signed-out visitors cannot see or change encounters (the players must not read the ambush)', async () => {
+        await seedEncounter();
+        for (const ctx of [testEnv.authenticatedContext('player'), testEnv.authenticatedContext('stranger'), testEnv.unauthenticatedContext()]) {
+            const db = ctx.firestore();
+            await assertFails(getDoc(doc(db, 'campaigns', 'camp1', 'encounters', 'e1')));
+            await assertFails(getDocs(collection(db, 'campaigns', 'camp1', 'encounters')));
+            await assertFails(updateDoc(doc(db, 'campaigns', 'camp1', 'encounters', 'e1'), { name: 'x' }));
+            await assertFails(addDoc(collection(db, 'campaigns', 'camp1', 'encounters'), { name: 'x' }));
+        }
+    });
+
     await testEnv.cleanup();
 
     if (failures > 0) {

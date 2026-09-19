@@ -6,7 +6,7 @@ import '../styles/CharacterPageStyles/DefaultCharacterPage.scss';
 import '../styles/DirectorsPage.scss';
 import '../styles/CharacterMainTab.scss';
 import '../styles/CharacterPage.scss';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { db, auth } from '../utils/firebase';
 import { doc, query, collection, where, onSnapshot, updateDoc, addDoc, deleteDoc } from 'firebase/firestore';
 import { SkillsAndFlaws } from './SkillsAndFlaws';
@@ -36,6 +36,9 @@ import { DocAdminManager } from './DocAdminManager';
 import { useCampaignMaps, useCombatEntities } from '../utils/useCampaignCombat';
 import { advanceTurnStatuses, getEffectiveCharacterStats, getGrantedActions } from '../utils/statusEffects';
 import { CharacterStatCalculator } from './CharacterStatCalculator';
+import { AddEnemyDialog } from './AddEnemyDialog';
+import { EnemyTierBadge } from './EnemyTierBadge';
+import { removeEnemies } from '../utils/enemies';
 
 // Matches the mockup's .zone-card/.zone-title/.entity-chip recipe (see
 // design/directors-page/handoff/reference.html) rather than the generic
@@ -116,7 +119,7 @@ function makeLineViewCard(playerInfoById) {
 // need to know whether it's looking at a real `characters` doc or an NPC
 // object embedded in the campaign doc.
 function DirectorsEntityCard({
-    kind, name, subtitle, hpNow, hpMax, tempHp, ac, ap, onSetAp,
+    kind, name, tier, subtitle, hpNow, hpMax, tempHp, ac, ap, onSetAp, onRemove,
     canAdvanceTurn, onNextTurn, weaknesses, resistances,
     statusEntity, onUpdateStatuses, hasStatusWrite, userId,
     actions, experiencePoints, baseHitModifier, baseDamageModifier,
@@ -133,6 +136,7 @@ function DirectorsEntityCard({
         <button type="button" className="DirectorsPage-entity-header" onClick={() => setOpen(o => !o)}>
             <ChevronDownIcon className={open ? "DirectorsPage-chevron DirectorsPage-chevron-open" : "DirectorsPage-chevron"}/>
             <span className="DirectorsPage-entity-name">{name}</span>
+            {tier && <EnemyTierBadge tier={tier}/>}
             {subtitle && <span className="DirectorsPage-entity-subtitle">{subtitle}</span>}
             <span className="DirectorsPage-entity-hp-label">{hpNow}/{hpMax} HP</span>
         </button>
@@ -186,6 +190,8 @@ function DirectorsEntityCard({
                     hasWritePermissions={hasStatusWrite}
                 />}
             </div>
+
+            {onRemove && <button type="button" className="DirectorsPage-remove-enemy-button" onClick={onRemove}>Remove from fight</button>}
         </div>}
     </div>;
 }
@@ -204,6 +210,8 @@ export function DirectorsPage() {
     // a fixed three-way split leaves it.
     const [playersCollapsed, setPlayersCollapsed] = useState(false);
     const [enemiesCollapsed, setEnemiesCollapsed] = useState(false);
+    const [addEnemyOpen, setAddEnemyOpen] = useState(false);
+    const navigate = useNavigate();
     const combatGridTemplateColumns = `${playersCollapsed ? '56px' : '1.3fr'} 1fr ${enemiesCollapsed ? '56px' : '1.3fr'}`;
     const [campaignInfo, setCampaignInfo] = useState({
         "campaign_name":"placeholder",
@@ -353,6 +361,22 @@ export function DirectorsPage() {
         return updateDoc(campaignDoc, {
             enemy_list: campaignInfo.enemy_list.map(e => e.id === enemyId ? { ...e, ...patch } : e)
         });
+    }
+
+    // Enemies come and go on the campaign doc. Taking one out also takes its card
+    // off the combat tracker (the tracker only tidies itself while a map is active).
+    function addEnemyToFight(enemy) {
+        return updateDoc(campaignDoc, { enemy_list: [...campaignInfo.enemy_list, enemy] }).catch(e => alert(e));
+    }
+
+    function removeEnemyFromFight(enemy) {
+        if (!window.confirm(`Remove ${enemy.enemy_name} from the fight?`)) return;
+        updateDoc(campaignDoc, removeEnemies(campaignInfo, [enemy.id])).catch(e => alert(e));
+    }
+
+    function clearEnemies() {
+        if (!window.confirm('Remove every enemy from the fight?')) return;
+        updateDoc(campaignDoc, removeEnemies(campaignInfo, campaignInfo.enemy_list.map(enemy => enemy.id))).catch(e => alert(e));
     }
 
     // The notebook is for directors only (the Firestore rule enforces it; this
@@ -532,6 +556,11 @@ export function DirectorsPage() {
                         <div className="DirectorsPage-panel-title">
                             <SwordsIcon className="DirectorsPage-panel-title-icon"/>
                             {!enemiesCollapsed && <span className="DirectorsPage-panel-title-name">Enemies</span>}
+                            {!enemiesCollapsed && isDirector && <div className="DirectorsPage-enemy-tools">
+                                <button type="button" onClick={() => setAddEnemyOpen(true)}>+ Add</button>
+                                <button type="button" onClick={() => navigate('/campaigns/' + campaignId + '/encounters')}>Encounters</button>
+                                {campaignInfo.enemy_list.length > 0 && <button type="button" onClick={clearEnemies}>Clear all</button>}
+                            </div>}
                             <button type="button"
                                 className="DirectorsPage-panel-collapse-button"
                                 onClick={() => setEnemiesCollapsed(c => !c)}
@@ -560,7 +589,9 @@ export function DirectorsPage() {
                                 key={enemy.id}
                                 kind="enemy"
                                 name={actualEnemy.enemy_name}
+                                tier={enemy.enemy_type} /* not actualEnemy: the layout it is merged over has a tier of its own */
                                 subtitle={"Lvl " + actualEnemy.level}
+                                onRemove={isDirector ? () => removeEnemyFromFight(actualEnemy) : undefined}
                                 hpNow={actualEnemy.current_health}
                                 hpMax={actualEnemy.maximum_health}
                                 tempHp={actualEnemy.temporary_health}
@@ -586,6 +617,9 @@ export function DirectorsPage() {
                                 onUseAction={useAction}
                             />
                         })}
+                        {!enemiesCollapsed && isDirector && campaignInfo.enemy_list.length === 0 && <div className="DirectorsPage-enemies-empty">
+                            No enemies in the fight. Add one from your bestiary, or stage an encounter.
+                        </div>}
                     </div>
                 </div>},
                 {
@@ -629,6 +663,7 @@ export function DirectorsPage() {
                 ...(isDirector ? [{ tabName: "Notes", icon: <NoteIcon/>, content: <DirectorNotes campaignId={campaignId}/> }] : []),
             ]}/>
         </div>
+        {addEnemyOpen && <AddEnemyDialog existing={campaignInfo.enemy_list} onAdd={addEnemyToFight} onClose={() => setAddEnemyOpen(false)}/>}
         {mapOverlayOpen && <>
             <button
                 type="button"

@@ -30,6 +30,8 @@ jest.mock('../../src/components/StatusPage.js', () => ({ StatusPage: () => <div>
 jest.mock('../../src/components/StatusListPage.js', () => ({ StatusListPage: () => <div>StatusListPage-stub</div> }));
 jest.mock('../../src/components/TagPage.js', () => ({ TagPage: () => <div>TagPage-stub</div> }));
 jest.mock('../../src/components/TagListPage.js', () => ({ TagListPage: () => <div>TagListPage-stub</div> }));
+jest.mock('../../src/components/EnemyPage.js', () => ({ EnemyPage: () => <div>EnemyPage-stub</div> }));
+jest.mock('../../src/components/BestiaryPage.js', () => ({ BestiaryPage: () => <div>BestiaryPage-stub</div> }));
 
 // eslint-disable-next-line import/first
 import { render, screen, act } from '@testing-library/react';
@@ -106,6 +108,9 @@ describe('App', () => {
         ['/tags', 'TagPage-stub'],
         ['/tags/tag-1', 'TagPage-stub'],
         ['/tag-list', 'TagListPage-stub'],
+        ['/enemies', 'EnemyPage-stub'],
+        ['/enemies/enemy-1', 'EnemyPage-stub'],
+        ['/bestiary', 'BestiaryPage-stub'],
         ['/blog', 'Blog-stub:'],
     ])('%s routes to the right page', async (path, expectedText) => {
         await renderApp(path);

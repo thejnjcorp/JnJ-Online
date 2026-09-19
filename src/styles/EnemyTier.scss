@@ -1,0 +1,19 @@
+/* The badge for an enemy's tier, wherever one is shown. */
+.EnemyTier {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: var(--jnj-radius-pill);
+    background: var(--jnj-color-bg-hover);
+    color: var(--jnj-color-text);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    line-height: 1.6;
+}
+
+.EnemyTier-goon { background: var(--jnj-color-bg-hover); color: var(--jnj-color-text-muted); }
+.EnemyTier-regular { background: var(--jnj-color-accent-soft); color: var(--jnj-color-accent); }
+.EnemyTier-veteran { background: var(--jnj-color-success); color: #fff; }
+.EnemyTier-elite { background: var(--jnj-color-ember); color: #fff; }
+.EnemyTier-captain { background: var(--jnj-color-arcane); color: #fff; }

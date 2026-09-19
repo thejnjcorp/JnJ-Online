@@ -9,6 +9,8 @@ import { NewCharacterPage } from "./NewCharacterPage";
 import { CampaignClassesPage } from "./CampaignClassesPage";
 import { CampaignRacesPage } from "./CampaignRacesPage";
 import { CampaignStatusesPage } from "./CampaignStatusesPage";
+import { EncountersPage } from "./EncountersPage";
+import { EncounterPage } from "./EncounterPage";
 import { onAuthStateChanged } from "firebase/auth";
 import loadingIcon from '../icons/loading.svg';
 
@@ -20,6 +22,8 @@ export function Campaigns() {
     const [showArchived, setShowArchived] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
+    // /campaigns/:id/encounters (the list) and .../encounters/:encounterId
+    const isEncounters = location.pathname.split('/').at(3) === 'encounters';
     document.title = "Campaigns";
 
     // Old campaigns predate the `archived` field entirely, so this filters
@@ -100,8 +104,9 @@ export function Campaigns() {
                 </div>}
             </div>}
         </div>}
-        {!location.pathname.endsWith('campaigns') && !location.pathname.endsWith('new') && !location.pathname.endsWith('newCharacter') && !location.pathname.endsWith('classes') && !location.pathname.endsWith('races') && !location.pathname.endsWith('statuses') &&
+        {!location.pathname.endsWith('campaigns') && !location.pathname.endsWith('new') && !location.pathname.endsWith('newCharacter') && !location.pathname.endsWith('classes') && !location.pathname.endsWith('races') && !location.pathname.endsWith('statuses') && !isEncounters &&
             <CampaignPage/>}
+        {isEncounters && (location.pathname.split('/').at(4) ? <EncounterPage/> : <EncountersPage/>)}
         {location.pathname.endsWith('new') &&
             <NewCampaignPage/>}
         {location.pathname.endsWith('newCharacter') &&

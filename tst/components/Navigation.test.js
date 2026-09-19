@@ -51,7 +51,7 @@ describe('Navigation', () => {
         expect(screen.getByRole('link', { name: /JnJ\s*Online/ })).toHaveAttribute('href', '/home');
         [
             ['Home', '/home'], ['Characters', '/characters'], ['Campaigns', '/campaigns'],
-            ['Classes', '/class-list'], ['Races', '/race-list'], ['Statuses', '/status-list'], ['Rules', '/blog/JnJ_Ruleset'],
+            ['Classes', '/class-list'], ['Races', '/race-list'], ['Statuses', '/status-list'], ['Tags', '/tag-list'], ['Bestiary', '/bestiary'], ['Rules', '/blog/JnJ_Ruleset'],
         ].forEach(([label, href]) => {
             expect(screen.getAllByRole('link', { name: label })[0]).toHaveAttribute('href', href);
         });

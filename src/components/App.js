@@ -18,6 +18,8 @@ import { StatusPage } from './StatusPage.js';
 import { StatusListPage } from './StatusListPage.js';
 import { TagPage } from './TagPage.js';
 import { TagListPage } from './TagListPage.js';
+import { EnemyPage } from './EnemyPage.js';
+import { BestiaryPage } from './BestiaryPage.js';
 import { auth } from '../utils/firebase.js';
 import { AccessibilityProvider } from '../utils/AccessibilityContext.js';
 
@@ -82,6 +84,8 @@ function App() {
             <Route path='/status-list' element={<StatusListPage/>} />
             <Route path='/tags/*' element={<TagPage/>} />
             <Route path='/tag-list' element={<TagListPage/>} />
+            <Route path='/enemies/*' element={<EnemyPage/>} />
+            <Route path='/bestiary' element={<BestiaryPage/>} />
             {routeMarkdownFiles}
           </Routes>
         </div>

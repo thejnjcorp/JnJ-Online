@@ -51,7 +51,7 @@ const ACTION_FIELD_LABELS = {
     actionTypeCount: 'times', category: 'category', toHit: 'to-hit', difficultyClass: 'DC',
 };
 
-function actionProblems(actions) {
+export function actionProblems(actions) {
     const byIndex = {};
     const problems = [];
     (actions || []).forEach((action, index) => {

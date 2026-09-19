@@ -1,0 +1,50 @@
+.EnemyPage-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+    gap: var(--jnj-space-3);
+}
+
+.EnemyPage-stat {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-1);
+}
+
+.EnemyPage-modifiers {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-2);
+    align-items: flex-start;
+}
+
+.EnemyPage-modifier-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--jnj-space-2);
+
+    .ClassPage-field-input:not(.ClassPage-field-input-narrow) {
+        width: 12rem;
+    }
+}
+
+.EnemyPage-modifier-remove {
+    padding: var(--jnj-space-1) var(--jnj-space-3);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-pill);
+    background: transparent;
+    color: var(--jnj-color-text-muted);
+    font-size: var(--jnj-text-xs);
+    cursor: pointer;
+
+    &:hover {
+        border-color: var(--jnj-color-danger);
+        color: var(--jnj-color-danger);
+    }
+}
+
+.EnemyPage-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--jnj-space-3);
+}

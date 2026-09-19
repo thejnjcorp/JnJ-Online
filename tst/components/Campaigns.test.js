@@ -33,6 +33,8 @@ jest.mock('../../src/components/NewCharacterPage', () => ({ NewCharacterPage: ()
 jest.mock('../../src/components/CampaignClassesPage', () => ({ CampaignClassesPage: () => <div>CampaignClassesPage-stub</div> }));
 jest.mock('../../src/components/CampaignRacesPage', () => ({ CampaignRacesPage: () => <div>CampaignRacesPage-stub</div> }));
 jest.mock('../../src/components/CampaignStatusesPage', () => ({ CampaignStatusesPage: () => <div>CampaignStatusesPage-stub</div> }));
+jest.mock('../../src/components/EncountersPage', () => ({ EncountersPage: () => <div>EncountersPage-stub</div> }));
+jest.mock('../../src/components/EncounterPage', () => ({ EncounterPage: () => <div>EncounterPage-stub</div> }));
 
 // eslint-disable-next-line import/first
 import { screen, fireEvent } from '@testing-library/react';
@@ -204,6 +206,20 @@ describe('Campaigns', () => {
         test('/campaigns/:id/statuses renders CampaignStatusesPage', async () => {
             renderWithRouter(<Campaigns />, { route: '/campaigns/camp-a/statuses' });
             expect(await screen.findByText('CampaignStatusesPage-stub')).toBeInTheDocument();
+        });
+
+        test('/campaigns/:id/encounters renders the encounter list, not the campaign detail page', async () => {
+            renderWithRouter(<Campaigns />, { route: '/campaigns/camp-a/encounters' });
+            expect(await screen.findByText('EncountersPage-stub')).toBeInTheDocument();
+            expect(screen.queryByText('CampaignPage-stub')).not.toBeInTheDocument();
+            expect(screen.queryByText('EncounterPage-stub')).not.toBeInTheDocument();
+        });
+
+        test('/campaigns/:id/encounters/:encounterId renders one encounter', async () => {
+            renderWithRouter(<Campaigns />, { route: '/campaigns/camp-a/encounters/enc-1' });
+            expect(await screen.findByText('EncounterPage-stub')).toBeInTheDocument();
+            expect(screen.queryByText('CampaignPage-stub')).not.toBeInTheDocument();
+            expect(screen.queryByText('EncountersPage-stub')).not.toBeInTheDocument();
         });
 
         test('/campaigns/:id (no special suffix) renders CampaignPage - the catch-all detail view', async () => {
