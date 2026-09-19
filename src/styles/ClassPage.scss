@@ -692,3 +692,103 @@
         background: var(--jnj-color-accent-hover);
     }
 }
+
+/* --- Versions ---------------------------------------------------------- */
+.ClassPage-version-badge {
+    padding: 3px 9px;
+    border-radius: var(--jnj-radius-pill);
+    border: 1px solid var(--jnj-color-border-strong);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--jnj-color-text-muted);
+}
+
+.ClassPage-version-banner {
+    margin-top: var(--jnj-space-2);
+    padding: var(--jnj-space-2) var(--jnj-space-3);
+    border-radius: var(--jnj-radius-md);
+    background: var(--jnj-color-accent-soft);
+    color: var(--jnj-color-text);
+    font-size: 12px;
+}
+
+.ClassPage-version-banner-link {
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--jnj-color-accent);
+    font-size: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.ClassPage-version-list {
+    list-style: none;
+    margin: var(--jnj-space-3) 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-2);
+}
+
+.ClassPage-version-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--jnj-space-3);
+    padding: var(--jnj-space-2) var(--jnj-space-3);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-md);
+    background: var(--jnj-color-bg-sunken);
+}
+
+.ClassPage-version-row-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.ClassPage-version-row-title {
+    font-weight: 700;
+    font-size: 13px;
+
+    em {
+        margin-left: 6px;
+        font-style: normal;
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--jnj-color-accent);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+}
+
+.ClassPage-version-row-notes {
+    font-size: 12px;
+    color: var(--jnj-color-text-muted);
+}
+
+.ClassPage-version-view-button {
+    flex-shrink: 0;
+    padding: 6px 12px;
+    border-radius: var(--jnj-radius-pill);
+    border: 1px solid var(--jnj-color-border-strong);
+    background: transparent;
+    color: var(--jnj-color-text);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ClassPage-publish-button {
+    padding: 9px 18px;
+    border-radius: var(--jnj-radius-pill);
+    border: 1px solid var(--jnj-color-accent);
+    background: transparent;
+    color: var(--jnj-color-accent);
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+}

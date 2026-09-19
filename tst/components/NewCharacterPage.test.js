@@ -240,5 +240,35 @@ describe('NewCharacterPage', () => {
             expect(payload.skills_and_flaws).toEqual([]);
             expect(mockNavigate).toHaveBeenCalledWith('/characters/new-char-id');
         });
+
+        test('pins the character to the class version it was built from, and keeps the race feat out of the class actions', async () => {
+            await renderAt('/campaigns/camp-1/newCharacter', { classes: [fighterClass({ version: 4, versionNotes: 'Rebalanced', publishedAt: 'ts', public: true, visibility: 'public' })], campaign: { canWrite: [], canRead: [] } });
+            await fillRequiredFields();
+
+            fireEvent.click(screen.getByRole('button', { name: 'Create Character' }));
+
+            await waitFor(() => expect(mockAddDoc).toHaveBeenCalled());
+            const [, payload] = mockAddDoc.mock.calls[0];
+            expect(payload.class_id).toBe('class-1');
+            expect(payload.class_version).toBe(4);
+            expect(payload.race_feat).toEqual(humanRace.feat);
+            // saved copy = the class's own actions only; the race feat lives in race_feat
+            expect(payload.actions).toEqual(fighterClass().actions);
+            expect(payload.class_description).toBe('A frontline tank.');
+            // class-level bookkeeping stays on the class
+            ['id', 'public', 'isDefault', 'visibility', 'version', 'versionNotes', 'publishedAt', 'description'].forEach(field => {
+                expect(payload).not.toHaveProperty(field);
+            });
+        });
+
+        test('a class that has never been versioned pins the character to version 1', async () => {
+            await renderAt('/campaigns/camp-1/newCharacter', { classes: [fighterClass()], campaign: { canWrite: [], canRead: [] } });
+            await fillRequiredFields();
+
+            fireEvent.click(screen.getByRole('button', { name: 'Create Character' }));
+
+            await waitFor(() => expect(mockAddDoc).toHaveBeenCalled());
+            expect(mockAddDoc.mock.calls[0][1].class_version).toBe(1);
+        });
     });
 });

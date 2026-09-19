@@ -31,6 +31,16 @@ jest.mock('@firebase/firestore', () => ({
     where: (...args) => mockWhere(...args),
 }));
 
+const mockListClassVersions = jest.fn();
+const mockPublishClassVersion = jest.fn();
+const mockResolveClassVersion = jest.fn();
+jest.mock('../../src/utils/classVersions', () => ({
+    ...jest.requireActual('../../src/utils/classVersions'),
+    listClassVersions: (...args) => mockListClassVersions(...args),
+    publishClassVersion: (...args) => mockPublishClassVersion(...args),
+    resolveClassVersion: (...args) => mockResolveClassVersion(...args),
+}));
+
 const mockSubscribeClassToCampaign = jest.fn();
 jest.mock('../../src/utils/campaignSubscriptions', () => ({
     subscribeClassToCampaign: (...args) => mockSubscribeClassToCampaign(...args),
@@ -61,7 +71,7 @@ jest.mock('react-router-dom', () => ({
 }));
 
 // eslint-disable-next-line import/first
-import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor, within } from '@testing-library/react';
 // eslint-disable-next-line import/first
 import { ClassPage } from '../../src/components/ClassPage';
 // eslint-disable-next-line import/first
@@ -96,6 +106,8 @@ beforeEach(() => {
     mockUpdateDoc.mockResolvedValue(undefined);
     mockArrayRemove.mockImplementation((value) => ({ __arrayRemove: value }));
     mockSubscribeClassToCampaign.mockResolvedValue([]);
+    mockListClassVersions.mockResolvedValue([]);
+    mockPublishClassVersion.mockResolvedValue(2);
     auth.currentUser = { uid: 'user-1' };
     window.alert = jest.fn();
 });
@@ -250,6 +262,17 @@ describe('ClassPage', () => {
                 expect(payload.admins).toEqual(['user-1']); // firestore.rules requires the creator to be a doc admin to create at all
             });
 
+            test('a brand-new class starts at version 1', async () => {
+                signIn({ uid: 'user-1' });
+                renderNew();
+                await fillRequiredFields();
+
+                fireEvent.click(screen.getByRole('button', { name: 'Create Class' }));
+
+                await waitFor(() => expect(mockAddDoc).toHaveBeenCalled());
+                expect(mockAddDoc.mock.calls[0][1].version).toBe(1);
+            });
+
             test('a private class sets canRead to just the author', async () => {
                 renderNew();
                 await fillRequiredFields();
@@ -394,6 +417,121 @@ describe('ClassPage', () => {
 
             await waitFor(() => expect(window.alert).toHaveBeenCalledWith('Failed to update class: offline'));
             expect(screen.getByRole('button', { name: 'Done Editing' })).toBeInTheDocument();
+        });
+
+        describe('versions', () => {
+            test('shows the class\'s version badge (v1 for a class that has never been versioned)', async () => {
+                renderExisting(classDoc());
+                await screen.findByText('Fighter');
+                expect(screen.getByText('v1')).toBeInTheDocument();
+            });
+
+            test('shows a versioned class\'s own number', async () => {
+                renderExisting(classDoc({ version: 3 }));
+                await screen.findByText('Fighter');
+                expect(screen.getByText('v3')).toBeInTheDocument();
+            });
+
+            test('"Update Class" style saves never write the version fields back, so a stale copy can\'t roll a newer version back', async () => {
+                renderExisting(classDoc({ version: 2, versionNotes: 'Old notes', publishedAt: 'ts' }));
+                await screen.findByText('Fighter');
+                fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+
+                fireEvent.click(screen.getByRole('button', { name: 'Update Class' }));
+
+                await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalled());
+                const payload = mockUpdateDoc.mock.calls[0][1];
+                expect(payload).not.toHaveProperty('version');
+                expect(payload).not.toHaveProperty('versionNotes');
+                expect(payload).not.toHaveProperty('publishedAt');
+                expect(mockPublishClassVersion).not.toHaveBeenCalled();
+            });
+
+            test('Publish is only offered while editing, and names the next version', async () => {
+                renderExisting(classDoc({ version: 2 }));
+                await screen.findByText('Fighter');
+                expect(screen.queryByRole('button', { name: /Publish as/ })).not.toBeInTheDocument();
+
+                fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+
+                expect(screen.getByRole('button', { name: 'Publish as v3' })).toBeInTheDocument();
+            });
+
+            test('publishing asks for a changelog note, publishes via publishClassVersion with the version it loaded, and returns to view mode', async () => {
+                renderExisting(classDoc({ version: 2 }));
+                await screen.findByText('Fighter');
+                fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+                fireEvent.click(screen.getByRole('button', { name: 'Publish as v3' }));
+
+                fireEvent.change(screen.getByPlaceholderText(/Rebalanced/), { target: { value: '  Rebalanced Stab  ' } });
+                fireEvent.click(screen.getByRole('button', { name: 'Publish v3' }));
+
+                await waitFor(() => expect(mockPublishClassVersion).toHaveBeenCalled());
+                const [classId, payload, notes, expectedVersion] = mockPublishClassVersion.mock.calls[0];
+                expect(classId).toBe('class-1');
+                expect(notes).toBe('Rebalanced Stab');
+                expect(expectedVersion).toBe(2);
+                expect(payload.class_name).toBe('Fighter');
+                expect(payload).not.toHaveProperty('version');
+                expect(mockUpdateDoc).not.toHaveBeenCalled();
+                expect(await screen.findByRole('button', { name: 'Edit' })).toBeInTheDocument();
+            });
+
+            test('a failed publish is alerted and the editor stays open', async () => {
+                mockPublishClassVersion.mockRejectedValue(new Error('published by someone else'));
+                renderExisting(classDoc({ version: 2 }));
+                await screen.findByText('Fighter');
+                fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+                fireEvent.click(screen.getByRole('button', { name: 'Publish as v3' }));
+
+                fireEvent.click(screen.getByRole('button', { name: 'Publish v3' }));
+
+                await waitFor(() => expect(window.alert).toHaveBeenCalledWith('Failed to update class: published by someone else'));
+                expect(screen.getByRole('button', { name: 'Done Editing' })).toBeInTheDocument();
+            });
+
+            test('cancelling the publish dialog publishes nothing', async () => {
+                renderExisting(classDoc({ version: 2 }));
+                await screen.findByText('Fighter');
+                fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+                fireEvent.click(screen.getByRole('button', { name: 'Publish as v3' }));
+
+                fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }));
+
+                expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+                expect(mockPublishClassVersion).not.toHaveBeenCalled();
+            });
+
+            test('lists the version history with changelog notes', async () => {
+                mockListClassVersions.mockResolvedValue([
+                    { version: 2, notes: 'Added Fleetfoot', publishedAt: null },
+                    { version: 1, notes: '', publishedAt: null },
+                ]);
+                renderExisting(classDoc({ version: 2 }));
+
+                expect(await screen.findByText('Version history')).toBeInTheDocument();
+                expect(screen.getByText('Added Fleetfoot')).toBeInTheDocument();
+            });
+
+            test('viewing an older version is read-only: shows its content, hides Edit, and can return to the latest', async () => {
+                mockListClassVersions.mockResolvedValue([
+                    { version: 2, notes: 'Renamed', publishedAt: null },
+                    { version: 1, notes: '', publishedAt: null },
+                ]);
+                mockResolveClassVersion.mockResolvedValue({ version: 1, latestVersion: 2, data: classDoc({ class_name: 'Fighter (original)', version: 1 }) });
+                renderExisting(classDoc({ class_name: 'Fighter', version: 2 }));
+                await screen.findByText('Version history');
+
+                fireEvent.click(screen.getByRole('button', { name: 'View' }));
+
+                expect(await screen.findByText('Fighter (original)')).toBeInTheDocument();
+                expect(screen.getByText(/Viewing version 1/)).toBeInTheDocument();
+                expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+
+                fireEvent.click(screen.getByRole('button', { name: /Back to the latest/ }));
+                expect(await screen.findByText('Fighter')).toBeInTheDocument();
+                expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+            });
         });
 
         describe('subscribe your campaigns', () => {

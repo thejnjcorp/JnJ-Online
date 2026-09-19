@@ -4,10 +4,13 @@ import { db } from '../utils/firebase';
 import { uploadImageToImgur } from '../utils/imgurUploader';
 import '../styles/CharacterPage.scss';
 import { CharacterPageNavigationColorPickerButton } from './CharacterPageNavigationColorPickerButton';
+import { ClassVersionControl } from './ClassVersionControl';
 import { ReactComponent as PersonIcon } from '../icons/person.svg';
 import { ReactComponent as PencilIcon } from '../icons/pencil.svg';
 
-export function CharacterPageNavigation({characterPage, userId}) {
+// classInfo ({ status, latestVersion } from useClassVersion) is optional:
+// without it the version control simply isn't shown.
+export function CharacterPageNavigation({characterPage, userId, classInfo}) {
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef(null);
     const hasWritePermissions = userId ? (characterPage.userId === userId || characterPage.canWrite?.includes(userId)) : false;
@@ -77,6 +80,7 @@ export function CharacterPageNavigation({characterPage, userId}) {
             <div className="CharacterPage-masthead-text">
                 <div className="CharacterPage-masthead-name">{characterPage.character_name || "Unnamed Character"}</div>
                 {subline && <div className="CharacterPage-masthead-subline">{subline}</div>}
+                {classInfo && <ClassVersionControl characterPage={characterPage} userId={userId} status={classInfo.status} latestVersion={classInfo.latestVersion}/>}
             </div>
             <CharacterPageNavigationColorPickerButton characterPageLayoutLive={characterPage}/>
         </div>

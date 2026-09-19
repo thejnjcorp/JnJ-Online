@@ -12,6 +12,8 @@ import { classFormReducer } from '../utils/classFormReducer';
 import { ClassActionEditor } from './ClassActionEditor';
 import { ClassDamageCard } from './ClassDamageCard';
 import { DocAdminManager } from './DocAdminManager';
+import { ClassPublishDialog } from './ClassPublishDialog';
+import { listClassVersions, publishClassVersion, resolveClassVersion, versionOf } from '../utils/classVersions';
 import ClassLayout from '../ClassLayout.json';
 import '../styles/ClassPage.scss';
 
@@ -59,7 +61,26 @@ const formReducer = classFormReducer;
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 export function ClassPage() {
-    const [formData, setFormData] = useReducer(formReducer, { visibility: 'public' });
+    const [liveFormData, setFormData] = useReducer(formReducer, { visibility: 'public' });
+    // Looking at an older version is read-only and display-only: its snapshot
+    // stands in for the form data (keeping the class's own permission and
+    // visibility fields, which snapshots don't carry) without touching the
+    // real form state, so nothing from an old version can be saved by accident.
+    const [viewingSnapshot, setViewingSnapshot] = useState(null);
+    const formData = viewingSnapshot
+        ? {
+            ...viewingSnapshot.data,
+            version: viewingSnapshot.version,
+            canWrite: liveFormData.canWrite,
+            admins: liveFormData.admins,
+            public: liveFormData.public,
+            isDefault: liveFormData.isDefault,
+            visibility: liveFormData.visibility,
+        }
+        : liveFormData;
+    const [versionList, setVersionList] = useState([]);
+    const [publishDialogOpen, setPublishDialogOpen] = useState(false);
+    const [publishing, setPublishing] = useState(false);
     const [isPageVisible, setIsPageVisible] = useState(true);
     const [isActionListVisible, setIsActionListVisible] = useState(true);
     const [userId, setUserId] = useState('');
@@ -106,7 +127,24 @@ export function ClassPage() {
         const data = docRef.data();
         setFormData({ type: 'SET_FORM_DATA', payload: { ...data, visibility: visibilityFromDoc(data) } });
         document.title = data.class_name;
+        setViewingSnapshot(null);
         rerenderPage();
+        // Best effort - someone who can read the class but not (say) its
+        // versions subcollection just doesn't get a history list.
+        listClassVersions(classId).then(setVersionList).catch(() => setVersionList([]));
+    }
+
+    async function viewVersion(version) {
+        if (version === versionOf(liveFormData)) {
+            setViewingSnapshot(null);
+            return;
+        }
+        try {
+            const { data } = await resolveClassVersion(classId, version);
+            setViewingSnapshot({ version, data });
+        } catch (e) {
+            alert(`Couldn't load version ${version}: ${e.message}`);
+        }
     }
 
     // Subscribing writes to the campaign doc, not the class - needs actual
@@ -247,7 +285,9 @@ export function ClassPage() {
         }
     }
 
-    async function handleSubmit() {
+    // publishNotes (a string, possibly empty) publishes this as a new version
+    // instead of updating the current one in place - see publishClassVersion.
+    async function handleSubmit({ publishNotes } = {}) {
         if (formData.class_name === ""
             || formData.author === ""
             || formData.class_type === ""
@@ -303,17 +343,27 @@ export function ClassPage() {
             ? { public: true, isDefault: isAdmin, canRead: [] }
             : { public: false, isDefault: false, canRead: [auth.currentUser.uid] };
 
+        // The version fields are managed only by create/publish - an in-place
+        // save writing back the (possibly stale) values it loaded could
+        // otherwise roll a newer version number back.
+        const { version, versionNotes, publishedAt, ...editableFields } = formData;
+
         if (isEditingExisting) {
             try {
-                await updateDoc(doc(db, "classes", classId), {
-                    ...formData,
+                const payload = {
+                    ...editableFields,
                     actions: cleanedActions,
                     ...visibilityFields,
                     // Merge rather than clobber - a bare overwrite here used
                     // to silently drop any co-authors previously granted
                     // write access every time anyone saved an edit.
                     canWrite: Array.from(new Set([...(formData.canWrite || []), auth.currentUser.uid])),
-                });
+                };
+                if (publishNotes === undefined) {
+                    await updateDoc(doc(db, "classes", classId), payload);
+                } else {
+                    await publishClassVersion(classId, payload, publishNotes, versionOf(formData));
+                }
                 return true;
             } catch(error) {
                 alert(`Failed to update class: ${error.message}`)
@@ -322,7 +372,8 @@ export function ClassPage() {
         } else {
             try {
                 const docRef = await addDoc(collection(db, "classes"), {
-                    ...formData,
+                    ...editableFields,
+                    version: 1,
                     actions: cleanedActions,
                     ...visibilityFields,
                     canWrite: [auth.currentUser.uid],
@@ -345,6 +396,17 @@ export function ClassPage() {
     async function handleSaveClick() {
         const ok = await handleSubmit();
         if (ok) setIsEditingMode(false);
+    }
+
+    async function handlePublish(notes) {
+        setPublishing(true);
+        const ok = await handleSubmit({ publishNotes: notes });
+        setPublishing(false);
+        if (ok) {
+            setPublishDialogOpen(false);
+            setIsEditingMode(false);
+            await getClassData();
+        }
     }
 
     function handleCancelClick() {
@@ -393,7 +455,12 @@ export function ClassPage() {
                         {formData.class_type && <span className={`ClassPage-type-badge ${TYPE_ACCENT_CLASS[formData.class_type] || ''}`}>{formData.class_type}</span>}
                         {!isEditingMode && <span className="ClassPage-author-line">by {formData.author}</span>}
                         {!isEditingMode && isEditingExisting && <span className={visibility === 'private' ? 'ClassPage-vis-badge ClassPage-vis-badge-private' : 'ClassPage-vis-badge'}>{visLabel}</span>}
+                        {isEditingExisting && <span className="ClassPage-version-badge">v{versionOf(formData)}</span>}
                     </div>
+                    {viewingSnapshot && <div className="ClassPage-version-banner">
+                        Viewing version {viewingSnapshot.version} (read-only).{' '}
+                        <button type="button" className="ClassPage-version-banner-link" onClick={() => setViewingSnapshot(null)}>Back to the latest (v{versionOf(liveFormData)})</button>
+                    </div>}
                     {isEditingMode && <div className="ClassPage-field-row">
                         <div className="ClassPage-field-grow">
                             <span className="ClassPage-field-label">Author</span>
@@ -402,7 +469,7 @@ export function ClassPage() {
                     </div>}
                 </div>
                 <div className="ClassPage-header-side">
-                    {isEditingExisting && hasWriteAccess && <button type="button" className="ClassPage-edit-button" onClick={isEditingMode ? handleSaveClick : handleEditClick}>
+                    {isEditingExisting && hasWriteAccess && !viewingSnapshot && <button type="button" className="ClassPage-edit-button" onClick={isEditingMode ? handleSaveClick : handleEditClick}>
                         {isEditingMode ? 'Done Editing' : 'Edit'}
                     </button>}
                     {isEditingMode && <>
@@ -526,15 +593,43 @@ export function ClassPage() {
                 </div>
             </div>}
 
+            {isEditingExisting && versionList.length > 0 && <div className="ClassPage-card">
+                <div className="ClassPage-section-title">Version history</div>
+                <div className="ClassPage-hint">Characters are pinned to a version and only change version when someone switches them. Updating a class edits its latest version in place; publishing starts a new one.</div>
+                <ul className="ClassPage-version-list">
+                    {versionList.map(entry => <li key={entry.version} className="ClassPage-version-row">
+                        <div className="ClassPage-version-row-main">
+                            <span className="ClassPage-version-row-title">
+                                v{entry.version}
+                                {entry.version === versionOf(liveFormData) && <em> latest</em>}
+                                {entry.version === versionOf(formData) && viewingSnapshot && <em> viewing</em>}
+                            </span>
+                            {entry.notes && <span className="ClassPage-version-row-notes">{entry.notes}</span>}
+                        </div>
+                        {!isEditingMode && entry.version !== versionOf(formData) && <button type="button" className="ClassPage-version-view-button" onClick={() => viewVersion(entry.version)}>View</button>}
+                    </li>)}
+                </ul>
+            </div>}
+
             {isEditingExisting && <DocAdminManager docRef={doc(db, "classes", classId)} admins={formData.admins} userId={userId} onChanged={getClassData}/>}
 
             {isEditingMode && <div className="ClassPage-save-bar">
                 <span className="ClassPage-save-bar-label">Unsaved changes</span>
                 <button type="button" className="ClassPage-cancel-button" onClick={handleCancelClick}>Cancel</button>
+                {isEditingExisting && <button type="button" className="ClassPage-publish-button" onClick={() => setPublishDialogOpen(true)}>
+                    Publish as v{versionOf(liveFormData) + 1}
+                </button>}
                 <button type="button" className="ClassPage-save-button" onClick={handleSaveClick}>
                     {isEditingExisting ? "Update Class" : "Create Class"}
                 </button>
             </div>}
+
+            {publishDialogOpen && <ClassPublishDialog
+                nextVersion={versionOf(liveFormData) + 1}
+                busy={publishing}
+                onPublish={handlePublish}
+                onClose={() => setPublishDialogOpen(false)}
+            />}
         </div>
     </div>}</>
 }

@@ -9,7 +9,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { initializeTestEnvironment, assertSucceeds, assertFails } = require('@firebase/rules-unit-testing');
-const { collection, addDoc, doc, setDoc, getDoc, getDocs, query, where, or, updateDoc, deleteDoc, arrayUnion } = require('firebase/firestore');
+const { collection, addDoc, doc, setDoc, getDoc, getDocs, query, where, or, updateDoc, deleteDoc, arrayUnion, writeBatch } = require('firebase/firestore');
 
 const PROJECT_ID = 'jnj-online';
 let failures = 0;
@@ -800,6 +800,71 @@ async function main() {
         await assertSucceeds(
             updateDoc(doc(bob.firestore(), 'classes', 'warden'), { canWrite: ['bob', 'alice'], admins: ['bob', 'alice'] })
         );
+    });
+
+    console.log('\nClass versions (classes/{id}/versions - immutable snapshots of superseded versions):');
+
+    async function seedClassWithVersion({ isPublic }) {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'classes', 'monk'), {
+                class_name: 'Monk', version: 2, public: isPublic, isDefault: false,
+                canWrite: ['bob'], canRead: isPublic ? [] : ['bob'], admins: ['bob'],
+            });
+            await setDoc(doc(adminCtx.firestore(), 'classes', 'monk', 'versions', '1'), {
+                class_name: 'Monk', version: 1,
+            });
+        });
+    }
+
+    await check('any signed-in user can read a version of a public class', async () => {
+        await seedClassWithVersion({ isPublic: true });
+        const alice = testEnv.authenticatedContext('alice');
+        await assertSucceeds(getDoc(doc(alice.firestore(), 'classes', 'monk', 'versions', '1')));
+    });
+
+    await check('an outsider cannot read a version of a private class, but its writer can', async () => {
+        await seedClassWithVersion({ isPublic: false });
+        const mallory = testEnv.authenticatedContext('mallory');
+        const bob = testEnv.authenticatedContext('bob');
+        await assertFails(getDoc(doc(mallory.firestore(), 'classes', 'monk', 'versions', '1')));
+        await assertSucceeds(getDoc(doc(bob.firestore(), 'classes', 'monk', 'versions', '1')));
+    });
+
+    await check('listing the versions subcollection works for a class the user can read', async () => {
+        await seedClassWithVersion({ isPublic: true });
+        const alice = testEnv.authenticatedContext('alice');
+        await assertSucceeds(getDocs(collection(alice.firestore(), 'classes', 'monk', 'versions')));
+    });
+
+    await check('a signed-out visitor cannot read a version', async () => {
+        await seedClassWithVersion({ isPublic: true });
+        const anon = testEnv.unauthenticatedContext();
+        await assertFails(getDoc(doc(anon.firestore(), 'classes', 'monk', 'versions', '1')));
+    });
+
+    await check('a class writer can create a version snapshot; a non-writer cannot', async () => {
+        await seedClassWithVersion({ isPublic: true });
+        const bob = testEnv.authenticatedContext('bob');
+        const mallory = testEnv.authenticatedContext('mallory');
+        await assertSucceeds(setDoc(doc(bob.firestore(), 'classes', 'monk', 'versions', '2'), { class_name: 'Monk', version: 2 }));
+        await assertFails(setDoc(doc(mallory.firestore(), 'classes', 'monk', 'versions', '3'), { class_name: 'Monk', version: 3 }));
+    });
+
+    await check('a version snapshot is immutable - even its writer cannot update or delete it', async () => {
+        await seedClassWithVersion({ isPublic: true });
+        const bob = testEnv.authenticatedContext('bob');
+        await assertFails(updateDoc(doc(bob.firestore(), 'classes', 'monk', 'versions', '1'), { class_name: 'Tampered' }));
+        await assertFails(deleteDoc(doc(bob.firestore(), 'classes', 'monk', 'versions', '1')));
+    });
+
+    await check('publishing (snapshot + bump in one transaction-style batch) works for a writer', async () => {
+        await seedClassWithVersion({ isPublic: true });
+        const bob = testEnv.authenticatedContext('bob');
+        const batch = writeBatch(bob.firestore());
+        batch.set(doc(bob.firestore(), 'classes', 'monk', 'versions', '2'), { class_name: 'Monk', version: 2 });
+        batch.update(doc(bob.firestore(), 'classes', 'monk'), { version: 3, versionNotes: 'Rebalanced' });
+        await assertSucceeds(batch.commit());
     });
 
     await testEnv.cleanup();

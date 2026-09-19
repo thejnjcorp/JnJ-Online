@@ -115,19 +115,27 @@ export function NewCharacterPage() {
             return alert("invalid form values");
         }
         
-        const classData = classList.filter(individualClass => individualClass.id === formData.class_id)?.at(0);
-        if (!classData) return alert("invalid class found!");
-        delete classData.id;
-        delete classData.canWrite;
-        classData.class_description = classData.description;
-        delete classData.description;
-        const raceData = raceList.filter(race => race.id === formData.race_id)?.at(0);
-        delete raceData.canWrite;
+        const selectedClass = classList.find(individualClass => individualClass.id === formData.class_id);
+        if (!selectedClass) return alert("invalid class found!");
+        const raceData = raceList.find(race => race.id === formData.race_id);
         if (!raceData) return alert("invalid race found!");
 
-        const newData = classData;
+        // The character reads its class live from the class it's pinned to
+        // (class_id + class_version - see useClassVersion.js), so what's
+        // copied here is only the saved copy it falls back to when that class
+        // can't be read. Class-level bookkeeping (id, permissions, visibility,
+        // version metadata) stays on the class. The race feat is kept in its
+        // own field rather than merged into `actions`, so a live class can
+        // replace `actions` without dropping it.
+        const { id, canWrite, description, public: isPublic, isDefault, visibility, version, versionNotes, publishedAt, ...classFields } = selectedClass;
+        const newData = {
+            ...classFields,
+            class_description: description,
+            class_version: version ?? 1,
+            actions: classFields.actions || [],
+        };
+        if (raceData.feat) newData.race_feat = raceData.feat;
         newData.race_name = raceData.name;
-        newData.actions = newData.actions.concat(raceData.feat);
         newData.player_name = playerInfo.name;
         newData.playerId = playerInfo.uid;
         newData.admins = [playerInfo.uid];

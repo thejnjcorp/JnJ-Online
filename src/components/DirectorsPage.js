@@ -10,6 +10,7 @@ import { useLocation } from 'react-router-dom';
 import { db, auth } from '../utils/firebase';
 import { doc, query, collection, where, onSnapshot, updateDoc, addDoc, deleteDoc } from 'firebase/firestore';
 import { SkillsAndFlaws } from './SkillsAndFlaws';
+import { useResolvedCharacters } from '../utils/useClassVersion';
 import Collapsible from 'react-collapsible';
 import characterPageLayout from '../CharacterPageLayout.json';
 import npcLayout from '../NPCLayout.json';
@@ -304,6 +305,10 @@ export function DirectorsPage() {
 
     const { maps, activeMap } = useCampaignMaps(campaignInfo);
     const combatEntities = useCombatEntities(characterList, campaignInfo);
+    // Each player's class data (actions, base AC/hit, class name) comes from the
+    // class version they're pinned to - see useClassVersion.js. The raw list
+    // above stays what combat entities/chips key off.
+    const resolvedCharacterList = useResolvedCharacters(characterList);
     const zoneNames = activeMap?.zones?.map((zone) => zone.name) || [];
     // characterList gets a brand new array (and object) reference on every
     // Firestore snapshot echo, even ones that don't actually change any
@@ -350,7 +355,7 @@ export function DirectorsPage() {
 
     return <div className="DirectorsPage">
         <div className={'DirectorsPage-sidebar ' + pageTheme}>
-            {characterList.map((character) => {
+            {resolvedCharacterList.map((character) => {
                 const actualCharacter = { ...characterPageLayout, ...character }
                 return <Collapsible
                     key={character.character_id}
@@ -389,7 +394,7 @@ export function DirectorsPage() {
                                 <ChevronDownIcon className={playersCollapsed ? "DirectorsPage-chevron" : "DirectorsPage-chevron DirectorsPage-chevron-open"}/>
                             </button>
                         </div>
-                        {!playersCollapsed && characterList.map((character) => {
+                        {!playersCollapsed && resolvedCharacterList.map((character) => {
                             const actualCharacter = { ...characterPageLayout, ...character }
                             // NOTE: gated the same way the pre-existing AP star buttons are
                             // - firestore.rules only grants a character's owner/canWrite

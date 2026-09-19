@@ -1,0 +1,75 @@
+.ClassPublishDialog-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.ClassPublishDialog {
+    position: fixed;
+    z-index: 51;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(420px, calc(100vw - 48px));
+    padding: var(--jnj-space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-3);
+    background: var(--jnj-color-bg-raised);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-lg);
+    box-shadow: var(--jnj-shadow-md);
+    color: var(--jnj-color-text);
+
+    .ClassPage-hint {
+        margin: 0;
+    }
+}
+
+.ClassPublishDialog-title {
+    font-family: var(--jnj-font-display);
+    font-size: 16px;
+}
+
+.ClassPublishDialog-notes {
+    min-height: 70px;
+    resize: vertical;
+}
+
+.ClassPublishDialog-actions {
+    display: flex;
+    gap: var(--jnj-space-3);
+    justify-content: flex-end;
+}
+
+.ClassPublishDialog-cancel-button {
+    padding: 9px 16px;
+    border-radius: var(--jnj-radius-pill);
+    border: 1px solid var(--jnj-color-border);
+    background: transparent;
+    color: var(--jnj-color-text-muted);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ClassPublishDialog-publish-button {
+    padding: 9px 18px;
+    border-radius: var(--jnj-radius-pill);
+    border: none;
+    background: var(--jnj-color-accent);
+    color: var(--jnj-color-on-accent);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+
+    &:disabled,
+    &:disabled:hover {
+        opacity: 0.6;
+        cursor: default;
+    }
+}

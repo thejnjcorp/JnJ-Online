@@ -68,6 +68,22 @@ service cloud.firestore {
 
       allow create: if isSignedIn() && !documentExists("classes", classId) && isCreatorDocAdmin()
         && (!('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
+
+      // classes/{classId} is always the current version; this holds immutable
+      // snapshots of superseded ones, written when a new version is
+      // published (see src/utils/classVersions.js). Readable by whoever can
+      // read the class itself - the check only depends on the path, not on
+      // this document's contents, so a list over the subcollection stays
+      // provable. Created (never updated or deleted) by the class's own
+      // writers/admins.
+      match /versions/{versionId} {
+        allow read: if isSignedIn() && (classDoc(classId).get('public', false) == true
+          || uid() in classDoc(classId).get('canWrite', [])
+          || uid() in classDoc(classId).get('canRead', []));
+
+        allow create: if isSignedIn() && (uid() in classDoc(classId).get('canWrite', [])
+          || uid() in classDoc(classId).get('admins', []));
+      }
     }
 
     match /races/{raceId} {
@@ -204,6 +220,10 @@ service cloud.firestore {
         || (request.resource.data.get('archived', null) == resource.data.get('archived', null)
           && request.resource.data.get('archivedAt', null) == resource.data.get('archivedAt', null)
           && request.resource.data.get('scheduledDeletionAt', null) == resource.data.get('scheduledDeletionAt', null));
+    }
+
+    function classDoc(classId) {
+      return get(/databases/$(database)/documents/classes/$(classId)).data;
     }
 
     function documentExists(docName, documentId) {

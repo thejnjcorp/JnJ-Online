@@ -16,6 +16,8 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { useIsMobile } from '../utils/useIsMobile';
 import { ReactComponent as ChevronDownIcon } from '../icons/chevron_down.svg';
 import { DocAdminManager } from './DocAdminManager';
+import { useClassVersion } from '../utils/useClassVersion';
+import { resolveCharacter } from '../utils/characterClass';
 
 export function CharacterPage() {
     const [characterPage, setCharacterPage] = useState(characterPageLayout);
@@ -94,8 +96,16 @@ export function CharacterPage() {
         });
     }, [location])
 
-    const skillsCount = characterPage.skills_and_flaws.filter(item => item.isSkill).length;
-    const flawsCount = characterPage.skills_and_flaws.length - skillsCount;
+    // Class data (actions, base AC/hit/healing, class name) comes from the
+    // class version this character is pinned to, not from the copy made at
+    // creation - see useClassVersion.js. Everything below renders
+    // `character`; writes still go straight to the character doc by field, so
+    // nothing derived here is ever written back.
+    const classInfo = useClassVersion(characterPage.class_id, characterPage.class_version);
+    const character = useMemo(() => resolveCharacter(characterPage, classInfo.classData), [characterPage, classInfo.classData]);
+
+    const skillsCount = character.skills_and_flaws.filter(item => item.isSkill).length;
+    const flawsCount = character.skills_and_flaws.length - skillsCount;
 
     return <>
         {!loadingScreen && <div className={"CharacterPage " + pageTheme}>
@@ -105,12 +115,12 @@ export function CharacterPage() {
                     <ChevronDownIcon className='CharacterPage-skills-summary-chevron'/>
                 </button>
                 : <div className='CharacterPage-skills-and-flaws SkillsAndFlawsPanelOverride'>
-                    <SkillsAndFlaws characterPage={characterPage} userId={userId}/>
+                    <SkillsAndFlaws characterPage={character} userId={userId}/>
                 </div>}
             <div className='CharacterPage-right-content'>
-                <CharacterPageNavigation characterPage={characterPage} userId={userId}/>
-                <CharacterPageVitalsPanel characterPageLayoutLive={characterPage} userId={userId}/>
-                <CharacterMainTab characterPage={characterPage} userId={userId} characterList={characterList} campaignInfo={campaignInfo} />
+                <CharacterPageNavigation characterPage={character} userId={userId} classInfo={classInfo}/>
+                <CharacterPageVitalsPanel characterPageLayoutLive={character} userId={userId}/>
+                <CharacterMainTab characterPage={character} userId={userId} characterList={characterList} campaignInfo={campaignInfo} />
                 <DocAdminManager docRef={docQuery} admins={characterPage.admins} userId={userId}/>
             </div>
             {/* Mobile only: Skills & Flaws content is unchanged, just moved into a
@@ -125,7 +135,7 @@ export function CharacterPage() {
                 />
                 <div className='CharacterPage-skills-drawer SkillsAndFlawsPanelOverride'>
                     <button type="button" className='CharacterPage-skills-drawer-close' onClick={() => setSkillsDrawerOpen(false)}>×</button>
-                    <SkillsAndFlaws characterPage={characterPage} userId={userId}/>
+                    <SkillsAndFlaws characterPage={character} userId={userId}/>
                 </div>
             </>}
     </div>}

@@ -18,7 +18,7 @@
     "assert": "^2.1.0",
     "buffer": "^6.0.3",
     "enzyme": "^3.11.0",
-    "firebase": "^11.3.1",
+    "firebase": "^11.10.0",
     "google-api-javascript-client": "^0.1.0",
     "google-spreadsheet": "^4.1.4",
     "lodash": "^4.17.21",
@@ -52,6 +52,8 @@
     "firebase:purge": "node firebase/scripts/purge-campaigns.js",
     "firebase:backfill-admins:test": "firebase emulators:exec --only firestore --config firebase/firebase.json --project jnj-online \"node firebase/test/backfill-admins.test.js\"",
     "firebase:backfill-admins": "node firebase/scripts/backfill-admins.js",
+    "firebase:backfill-class-links:test": "firebase emulators:exec --only firestore --config firebase/firebase.json --project jnj-online \"node firebase/test/backfill-class-links.test.js\"",
+    "firebase:backfill-class-links": "node firebase/scripts/backfill-class-links.js",
     "sonar": "bash scripts/sonar-scan.sh"
   },
   "eslintConfig": {
