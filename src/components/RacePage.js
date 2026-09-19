@@ -13,6 +13,8 @@ import { classFormReducer } from '../utils/classFormReducer';
 import { NO_ERRORS, newActionDefaults, validateRace } from '../utils/classValidation';
 import { FieldError, ValidationSummary, invalidClass, invalidProps, scrollToProblem } from './FormErrors';
 import { ClassActionEditor } from './ClassActionEditor';
+import { newCustomTag } from '../utils/tags';
+import { useTagCatalog } from '../utils/useTagCatalog';
 import { DocAdminManager } from './DocAdminManager';
 import { ClassPublishDialog } from './ClassPublishDialog';
 import { listRaceVersions, publishRaceVersion, resolveRaceVersion, versionOf } from '../utils/raceVersions';
@@ -82,6 +84,7 @@ export function RacePage() {
     // via the header's Edit button. A brand-new race has nothing to view, so
     // it's always in edit mode instead.
     const [isEditingMode, setIsEditingMode] = useState(!isEditingExisting);
+    const tagCatalog = useTagCatalog(isEditingMode);
     const [savedSnapshot, setSavedSnapshot] = useState(null);
     // Errors stay hidden until the first failed save, then track the form live.
     const [showErrors, setShowErrors] = useState(false);
@@ -205,7 +208,7 @@ export function RacePage() {
     }
 
     const handleAddTag = function(index) {
-        const newTag = { id: crypto.randomUUID() };
+        const newTag = newCustomTag();
         setFormData({
             name: `actions[${index}].tags`,
             value: (formData.actions[index].tags || []).concat(newTag)
@@ -335,6 +338,7 @@ export function RacePage() {
                 onRemoveTag={handleRemoveTag}
                 isEditable={isEditingMode}
                 errors={errors.actions[index]}
+                tagCatalog={tagCatalog}
             />
         );
     });

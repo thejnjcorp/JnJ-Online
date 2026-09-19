@@ -110,6 +110,15 @@ describe('MarkdownEditor', () => {
         expect(root).toHaveClass('MarkdownEditor-compact', 'mine');
     });
 
+    test('a read-only editor is marked so its toolbar can be hidden', async () => {
+        const { container, rerender } = render(<Harness readOnly/>);
+        await editor();
+        expect(container.querySelector('.MarkdownEditor')).toHaveClass('MarkdownEditor-readonly');
+
+        rerender(<Harness readOnly={false}/>);
+        expect(container.querySelector('.MarkdownEditor')).not.toHaveClass('MarkdownEditor-readonly');
+    });
+
     test('passes the placeholder and read-only state through', async () => {
         render(<Harness placeholder="Write here" readOnly/>);
 

@@ -55,6 +55,11 @@
         border-radius: inherit;
     }
 
+    /* nothing to click in a toolbar for text you can't edit */
+    &.MarkdownEditor-readonly [role='toolbar'] {
+        display: none;
+    }
+
     /* wrap instead of scrolling sideways when the editor is narrow */
     [role='toolbar'] {
         flex-wrap: wrap;

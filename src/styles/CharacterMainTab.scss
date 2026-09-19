@@ -145,24 +145,14 @@
     margin-bottom: 10px;
 }
 
-.CharacterMainTab-background-description, .CharacterMainTab-notes-description {
-    width: 100%;
-    overflow: hidden;
-    height: auto;
-    resize: none;
-    background-color: transparent;
-    color: var(--jnj-color-text);
-    border: none;
-    font-family: inherit;
-    font-size: inherit;
+.CharacterMainTab-background-editor {
+    --markdown-editor-min-height: 6rem;
+    background: transparent;
+}
 
-    &:focus {
-        outline: none;
-    }
-
-    &::placeholder {
-        color: var(--jnj-color-text-faint);
-    }
+.CharacterMainTab-notes-editor {
+    --markdown-editor-min-height: 12rem;
+    background: transparent;
 }
 
 .CharacterMainTab-inventory {

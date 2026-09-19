@@ -1,0 +1,95 @@
+/* Tag pills and the picker, in the class and race editors. */
+.ActionTags {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-2);
+}
+
+.ActionTags-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* A tag with no colours of its own (a blank custom one) still needs to be seen. */
+.ActionTags-pill {
+    display: inline-block;
+    padding: 4px 11px;
+    border: 1px solid transparent;
+    border-radius: var(--jnj-radius-pill);
+    background: var(--jnj-color-accent);
+    color: var(--jnj-color-on-accent);
+    font-family: inherit;
+    font-size: 0.6875rem;
+    font-weight: 600;
+}
+
+.ActionTags-pill-button {
+    cursor: pointer;
+}
+
+.ActionTags-editable {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.ActionTags-remove {
+    width: 1.4rem;
+    height: 1.4rem;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--jnj-color-text-muted);
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+
+    &:hover {
+        background: var(--jnj-color-bg-hover);
+        color: var(--jnj-color-danger);
+    }
+}
+
+.ActionTags-picker {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-3);
+    padding: var(--jnj-space-3);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-md);
+    background: var(--jnj-color-bg-sunken);
+}
+
+.ActionTags-group-title {
+    margin-bottom: var(--jnj-space-1);
+    font-size: var(--jnj-text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--jnj-color-text-muted);
+}
+
+.ActionTags-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.ActionTags-option {
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+
+    &:hover .ActionTags-pill, &:focus-visible .ActionTags-pill {
+        outline: 2px solid var(--jnj-color-accent-hover);
+    }
+}
+
+.ActionTags-picker-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--jnj-space-3);
+}

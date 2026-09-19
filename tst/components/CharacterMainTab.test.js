@@ -31,7 +31,7 @@ jest.mock('../../src/utils/DraggableElements/PostListCombatMap.tsx', () => ({
 }));
 
 // eslint-disable-next-line import/first
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, within } from '@testing-library/react';
 // eslint-disable-next-line import/first
 import { CharacterMainTab } from '../../src/components/CharacterMainTab';
 // eslint-disable-next-line import/first
@@ -86,17 +86,94 @@ describe('CharacterMainTab', () => {
             expect(screen.queryByDisplayValue('A frontline tank.')).not.toBeInTheDocument();
         });
 
-        test('the textareas are disabled without write permissions', () => {
+        test('the background and notes are read-only without write permissions', () => {
             render(<CharacterMainTab characterPage={characterPage} userId="stranger-1" />);
-            screen.getAllByRole('textbox').forEach(box => expect(box).toBeDisabled());
+            expect(screen.getByLabelText('Background')).toHaveAttribute('readonly');
+            expect(screen.getByLabelText('Notes')).toHaveAttribute('readonly');
+        });
+
+        test('the notes are written in the Markdown editor, and can be edited by someone with write permissions', () => {
+            render(<CharacterMainTab characterPage={{ ...characterPage, notes: 'Met **Mara**.' }} userId="owner-1" />);
+            const notes = screen.getByLabelText('Notes');
+            expect(notes).toHaveValue('Met **Mara**.');
+            expect(notes).not.toHaveAttribute('readonly');
+        });
+
+        test('the notes can be emptied out, and that is saved', () => {
+            jest.useFakeTimers();
+            render(<CharacterMainTab characterPage={{ ...characterPage, notes: 'Old notes' }} userId="owner-1" />);
+
+            fireEvent.change(screen.getByLabelText('Notes'), { target: { value: '' } });
+            jest.advanceTimersByTime(1000);
+
+            expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { notes: '' });
+        });
+
+        describe('the background', () => {
+            const own = { ...characterPage, description: 'My own story.' };
+
+            test('is written in the Markdown editor', () => {
+                render(<CharacterMainTab characterPage={own} userId="owner-1" />);
+                expect(screen.getByLabelText('Background')).toHaveValue('My own story.');
+            });
+
+            test('emptying it is not saved while you are still in it (you may be rewriting it)', () => {
+                jest.useFakeTimers();
+                render(<CharacterMainTab characterPage={own} userId="owner-1" />);
+
+                fireEvent.change(screen.getByLabelText('Background'), { target: { value: '' } });
+                jest.advanceTimersByTime(5000);
+
+                expect(mockUpdateDoc).not.toHaveBeenCalled();
+                expect(screen.getByLabelText('Background')).toHaveValue('');
+            });
+
+            test('leaving it empty puts the class\'s lore back and clears the saved background', () => {
+                render(<CharacterMainTab characterPage={own} userId="owner-1" />);
+                fireEvent.change(screen.getByLabelText('Background'), { target: { value: '' } });
+
+                fireEvent.blur(screen.getByLabelText('Background'));
+
+                expect(screen.getByLabelText('Background')).toHaveValue('A frontline tank.');
+                expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { description: '' });
+            });
+
+            test('with nothing saved to clear, the lore just comes back', () => {
+                render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
+                fireEvent.change(screen.getByLabelText('Background'), { target: { value: '' } });
+
+                fireEvent.blur(screen.getByLabelText('Background'));
+
+                expect(screen.getByLabelText('Background')).toHaveValue('A frontline tank.');
+                expect(mockUpdateDoc).not.toHaveBeenCalled();
+            });
+
+            test('a background with something in it is left alone on blur', () => {
+                render(<CharacterMainTab characterPage={own} userId="owner-1" />);
+                fireEvent.blur(screen.getByLabelText('Background'));
+                expect(screen.getByLabelText('Background')).toHaveValue('My own story.');
+                expect(mockUpdateDoc).not.toHaveBeenCalled();
+            });
+
+            test('a pending save of emptied text is dropped when the lore comes back', () => {
+                jest.useFakeTimers();
+                render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
+                fireEvent.change(screen.getByLabelText('Background'), { target: { value: 'x' } });
+                fireEvent.change(screen.getByLabelText('Background'), { target: { value: '' } });
+                fireEvent.blur(screen.getByLabelText('Background'));
+
+                jest.advanceTimersByTime(5000);
+
+                expect(mockUpdateDoc).not.toHaveBeenCalled();
+            });
         });
 
         test('typing updates immediately, then writes to Firestore after the debounce delay', () => {
             jest.useFakeTimers();
             render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
-            const notesBox = screen.getByDisplayValue(''); // notes starts blank
+            const notesBox = screen.getByLabelText('Notes');
 
-            fireEvent.change(notesBox, { target: { name: 'notes', value: 'Loves cats.' } });
+            fireEvent.change(notesBox, { target: { value: 'Loves cats.' } });
             expect(screen.getByDisplayValue('Loves cats.')).toBeInTheDocument();
             expect(mockUpdateDoc).not.toHaveBeenCalled();
 
@@ -109,7 +186,7 @@ describe('CharacterMainTab', () => {
             mockUpdateDoc.mockRejectedValue(new Error('offline'));
             render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
 
-            fireEvent.change(screen.getByDisplayValue(''), { target: { name: 'notes', value: 'Loves cats.' } });
+            fireEvent.change(screen.getByLabelText('Notes'), { target: { value: 'Loves cats.' } });
             jest.advanceTimersByTime(1000);
 
             return Promise.resolve().then(() => expect(window.alert).toHaveBeenCalled());
@@ -144,6 +221,125 @@ describe('CharacterMainTab', () => {
 
             expect(screen.getByText('Action Points')).toBeInTheDocument();
             expect(screen.getByText('AP')).toHaveAttribute('aria-hidden', 'true');
+        });
+
+        describe('filtering and sorting the actions', () => {
+            const fire = { id: 'a1', tagId: 't-fire', tagInfo: 'Fire', tagColor: '#f00', textColor: '#fff' };
+            const melee = { id: 'a2', tagId: 't-melee', tagInfo: 'Melee', tagColor: '#00f', textColor: '#fff' };
+            const tagged = {
+                ...characterPage,
+                action_points: 4,
+                actions: [
+                    { actionName: 'Stab', actionCost: 2, category: 'action', toHitBool: true, toHit: 2, tags: [melee] },
+                    { actionName: 'Fireball', actionCost: 3, category: 'action', toHitBool: true, toHit: 2, tags: [fire] },
+                    { actionName: 'Flame Guard', actionCost: 1, category: 'reaction', toHitBool: true, toHit: 2, tags: [fire, melee] },
+                    { actionName: 'Tough Skin', actionCost: 0, category: 'passive', toHitBool: false, difficultyClass: 'Dex,0' },
+                ],
+            };
+            const names = () => [...document.querySelectorAll('.CombatActionListCard-name')].map(name => name.textContent);
+            const chip = name => screen.getByRole('button', { name, pressed: undefined });
+
+            function open(page = tagged) {
+                render(<CharacterMainTab characterPage={page} userId="owner-1" />);
+                goToTab('Combat');
+            }
+
+            test('offers the kinds of action and tags the character actually has, and a sort', () => {
+                open();
+                const controls = within(screen.getByRole('group', { name: 'Filter and sort actions' }));
+
+                expect(controls.getAllByRole('button').map(button => button.textContent)).toEqual(['Passive', 'Reaction', 'Action', 'Fire', 'Melee']);
+                expect(controls.getByRole('combobox', { name: 'Sort' })).toHaveValue('default');
+            });
+
+            test('nothing is filtered to begin with', () => {
+                open();
+                expect(names()).toEqual(['Tough Skin', 'Stab', 'Fireball', 'Flame Guard']);
+            });
+
+            test('choosing a tag keeps the actions that have it, in every list', () => {
+                open();
+                fireEvent.click(chip('Fire'));
+                expect(names()).toEqual(['Fireball', 'Flame Guard']);
+                expect(chip('Fire')).toHaveAttribute('aria-pressed', 'true');
+            });
+
+            test('choosing several tags keeps actions with any of them', () => {
+                open();
+                fireEvent.click(chip('Fire'));
+                fireEvent.click(chip('Melee'));
+                expect(names()).toEqual(['Stab', 'Fireball', 'Flame Guard']);
+            });
+
+            test('a kind and a tag together keep what matches both', () => {
+                open();
+                fireEvent.click(chip('Reaction'));
+                fireEvent.click(chip('Melee'));
+                expect(names()).toEqual(['Flame Guard']);
+            });
+
+            test('choosing a chip again takes it back out', () => {
+                open();
+                fireEvent.click(chip('Fire'));
+                fireEvent.click(chip('Fire'));
+                expect(names()).toHaveLength(4);
+            });
+
+            test('says which sections have nothing matching, and Clear filters brings everything back', () => {
+                open();
+                fireEvent.click(chip('Fire'));
+                expect(screen.getAllByText('No actions match.')).toHaveLength(2); // passives, and the (empty) unavailable list
+
+                fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
+
+                expect(names()).toHaveLength(4);
+                expect(screen.queryByText('No actions match.')).not.toBeInTheDocument();
+                expect(screen.queryByRole('button', { name: 'Clear filters' })).not.toBeInTheDocument();
+            });
+
+            test('sorting orders each list, and choosing Class order puts it back', () => {
+                open();
+                const sort = screen.getByRole('combobox', { name: 'Sort' });
+
+                fireEvent.change(sort, { target: { value: 'name' } });
+                expect(names()).toEqual(['Tough Skin', 'Fireball', 'Flame Guard', 'Stab']);
+
+                fireEvent.change(sort, { target: { value: 'cost' } });
+                expect(names()).toEqual(['Tough Skin', 'Flame Guard', 'Stab', 'Fireball']);
+
+                fireEvent.change(sort, { target: { value: 'default' } });
+                expect(names()).toEqual(['Tough Skin', 'Stab', 'Fireball', 'Flame Guard']);
+            });
+
+            test('filtering and sorting work together', () => {
+                open();
+                fireEvent.click(chip('Fire'));
+                fireEvent.change(screen.getByRole('combobox', { name: 'Sort' }), { target: { value: 'cost' } });
+                expect(names()).toEqual(['Flame Guard', 'Fireball']);
+            });
+
+            test('a filter chosen for something the actions no longer have is dropped, not left hiding everything', () => {
+                const { rerender } = render(<CharacterMainTab characterPage={tagged} userId="owner-1" />);
+                goToTab('Combat');
+                fireEvent.click(chip('Fire'));
+
+                rerender(<CharacterMainTab characterPage={{ ...tagged, actions: tagged.actions.filter(action => !action.tags?.some(tag => tag.tagId === 't-fire')) }} userId="owner-1" />);
+
+                expect(names()).toEqual(['Tough Skin', 'Stab']);
+            });
+
+            test('no controls for a character with fewer than two actions', () => {
+                open({ ...tagged, actions: [tagged.actions[0]] });
+                expect(screen.queryByRole('group', { name: 'Filter and sort actions' })).not.toBeInTheDocument();
+            });
+
+            test('with no tags and only one kind of action, only the sort is offered', () => {
+                open({ ...tagged, actions: [{ ...tagged.actions[0], tags: [] }, { ...tagged.actions[1], tags: [] }] });
+                const controls = within(screen.getByRole('group', { name: 'Filter and sort actions' }));
+                expect(controls.queryByRole('group', { name: 'Type' })).not.toBeInTheDocument();
+                expect(controls.queryByRole('group', { name: 'Tags' })).not.toBeInTheDocument();
+                expect(controls.getByRole('combobox', { name: 'Sort' })).toBeInTheDocument();
+            });
         });
 
         test('the hint to click a circle only appears with write permissions', () => {

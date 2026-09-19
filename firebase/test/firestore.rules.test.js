@@ -1058,6 +1058,94 @@ async function main() {
         await assertFails(getDoc(doc(testEnv.authenticatedContext('other').firestore(), 'campaigns', 'camp1', 'notes', 'n1')));
     });
 
+    console.log('\nTag catalog (tags collection, the labels an author puts on actions):');
+
+    const seedTags = () => testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+        await testEnv.clearFirestore();
+        await setDoc(doc(adminCtx.firestore(), 'tags', 'fire'), { tagInfo: 'Fire', public: true, isDefault: false, canRead: [], canWrite: ['bob', 'carol'], admins: ['bob'], classes: [] });
+        await setDoc(doc(adminCtx.firestore(), 'tags', 'secret'), { tagInfo: 'Homebrew', public: false, isDefault: false, canRead: ['bob'], canWrite: ['bob'], admins: ['bob'], classes: [] });
+    });
+
+    await check('a signed-in user can create a tag, as its own admin', async () => {
+        await testEnv.clearFirestore();
+        const alice = testEnv.authenticatedContext('alice');
+        await assertSucceeds(addDoc(collection(alice.firestore(), 'tags'), {
+            tagInfo: 'Fire', tagColor: '#ff0000', textColor: '#ffffff', tagDescription: 'Deals fire damage', classes: ['Monk'],
+            public: true, isDefault: false, canRead: [], canWrite: ['alice'], admins: ['alice'],
+        }));
+    });
+
+    await check('a tag cannot be created without listing the creator as an admin', async () => {
+        await testEnv.clearFirestore();
+        const alice = testEnv.authenticatedContext('alice');
+        await assertFails(addDoc(collection(alice.firestore(), 'tags'), { tagInfo: 'Fire', public: true, canWrite: ['alice'] }));
+    });
+
+    await check('a signed-out visitor cannot create or read tags', async () => {
+        await seedTags();
+        const anon = testEnv.unauthenticatedContext();
+        await assertFails(addDoc(collection(anon.firestore(), 'tags'), { tagInfo: 'Nope' }));
+        await assertFails(getDoc(doc(anon.firestore(), 'tags', 'fire')));
+    });
+
+    await check('any signed-in user can read a public tag', async () => {
+        await seedTags();
+        await assertSucceeds(getDoc(doc(testEnv.authenticatedContext('alice').firestore(), 'tags', 'fire')));
+    });
+
+    await check('a private tag is readable by its creator but not by anyone else', async () => {
+        await seedTags();
+        await assertSucceeds(getDoc(doc(testEnv.authenticatedContext('bob').firestore(), 'tags', 'secret')));
+        await assertFails(getDoc(doc(testEnv.authenticatedContext('mallory').firestore(), 'tags', 'secret')));
+    });
+
+    await check('the catalog list query (public, or readable, or writable) is allowed and returns only what the viewer can see', async () => {
+        await seedTags();
+        const mallory = testEnv.authenticatedContext('mallory');
+        const snap = await assertSucceeds(getDocs(query(collection(mallory.firestore(), 'tags'),
+            or(where('public', '==', true), where('canRead', 'array-contains', 'mallory'), where('canWrite', 'array-contains', 'mallory')))));
+        if (snap.docs.map(d => d.id).join() !== 'fire') throw new Error('expected only the public tag, got ' + snap.docs.map(d => d.id).join());
+    });
+
+    await check('an unfiltered scan of the catalog is refused', async () => {
+        await seedTags();
+        await assertFails(getDocs(collection(testEnv.authenticatedContext('mallory').firestore(), 'tags')));
+    });
+
+    await check('an author can edit and delete their own tag; someone else cannot', async () => {
+        await seedTags();
+        const bob = testEnv.authenticatedContext('bob');
+        await assertSucceeds(updateDoc(doc(bob.firestore(), 'tags', 'fire'), { tagInfo: 'Flame' }));
+        await assertFails(updateDoc(doc(testEnv.authenticatedContext('mallory').firestore(), 'tags', 'fire'), { tagInfo: 'Hijacked' }));
+        await assertFails(deleteDoc(doc(testEnv.authenticatedContext('mallory').firestore(), 'tags', 'fire')));
+        await assertSucceeds(deleteDoc(doc(bob.firestore(), 'tags', 'fire')));
+    });
+
+    await check('a co-writer who is not an admin cannot change who can read, write or administer a tag; an admin can', async () => {
+        await seedTags();
+        await assertFails(updateDoc(doc(testEnv.authenticatedContext('carol').firestore(), 'tags', 'fire'), { canWrite: ['bob', 'carol', 'mallory'] }));
+        await assertSucceeds(updateDoc(doc(testEnv.authenticatedContext('carol').firestore(), 'tags', 'fire'), { tagInfo: 'Flame' }));
+        await assertSucceeds(updateDoc(doc(testEnv.authenticatedContext('bob').firestore(), 'tags', 'fire'), { canWrite: ['bob', 'carol', 'dave'] }));
+    });
+
+    await check('a non-admin cannot create a default tag, or promote their own to one later', async () => {
+        await seedTags();
+        const mallory = testEnv.authenticatedContext('mallory');
+        await assertFails(addDoc(collection(mallory.firestore(), 'tags'), {
+            tagInfo: 'Self-Promoted', isDefault: true, public: true, canRead: [], canWrite: ['mallory'], admins: ['mallory'],
+        }));
+        await assertFails(updateDoc(doc(testEnv.authenticatedContext('carol').firestore(), 'tags', 'fire'), { isDefault: true }));
+        await assertFails(updateDoc(doc(testEnv.authenticatedContext('bob').firestore(), 'tags', 'fire'), { isDefault: true }));
+    });
+
+    await check('the admin account can create a default tag', async () => {
+        await testEnv.clearFirestore();
+        const admin = testEnv.authenticatedContext(ADMIN_UID);
+        await assertSucceeds(addDoc(collection(admin.firestore(), 'tags'), {
+            tagInfo: 'Melee', isDefault: true, public: true, canRead: [], canWrite: [ADMIN_UID], admins: [ADMIN_UID], classes: [],
+        }));
+    });
+
     await testEnv.cleanup();
 
     if (failures > 0) {

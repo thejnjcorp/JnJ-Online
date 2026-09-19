@@ -1,7 +1,7 @@
 import { CombatActionList } from "./CombatActionList";
 // import Collapsible from "react-collapsible";
 import { Link } from "react-router-dom";
-import TextareaAutosize from "react-textarea-autosize";
+import MarkdownEditor from "./MarkdownEditor";
 import circleIcon from '../icons/circle.svg';
 import circleFilledIcon from '../icons/circle_filled.svg';
 import '../styles/CharacterMainTab.scss';
@@ -23,6 +23,8 @@ import { ReactComponent as MapIcon } from '../icons/map.svg';
 import { useIsMobile } from "../utils/useIsMobile";
 import { getEffectiveCharacterStats, getGrantedActions } from "../utils/statusEffects";
 import { getActionCategory } from "../utils/classActions";
+import { filterActions, filterOptions, isFilterActive, sortActions } from "../utils/tags";
+import { ActionViewControls } from "./ActionViewControls";
 
 function isPassive(action) {
     const category = getActionCategory(action);
@@ -38,6 +40,21 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
     // character's own class actions - see utils/statusEffects.js.
     const effectiveStats = getEffectiveCharacterStats(characterPage);
     const allActions = [...characterPage.actions, ...getGrantedActions(characterPage)];
+    // How the Combat tab's lists are narrowed and ordered. A filter for something
+    // the actions no longer have (a class change, say) is dropped rather than
+    // silently hiding everything.
+    const [combatFilter, setCombatFilter] = useState({ categories: [], tags: [] });
+    const [combatSort, setCombatSort] = useState('default');
+    const viewOptions = filterOptions(allActions);
+    const activeFilter = {
+        categories: combatFilter.categories.filter(key => viewOptions.categories.some(category => category.key === key)),
+        tags: combatFilter.tags.filter(key => viewOptions.tags.some(tag => tag.key === key)),
+    };
+    const inView = list => sortActions(filterActions(list, activeFilter), combatSort);
+    const passiveActions = inView(allActions.filter(action => isPassive(action)));
+    const availableActions = inView(allActions.filter(action => action.actionCost <= characterPage.action_points).filter(action => !isPassive(action)));
+    const unavailableActions = inView(allActions.filter(action => action.actionCost > characterPage.action_points));
+    const noMatch = list => isFilterActive(activeFilter) && list.length === 0 && <p className="ActionViewControls-empty">No actions match.</p>;
     // The Combat Map tab operates on the character's campaign (the combat
     // tracker, the active map) - a character with no campaign field has none
     // of that to show, and campaignId="" collapsing to "no campaign" makes
@@ -80,7 +97,9 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
             clearTimeout(debounceRef.current[name]);
         }
         debounceRef.current[name] = setTimeout(() => {
-            if (value !== '') {
+            // Notes can be emptied out. A blank background isn't saved here - see
+            // restoreLoreIfEmpty.
+            if (value !== '' || name === 'notes') {
                 updateDoc(doc(db, "characters", characterPage.character_id), {
                     [name]: parsedValue
                 }).catch(e => {
@@ -89,6 +108,20 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
             }
         }, 1000);
     };
+
+    // An emptied background isn't saved as you type - it would snap back to the
+    // class's lore in the middle of rewriting it. Once you've left it empty, the
+    // lore returns, and the character's own (now blank) background is cleared.
+    function restoreLoreIfEmpty() {
+        if (localValues.description !== '') return;
+        clearTimeout(debounceRef.current.description);
+        setLocalValues(prev => ({ ...prev, description: characterPage.class_description || '' }));
+        if (characterPage.description) {
+            updateDoc(doc(db, "characters", characterPage.character_id), { description: '' }).catch(e => {
+                alert(e);
+            });
+        }
+    }
 
     function setActionPoints(actionPoints) {
         try {
@@ -111,14 +144,18 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                     <h2>Background</h2>
                     <span className="CharacterMainTab-roleplay-card-caption">Autosaves as you type</span>
                 </div>
-                <TextareaAutosize
-                    className="CharacterMainTab-background-description"
-                    minRows={3}
-                    value={localValues.description}
-                    name="description"
-                    disabled={!hasWritePermissions}
-                    onChange={handleChange}
-                />
+                {/* Leaving it empty puts the class's lore back (see restoreLoreIfEmpty). Focus
+                    moving to the toolbar doesn't count as leaving. */}
+                <div onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) restoreLoreIfEmpty(); }}>
+                    <MarkdownEditor
+                        className="CharacterMainTab-background-editor"
+                        label="Background"
+                        placeholder="Who is this character? Leave it empty to use the class's lore."
+                        value={localValues.description}
+                        readOnly={!hasWritePermissions}
+                        onChange={value => handleChange({ target: { name: 'description', type: 'text', value } })}
+                    />
+                </div>
             </div>
             <div className="CharacterMainTab-notes CharacterMainTab-roleplay-card CharacterMainTab-roleplay-card-notes">
                 <div className="CharacterMainTab-roleplay-card-header">
@@ -126,13 +163,13 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                     <h2>Notes</h2>
                     <span className="CharacterMainTab-roleplay-card-caption">Autosaves as you type</span>
                 </div>
-                <TextareaAutosize
-                    className="CharacterMainTab-notes-description"
-                    minRows={3}
+                <MarkdownEditor
+                    className="CharacterMainTab-notes-editor"
+                    label="Notes"
+                    placeholder="Start writing - it saves as you type."
                     value={localValues.notes}
-                    name="notes"
-                    disabled={!hasWritePermissions}
-                    onChange={handleChange}
+                    readOnly={!hasWritePermissions}
+                    onChange={value => handleChange({ target: { name: 'notes', type: 'text', value } })}
                 />
             </div>
             </div>
@@ -172,9 +209,11 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                     </span>
                 </div>
                 <div className="CharacterMainTab-action-body">
+                    <ActionViewControls actions={allActions} filter={activeFilter} onFilter={setCombatFilter} sort={combatSort} onSort={setCombatSort}/>
                     <span className="CharacterMainTab-caps-label CharacterMainTab-section-label">Passives</span>
+                    {noMatch(passiveActions)}
                     <CombatActionList
-                        actions={allActions.filter(action => isPassive(action))}
+                        actions={passiveActions}
                         experience_points={characterPage.experience_points}
                         baseArmorClass={effectiveStats.base_armor_class}
                         baseHitModifier={effectiveStats.base_hit_modifier}
@@ -186,8 +225,9 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                         characterPage={characterPage}
                     />
                     <span className="CharacterMainTab-caps-label CharacterMainTab-section-label">Available Actions</span>
+                    {noMatch(availableActions)}
                     <CombatActionList
-                        actions={allActions.filter(action => action.actionCost <= characterPage.action_points).filter(action => !isPassive(action))}
+                        actions={availableActions}
                         experience_points={characterPage.experience_points}
                         baseArmorClass={effectiveStats.base_armor_class}
                         baseHitModifier={effectiveStats.base_hit_modifier}
@@ -200,8 +240,9 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                         userId={userId}
                     />
                     <span className="CharacterMainTab-caps-label CharacterMainTab-section-label">Unavailable — not enough Action Points</span>
+                    {noMatch(unavailableActions)}
                     <CombatActionList
-                        actions={allActions.filter(action => action.actionCost > characterPage.action_points)}
+                        actions={unavailableActions}
                         experience_points={characterPage.experience_points}
                         baseArmorClass={effectiveStats.base_armor_class}
                         baseHitModifier={effectiveStats.base_hit_modifier}

@@ -3,6 +3,7 @@ import Markdown from 'markdown-to-jsx';
 import MarkdownEditor from './MarkdownEditor';
 import { ClassTagEditDialog } from './ClassTagEditDialog';
 import { ActionPreview } from './ActionPreview';
+import { ActionTags } from './ActionTags';
 import { FieldError, invalidClass, invalidProps } from './FormErrors';
 
 const OUTCOME_ROWS = [
@@ -56,7 +57,7 @@ function resolveSummary(action) {
 // `errors` (field -> message, from validateAction) is only passed once a save
 // has been attempted. A card with problems is held open so nothing is hidden,
 // and every offending input is outlined with its message underneath.
-export function ClassActionEditor({ action, index, onChange, onRemove, onAddTag, onRemoveTag, isEditable, errors = {}, previewStats }) {
+export function ClassActionEditor({ action, index, onChange, onRemove, onAddTag, onRemoveTag, isEditable, errors = {}, previewStats, tagCatalog, forClass }) {
     const [open, setOpen] = useState(false);
     const [showOutcomeTable, setShowOutcomeTable] = useState(Boolean(action.outcomeTable));
     const [openTagIndex, setOpenTagIndex] = useState(null);
@@ -203,16 +204,16 @@ export function ClassActionEditor({ action, index, onChange, onRemove, onAddTag,
                 </table>}
             </>}
 
-            <div className="ClassPage-tags-row">
-                <span className="ClassPage-field-label">Tags</span>
-                {isEditable && <button type="button" className="ClassPage-add-tag-button" onClick={() => onAddTag(index)}>+ Tag</button>}
-            </div>
-            <div className="ClassPage-tag-pills">
-                {(action.tags || []).map((tag, tagIndex) => isEditable
-                    ? <button type="button" key={tag.id || tagIndex} className="ClassPage-tag-pill" style={{ backgroundColor: tag.tagColor, color: tag.textColor }} onClick={() => setOpenTagIndex(tagIndex)}>{tag.tagInfo}</button>
-                    : <span key={tag.id || tagIndex} className="ClassPage-tag-pill" style={{ backgroundColor: tag.tagColor, color: tag.textColor }} title={tag.tagDescription}>{tag.tagInfo}</span>
-                )}
-            </div>
+            <ActionTags
+                tags={action.tags}
+                isEditable={isEditable}
+                catalog={tagCatalog}
+                forClass={forClass}
+                onAdd={tag => set('tags', [...(action.tags || []), tag])}
+                onRemove={tagIndex => onRemoveTag(index, tagIndex)}
+                onCustom={() => { onAddTag(index); setOpenTagIndex((action.tags || []).length); }}
+                onEditCustom={setOpenTagIndex}
+            />
 
             {isEditable && <ActionPreview action={action} stats={previewStats}/>}
 
@@ -224,7 +225,11 @@ export function ClassActionEditor({ action, index, onChange, onRemove, onAddTag,
             tagIndex={openTagIndex}
             tag={action.tags[openTagIndex]}
             onChange={onChange}
-            onClose={() => setOpenTagIndex(null)}
+            onClose={() => {
+                // A custom tag left without a label would be invisible on the sheet.
+                if (!action.tags[openTagIndex].tagInfo?.trim()) onRemoveTag(index, openTagIndex);
+                setOpenTagIndex(null);
+            }}
             onDelete={() => { onRemoveTag(index, openTagIndex); setOpenTagIndex(null); }}
         />}
     </div>;

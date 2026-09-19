@@ -219,6 +219,16 @@ describe('ClassActionEditor', () => {
             expect(screen.queryByText(/TagDialog-stub/)).not.toBeInTheDocument();
         });
 
+        test('closing the dialog on a custom tag with no label removes it, since it would be invisible on the sheet', () => {
+            const onRemoveTag = jest.fn();
+            open({ isEditable: true, onRemoveTag, index: 2, action: { ...viewAction, tags: [{ id: 'blank', tagInfo: '  ' }] } });
+            fireEvent.click(screen.getByRole('button', { name: 'Unnamed tag' }));
+
+            fireEvent.click(screen.getByRole('button', { name: 'Stub Close' }));
+
+            expect(onRemoveTag).toHaveBeenCalledWith(2, 0);
+        });
+
         test('the tag dialog closes via its own close callback without deleting', () => {
             const onRemoveTag = jest.fn();
             open({ isEditable: true, onRemoveTag });
@@ -230,13 +240,62 @@ describe('ClassActionEditor', () => {
             expect(screen.queryByText(/TagDialog-stub/)).not.toBeInTheDocument();
         });
 
-        test('+ Tag calls onAddTag with this action\'s index', () => {
-            const onAddTag = jest.fn();
-            open({ isEditable: true, onAddTag, index: 3 });
+        describe('adding tags', () => {
+            const catalog = {
+                status: 'ready',
+                tags: [
+                    { id: 'c-melee', tagInfo: 'Melee', tagColor: '#00f', textColor: '#fff', tagDescription: 'Up close' },
+                    { id: 'c-monk', tagInfo: 'Stance', tagColor: '#0a0', textColor: '#fff', classes: ['Monk'] },
+                    { id: 'c-other', tagInfo: 'Trick', tagColor: '#a0a', textColor: '#fff', classes: ['Gunslinger'] },
+                ],
+            };
 
-            fireEvent.click(screen.getByRole('button', { name: '+ Tag' }));
+            test('+ Tag opens a picker of the catalog\'s tags for this class, and nothing happens to the action yet', () => {
+                const onAddTag = jest.fn();
+                const onChange = jest.fn();
+                open({ isEditable: true, onAddTag, onChange, tagCatalog: catalog, forClass: 'Monk' });
 
-            expect(onAddTag).toHaveBeenCalledWith(3);
+                fireEvent.click(screen.getByRole('button', { name: '+ Tag' }));
+
+                expect(screen.getByRole('group', { name: 'General' })).toHaveTextContent('Melee');
+                expect(screen.getByRole('group', { name: 'For Monk' })).toHaveTextContent('Stance');
+                expect(screen.queryByText('Trick')).not.toBeInTheDocument(); // for another class
+                expect(onAddTag).not.toHaveBeenCalled();
+                expect(onChange).not.toHaveBeenCalled();
+            });
+
+            test('choosing one puts a copy of it on this action, remembering which tag it came from', () => {
+                const onChange = jest.fn();
+                open({ isEditable: true, onChange, index: 2, tagCatalog: catalog, forClass: 'Monk' });
+                fireEvent.click(screen.getByRole('button', { name: '+ Tag' }));
+
+                fireEvent.click(screen.getByRole('button', { name: 'Melee' }));
+
+                const [{ name, value }] = onChange.mock.calls.at(-1);
+                expect(name).toBe('actions[2].tags');
+                expect(value).toHaveLength(2); // the Fire it already had, and the new one
+                expect(value[1]).toMatchObject({ tagId: 'c-melee', tagInfo: 'Melee', tagColor: '#00f', textColor: '#fff', tagDescription: 'Up close' });
+            });
+
+            test('Custom tag… adds a blank custom tag and opens its dialog straight away', () => {
+                const onAddTag = jest.fn();
+                open({ isEditable: true, onAddTag, index: 3, tagCatalog: catalog });
+                fireEvent.click(screen.getByRole('button', { name: '+ Tag' }));
+
+                fireEvent.click(screen.getByRole('button', { name: 'Custom tag…' }));
+
+                expect(onAddTag).toHaveBeenCalledWith(3);
+                expect(screen.queryByRole('button', { name: 'Custom tag…' })).not.toBeInTheDocument(); // the picker closed
+            });
+
+            test('removing a tag calls onRemoveTag with the action and the tag\'s place', () => {
+                const onRemoveTag = jest.fn();
+                open({ isEditable: true, onRemoveTag, index: 1 });
+
+                fireEvent.click(screen.getByRole('button', { name: 'Remove tag Fire' }));
+
+                expect(onRemoveTag).toHaveBeenCalledWith(1, 0);
+            });
         });
 
         test('shows a preview of the action as it will look on a character sheet, and not in view mode', () => {

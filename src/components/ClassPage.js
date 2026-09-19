@@ -14,6 +14,8 @@ import { NO_ERRORS, newActionDefaults, validateClass } from '../utils/classValid
 import { FieldError, ValidationSummary, invalidClass, invalidProps, scrollToProblem } from './FormErrors';
 import { ClassActionEditor } from './ClassActionEditor';
 import { ClassLevelRewards } from './ClassLevelRewards';
+import { newCustomTag } from '../utils/tags';
+import { useTagCatalog } from '../utils/useTagCatalog';
 import { ClassDamageCard } from './ClassDamageCard';
 import { DocAdminManager } from './DocAdminManager';
 import { ClassPublishDialog } from './ClassPublishDialog';
@@ -98,6 +100,7 @@ export function ClassPage() {
     // have write access. A brand-new class has nothing to view, so it's
     // always in edit mode instead.
     const [isEditingMode, setIsEditingMode] = useState(!isEditingExisting);
+    const tagCatalog = useTagCatalog(isEditingMode);
     const [savedSnapshot, setSavedSnapshot] = useState(null);
     // Errors stay hidden until the first failed save, then track the form live
     // so each one clears the moment it's fixed.
@@ -268,7 +271,7 @@ export function ClassPage() {
     }
 
     const handleAddTag = function(index) {
-        const newTag = { id: crypto.randomUUID() };
+        const newTag = newCustomTag();
         if (formData.actions[index].tags !== undefined) {
             setFormData({
                 name: `actions[${index}].tags`,
@@ -427,6 +430,8 @@ export function ClassPage() {
                 isEditable={isEditingMode}
                 errors={errors.actions[index]}
                 previewStats={{ baseHitModifier: Number(formData.base_hit_modifier) || 0 }}
+                tagCatalog={tagCatalog}
+                forClass={formData.class_name}
             />
         );
     });

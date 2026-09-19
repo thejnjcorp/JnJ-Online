@@ -4,6 +4,7 @@ import circleFilledIcon from '../icons/circle_filled.svg';
 import { ReactComponent as LockIcon } from '../icons/lock.svg';
 import { CharacterStatCalculator } from './CharacterStatCalculator';
 import { getActionCategory } from '../utils/classActions';
+import { namedTags } from '../utils/tags';
 import { updateDoc, doc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 
@@ -61,8 +62,8 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
             // dropdown is enough to get the visual label - no redundant
             // manual tag required.
             const displayTags = getActionCategory(action) === 'feat'
-                ? [{ tagInfo: 'Feat' }, ...(action.tags || [])]
-                : action.tags;
+                ? [{ tagInfo: 'Feat' }, ...namedTags(action)]
+                : namedTags(action);
             const hasOutcomeTable = action.outcomeTable && Object.values(action.outcomeTable).some(Boolean);
             return <div className={locked ? 'CombatActionListCard CombatActionListCard-locked' : 'CombatActionListCard'} key={index}>
                 <div className='CombatActionListCard-header'>

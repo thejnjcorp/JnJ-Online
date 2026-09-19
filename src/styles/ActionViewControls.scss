@@ -1,0 +1,72 @@
+.ActionViewControls {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-2);
+    margin-bottom: var(--jnj-space-4);
+    text-align: left;
+}
+
+.ActionViewControls-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.ActionViewControls-label {
+    min-width: 3rem;
+    font-size: var(--jnj-text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--jnj-color-text-muted);
+}
+
+.ActionViewControls-chip {
+    padding: 4px 11px;
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-pill);
+    background: transparent;
+    color: var(--jnj-color-text-muted);
+    font-family: inherit;
+    font-size: 0.71875rem;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover {
+        color: var(--jnj-color-text);
+    }
+}
+
+.ActionViewControls-chip-on {
+    border-color: transparent;
+    background: var(--jnj-color-accent);
+    color: var(--jnj-color-on-accent);
+}
+
+.ActionViewControls-sort {
+    padding: 4px 8px;
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-md);
+    background: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text);
+    font: inherit;
+    font-size: 0.75rem;
+}
+
+.ActionViewControls-clear {
+    padding: 4px 8px;
+    border: none;
+    background: transparent;
+    color: var(--jnj-color-accent);
+    font-family: inherit;
+    font-size: 0.75rem;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.ActionViewControls-empty {
+    margin: 0 0 var(--jnj-space-4);
+    font-size: var(--jnj-text-sm);
+    color: var(--jnj-color-text-faint);
+}

@@ -13,6 +13,7 @@ const NAV_LINKS = [
     { to: "/class-list", label: "Classes" },
     { to: "/race-list", label: "Races" },
     { to: "/status-list", label: "Statuses" },
+    { to: "/tag-list", label: "Tags" },
     { to: "/blog/JnJ_Ruleset", label: "Rules" },
 ];
 

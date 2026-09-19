@@ -138,7 +138,7 @@ export default function MarkdownEditorImpl({ value, onChange, placeholder, label
         return maxLength ? [...base, maxLengthPlugin(maxLength)] : base;
     }, [variant, maxLength]);
 
-    const classes = ['MarkdownEditor', `MarkdownEditor-${variant}`, className].filter(Boolean).join(' ');
+    const classes = ['MarkdownEditor', `MarkdownEditor-${variant}`, readOnly && 'MarkdownEditor-readonly', className].filter(Boolean).join(' ');
 
     if (unparseable) {
         return <MarkdownFallback

@@ -96,6 +96,19 @@ describe('CombatActionList', () => {
             expect(screen.getByText('Fire')).toBeInTheDocument();
         });
 
+        test('a tag with no label yet shows nothing, rather than an empty pill', () => {
+            const action = { ...toHitAction, tags: [{ tagInfo: '' }, { tagInfo: '   ' }, { tagInfo: 'Fire' }] };
+            const { container } = render(<CombatActionList actions={[action]} {...STAT_PROPS} characterPage={characterPage} userId="owner-1" />);
+            expect(container.querySelectorAll('.CombatActionList-tag')).toHaveLength(1);
+        });
+
+        test('a feat with only blank tags still gets its Feat chip', () => {
+            const feat = { ...toHitAction, category: 'feat', tags: [{ tagInfo: '' }] };
+            const { container } = render(<CombatActionList actions={[feat]} {...STAT_PROPS} characterPage={characterPage} userId="owner-1" />);
+            expect(container.querySelectorAll('.CombatActionList-tag')).toHaveLength(1);
+            expect(screen.getByText('Feat')).toBeInTheDocument();
+        });
+
         test('a tag with a description shows it; one without shows nothing extra', () => {
             const action = { ...toHitAction, tags: [{ tagInfo: 'Fire', tagDescription: 'Deals fire damage' }, { tagInfo: 'Plain' }] };
             render(<CombatActionList actions={[action]} {...STAT_PROPS} characterPage={characterPage} userId="owner-1" />);

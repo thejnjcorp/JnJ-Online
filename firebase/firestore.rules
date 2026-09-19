@@ -175,6 +175,29 @@ service cloud.firestore {
         && (!('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
     }
 
+    // The tag catalog: the labels an author puts on a class's actions (Fire,
+    // Melee, Reaction...). Same three-tier model as statuses, minus the
+    // campaign tier - a tag is chosen while authoring a class, not inside a
+    // campaign, so there is nothing for a campaign to subscribe to or be locked
+    // to: Default (`isDefault`, admin-curated, general tags everyone sees
+    // first), Public (any signed-in user can browse and use it) and Private
+    // (canRead/canWrite only). `classes` scopes a tag to particular classes'
+    // names; empty means any class. An action keeps a copy of the tag it was
+    // given, so reading a tag is only ever needed to pick one, never to show one.
+    match /tags/{tagId} {
+      allow read: if isSignedIn() && (resource.data.public == true || uid() in canWriteField() || uid() in canReadField());
+
+      // request.resource is null on a delete - see the statuses block above.
+      allow write: if isSignedIn() && uid() in canWriteField() && permissionFieldsUnchanged()
+        && (request.resource == null || !('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
+
+      allow write: if isSignedIn() && isDocAdmin()
+        && (request.resource == null || !('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
+
+      allow create: if isSignedIn() && !documentExists("tags", tagId) && isCreatorDocAdmin()
+        && (!('isDefault' in request.resource.data) || request.resource.data.isDefault != true || isAdmin());
+    }
+
     // Functions \\
 
     function isSignedIn() {

@@ -16,6 +16,8 @@ import { RacePage } from './RacePage.js';
 import { RaceListPage } from './RaceListPage.js';
 import { StatusPage } from './StatusPage.js';
 import { StatusListPage } from './StatusListPage.js';
+import { TagPage } from './TagPage.js';
+import { TagListPage } from './TagListPage.js';
 import { auth } from '../utils/firebase.js';
 import { AccessibilityProvider } from '../utils/AccessibilityContext.js';
 
@@ -78,6 +80,8 @@ function App() {
             <Route path='/race-list' element={<RaceListPage/>} />
             <Route path='/statuses/*' element={<StatusPage/>} />
             <Route path='/status-list' element={<StatusListPage/>} />
+            <Route path='/tags/*' element={<TagPage/>} />
+            <Route path='/tag-list' element={<TagListPage/>} />
             {routeMarkdownFiles}
           </Routes>
         </div>
