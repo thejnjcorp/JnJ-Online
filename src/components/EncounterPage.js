@@ -4,10 +4,14 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { db } from '../utils/firebase';
 import { useCampaignMaps } from '../utils/useCampaignCombat';
 import { ENEMY_TIERS, removeEnemies, rosterEntry, rosterSummary, stageEncounter, summaryText, tierOf } from '../utils/enemies';
+import { checkEnemy, rangeText } from '../utils/encounterGuide';
+import { BalanceCheck } from './BalanceCheck';
+import { BalanceGuide } from './BalanceGuide';
 import { EnemyPicker } from './EnemyPicker';
 import MarkdownEditor from './MarkdownEditor';
 import '../styles/ClassPage.scss';
 import '../styles/EncounterPage.scss';
+import '../styles/BalanceGuide.scss';
 
 const asNumber = text => (text.trim() === '' ? NaN : Number(text));
 const shown = value => (typeof value === 'number' && !Number.isNaN(value) ? value : '');
@@ -16,6 +20,7 @@ function RosterRow({ entry, zoneNames, onChange, onRemove }) {
     const enemy = entry.enemy || {};
     const setStat = (field, value) => onChange({ ...entry, enemy: { ...enemy, [field]: value } });
     const label = enemy.enemy_name || 'enemy';
+    const { benchmark, issues } = checkEnemy(enemy);
 
     return <div className="EncounterPage-row">
         <div className="EncounterPage-row-main">
@@ -44,6 +49,10 @@ function RosterRow({ entry, zoneNames, onChange, onRemove }) {
             </label>}
             <button type="button" className="EncounterPage-remove" aria-label={`Remove ${label}`} onClick={onRemove}>Remove</button>
         </div>
+        {benchmark && <div className="EncounterPage-benchmark" aria-label={`Guide benchmark for ${label}`}>
+            <span>{benchmark.role} in the guide: HP {rangeText(benchmark.hp)} · AC {rangeText(benchmark.ac)} · {rangeText(benchmark.actions)} {benchmark.actions[1] === 1 ? 'action' : 'actions'}</span>
+            {issues.map(issue => <span key={issue.field} className="EncounterPage-flag">{issue.label} {issue.value} is {issue.status} {rangeText(issue.range)}</span>)}
+        </div>}
     </div>;
 }
 
@@ -78,7 +87,7 @@ export function EncounterPage() {
             // The draft is what you're editing; only the first load fills it.
             if (!draftLoaded.current) {
                 draftLoaded.current = true;
-                const initial = { name: data.name || '', notes: data.notes || '', roster: data.roster || [] };
+                const initial = { name: data.name || '', notes: data.notes || '', roster: data.roster || [], target: data.target || '', objective: data.objective || '' };
                 setDraft(initial);
                 setSaved(initial);
                 document.title = initial.name || 'Encounter';
@@ -103,7 +112,7 @@ export function EncounterPage() {
 
     async function save() {
         try {
-            await updateDoc(encounterDoc, { name: draft.name.trim() || 'Untitled encounter', notes: draft.notes, roster: draft.roster, updatedAt: serverTimestamp() });
+            await updateDoc(encounterDoc, { name: draft.name.trim() || 'Untitled encounter', notes: draft.notes, roster: draft.roster, target: draft.target, objective: draft.objective, updatedAt: serverTimestamp() });
             setSaved(draft);
             return true;
         } catch (error) {
@@ -171,6 +180,8 @@ export function EncounterPage() {
                 {summary.total > 0 && zoneNames.length === 0 && <div className="ClassPage-hint">There's no active map, so the enemies will join the fight without a starting zone; the tracker places them once a map is set.</div>}
             </div>
 
+            <BalanceCheck roster={draft.roster} target={draft.target} objective={draft.objective} zoneCount={zoneNames.length} onTarget={target => set({ target })} onObjective={objective => set({ objective })}/>
+
             <div className="ClassPage-card">
                 <div className="ClassPage-actions-header">
                     <div className="ClassPage-section-title">Enemies</div>
@@ -186,6 +197,8 @@ export function EncounterPage() {
                 />)}
                 {draft.roster.length === 0 && <div className="ClassPage-hint">No enemies yet. Add some from your bestiary - each one is copied here, so changing it later won't change this fight.</div>}
             </div>
+
+            <BalanceGuide/>
 
             <div className="ClassPage-card">
                 <div className="ClassPage-section-title">Notes</div>

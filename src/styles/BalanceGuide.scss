@@ -1,0 +1,262 @@
+// The encounter builder's balance check and the guide cheat sheet.
+
+.BalanceCheck {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-3);
+}
+
+.BalanceCheck-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--jnj-space-4) var(--jnj-space-6);
+    align-items: flex-end;
+}
+
+.BalanceCheck-control {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-1);
+
+    select.ClassPage-field-input {
+        width: auto;
+        min-width: 14rem;
+    }
+}
+
+.BalanceCheck-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-2);
+}
+
+.BalanceCheck-metric {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--jnj-space-1) var(--jnj-space-3);
+    padding: var(--jnj-space-2) var(--jnj-space-3);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-md);
+    background: var(--jnj-color-bg-sunken);
+}
+
+.BalanceCheck-metric-label {
+    flex: 1 1 11rem;
+    font-size: var(--jnj-text-sm);
+    font-weight: 600;
+    color: var(--jnj-color-text-muted);
+}
+
+.BalanceCheck-metric-value {
+    font-size: var(--jnj-text-lg);
+    font-weight: 700;
+    color: var(--jnj-color-text);
+}
+
+.BalanceCheck-metric-range {
+    font-size: var(--jnj-text-sm);
+    color: var(--jnj-color-text-muted);
+}
+
+.BalanceCheck-metric-note {
+    flex-basis: 100%;
+    font-size: var(--jnj-text-xs);
+    color: var(--jnj-color-text-faint);
+}
+
+.BalanceCheck-status {
+    padding: 2px 10px;
+    border-radius: var(--jnj-radius-pill);
+    font-size: var(--jnj-text-xs);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.BalanceCheck-status-good {
+    background: var(--jnj-color-success);
+    color: #fff;
+}
+
+.BalanceCheck-status-warn {
+    background: var(--jnj-color-ember);
+    color: #fff;
+}
+
+.BalanceCheck-landing {
+    font-size: var(--jnj-text-base);
+    color: var(--jnj-color-text);
+}
+
+.BalanceCheck-note {
+    font-size: var(--jnj-text-sm);
+    color: var(--jnj-color-text-muted);
+    line-height: 1.5;
+}
+
+.BalanceCheck-note-warn {
+    color: var(--jnj-color-ember);
+    font-weight: 600;
+}
+
+// --- Per-enemy benchmark line on the roster rows ---
+.EncounterPage-benchmark {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--jnj-space-1) var(--jnj-space-3);
+    font-size: var(--jnj-text-xs);
+    color: var(--jnj-color-text-faint);
+}
+
+.EncounterPage-flag {
+    padding: 1px 8px;
+    border-radius: var(--jnj-radius-pill);
+    background: var(--jnj-color-ember);
+    color: #fff;
+    font-weight: 700;
+}
+
+// --- The cheat sheet ---
+.BalanceGuide {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-3);
+}
+
+.BalanceGuide-toggle {
+    display: flex;
+    align-items: baseline;
+    gap: var(--jnj-space-3);
+    width: 100%;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    .ClassPage-section-title {
+        margin: 0;
+    }
+}
+
+.BalanceGuide-toggle-hint {
+    flex: 1;
+    font-size: var(--jnj-text-sm);
+    color: var(--jnj-color-text-muted);
+}
+
+.BalanceGuide-chevron {
+    font-size: 1.25rem;
+    color: var(--jnj-color-text-muted);
+    transition: transform var(--jnj-transition);
+}
+
+.BalanceGuide-chevron-open {
+    transform: rotate(90deg);
+}
+
+.BalanceGuide-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-4);
+}
+
+.BalanceGuide-table-block,
+.BalanceGuide-text {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-2);
+
+    h4 {
+        margin: var(--jnj-space-2) 0 0;
+        font-family: var(--jnj-font-display);
+        font-size: var(--jnj-text-lg);
+        color: var(--jnj-color-text);
+    }
+
+    p {
+        margin: 0;
+        font-size: var(--jnj-text-sm);
+        line-height: 1.55;
+        color: var(--jnj-color-text-muted);
+    }
+}
+
+.BalanceGuide-table-wrap {
+    overflow-x: auto;
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: var(--jnj-text-sm);
+    }
+
+    th, td {
+        padding: var(--jnj-space-2) var(--jnj-space-3);
+        border: 1px solid var(--jnj-color-border);
+        text-align: left;
+        vertical-align: top;
+        color: var(--jnj-color-text);
+    }
+
+    thead th {
+        background: var(--jnj-color-bg-hover);
+        font-weight: 700;
+    }
+
+    tbody th {
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    td {
+        color: var(--jnj-color-text-muted);
+    }
+}
+
+.BalanceGuide-callout {
+    padding: var(--jnj-space-3) var(--jnj-space-4);
+    border: 1px solid var(--jnj-color-border-strong);
+    border-left-width: 4px;
+    border-radius: var(--jnj-radius-md);
+    background: var(--jnj-color-bg-sunken);
+
+    p {
+        margin: 0;
+        font-size: var(--jnj-text-sm);
+        line-height: 1.55;
+        color: var(--jnj-color-text-muted);
+    }
+}
+
+.BalanceGuide-callout-title {
+    display: block;
+    margin-bottom: var(--jnj-space-1);
+    font-size: var(--jnj-text-base);
+    font-weight: 700;
+    color: var(--jnj-color-text);
+}
+
+.BalanceGuide-callout-note {
+    border-left-color: var(--jnj-color-accent);
+}
+
+.BalanceGuide-callout-warm {
+    border-left-color: var(--jnj-color-ember);
+}
+
+.BalanceGuide-callout-danger {
+    border-left-color: var(--jnj-color-danger);
+}
+
+.BalanceGuide-callout-good {
+    border-left-color: var(--jnj-color-success);
+}
+
+.BalanceGuide-callout-purple {
+    border-left-color: var(--jnj-color-arcane);
+}

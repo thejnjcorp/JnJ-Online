@@ -195,6 +195,96 @@ describe('EncounterPage', () => {
         });
     });
 
+    describe('the balance guide', () => {
+        const regular = { id: 'b3', ...newEnemy('Regular'), enemy_name: 'Cutthroat', maximum_health: 25, base_armor_class: 14, action_points: 3 };
+        const strongRoster = () => [{ ...rosterEntry(regular), count: 2 }, rosterEntry(captain)];
+
+        test('a balance check sits above the roster, and the guide cheat sheet below it, closed', () => {
+            renderPage({ encounter: { name: 'Ambush', roster: [twoBandits()] } });
+            const check = screen.getByLabelText('Balance check');
+            const guide = screen.getByRole('button', { name: /Balance guide/ });
+            expect(guide).toHaveAttribute('aria-expanded', 'false');
+            expect(check.compareDocumentPosition(screen.getByText('+ Add enemy')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+            expect(screen.getByText('+ Add enemy').compareDocumentPosition(guide) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        });
+
+        test('the balance check totals the roster and follows edits', () => {
+            renderPage({ encounter: { name: 'Ambush', roster: [twoBandits()] } });
+            const check = screen.getByLabelText('Balance check');
+            expect(within(check).getByText('Enemy HP').parentElement).toHaveTextContent('20'); // 2 x 10
+
+            fireEvent.change(screen.getByLabelText('HP of Rust Bandit'), { target: { value: '30' } });
+
+            expect(within(check).getByText('Enemy HP').parentElement).toHaveTextContent('60');
+        });
+
+        test('each enemy row shows its role\'s benchmark from the guide', () => {
+            renderPage({ encounter: { name: 'Ambush', roster: [rosterEntry({ ...bandit, maximum_health: 3, base_armor_class: 13, action_points: 1 })] } });
+            expect(screen.getByLabelText('Guide benchmark for Rust Bandit')).toHaveTextContent('Goon in the guide: HP 1-5 · AC 13-14 · 1-2 actions');
+        });
+
+        test('and flags the numbers outside it', () => {
+            renderPage({ encounter: { name: 'Ambush', roster: [{ ...rosterEntry(regular) }] } });
+            const line = screen.getByLabelText('Guide benchmark for Cutthroat');
+            expect(line).toHaveTextContent('HP 25 is above 12-18');
+            expect(line).toHaveTextContent('Actions 3 is above 2');
+            expect(line).not.toHaveTextContent('AC 14 is');
+        });
+
+        test('a flag goes away when the number is put right', () => {
+            renderPage({ encounter: { name: 'Ambush', roster: [rosterEntry(regular)] } });
+            fireEvent.change(screen.getByLabelText('HP of Cutthroat'), { target: { value: '15' } });
+            expect(screen.getByLabelText('Guide benchmark for Cutthroat')).not.toHaveTextContent('HP 15 is');
+            expect(screen.getByLabelText('Guide benchmark for Cutthroat')).toHaveTextContent('Actions 3 is above 2');
+        });
+
+        test('an enemy with no tier has no benchmark line', () => {
+            renderPage({ encounter: { name: 'Ambush', roster: [rosterEntry({ ...bandit, enemy_type: '' })] } });
+            expect(screen.queryByLabelText(/Guide benchmark for/)).not.toBeInTheDocument();
+        });
+
+        test('the target and objective are loaded with the encounter', () => {
+            renderPage({ encounter: { name: 'Ambush', roster: strongRoster(), target: 'hard', objective: 'moderate' } });
+            expect(screen.getByRole('button', { name: 'Hard' })).toHaveAttribute('aria-pressed', 'true');
+            expect(screen.getByLabelText('Secondary objective')).toHaveValue('moderate');
+        });
+
+        test('an older encounter with neither starts with none chosen', () => {
+            renderPage({ encounter: { name: 'Ambush', roster: strongRoster() } });
+            expect(screen.getByRole('button', { name: 'Hard' })).toHaveAttribute('aria-pressed', 'false');
+            expect(screen.getByLabelText('Secondary objective')).toHaveValue('');
+        });
+
+        test('choosing them is an unsaved change, and Save writes them with the encounter', async () => {
+            renderPage({ encounter: { name: 'Ambush', roster: strongRoster() } });
+            expect(save()).toHaveTextContent('Saved');
+
+            fireEvent.click(screen.getByRole('button', { name: 'Standard' }));
+            fireEvent.change(screen.getByLabelText('Secondary objective'), { target: { value: 'heavy' } });
+            expect(save()).toHaveTextContent('Save');
+            fireEvent.click(save());
+
+            await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalled());
+            expect(mockUpdateDoc.mock.calls[0][1]).toMatchObject({ target: 'standard', objective: 'heavy' });
+        });
+
+        test('the map\'s zones are compared with the target', () => {
+            renderPage({ encounter: { name: 'Ambush', roster: strongRoster(), target: 'standard' }, zones: ['A', 'B', 'C', 'D', 'E'] });
+            expect(within(screen.getByLabelText('Balance check')).getByText('Zones on the map').parentElement).toHaveTextContent('1 over');
+        });
+
+        test('with no map there is no zones line', () => {
+            renderPage({ encounter: { name: 'Ambush', roster: strongRoster(), target: 'standard' }, zones: null });
+            expect(screen.queryByText('Zones on the map')).not.toBeInTheDocument();
+        });
+
+        test('the cheat sheet opens to the guide\'s tables', () => {
+            renderPage({ encounter: { name: 'Ambush', roster: [] } });
+            fireEvent.click(screen.getByRole('button', { name: /Balance guide/ }));
+            expect(screen.getByText('1. Quick Enemy Benchmark Bank')).toBeInTheDocument();
+        });
+    });
+
     describe('saving', () => {
         test('starts saved, and turns into Save once something changes', () => {
             renderPage({ encounter: { name: 'Ambush', roster: [] } });
