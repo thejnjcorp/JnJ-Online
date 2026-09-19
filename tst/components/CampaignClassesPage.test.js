@@ -211,6 +211,14 @@ describe('CampaignClassesPage', () => {
     });
 
     describe('browse pool classes', () => {
+        test('renders a class description as Markdown', async () => {
+            signIn({ uid: 'owner-1' }, [{ ...browsableClass, description: 'Heals **fast**.' }]);
+            renderWithRouter(<CampaignClassesPage />, { route: '/campaigns/camp-1/classes' });
+            fireCampaignSnapshot({ campaign_name: 'The Iron Vale', director_uid: 'owner-1', subscribedClassIds: [] });
+
+            expect((await screen.findByText('fast')).tagName).toBe('STRONG');
+        });
+
         test('excludes default and already-subscribed classes, shows author and description', async () => {
             signIn({ uid: 'owner-1' }, [defaultClass, subscribedClass, browsableClass]);
             renderWithRouter(<CampaignClassesPage />, { route: '/campaigns/camp-1/classes' });

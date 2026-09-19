@@ -55,6 +55,15 @@ describe('ClassVersionControl', () => {
         expect(screen.queryByRole('button', { name: /Class v/ })).not.toBeInTheDocument();
     });
 
+    test('version notes render Markdown', async () => {
+        mockListClassVersions.mockResolvedValue([{ version: 3, notes: 'Added **Fleetfoot**', publishedAt: null }]);
+        render(<ClassVersionControl characterPage={character} userId="user-1" status="ready" latestVersion={3} />);
+
+        fireEvent.click(screen.getByRole('button', { name: /Class v2/ }));
+
+        expect((await screen.findByText('Fleetfoot')).tagName).toBe('STRONG');
+    });
+
     test('opening it loads and lists the class\'s versions with their notes', async () => {
         render(<ClassVersionControl characterPage={character} userId="user-1" status="ready" latestVersion={3} />);
 

@@ -156,6 +156,24 @@ describe('StatusPage', () => {
                 expect(window.alert).toHaveBeenCalledWith('Status created.');
             });
 
+            test('the description and the granted action\'s description are written in the Markdown editor and saved as Markdown', async () => {
+                signIn({ uid: 'user-1' });
+                renderNew();
+                await screen.findByLabelText('Name');
+                fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Haste' } });
+                fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Gain **one** action.' } });
+                fireEvent.click(screen.getByLabelText('Grants a special action while active'));
+                fireEvent.change(screen.getByPlaceholderText('Action name'), { target: { value: 'Dash' } });
+                fireEvent.change(screen.getByLabelText('Granted action description'), { target: { value: 'Move *twice*.' } });
+
+                fireEvent.click(screen.getByRole('button', { name: 'Create Status' }));
+
+                await waitFor(() => expect(mockAddDoc).toHaveBeenCalled());
+                const [, payload] = mockAddDoc.mock.calls[0];
+                expect(payload.description).toBe('Gain **one** action.');
+                expect(payload.grantedAction.description).toBe('Move *twice*.');
+            });
+
             test('an admin creating a public status is marked isDefault', async () => {
                 signIn({ uid: ADMIN_UID });
                 renderNew();

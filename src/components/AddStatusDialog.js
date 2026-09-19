@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { arrayUnion, collection, doc, getDoc, getDocs, or, query, updateDoc, where } from 'firebase/firestore';
-import TextareaAutosize from 'react-textarea-autosize';
 import { db } from '../utils/firebase';
 import { getEffectsArray } from '../utils/statusEffects';
+import Markdown from 'markdown-to-jsx';
+import MarkdownEditor from './MarkdownEditor';
 
 const POLARITIES = [
     { key: 'buff', label: 'Buff' },
@@ -154,12 +155,12 @@ export function AddStatusDialog({characterPage, userId, onClose, onUpdateStatuse
                     onChange={e => setCustomName(e.target.value)}
                     autoFocus
                 />
-                <TextareaAutosize
-                    className="CharacterPage-status-dialog-textarea"
+                <MarkdownEditor
+                    variant="compact"
+                    label="Status description"
                     placeholder="What does it do?"
-                    minRows={2}
                     value={customDescription}
-                    onChange={e => setCustomDescription(e.target.value)}
+                    onChange={setCustomDescription}
                 />
             </div>}
 
@@ -187,7 +188,7 @@ export function AddStatusDialog({characterPage, userId, onClose, onUpdateStatuse
                 </div>
             </div>
 
-            {!isCustom && description && <div className="CharacterPage-status-dialog-preview">{description}</div>}
+            {!isCustom && description && <div className="CharacterPage-status-dialog-preview"><Markdown options={{ disableParsingRawHTML: true }}>{description}</Markdown></div>}
 
             <div className="CharacterPage-status-dialog-actions">
                 <button type="button" className="CharacterPage-status-dialog-button CharacterPage-status-dialog-button-primary" onClick={handleConfirm} disabled={submitting}>

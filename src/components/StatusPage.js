@@ -2,12 +2,12 @@ import { useEffect, useReducer, useState } from 'react';
 import { addDoc, arrayRemove, arrayUnion, collection, deleteDoc, doc, getDoc, getDocs, or, query, updateDoc, where } from 'firebase/firestore';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
-import TextareaAutosize from 'react-textarea-autosize';
 import { auth, db } from '../utils/firebase';
 import { ADMIN_UIDS, STATUS_STAT_DEFINITIONS, getEffectsArray } from '../utils/statusEffects';
 import { statusFormReducer } from '../utils/statusFormReducer';
 import { DocAdminManager } from './DocAdminManager';
 import '../styles/StatusPage.scss';
+import MarkdownEditor from './MarkdownEditor';
 
 const formReducer = statusFormReducer;
 
@@ -337,16 +337,13 @@ export function StatusPage() {
         </div>
 
         <div className="StatusPage-field">
-            <label className="StatusPage-label" htmlFor="status-description">Description</label>
-            <TextareaAutosize
-                id="status-description"
-                className="StatusPage-textarea"
-                name="description"
+            <span className="StatusPage-label">Description</span>
+            <MarkdownEditor
+                label="Description"
                 placeholder="Gain a single action for a certain number of rounds..."
-                minRows={3}
                 value={formData.description || ''}
-                onChange={handleChange}
-                disabled={canWrite}
+                onChange={value => setFormData({ name: 'description', value })}
+                readOnly={canWrite}
             />
         </div>
 
@@ -575,14 +572,13 @@ export function StatusPage() {
                         onChange={handleGrantedActionChange}
                         disabled={canWrite}
                     />}
-                <TextareaAutosize
-                    className="StatusPage-textarea"
-                    name="description"
+                <MarkdownEditor
+                    variant="compact"
+                    label="Granted action description"
                     placeholder="What does the action do?"
-                    minRows={2}
-                    value={formData.grantedAction.description}
-                    onChange={handleGrantedActionChange}
-                    disabled={canWrite}
+                    value={formData.grantedAction.description || ''}
+                    onChange={value => setFormData({ name: 'grantedAction', value: { ...formData.grantedAction, description: value } })}
+                    readOnly={canWrite}
                 />
             </div>}
         </div>

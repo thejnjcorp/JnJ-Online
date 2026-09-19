@@ -202,6 +202,14 @@ describe('CampaignStatusesPage', () => {
     });
 
     describe('browse pool statuses', () => {
+        test('renders a status description as Markdown', async () => {
+            signIn({ uid: 'owner-1' }, [{ ...browsableStatus, description: 'Deals **confusion**.' }]);
+            renderWithRouter(<CampaignStatusesPage />, { route: '/campaigns/camp-1/statuses' });
+            fireCampaignSnapshot({ campaign_name: 'The Iron Vale', director_uid: 'owner-1', subscribedStatusIds: [] });
+
+            expect((await screen.findByText('confusion')).tagName).toBe('STRONG');
+        });
+
         test('excludes default and already-subscribed statuses, shows the description', async () => {
             signIn({ uid: 'owner-1' }, [defaultStatus, subscribedStatus, browsableStatus]);
             renderWithRouter(<CampaignStatusesPage />, { route: '/campaigns/camp-1/statuses' });

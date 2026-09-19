@@ -49,7 +49,7 @@
     color: var(--jnj-color-text-muted);
 }
 
-.StatusPage-input, .StatusPage-textarea {
+.StatusPage-input {
     box-sizing: border-box;
     width: 100%;
     padding: var(--jnj-space-3);
@@ -71,13 +71,6 @@
 .StatusPage-input-narrow {
     width: 5.625rem;
     display: inline-block;
-}
-
-.StatusPage-textarea {
-    // Auto-grows with content (react-textarea-autosize) instead of clipping
-    // it behind a fixed height with a scrollbar - manual resize would fight
-    // that, so it's left off rather than set to vertical.
-    resize: none;
 }
 
 .StatusPage-chip-row {

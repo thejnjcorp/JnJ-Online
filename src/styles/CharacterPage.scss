@@ -586,6 +586,14 @@
     font-size: 0.78125rem;
     line-height: 1.5;
     color: var(--jnj-color-text-muted);
+
+    p, ul, ol {
+        margin: 0 0 4px;
+    }
+
+    ul, ol {
+        padding-left: 18px;
+    }
 }
 
 .CharacterPage-status-detail-stacks {
@@ -750,7 +758,7 @@
     }
 }
 
-.CharacterPage-status-dialog-input, .CharacterPage-status-dialog-textarea {
+.CharacterPage-status-dialog-input {
     box-sizing: border-box;
     width: 100%;
     padding: var(--jnj-space-3);
@@ -763,12 +771,6 @@
     &:focus {
         outline: 1px solid var(--jnj-color-accent);
     }
-}
-
-.CharacterPage-status-dialog-textarea {
-    // Auto-grows with content (react-textarea-autosize) instead of clipping
-    // it behind a fixed height with a scrollbar.
-    resize: none;
 }
 
 .CharacterPage-status-dialog-stepper {
@@ -803,6 +805,14 @@
     font-size: 0.78125rem;
     line-height: 1.5;
     color: var(--jnj-color-text-muted);
+
+    p, ul, ol {
+        margin: 0 0 4px;
+    }
+
+    ul, ol {
+        padding-left: 18px;
+    }
 }
 
 .CharacterPage-status-dialog-actions {

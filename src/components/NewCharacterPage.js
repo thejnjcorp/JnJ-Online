@@ -8,6 +8,7 @@ import { CharacterDiceConverter } from './CharacterStatCalculator';
 import { CombatActionList } from './CombatActionList';
 import { newCharacterFormReducer } from '../utils/newCharacterFormReducer';
 import { raceActionsOf } from '../utils/characterClass';
+import Markdown from 'markdown-to-jsx';
 
 export const formReducer = newCharacterFormReducer;
 
@@ -314,7 +315,7 @@ export function NewCharacterPage() {
                 ${selectedClassInfo.base_ranged_damage_type}`}<br/>
                 {"Base Healing Dice Type: " + CharacterDiceConverter(selectedClassInfo.base_healing_dice_type)}<br/>
                 <br/>Description:<br/>
-                <div style={{whiteSpace: "pre-wrap"}}>{selectedClassInfo.description}</div>
+                <div className="NewCharacterPage-class-description"><Markdown options={{ disableParsingRawHTML: true }}>{selectedClassInfo.description || ""}</Markdown></div>
                 <br/>Actions:
                 {<div className='NewCharacterPage-actions'>
                     <CombatActionList 

@@ -9,6 +9,18 @@ describe('ClassPublishDialog', () => {
         expect(screen.getByText(/frozen as v2/)).toBeInTheDocument();
     });
 
+    test('the note is written in the Markdown editor, limited to 300 characters', () => {
+        const onPublish = jest.fn();
+        render(<ClassPublishDialog nextVersion={2} busy={false} onPublish={onPublish} onClose={() => {}} />);
+        const notes = screen.getByLabelText('What changed?');
+
+        fireEvent.change(notes, { target: { value: 'Added **Fleetfoot**' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Publish v2' }));
+
+        expect(notes).toHaveAttribute('maxlength', '300');
+        expect(onPublish).toHaveBeenCalledWith('Added **Fleetfoot**');
+    });
+
     test('publishing passes the changelog note, trimmed', () => {
         const onPublish = jest.fn();
         render(<ClassPublishDialog nextVersion={2} busy={false} onPublish={onPublish} onClose={() => {}} />);

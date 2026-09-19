@@ -4,6 +4,7 @@ import { arrayRemove, arrayUnion, collection, doc, getDocs, onSnapshot, or, quer
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../utils/firebase';
 import '../styles/CampaignClassesPage.scss';
+import Markdown from 'markdown-to-jsx';
 
 const POLARITY_FILTERS = ['all', 'buff', 'debuff', 'neutral'];
 
@@ -119,7 +120,7 @@ export function CampaignStatusesPage() {
                                 <span className="CampaignClassesPage-card-name">{s.name}</span>
                                 <span className="CampaignClassesPage-card-type">{s.polarity || 'neutral'}</span>
                             </div>
-                            <div className="CampaignClassesPage-card-description">{s.description}</div>
+                            <div className="CampaignClassesPage-card-description"><Markdown options={{ disableParsingRawHTML: true }}>{s.description || ""}</Markdown></div>
                             {hasWritePermissions && <button type="button"
                                 className="CampaignClassesPage-remove-button"
                                 onClick={() => toggleSubscription(s.id, false)}
@@ -153,7 +154,7 @@ export function CampaignStatusesPage() {
                                 <span className="CampaignClassesPage-card-name">{s.name}</span>
                                 <span className="CampaignClassesPage-card-type">{s.polarity || 'neutral'}</span>
                             </div>
-                            <div className="CampaignClassesPage-card-description">{s.description}</div>
+                            <div className="CampaignClassesPage-card-description"><Markdown options={{ disableParsingRawHTML: true }}>{s.description || ""}</Markdown></div>
                             {hasWritePermissions && <button type="button"
                                 className="CampaignClassesPage-add-button"
                                 onClick={() => toggleSubscription(s.id, true)}

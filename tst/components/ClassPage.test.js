@@ -476,6 +476,33 @@ describe('ClassPage', () => {
             expect(await screen.findByRole('button', { name: 'Edit' })).toBeInTheDocument(); // back to view mode
         });
 
+        test('the lore is edited in the Markdown editor and saved as the class description', async () => {
+            renderExisting(classDoc({ description: 'A **grim** veteran.' }));
+            await screen.findByText('Fighter');
+            fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+            const lore = screen.getByLabelText('Lore & Flavor Text');
+            expect(lore).toHaveValue('A **grim** veteran.');
+
+            fireEvent.change(lore, { target: { value: '## Backstory\n\nA *weary* veteran.' } });
+            fireEvent.click(screen.getByRole('button', { name: 'Done Editing' }));
+
+            await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalled());
+            expect(mockUpdateDoc.mock.calls[0][1].description).toBe('## Backstory\n\nA *weary* veteran.');
+        });
+
+        test('Cancel puts the lore back as it was', async () => {
+            renderExisting(classDoc({ description: 'Original lore' }));
+            await screen.findByText('Fighter');
+            fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+            fireEvent.change(screen.getByLabelText('Lore & Flavor Text'), { target: { value: 'Rewritten' } });
+
+            fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+            fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+
+            expect(screen.getByLabelText('Lore & Flavor Text')).toHaveValue('Original lore');
+            expect(mockUpdateDoc).not.toHaveBeenCalled();
+        });
+
         test('a failed update is alerted and editing mode stays open', async () => {
             mockUpdateDoc.mockRejectedValue(new Error('offline'));
             renderExisting(classDoc());

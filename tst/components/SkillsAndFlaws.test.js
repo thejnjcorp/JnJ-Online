@@ -65,6 +65,14 @@ describe('SkillsAndFlaws', () => {
         expect(emptyGroups).toHaveLength(2); // skills and feats, but not flaws
     });
 
+    test('skill and flaw descriptions render Markdown too', () => {
+        const markdownSkill = { ...skill, description: 'Move **first** in combat.' };
+        render(<SkillsAndFlaws characterPage={{ ...characterPage, skills_and_flaws: [markdownSkill, flaw] }} userId="owner-1" />);
+
+        expect(screen.getByText('first').tagName).toBe('STRONG');
+        expect(screen.getByText('Trips over flat ground.')).toBeInTheDocument();
+    });
+
     test('feats render their markdown description', () => {
         render(<SkillsAndFlaws characterPage={characterPage} userId="owner-1" />);
         const bold = screen.getByText('1d6');

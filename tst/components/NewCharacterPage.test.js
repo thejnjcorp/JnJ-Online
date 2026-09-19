@@ -182,6 +182,15 @@ describe('NewCharacterPage', () => {
             expect(screen.getByRole('button', { name: 'View Class Info' })).toBeInTheDocument();
         });
 
+        test('the class description renders as Markdown', async () => {
+            await renderAt('/campaigns/camp-1/newCharacter', { classes: [fighterClass({ description: 'A **frontline** tank.' })] });
+            fireEvent.change(screen.getAllByRole('combobox')[1], { target: { name: 'class_id', value: 'class-1' } });
+
+            fireEvent.click(screen.getByRole('button', { name: 'View Class Info' }));
+
+            expect(screen.getByText('frontline').tagName).toBe('STRONG');
+        });
+
         test('clicking it shows the class details and its action list', async () => {
             await renderAt('/campaigns/camp-1/newCharacter', { classes: [fighterClass()] });
             fireEvent.change(screen.getAllByRole('combobox')[1], { target: { name: 'class_id', value: 'class-1' } });

@@ -26,6 +26,8 @@ import { ReactComponent as PersonIcon } from '../icons/person.svg';
 import { ReactComponent as ScrollIcon } from '../icons/scroll.svg';
 import { ReactComponent as SwordsIcon } from '../icons/swords.svg';
 import { ReactComponent as MapIcon } from '../icons/map.svg';
+import { ReactComponent as NoteIcon } from '../icons/note.svg';
+import { DirectorNotes } from './DirectorNotes';
 import { ReactComponent as ChevronDownIcon } from '../icons/chevron_down.svg';
 import { PostListContentCombatMap } from '../utils/DraggableElements/PostListCombatMap.tsx';
 import { PostListContentCombat } from '../utils/DraggableElements/PostListCombat.tsx';
@@ -353,6 +355,12 @@ export function DirectorsPage() {
         });
     }
 
+    // The notebook is for directors only (the Firestore rule enforces it; this
+    // just doesn't offer players a tab that could never load).
+    const isDirector = Boolean(userId) && (campaignInfo.director_uid === userId
+        || campaignInfo.canWrite?.includes(userId)
+        || campaignInfo.admins?.includes(userId));
+
     return <div className="DirectorsPage">
         <div className={'DirectorsPage-sidebar ' + pageTheme}>
             {resolvedCharacterList.map((character) => {
@@ -617,7 +625,8 @@ export function DirectorsPage() {
                             })}
                         </div>
                     </div>
-                }
+                },
+                ...(isDirector ? [{ tabName: "Notes", icon: <NoteIcon/>, content: <DirectorNotes campaignId={campaignId}/> }] : []),
             ]}/>
         </div>
         {mapOverlayOpen && <>

@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { addDoc, arrayRemove, collection, getDoc, getDocs, doc, or, query, updateDoc, where } from '@firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import Markdown from 'markdown-to-jsx';
+import MarkdownEditor from './MarkdownEditor';
 import { auth, db } from '../utils/firebase';
 import { ADMIN_UIDS } from '../utils/statusEffects';
 import { getActionCategory } from '../utils/classActions';
@@ -403,8 +404,7 @@ export function RacePage() {
                 <div className="ClassPage-section-title">Lore &amp; Flavor Text</div>
                 {isEditingMode
                     ? <>
-                        <textarea className="ClassPage-field-input ClassPage-field-textarea" name="description" onChange={handleChange} placeholder="Where this people comes from, what they look like, how they see the world." defaultValue={formData.description}/>
-                        <div className="ClassPage-hint">Supports Markdown - **bold**, *italic*, and bullet lists (- item) all render in the catalog card.</div>
+                        <MarkdownEditor label="Lore" placeholder="Where this people comes from, what they look like, how they see the world." value={formData.description || ''} onChange={value => setFormData({ name: 'description', value })}/>
                       </>
                     : <div className="ClassPage-lore-view"><Markdown options={{ disableParsingRawHTML: true }}>{formData.description || ''}</Markdown></div>}
             </div>
@@ -458,7 +458,7 @@ export function RacePage() {
                                 {entry.version === versionOf(liveFormData) && <em> latest</em>}
                                 {entry.version === versionOf(formData) && viewingSnapshot && <em> viewing</em>}
                             </span>
-                            {entry.notes && <span className="ClassPage-version-row-notes">{entry.notes}</span>}
+                            {entry.notes && <div className="ClassPage-version-row-notes"><Markdown options={{ disableParsingRawHTML: true }}>{entry.notes}</Markdown></div>}
                         </div>
                         {!isEditingMode && entry.version !== versionOf(formData) && <button type="button" className="ClassPage-version-view-button" onClick={() => viewVersion(entry.version)}>View</button>}
                     </li>)}

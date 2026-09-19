@@ -155,6 +155,13 @@ describe('StatusListPage', () => {
             expect(screen.getByText('Fighter, Rogue')).toBeInTheDocument();
         });
 
+        test('renders the description as Markdown', async () => {
+            signIn({ uid: 'user-1' }, [{ ...poisoned, description: 'Ongoing **damage**.' }]);
+            renderWithRouter(<StatusListPage />);
+            await screen.findByText('Poisoned');
+            expect(screen.getByText('damage').tagName).toBe('STRONG');
+        });
+
         test('shows the description', async () => {
             signIn({ uid: 'user-1' }, [poisoned]);
             renderWithRouter(<StatusListPage />);

@@ -389,6 +389,20 @@ describe('RacePage', () => {
             expect(await screen.findByRole('button', { name: 'Edit' })).toBeInTheDocument();
         });
 
+        test('the lore is edited in the Markdown editor and saved as the race description', async () => {
+            renderExisting(raceDoc());
+            await screen.findByText('Kobold');
+            fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+            const lore = screen.getByLabelText('Lore');
+            expect(lore).toHaveValue('Small and **scaly**.');
+
+            fireEvent.change(lore, { target: { value: 'Small, **scaly** and proud.' } });
+            fireEvent.click(screen.getByRole('button', { name: 'Done Editing' }));
+
+            await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalled());
+            expect(mockUpdateDoc.mock.calls[0][1].description).toBe('Small, **scaly** and proud.');
+        });
+
         test('saving a legacy race writes its feat as the actions list', async () => {
             renderExisting(raceDoc({ actions: undefined, feat: validAction({ id: 'f1', actionName: 'Old Feat', category: 'feat', actionCost: 0 }) }));
             await screen.findByText('Kobold');
@@ -473,6 +487,13 @@ describe('RacePage', () => {
 
                 expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
                 expect(mockPublishRaceVersion).not.toHaveBeenCalled();
+            });
+
+            test('version notes render Markdown', async () => {
+                mockListRaceVersions.mockResolvedValue([{ version: 2, notes: 'More **scales**', publishedAt: null }]);
+                renderExisting(raceDoc({ version: 2 }));
+
+                expect((await screen.findByText('scales')).tagName).toBe('STRONG');
             });
 
             test('lists version history from the race\'s own versions', async () => {

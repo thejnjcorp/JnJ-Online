@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import Markdown from 'markdown-to-jsx';
+import MarkdownEditor from './MarkdownEditor';
 import { ClassTagEditDialog } from './ClassTagEditDialog';
 import { FieldError, invalidClass, invalidProps } from './FormErrors';
 
@@ -166,8 +167,7 @@ export function ClassActionEditor({ action, index, onChange, onRemove, onAddTag,
 
                 <div>
                     <span className="ClassPage-field-label">Description</span>
-                    <textarea className="ClassPage-field-input ClassPage-field-textarea" name="description" onChange={handleChange} defaultValue={action.description}/>
-                    <div className="ClassPage-hint">Supports Markdown - **bold**, *italic*, and bullet lists (- item).</div>
+                    <MarkdownEditor variant="compact" label="Description" value={action.description || ''} onChange={value => set('description', value)}/>
                 </div>
 
                 <label className="ClassPage-outcome-table-toggle">

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { AddStatusDialog } from './AddStatusDialog';
+import Markdown from 'markdown-to-jsx';
 
 // onUpdateStatuses/hasWritePermissions let a caller point this at a
 // non-character write path (Director's Page enemy cards - NPCs aren't
@@ -68,7 +69,7 @@ export function Statuses({characterPage, userId, onUpdateStatuses, hasWritePermi
                         {status.stacks > 0 && <span className="CharacterPage-status-chip-badge">{status.stacks}</span>}
                     </button>
                     {expandedIds.includes(status.id) && <div className="CharacterPage-status-detail">
-                        <div className="CharacterPage-status-detail-description">{status.description}</div>
+                        <div className="CharacterPage-status-detail-description"><Markdown options={{ disableParsingRawHTML: true }}>{status.description || ""}</Markdown></div>
                         <div className="CharacterPage-status-detail-stacks">
                             <span className="CharacterPage-vitals-label">Stacks</span>
                             {hasWritePermissions

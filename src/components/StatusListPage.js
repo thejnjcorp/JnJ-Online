@@ -5,6 +5,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../utils/firebase';
 import { STATUS_STAT_DEFINITIONS, getEffectsArray } from '../utils/statusEffects';
 import '../styles/StatusListPage.scss';
+import Markdown from 'markdown-to-jsx';
 
 function effectLabel(effect) {
     const definition = STATUS_STAT_DEFINITIONS.find(s => s.key === effect.stat);
@@ -123,7 +124,7 @@ export function StatusListPage() {
                         {visibilityLabel(status)}
                     </div>
                     {status.classes?.length > 0 && <div className="StatusListPage-card-classes">{status.classes.join(', ')}</div>}
-                    <div className="StatusListPage-card-description">{status.description}</div>
+                    <div className="StatusListPage-card-description"><Markdown options={{ disableParsingRawHTML: true }}>{status.description || ""}</Markdown></div>
                 </button>
             )}
             {visibleStatuses.length === 0 && <div className="StatusListPage-empty">No statuses match these filters.</div>}

@@ -1,0 +1,196 @@
+/* The Director's notebook: a list of pages beside the page you're writing. */
+.DirectorNotes {
+    display: grid;
+    grid-template-columns: minmax(11rem, 15rem) 1fr;
+    gap: var(--jnj-space-4);
+    align-items: start;
+    text-align: left;
+    color: var(--jnj-color-text);
+}
+
+.DirectorNotes-message {
+    display: block;
+    padding: var(--jnj-space-5);
+    font-size: 0.9375rem;
+    color: var(--jnj-color-text-muted);
+}
+
+.DirectorNotes-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--jnj-space-3);
+    max-width: 40rem;
+    padding: var(--jnj-space-5);
+
+    h2 {
+        margin: 0;
+        font-family: var(--jnj-font-display);
+        font-size: var(--jnj-text-xl);
+    }
+
+    p {
+        margin: 0;
+        font-size: 0.9375rem;
+        line-height: 1.6;
+        color: var(--jnj-color-text-muted);
+    }
+}
+
+.DirectorNotes-primary-button,
+.DirectorNotes-add-page {
+    padding: var(--jnj-space-2) var(--jnj-space-4);
+    border: none;
+    border-radius: var(--jnj-radius-pill);
+    background: var(--jnj-color-accent);
+    color: var(--jnj-color-on-accent);
+    font-family: inherit;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    cursor: pointer;
+
+    &:hover {
+        background: var(--jnj-color-accent-hover);
+    }
+}
+
+/* --- Page list ------------------------------------------------------------- */
+.DirectorNotes-pages {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-3);
+    position: sticky;
+    top: 0;
+
+    ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: var(--jnj-space-1);
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+}
+
+.DirectorNotes-add-page {
+    align-self: stretch;
+}
+
+.DirectorNotes-page-button {
+    width: 100%;
+    padding: var(--jnj-space-2) var(--jnj-space-3);
+    border: 1px solid transparent;
+    border-radius: var(--jnj-radius-md);
+    background: transparent;
+    color: var(--jnj-color-text-muted);
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &:hover {
+        background: var(--jnj-color-bg-hover);
+        color: var(--jnj-color-text);
+    }
+}
+
+.DirectorNotes-page-button-active {
+    background: var(--jnj-color-accent-soft);
+    border-color: var(--jnj-color-accent);
+    color: var(--jnj-color-text);
+}
+
+/* --- Editor ------------------------------------------------------------------ */
+.DirectorNotes-editor {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-3);
+    min-width: 0;
+}
+
+.DirectorNotes-editor-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--jnj-space-3);
+}
+
+.DirectorNotes-title-input {
+    flex: 1 1 18rem;
+    min-width: 0;
+    padding: var(--jnj-space-2) var(--jnj-space-3);
+    border: 1px solid transparent;
+    border-bottom-color: var(--jnj-color-border);
+    border-radius: var(--jnj-radius-md);
+    background: transparent;
+    color: var(--jnj-color-text);
+    font-family: var(--jnj-font-display);
+    font-size: 1.375rem;
+
+    &:hover {
+        border-color: var(--jnj-color-border);
+    }
+
+    &:focus {
+        outline: none;
+        border-color: var(--jnj-color-accent);
+        background: var(--jnj-color-bg-sunken);
+    }
+}
+
+.DirectorNotes-delete-button {
+    flex-shrink: 0;
+    padding: var(--jnj-space-1) var(--jnj-space-3);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-pill);
+    background: transparent;
+    color: var(--jnj-color-text-muted);
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover {
+        border-color: var(--jnj-color-danger);
+        color: var(--jnj-color-danger);
+    }
+}
+
+.DirectorNotes .DirectorNotes-body {
+    --markdown-editor-min-height: 55vh;
+}
+
+.DirectorNotes-status {
+    min-height: 1.2em;
+    font-size: 0.75rem;
+    color: var(--jnj-color-text-faint);
+}
+
+/* On a narrow screen the pages become a row you scroll sideways above the page. */
+@media (max-width: 720px) {
+    .DirectorNotes {
+        grid-template-columns: 1fr;
+    }
+
+    .DirectorNotes-pages {
+        position: static;
+
+        ul {
+            flex-direction: row;
+            max-height: none;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+    }
+
+    .DirectorNotes-page-button {
+        width: auto;
+        max-width: 12rem;
+    }
+}

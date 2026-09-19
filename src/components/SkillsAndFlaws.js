@@ -8,6 +8,7 @@ import { newCharacterFormReducer as formReducer } from '../utils/newCharacterFor
 import { arrayRemove, arrayUnion, doc, updateDoc } from 'firebase/firestore';
 import trashCanIcon from '../icons/trash_can.svg';
 import { getActionCategory } from '../utils/classActions';
+import MarkdownEditor from './MarkdownEditor';
 
 export function SkillsAndFlaws({characterPage, userId}) {
     const [addSkillFlawVisible, setAddSkillFlawVisible] = useState(false);
@@ -110,9 +111,9 @@ export function SkillsAndFlaws({characterPage, userId}) {
             easing="ease"
             open={false}
         >
-            <p className="SkillsAndFlaws-description">
-                {skill_or_flaw.description}
-            </p>
+            <div className="SkillsAndFlaws-description">
+                <Markdown options={{ disableParsingRawHTML: true }}>{skill_or_flaw.description || ""}</Markdown>
+            </div>
         </Collapsible>
     }
 
@@ -213,12 +214,12 @@ export function SkillsAndFlaws({characterPage, userId}) {
                             <option value={false}>Flaw</option>
                         </select>
                     </div>
-                    <textarea
-                        className="SkillsAndFlaws-dialog-textarea"
-                        name='description'
-                        placeholder='Description'
+                    <MarkdownEditor
+                        variant="compact"
+                        label="Description"
+                        placeholder="Description"
                         value={formData.description || ""}
-                        onChange={handleChange}
+                        onChange={value => setFormData({ name: 'description', value })}
                     />
                 </div>
                 <div className="SkillsAndFlaws-dialog-actions">

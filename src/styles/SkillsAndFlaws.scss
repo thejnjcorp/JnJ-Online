@@ -180,6 +180,18 @@
     line-height: 1.5;
     color: var(--jnj-color-text-muted);
     white-space: pre-wrap;
+
+    p, ul, ol {
+        margin: 0 0 6px;
+    }
+
+    ul, ol {
+        padding-left: 20px;
+    }
+
+    p:last-child, ul:last-child, ol:last-child {
+        margin-bottom: 0;
+    }
 }
 
 /* Feat descriptions come from the class's action markdown (see
@@ -288,7 +300,7 @@
     gap: var(--jnj-space-2);
 }
 
-.SkillsAndFlaws-dialog-input, .SkillsAndFlaws-dialog-select, .SkillsAndFlaws-dialog-textarea {
+.SkillsAndFlaws-dialog-input, .SkillsAndFlaws-dialog-select {
     padding: var(--jnj-space-2) var(--jnj-space-3);
     background-color: var(--jnj-color-bg-sunken);
     border: 1px solid var(--jnj-color-border);
@@ -315,14 +327,6 @@
 
 .SkillsAndFlaws-dialog-select {
     flex: 1;
-}
-
-.SkillsAndFlaws-dialog-textarea {
-    width: 100%;
-    box-sizing: border-box;
-    min-height: 80px;
-    resize: vertical;
-    margin-bottom: 0;
 }
 
 .SkillsAndFlaws-dialog-actions {

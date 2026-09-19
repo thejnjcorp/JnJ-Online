@@ -1,0 +1,135 @@
+/* The MDXEditor look, mapped onto the theme tokens. The library defines its
+   own palette on `.mdxeditor` and on the popup container it appends to <body>
+   (link dialog, block-type menu), so both are re-pointed here; doubled
+   selectors keep this ahead of the library's single-class rules regardless of
+   which stylesheet loads first. */
+.MarkdownEditor .MarkdownEditor-root,
+.mdxeditor-popup-container.mdxeditor-popup-container {
+    --accentBase: var(--jnj-color-bg-sunken);
+    --accentBgSubtle: var(--jnj-color-bg-raised);
+    --accentBg: var(--jnj-color-accent-soft);
+    --accentBgHover: var(--jnj-color-accent-soft);
+    --accentBgActive: var(--jnj-color-accent-soft);
+    --accentLine: var(--jnj-color-accent);
+    --accentBorder: var(--jnj-color-accent);
+    --accentBorderHover: var(--jnj-color-accent-hover);
+    --accentSolid: var(--jnj-color-accent);
+    --accentSolidHover: var(--jnj-color-accent-hover);
+    --accentText: var(--jnj-color-accent);
+    --accentTextContrast: var(--jnj-color-accent-hover);
+
+    --basePageBg: var(--jnj-color-bg-sunken);
+    --baseBase: var(--jnj-color-bg-sunken);
+    --baseBgSubtle: var(--jnj-color-bg-raised);
+    --baseBg: var(--jnj-color-bg-raised);
+    --baseBgHover: var(--jnj-color-bg-hover);
+    --baseBgActive: var(--jnj-color-bg-hover);
+    --baseLine: var(--jnj-color-border);
+    --baseBorder: var(--jnj-color-border);
+    --baseBorderHover: var(--jnj-color-border-strong);
+    --baseSolid: var(--jnj-color-text-faint);
+    --baseSolidHover: var(--jnj-color-text-muted);
+    --baseText: var(--jnj-color-text-muted);
+    --baseTextContrast: var(--jnj-color-text);
+
+    --font-body: var(--jnj-font-body);
+    --font-mono: var(--jnj-font-mono);
+    font-family: var(--jnj-font-body);
+}
+
+.MarkdownEditor {
+    --markdown-editor-min-height: 9rem;
+    box-sizing: border-box;
+    width: 100%;
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-md);
+    background: var(--jnj-color-bg-sunken);
+    text-align: left;
+
+    &:focus-within {
+        border-color: var(--jnj-color-accent);
+    }
+
+    .MarkdownEditor-root {
+        background: transparent;
+        border-radius: inherit;
+    }
+
+    /* wrap instead of scrolling sideways when the editor is narrow */
+    [role='toolbar'] {
+        flex-wrap: wrap;
+        overflow: visible;
+    }
+}
+
+.MarkdownEditor-compact {
+    --markdown-editor-min-height: 5rem;
+}
+
+.MarkdownEditor .MarkdownEditor-content {
+    box-sizing: border-box;
+    min-height: var(--markdown-editor-min-height);
+    padding: var(--jnj-space-4);
+    color: var(--jnj-color-text);
+    font-family: var(--jnj-font-body);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+
+    &:focus {
+        outline: none;
+    }
+
+    > :first-child {
+        margin-top: 0;
+    }
+
+    p {
+        margin: 0 0 var(--jnj-space-3);
+    }
+
+    ul, ol {
+        margin: 0 0 var(--jnj-space-3);
+        padding-left: 1.4em;
+    }
+
+    h2, h3, h4 {
+        margin: var(--jnj-space-4) 0 var(--jnj-space-2);
+        font-family: var(--jnj-font-display);
+        line-height: 1.25;
+    }
+}
+
+.MarkdownEditor-loading {
+    padding: var(--jnj-space-4);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-md);
+    background: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text-faint);
+    font-size: var(--jnj-text-sm);
+}
+
+.MarkdownEditor-fallback-note {
+    padding: var(--jnj-space-2) var(--jnj-space-4);
+    border-bottom: 1px solid var(--jnj-color-border);
+    color: var(--jnj-color-text-muted);
+    font-size: var(--jnj-text-xs);
+}
+
+.MarkdownEditor-fallback {
+    box-sizing: border-box;
+    display: block;
+    width: 100%;
+    min-height: var(--markdown-editor-min-height);
+    padding: var(--jnj-space-4);
+    border: none;
+    background: transparent;
+    color: var(--jnj-color-text);
+    font-family: var(--jnj-font-mono);
+    font-size: var(--jnj-text-sm);
+    line-height: 1.6;
+    resize: vertical;
+
+    &:focus {
+        outline: none;
+    }
+}

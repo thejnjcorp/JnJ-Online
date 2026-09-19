@@ -51,6 +51,14 @@ describe('Statuses', () => {
         expect(screen.queryByText('0')).not.toBeInTheDocument();
     });
 
+    test('a status description renders as Markdown', () => {
+        render(<Statuses characterPage={characterPageWith([{ ...haste, description: 'You are **hasted**.' }])} userId="owner-1" />);
+
+        fireEvent.click(screen.getByText('Haste'));
+
+        expect(screen.getByText('hasted').tagName).toBe('STRONG');
+    });
+
     test('clicking a status chip expands its detail (description + stacks), clicking again collapses it', () => {
         render(<Statuses characterPage={characterPageWith([haste])} userId="owner-1" />);
         expect(screen.queryByText('You are hasted.')).not.toBeInTheDocument();

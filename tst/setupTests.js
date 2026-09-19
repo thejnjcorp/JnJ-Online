@@ -22,3 +22,23 @@ if (typeof global.structuredClone !== 'function') {
 if (typeof window !== 'undefined' && typeof window.HTMLElement.prototype.scrollIntoView !== 'function') {
     window.HTMLElement.prototype.scrollIntoView = function scrollIntoView() {};
 }
+
+// The rich-text editor can't run in jsdom (it is a contenteditable), and it is
+// lazy-loaded, so tests of the pages that use it get this plain textarea with
+// the same props. tst/components/MarkdownEditor.test.js tests the real wrapper.
+jest.mock('../src/components/MarkdownEditor', () => {
+    const React = require('react');
+    return {
+        __esModule: true,
+        default: function MarkdownEditorStandIn({ value, onChange, label, placeholder, readOnly, maxLength }) {
+            return React.createElement('textarea', {
+                'aria-label': label,
+                placeholder,
+                readOnly,
+                maxLength,
+                value: value || '',
+                onChange: event => onChange(event.target.value),
+            });
+        },
+    };
+});

@@ -164,10 +164,17 @@
     font-size: 0.78125rem;
     line-height: 1.5;
     color: var(--jnj-color-text-muted);
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
+    max-height: 4.5em;
     overflow: hidden;
+    mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+
+    p, ul, ol {
+        margin: 0 0 4px;
+    }
+
+    ul, ol {
+        padding-left: 18px;
+    }
 }
 
 .StatusListPage-empty {

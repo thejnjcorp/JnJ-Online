@@ -23,6 +23,15 @@ service cloud.firestore {
 
       allow create: if isSignedIn() && !documentExists("campaigns", campaignId)
         && isCreatorDocAdmin() && request.resource.data.director_uid == uid();
+
+      // The Director's Page notebook: one document per page. Deliberately NOT
+      // readable by everyone in the campaign - players are in canRead, so this
+      // is the campaign's directors only (the director, co-directors in
+      // canWrite, and doc admins). The check depends only on the path and the
+      // parent campaign doc, so a list over the whole notebook stays provable.
+      match /notes/{noteId} {
+        allow read, write: if isSignedIn() && isCampaignDirector(campaignId);
+      }
     }
 
     match /characters/{characterId} {
@@ -241,6 +250,12 @@ service cloud.firestore {
 
     function parentDoc(collectionName, docId) {
       return get(/databases/$(database)/documents/$(collectionName)/$(docId)).data;
+    }
+
+    function isCampaignDirector(campaignId) {
+      return uid() == parentDoc('campaigns', campaignId).get('director_uid', '')
+        || uid() in parentDoc('campaigns', campaignId).get('canWrite', [])
+        || uid() in parentDoc('campaigns', campaignId).get('admins', []);
     }
 
     function documentExists(docName, documentId) {

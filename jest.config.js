@@ -32,6 +32,9 @@ module.exports = {
         '^react-native$': 'react-native-web',
         '^.+\\.module\\.(css|sass|scss)$': 'identity-obj-proxy',
         '^react-router/dom$': 'react-router/dist/development/dom-export.js',
+        // ESM-only and needs a real contenteditable, so tests use a stand-in.
+        '^@mdxeditor/editor$': '<rootDir>/tst/testUtils/mdxeditorStub.js',
+        '^@mdxeditor/editor/style\\.css$': '<rootDir>/tst/testUtils/emptyModule.js',
     },
     resetMocks: true,
     // Coverage is measured against all of src/, not just the files tst/

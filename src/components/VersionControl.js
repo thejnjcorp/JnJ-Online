@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import '../styles/ClassVersionControl.scss';
+import Markdown from 'markdown-to-jsx';
 
 function formatDate(timestamp) {
     if (!timestamp?.toDate) return '';
@@ -69,7 +70,7 @@ export function VersionControl({ kind, name, docId, pinned, versionField, listVe
                                 {entry.version === latestVersion && <em> latest</em>}
                                 {entry.version === pinned && <em> current</em>}
                             </span>
-                            {entry.notes && <span className="ClassVersionControl-row-notes">{entry.notes}</span>}
+                            {entry.notes && <div className="ClassVersionControl-row-notes"><Markdown options={{ disableParsingRawHTML: true }}>{entry.notes}</Markdown></div>}
                             {formatDate(entry.publishedAt) && <span className="ClassVersionControl-row-date">{formatDate(entry.publishedAt)}</span>}
                         </div>
                         {canSwitch && entry.version !== pinned && <button

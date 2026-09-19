@@ -127,6 +127,14 @@
 .ClassVersionControl-row-notes {
     font-size: 0.75rem;
     color: var(--jnj-color-text-muted);
+
+    p, ul, ol {
+        margin: 0;
+    }
+
+    ul, ol {
+        padding-left: 18px;
+    }
 }
 
 .ClassVersionControl-row-date {

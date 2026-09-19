@@ -168,6 +168,14 @@ describe('CampaignRacesPage', () => {
             expect(await screen.findByText(/No pool races subscribed yet/)).toBeInTheDocument();
         });
 
+        test('browse renders a race\'s description as Markdown', async () => {
+            signIn({ uid: 'owner-1' }, [defaultRace, { ...browsableRace, description: 'Sturdy and **loyal**.' }]);
+            renderWithRouter(<CampaignRacesPage />, { route: ROUTE });
+            fireCampaignSnapshot({ campaign_name: 'The Iron Vale', director_uid: 'owner-1', subscribedRaceIds: [] });
+
+            expect((await screen.findByText('loyal')).tagName).toBe('STRONG');
+        });
+
         test('browse lists only unsubscribed pool races, with author and description', async () => {
             signIn({ uid: 'owner-1' }, [defaultRace, subscribedRace, browsableRace]);
             renderWithRouter(<CampaignRacesPage />, { route: ROUTE });

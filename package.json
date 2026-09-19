@@ -7,6 +7,7 @@
     "@dnd-kit/core": "^6.3.1",
     "@hello-pangea/dnd": "^18.0.1",
     "@maxim_mazurok/gapi.client.drive-v3": "^0.0.20250210",
+    "@mdxeditor/editor": "^4.2.5",
     "@mui/material": "^7.1.1",
     "@react-oauth/google": "^0.12.1",
     "@reduxjs/toolkit": "^2.3.0",

@@ -998,6 +998,66 @@ async function main() {
         await assertSucceeds(batch.commit());
     });
 
+    console.log('\nDirector notes (campaigns/{id}/notes - directors only, never players):');
+
+    async function seedCampaignWithNote() {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'campaigns', 'camp1'), {
+                campaign_name: 'Iron Vale', director_uid: 'dir', canWrite: ['dir', 'codir'], canRead: ['dir', 'codir', 'player'], admins: ['dir'],
+            });
+            await setDoc(doc(adminCtx.firestore(), 'campaigns', 'camp1', 'notes', 'n1'), { title: 'Secret plot', body: 'The mayor is the lich.', order: 1 });
+        });
+    }
+
+    await check('the director can read, create, edit and delete notes', async () => {
+        await seedCampaignWithNote();
+        const dir = testEnv.authenticatedContext('dir');
+        await assertSucceeds(getDoc(doc(dir.firestore(), 'campaigns', 'camp1', 'notes', 'n1')));
+        await assertSucceeds(addDoc(collection(dir.firestore(), 'campaigns', 'camp1', 'notes'), { title: 'New', body: '', order: 2 }));
+        await assertSucceeds(updateDoc(doc(dir.firestore(), 'campaigns', 'camp1', 'notes', 'n1'), { body: 'Edited' }));
+        await assertSucceeds(deleteDoc(doc(dir.firestore(), 'campaigns', 'camp1', 'notes', 'n1')));
+    });
+
+    await check('a co-director (canWrite) and a campaign doc admin have the same access', async () => {
+        await seedCampaignWithNote();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await updateDoc(doc(adminCtx.firestore(), 'campaigns', 'camp1'), { admins: ['dir', 'boss'] });
+        });
+        await assertSucceeds(getDoc(doc(testEnv.authenticatedContext('codir').firestore(), 'campaigns', 'camp1', 'notes', 'n1')));
+        await assertSucceeds(updateDoc(doc(testEnv.authenticatedContext('boss').firestore(), 'campaigns', 'camp1', 'notes', 'n1'), { body: 'x' }));
+    });
+
+    await check('a player in the campaign cannot read, list, write or delete the notes', async () => {
+        await seedCampaignWithNote();
+        const player = testEnv.authenticatedContext('player');
+        await assertFails(getDoc(doc(player.firestore(), 'campaigns', 'camp1', 'notes', 'n1')));
+        await assertFails(getDocs(collection(player.firestore(), 'campaigns', 'camp1', 'notes')));
+        await assertFails(addDoc(collection(player.firestore(), 'campaigns', 'camp1', 'notes'), { title: 'x', body: '', order: 3 }));
+        await assertFails(updateDoc(doc(player.firestore(), 'campaigns', 'camp1', 'notes', 'n1'), { body: 'x' }));
+        await assertFails(deleteDoc(doc(player.firestore(), 'campaigns', 'camp1', 'notes', 'n1')));
+    });
+
+    await check('a stranger and a signed-out visitor cannot read the notes either', async () => {
+        await seedCampaignWithNote();
+        await assertFails(getDoc(doc(testEnv.authenticatedContext('stranger').firestore(), 'campaigns', 'camp1', 'notes', 'n1')));
+        await assertFails(getDoc(doc(testEnv.unauthenticatedContext().firestore(), 'campaigns', 'camp1', 'notes', 'n1')));
+    });
+
+    await check('the director can list the whole notebook (the query the page runs is provable)', async () => {
+        await seedCampaignWithNote();
+        const snap = await getDocs(collection(testEnv.authenticatedContext('dir').firestore(), 'campaigns', 'camp1', 'notes'));
+        if (snap.size !== 1) throw new Error(`expected 1 note, got ${snap.size}`);
+    });
+
+    await check('notes of one campaign are not reachable through another campaign the person directs', async () => {
+        await seedCampaignWithNote();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'campaigns', 'camp2'), { campaign_name: 'Other', director_uid: 'other', canWrite: ['other'], canRead: ['other'], admins: ['other'] });
+        });
+        await assertFails(getDoc(doc(testEnv.authenticatedContext('other').firestore(), 'campaigns', 'camp1', 'notes', 'n1')));
+    });
+
     await testEnv.cleanup();
 
     if (failures > 0) {

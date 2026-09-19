@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import '../styles/ClassPublishDialog.scss';
+import MarkdownEditor from './MarkdownEditor';
 
 // Asks for a short changelog note before publishing a new class or race
 // version (see versionedDocs.js). Rendered inside ClassPage / RacePage, so it
@@ -17,11 +18,12 @@ export function ClassPublishDialog({ nextVersion, busy, onPublish, onClose, kind
             </p>
             <div>
                 <span className="ClassPage-field-label">What changed?</span>
-                <textarea
-                    className="ClassPage-field-input ClassPublishDialog-notes"
-                    value={notes}
-                    onChange={event => setNotes(event.target.value)}
+                <MarkdownEditor
+                    variant="compact"
+                    label="What changed?"
                     placeholder="e.g. Rebalanced Ignatious Shift, added Fleetfoot"
+                    value={notes}
+                    onChange={setNotes}
                     maxLength={300}
                 />
             </div>

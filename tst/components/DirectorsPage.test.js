@@ -48,6 +48,9 @@ jest.mock('../../src/components/CombatActionList', () => ({
         {onUseAction && <button type="button" onClick={() => onUseAction({ actionCost: 1 })}>StubUseAction</button>}
     </div>,
 }));
+jest.mock('../../src/components/DirectorNotes', () => ({
+    DirectorNotes: ({ campaignId }) => <div>DirectorNotes-stub:{campaignId}</div>,
+}));
 jest.mock('../../src/components/MapRenderer', () => ({
     MapRenderer: ({ map, userId }) => <div>MapRenderer-stub:{map.map_id}:{userId}</div>,
 }));
@@ -171,6 +174,38 @@ describe('DirectorsPage', () => {
     test('the Roleplay tab is present (placeholder content)', async () => {
         await renderReady();
         expect(screen.getByRole('button', { name: /Roleplay$/ })).toBeInTheDocument();
+    });
+
+    describe('Notes tab (directors only)', () => {
+        test.each([
+            ['the campaign\'s director', { director_uid: 'owner-1' }],
+            ['a co-director in canWrite', { director_uid: 'someone-else', canWrite: ['owner-1'] }],
+            ['a campaign doc admin', { director_uid: 'someone-else', admins: ['owner-1'] }],
+        ])('is offered to %s, and opens the notebook for this campaign', async (_who, permissions) => {
+            await renderReady({ campaignInfo: { ...baseCampaignInfo, ...permissions } });
+
+            goToTab('Notes');
+
+            expect(screen.getByText('DirectorNotes-stub:camp-1')).toBeInTheDocument();
+        });
+
+        test('is not offered to a player (in canRead, not a director) - the rule would refuse it anyway', async () => {
+            await renderReady({ campaignInfo: { ...baseCampaignInfo, director_uid: 'someone-else', canWrite: ['someone-else'], canRead: ['owner-1'] } });
+
+            expect(screen.queryByRole('button', { name: /Notes$/ })).not.toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /Combat$/ })).toBeInTheDocument();
+        });
+
+        test('is not offered before the campaign has loaded or while signed out', async () => {
+            signIn(null);
+            await renderReady({ campaignInfo: { ...baseCampaignInfo, director_uid: 'owner-1' } });
+            expect(screen.queryByRole('button', { name: /Notes$/ })).not.toBeInTheDocument();
+        });
+
+        test('the other tabs are untouched', async () => {
+            await renderReady({ campaignInfo: { ...baseCampaignInfo, director_uid: 'owner-1' } });
+            ['Roleplay', 'Combat', 'Maps', 'Notes'].forEach(name => expect(screen.getByRole('button', { name: new RegExp(name + '$') })).toBeInTheDocument());
+        });
     });
 
     describe('Combat tab: player characters', () => {

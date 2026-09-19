@@ -5,6 +5,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../utils/firebase';
 import { subscribeClassToCampaign } from '../utils/campaignSubscriptions';
 import '../styles/CampaignClassesPage.scss';
+import Markdown from 'markdown-to-jsx';
 
 const TYPE_FILTERS = ['all', 'Attrionist', 'Crit Hunter', 'Manipulator', 'Snowballer'];
 
@@ -127,7 +128,7 @@ export function CampaignClassesPage() {
                                 <span className="CampaignClassesPage-card-name">{c.class_name}</span>
                                 <span className="CampaignClassesPage-card-type">{c.class_type}</span>
                             </div>
-                            <div className="CampaignClassesPage-card-description">{c.description}</div>
+                            <div className="CampaignClassesPage-card-description"><Markdown options={{ disableParsingRawHTML: true }}>{c.description || ""}</Markdown></div>
                             {hasWritePermissions && <button type="button"
                                 className="CampaignClassesPage-remove-button"
                                 onClick={() => toggleSubscription(c, false)}
@@ -162,7 +163,7 @@ export function CampaignClassesPage() {
                                 <span className="CampaignClassesPage-card-author">by {c.author}</span>
                             </div>
                             <div className="CampaignClassesPage-card-type">{c.class_type}</div>
-                            <div className="CampaignClassesPage-card-description">{c.description}</div>
+                            <div className="CampaignClassesPage-card-description"><Markdown options={{ disableParsingRawHTML: true }}>{c.description || ""}</Markdown></div>
                             {hasWritePermissions && <button type="button"
                                 className="CampaignClassesPage-add-button"
                                 onClick={() => toggleSubscription(c, true)}
