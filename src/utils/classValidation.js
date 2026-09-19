@@ -11,6 +11,7 @@
 // the offending input, which is how the summary scrolls to it.
 
 import { CharacterDiceConverter } from '../components/CharacterStatCalculator';
+import { validateRewards } from './levelUps';
 
 export const CLASS_TYPES = ['Attrionist', 'Crit Hunter', 'Manipulator', 'Snowballer'];
 export const ACTION_TYPES = ['standard', 'perDay', 'perShortRest', 'perCombat'];
@@ -77,10 +78,11 @@ const CLASS_NUMBER_FIELDS = [
 
 const DAMAGE_KINDS = [['melee', 'Melee'], ['ranged', 'Ranged']];
 
-function finish(fields, actions, orderedProblems) {
+function finish(fields, actions, orderedProblems, rewards = { errors: {} }) {
     return {
         fields,
         actions: actions.byIndex,
+        rewards: rewards.errors,
         problems: orderedProblems,
         valid: orderedProblems.length === 0,
     };
@@ -110,7 +112,8 @@ export function validateClass(formData) {
     if (!isDie(formData.base_healing_dice_type)) add('base_healing_dice_type', 'Base Healing Dice Type', dieMessage);
 
     const actions = actionProblems(formData.actions);
-    return finish(fields, actions, [...problems, ...actions.problems]);
+    const rewards = validateRewards(formData.level_rewards);
+    return finish(fields, actions, [...problems, ...actions.problems, ...rewards.problems], rewards);
 }
 
 export function validateRace(formData) {
@@ -128,7 +131,7 @@ export function validateRace(formData) {
     return finish(fields, actions, [...problems, ...actions.problems]);
 }
 
-export const NO_ERRORS = Object.freeze({ fields: {}, actions: {}, problems: [], valid: true });
+export const NO_ERRORS = Object.freeze({ fields: {}, actions: {}, rewards: {}, problems: [], valid: true });
 
 // A new action starts out valid apart from its name, so the only thing left to
 // do is name it. Feats and passives are free; reactions and actions cost 1.

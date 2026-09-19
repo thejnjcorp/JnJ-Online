@@ -2,12 +2,13 @@ import '../styles/NewCharacterPage.scss'
 import { useEffect, useReducer, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { db, auth } from '../utils/firebase';
-import { collection, addDoc, getDocs, getDoc, doc, or, query, where } from 'firebase/firestore';
+import { collection, addDoc, getDoc, doc } from 'firebase/firestore';
 import { onAuthStateChanged } from "firebase/auth";
 import { CharacterDiceConverter } from './CharacterStatCalculator';
 import { CombatActionList } from './CombatActionList';
 import { newCharacterFormReducer } from '../utils/newCharacterFormReducer';
 import { raceActionsOf } from '../utils/characterClass';
+import { loadAvailableClasses, loadAvailableRaces } from '../utils/availableOptions';
 import Markdown from 'markdown-to-jsx';
 
 export const formReducer = newCharacterFormReducer;
@@ -50,49 +51,17 @@ export function NewCharacterPage() {
         console.log("ready to submit!")
     },[formData])
 
-    async function getSubscribedIds(field) {
-        try {
-            const campaignSnap = await getDoc(doc(db, "campaigns", location.pathname.split("/").at(2)));
-            return campaignSnap.data()?.[field] || [];
-        } catch (e) {
-            console.log(e);
-            return [];
-        }
-    }
-
     async function getClassList(uid) {
         try {
-            // Same visibility scoping StatusListPage.js/AddStatusDialog.js
-            // already use for statuses - public classes plus anything this
-            // viewer can read/write - then narrowed to what this campaign
-            // actually offers (an admin default, a class this viewer
-            // authored, or one the campaign has subscribed to) so a
-            // character can't be given a class outside that set. See
-            // design/classes-page/handoff/CLASSES_REDESIGN_HANDOFF.md's
-            // "Consuming the subscription" section.
-            const subscribedClassIds = await getSubscribedIds("subscribedClassIds");
-            const classesQuery = query(collection(db, "classes"),
-                or(where("public", "==", true), where("canRead", "array-contains", uid), where("canWrite", "array-contains", uid)));
-            const docsSnapshot = await getDocs(classesQuery);
-            const all = docsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
-            const inScope = all.filter(c => c.isDefault || c.canWrite?.includes(uid) || subscribedClassIds.includes(c.id));
-            setClassList(inScope);
+            setClassList(await loadAvailableClasses(uid, location.pathname.split("/").at(2)));
         } catch(e) {
             console.log("Failed to get Class list: " + e)
         }
     }
 
-    // Scoped exactly like the class list: what this viewer can read, narrowed
-    // to what the campaign offers (an admin default, a race this viewer
-    // authored, or one the campaign has subscribed to).
     async function getRaceList(uid) {
         try {
-            const subscribedRaceIds = await getSubscribedIds("subscribedRaceIds");
-            const racesQuery = query(collection(db, "races"),
-                or(where("public", "==", true), where("canRead", "array-contains", uid), where("canWrite", "array-contains", uid)));
-            const docsSnapshot = await getDocs(racesQuery);
-            const all = docsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
-            setRaceList(all.filter(r => r.isDefault || r.canWrite?.includes(uid) || subscribedRaceIds.includes(r.id)));
+            setRaceList(await loadAvailableRaces(uid, location.pathname.split("/").at(2)));
         } catch(e) {
             console.log("Failed to get Race list: " + e)
         }

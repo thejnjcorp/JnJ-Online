@@ -1,4 +1,4 @@
-import { applyClassToCharacter, isLinkedToClass, isLinkedToRace, raceActionsOf, resolveCharacter, savedActions, savedRaceActions } from '../../src/utils/characterClass';
+import { applyClassToCharacter, canAdministerCharacter, classToCharacterFields, isLinkedToClass, isLinkedToRace, raceActionsOf, raceToCharacterFields, resolveCharacter, savedActions, savedRaceActions } from '../../src/utils/characterClass';
 
 const raceFeat = { actionName: 'Mild Fire', category: 'feat' };
 const classData = {
@@ -161,5 +161,120 @@ describe('resolveCharacter with races', () => {
     test('a race with no actions contributes none', () => {
         const result = resolveCharacter(raced, classData, { name: 'Plain' });
         expect(result.actions.map(a => a.actionName)).toEqual(['Fleetfoot', 'Unpoachable']);
+    });
+});
+
+describe('resolveCharacter and levels', () => {
+    const byLevel = {
+        class_id: 'monk', class_version: 1, base_armor_class: 14, base_hit_modifier: 5, base_damage_modifier: 2,
+        actions: [{ actionName: 'Start' }, { actionName: 'Fleetfoot', actionLevel: 3 }, { actionName: 'Ultimate', actionLevel: 6 }],
+    };
+    const names = character => character.actions.map(action => action.actionName);
+
+    test('an action stays hidden until the character reaches its Level', () => {
+        expect(names(resolveCharacter({ ...byLevel, experience_points: 0 }))).toEqual(['Start']);
+        expect(names(resolveCharacter({ ...byLevel, experience_points: 2000 }))).toEqual(['Start', 'Fleetfoot']);
+        expect(names(resolveCharacter({ ...byLevel, experience_points: 5000 }))).toEqual(['Start', 'Fleetfoot', 'Ultimate']);
+    });
+
+    test('an action with no Level is always there, and a Level that is not a number counts as 1', () => {
+        expect(names(resolveCharacter({ actions: [{ actionName: 'A' }, { actionName: 'B', actionLevel: 'x' }], experience_points: 0 }))).toEqual(['A', 'B']);
+    });
+
+    test('a live class\'s actions are hidden by level too, along with racial ones', () => {
+        const live = { ...byLevel, experience_points: 0 };
+        const resolved = resolveCharacter(live, { actions: [{ actionName: 'Live' }, { actionName: 'Later', actionLevel: 2 }] }, { actions: [{ actionName: 'Race', actionLevel: 2 }] });
+        expect(names(resolved)).toEqual(['Live']);
+    });
+
+    test('nothing changes for a character with no level-gated actions and no bonuses', () => {
+        const plain = { class_id: 'monk', actions: [{ actionName: 'Start' }], experience_points: 0 };
+        expect(resolveCharacter(plain)).toBe(plain);
+    });
+
+    test('claimed level-up bonuses are added to the stats they change, without touching the doc', () => {
+        const doc = { ...byLevel, experience_points: 0, level_bonuses: { armor_class: 2, hit_modifier: 1, damage_modifier: -1 } };
+        const resolved = resolveCharacter(doc);
+        expect(resolved).toMatchObject({ base_armor_class: 16, base_hit_modifier: 6, base_damage_modifier: 1 });
+        expect(doc.base_armor_class).toBe(14);
+    });
+
+    test('bonuses are added to the live class\'s values, not the saved copy\'s', () => {
+        const doc = { ...byLevel, experience_points: 0, level_bonuses: { armor_class: 1 } };
+        expect(resolveCharacter(doc, { base_armor_class: 20, actions: [] }).base_armor_class).toBe(21);
+    });
+
+    test('a bonus of 0, or a stat that is only a direct field, changes nothing', () => {
+        const doc = { ...byLevel, experience_points: 0, level_bonuses: { armor_class: 0, maximum_health: 5 }, actions: [] };
+        expect(resolveCharacter(doc)).toBe(doc);
+    });
+
+    test('takes the class\'s level rewards live, and keeps the saved copy for a class that has none', () => {
+        const withSaved = { ...byLevel, experience_points: 0, level_rewards: [{ id: 'old' }] };
+        expect(resolveCharacter(withSaved, { level_rewards: [{ id: 'new' }], actions: [] }).level_rewards).toEqual([{ id: 'new' }]);
+        expect(resolveCharacter(withSaved, { actions: [] }).level_rewards).toEqual([{ id: 'old' }]);
+    });
+
+    test('tolerates there being no character yet', () => {
+        expect(resolveCharacter(undefined)).toBeUndefined();
+    });
+});
+
+describe('classToCharacterFields', () => {
+    const classDoc = {
+        id: 'class-1', class_name: 'Monk', class_type: 'Crit Hunter', description: 'Lore', version: 3, actions: [{ actionName: 'Fleetfoot' }],
+        base_armor_class: 16, level_rewards: [{ id: 'r' }],
+        canWrite: ['a'], canRead: ['b'], admins: ['c'], author: 'Jonah', public: true, isDefault: true, visibility: 'public', versionNotes: 'n', publishedAt: 't',
+    };
+
+    test('copies what makes it the class, pinned to its current version', () => {
+        expect(classToCharacterFields(classDoc)).toEqual({
+            class_id: 'class-1', class_name: 'Monk', class_type: 'Crit Hunter', class_description: 'Lore', class_version: 3,
+            actions: [{ actionName: 'Fleetfoot' }], base_armor_class: 16, level_rewards: [{ id: 'r' }],
+        });
+    });
+
+    test('never copies the class\'s permissions or publishing details onto a character', () => {
+        const fields = classToCharacterFields(classDoc);
+        ['canWrite', 'canRead', 'admins', 'author', 'public', 'isDefault', 'visibility', 'version', 'versionNotes', 'publishedAt', 'id', 'description'].forEach(key => expect(fields).not.toHaveProperty(key));
+    });
+
+    test('a class with no description, version or actions still yields values Firestore will accept', () => {
+        expect(classToCharacterFields({ id: 'c', class_name: 'X' })).toEqual({ class_id: 'c', class_name: 'X', class_description: '', class_version: 1, actions: [] });
+    });
+});
+
+describe('raceToCharacterFields', () => {
+    test('pins the race to its version with its actions', () => {
+        expect(raceToCharacterFields({ id: 'r1', name: 'Kobold', version: 2, actions: [{ actionName: 'Mild Fire' }] })).toEqual({
+            race_id: 'r1', race_name: 'Kobold', race_version: 2, race_actions: [{ actionName: 'Mild Fire' }],
+        });
+    });
+
+    test('an old race with a single feat and no version', () => {
+        expect(raceToCharacterFields({ id: 'r1', name: 'Kobold', feat: raceFeat })).toEqual({ race_id: 'r1', race_name: 'Kobold', race_version: 1, race_actions: [raceFeat] });
+    });
+});
+
+describe('canAdministerCharacter', () => {
+    const character = { playerId: 'player', admins: ['player', 'friend'] };
+    const campaign = { director_uid: 'dm', canWrite: ['dm', 'co-dm'], admins: ['dm'] };
+
+    test.each([
+        ['the player', 'player', true],
+        ['a character admin the player added', 'friend', true],
+        ['the campaign director', 'dm', true],
+        ['a co-director', 'co-dm', true],
+        ['another player', 'stranger', false],
+        ['someone signed out', '', false],
+        ['someone signed out (undefined)', undefined, false],
+    ])('%s', (_who, userId, allowed) => {
+        expect(canAdministerCharacter(character, campaign, userId)).toBe(allowed);
+    });
+
+    test('works while the campaign has not loaded, and for a character with a legacy userId field', () => {
+        expect(canAdministerCharacter(character, undefined, 'stranger')).toBe(false);
+        expect(canAdministerCharacter(character, undefined, 'player')).toBe(true);
+        expect(canAdministerCharacter({ userId: 'old-owner' }, {}, 'old-owner')).toBe(true);
     });
 });

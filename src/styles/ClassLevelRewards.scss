@@ -1,0 +1,90 @@
+/* Uses ClassPage's card, pill and field styles; this adds the level groups. */
+.ClassLevelRewards-level {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-2);
+    padding: var(--jnj-space-3) 0;
+    border-top: 1px solid var(--jnj-color-border);
+}
+
+.ClassLevelRewards-level-title {
+    margin: 0;
+    font-family: var(--jnj-font-display);
+    font-size: var(--jnj-text-lg);
+    color: var(--jnj-color-text);
+}
+
+.ClassLevelRewards-unlocks {
+    font-size: var(--jnj-text-sm);
+    color: var(--jnj-color-text-muted);
+}
+
+.ClassLevelRewards-list {
+    margin: 0;
+    padding-left: 1.25rem;
+    font-size: var(--jnj-text-sm);
+    color: var(--jnj-color-text-muted);
+}
+
+.ClassLevelRewards-reward-fields {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--jnj-space-2);
+}
+
+/* ClassPage's inputs are full-width; in a row they should be as wide as they need. */
+.ClassLevelRewards-reward-fields select.ClassPage-field-input,
+.ClassLevelRewards-add select.ClassPage-field-input {
+    width: auto;
+    min-width: 9rem;
+}
+
+.ClassLevelRewards-reward-label {
+    min-width: 5rem;
+    font-size: var(--jnj-text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--jnj-color-text-muted);
+}
+
+.ClassLevelRewards-reward-help {
+    font-size: var(--jnj-text-sm);
+    color: var(--jnj-color-text-muted);
+}
+
+.ClassLevelRewards-note-input {
+    flex: 1 1 16rem;
+}
+
+.ClassLevelRewards-remove {
+    margin-left: auto;
+    padding: var(--jnj-space-1) var(--jnj-space-3);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-pill);
+    background: transparent;
+    color: var(--jnj-color-text-muted);
+    font-size: var(--jnj-text-xs);
+    cursor: pointer;
+
+    &:hover {
+        border-color: var(--jnj-color-danger);
+        color: var(--jnj-color-danger);
+    }
+}
+
+.ClassLevelRewards-add {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--jnj-space-3);
+    padding-top: var(--jnj-space-3);
+    border-top: 1px solid var(--jnj-color-border);
+}
+
+.ClassLevelRewards-add-level {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-1);
+}

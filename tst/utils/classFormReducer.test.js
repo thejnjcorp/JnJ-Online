@@ -37,6 +37,11 @@ describe('navigateFormDataKey', () => {
 });
 
 describe('classFormReducer', () => {
+    test('REPLACE_FORM_DATA leaves the form as exactly the payload, dropping fields it does not have', () => {
+        const state = { class_name: 'Edited', level_rewards: [{ id: 'new' }] };
+        expect(classFormReducer(state, { type: 'REPLACE_FORM_DATA', payload: { class_name: 'Original' } })).toEqual({ class_name: 'Original' });
+    });
+
     test('SET_FORM_DATA merges the payload over existing state', () => {
         const state = { visibility: 'private', class_name: 'Old' };
         const result = classFormReducer(state, { type: 'SET_FORM_DATA', payload: { class_name: 'New' } });

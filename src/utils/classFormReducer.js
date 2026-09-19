@@ -24,6 +24,12 @@ export function navigateFormDataKey(currentObject, key, isLast) {
 }
 
 export const classFormReducer = (state, event) => {
+    // Unlike SET_FORM_DATA (which merges, so a field the payload doesn't have
+    // keeps whatever it was edited to), this leaves the form as exactly the
+    // payload - what Cancel needs when restoring a snapshot.
+    if (event.type === 'REPLACE_FORM_DATA') {
+        return { ...event.payload };
+    }
     if (event.type === 'SET_FORM_DATA') {
         return {
             ...state,

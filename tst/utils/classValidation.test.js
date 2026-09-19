@@ -175,7 +175,7 @@ describe('the class write-ups published to production', () => {
 
 describe('NO_ERRORS', () => {
     test('is a frozen, empty result the pages use while errors are hidden', () => {
-        expect(NO_ERRORS).toEqual({ fields: {}, actions: {}, problems: [], valid: true });
+        expect(NO_ERRORS).toEqual({ fields: {}, actions: {}, rewards: {}, problems: [], valid: true });
         expect(Object.isFrozen(NO_ERRORS)).toBe(true);
     });
 });

@@ -16,6 +16,8 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { useIsMobile } from '../utils/useIsMobile';
 import { ReactComponent as ChevronDownIcon } from '../icons/chevron_down.svg';
 import { DocAdminManager } from './DocAdminManager';
+import { LevelUpPrompt } from './LevelUpPrompt';
+import { CharacterAdminButton } from './CharacterAdmin';
 import { useClassVersion, useRaceVersion } from '../utils/useClassVersion';
 import { resolveCharacter } from '../utils/characterClass';
 
@@ -123,6 +125,8 @@ export function CharacterPage() {
                 </div>}
             <div className='CharacterPage-right-content'>
                 <CharacterPageNavigation characterPage={character} userId={userId} classInfo={classInfo} raceInfo={raceInfo}/>
+                <LevelUpPrompt character={character} userId={userId}/>
+                <CharacterAdminButton character={character} campaignInfo={campaignInfo} userId={userId}/>
                 <CharacterPageVitalsPanel characterPageLayoutLive={character} userId={userId}/>
                 <CharacterMainTab characterPage={character} userId={userId} characterList={characterList} campaignInfo={campaignInfo} />
                 <DocAdminManager docRef={docQuery} admins={characterPage.admins} userId={userId}/>

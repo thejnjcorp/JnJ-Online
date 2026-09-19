@@ -503,6 +503,77 @@ describe('ClassPage', () => {
             expect(mockUpdateDoc).not.toHaveBeenCalled();
         });
 
+        describe('level-up rewards', () => {
+            async function startEditing(data = classDoc()) {
+                renderExisting(data);
+                await screen.findByText('Fighter');
+                fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+            }
+
+            test('rewards added while editing are saved with the class', async () => {
+                await startEditing();
+                fireEvent.change(screen.getByRole('combobox', { name: /Add to level/ }), { target: { value: '4' } });
+                fireEvent.click(screen.getByRole('button', { name: '+ Stat point' }));
+
+                fireEvent.click(screen.getByRole('button', { name: 'Done Editing' }));
+
+                await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalled());
+                expect(mockUpdateDoc.mock.calls[0][1].level_rewards).toEqual([expect.objectContaining({ level: 4, kind: 'stat_point', points: 1 })]);
+            });
+
+            test('Cancel drops rewards that were added while editing, even when the class had none before', async () => {
+                await startEditing();
+                fireEvent.click(screen.getByRole('button', { name: '+ Bonus' }));
+                expect(screen.getByLabelText('Amount')).toBeInTheDocument();
+
+                fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+                fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+
+                expect(screen.queryByLabelText('Amount')).not.toBeInTheDocument();
+                expect(mockUpdateDoc).not.toHaveBeenCalled();
+            });
+
+            test('Cancel restores rewards that were removed', async () => {
+                await startEditing(classDoc({ level_rewards: [{ id: 'r1', level: 2, kind: 'note', text: 'Pick a Stance' }] }));
+                fireEvent.click(screen.getByRole('button', { name: 'Remove reward' }));
+
+                fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+                fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+
+                expect(screen.getByLabelText('Note')).toHaveValue('Pick a Stance');
+            });
+
+            test('a reward with a problem blocks the save, and is listed and outlined', async () => {
+                await startEditing();
+                fireEvent.click(screen.getByRole('button', { name: '+ Note' })); // a note is blank until written
+
+                fireEvent.click(screen.getByRole('button', { name: 'Done Editing' }));
+
+                expect(mockUpdateDoc).not.toHaveBeenCalled();
+                expect(window.alert).not.toHaveBeenCalled();
+                expect(screen.getByRole('button', { name: /Level 2 reward - note/ })).toBeInTheDocument();
+                expect(screen.getByLabelText('Note')).toHaveAttribute('aria-invalid', 'true');
+            });
+
+            test('the problem clears as the note is written', async () => {
+                await startEditing();
+                fireEvent.click(screen.getByRole('button', { name: '+ Note' }));
+                fireEvent.click(screen.getByRole('button', { name: 'Done Editing' }));
+
+                fireEvent.change(screen.getByLabelText('Note'), { target: { value: 'Pick a Stance' } });
+
+                expect(screen.getByLabelText('Note')).not.toHaveAttribute('aria-invalid');
+            });
+
+            test('when viewing, the rewards are listed without editing controls', async () => {
+                renderExisting(classDoc({ level_rewards: [{ id: 'r1', level: 2, kind: 'bonus', stat: 'armor_class', amount: 1 }] }));
+                await screen.findByText('Fighter');
+
+                expect(screen.getByText('+1 Armor Class')).toBeInTheDocument();
+                expect(screen.queryByRole('button', { name: '+ Bonus' })).not.toBeInTheDocument();
+            });
+        });
+
         test('a failed update is alerted and editing mode stays open', async () => {
             mockUpdateDoc.mockRejectedValue(new Error('offline'));
             renderExisting(classDoc());

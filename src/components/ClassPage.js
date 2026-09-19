@@ -13,6 +13,7 @@ import { classFormReducer } from '../utils/classFormReducer';
 import { NO_ERRORS, newActionDefaults, validateClass } from '../utils/classValidation';
 import { FieldError, ValidationSummary, invalidClass, invalidProps, scrollToProblem } from './FormErrors';
 import { ClassActionEditor } from './ClassActionEditor';
+import { ClassLevelRewards } from './ClassLevelRewards';
 import { ClassDamageCard } from './ClassDamageCard';
 import { DocAdminManager } from './DocAdminManager';
 import { ClassPublishDialog } from './ClassPublishDialog';
@@ -405,7 +406,7 @@ export function ClassPage() {
     function handleCancelClick() {
         setShowErrors(false);
         if (isEditingExisting) {
-            setFormData({ type: 'SET_FORM_DATA', payload: savedSnapshot });
+            setFormData({ type: 'REPLACE_FORM_DATA', payload: savedSnapshot });
             setIsEditingMode(false);
         } else {
             navigate('/class-list');
@@ -584,6 +585,14 @@ export function ClassPage() {
                 )}
                 {(formData.actions || []).length === 0 && <div className="ClassPage-hint">No actions yet.</div>}
             </div>
+
+            <ClassLevelRewards
+                rewards={formData.level_rewards || []}
+                actions={formData.actions || []}
+                isEditable={isEditingMode}
+                errors={errors.rewards}
+                onChange={value => setFormData({ name: 'level_rewards', value })}
+            />
 
             {isEditingExisting && formData.public && !formData.isDefault && <div className='ClassPage-card'>
                 <div className="ClassPage-section-title">Subscribe your campaigns</div>

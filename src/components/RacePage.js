@@ -315,7 +315,7 @@ export function RacePage() {
     function handleCancelClick() {
         setShowErrors(false);
         if (isEditingExisting) {
-            setFormData({ type: 'SET_FORM_DATA', payload: savedSnapshot });
+            setFormData({ type: 'REPLACE_FORM_DATA', payload: savedSnapshot });
             setIsEditingMode(false);
         } else {
             navigate('/race-list');
