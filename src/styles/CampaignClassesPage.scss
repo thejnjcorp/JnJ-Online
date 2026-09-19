@@ -163,6 +163,14 @@
     border-left-color: var(--jnj-color-arcane);
 }
 
+.CampaignClassesPage-card-token {
+    border-left-color: var(--jnj-color-success);
+}
+
+.CampaignClassesPage-card-custom {
+    border-left-color: var(--status-color);
+}
+
 .CampaignClassesPage-card-row {
     display: flex;
     align-items: center;

@@ -111,6 +111,14 @@
     border-left-color: var(--jnj-color-danger);
 }
 
+.StatusListPage-card-token {
+    border-left-color: var(--jnj-color-success);
+}
+
+.StatusListPage-card-custom {
+    border-left-color: var(--status-color);
+}
+
 .StatusListPage-card-header {
     display: flex;
     align-items: center;

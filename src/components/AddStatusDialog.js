@@ -2,16 +2,15 @@ import { useEffect, useMemo, useState } from 'react';
 import { arrayUnion, collection, doc, getDoc, getDocs, or, query, updateDoc, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { clampStacks, getEffectsArray, stacksLabel } from '../utils/statusEffects';
+import { STATUS_TYPES, isHexColor, isToken, statusColorClass, statusColorStyle } from '../utils/statusStyle';
 import Markdown from 'markdown-to-jsx';
 import MarkdownEditor from './MarkdownEditor';
 
-const POLARITIES = [
-    { key: 'buff', label: 'Buff' },
-    { key: 'debuff', label: 'Debuff' },
-    { key: 'neutral', label: 'Neutral' },
-];
+const byName = (a, b) => (a.name || '').localeCompare(b.name || '');
 
-const CUSTOM_OPTION = { id: 'custom', name: 'Custom…', polarity: 'neutral', defaultStacks: 1, description: '', effects: [], grantedAction: null };
+const isClassSpecific = status => Boolean(status.classes?.length);
+
+const CUSTOM_OPTION = { id: 'custom', name: 'Custom…', polarity: 'neutral', color: '', defaultStacks: 1, description: '', effects: [], grantedAction: null };
 
 // Hybrid catalog: presets come from the shared `statuses` Firestore
 // collection (managed on /status-list), scoped down to ones with no class
@@ -24,6 +23,7 @@ export function AddStatusDialog({characterPage, userId, onClose, onUpdateStatuse
     const [customName, setCustomName] = useState('');
     const [customDescription, setCustomDescription] = useState('');
     const [polarity, setPolarity] = useState('neutral');
+    const [color, setColor] = useState('');
     const [stacks, setStacks] = useState(0);
     const [submitting, setSubmitting] = useState(false);
     const characterClass = characterPage.class_name || characterPage.class;
@@ -68,26 +68,35 @@ export function AddStatusDialog({characterPage, userId, onClose, onUpdateStatuse
                 (status.isDefault || !status.public || status.canWrite?.includes(userId) || subscribedStatusIds.includes(status.id))
             );
             setPresets(inScope);
-            if (inScope.length > 0) {
-                setSelectedId(inScope[0].id);
-                setPolarity(inScope[0].polarity || 'neutral');
-                setStacks(inScope[0].defaultStacks || 0);
+            // The first one shown is the one selected - class-specific first.
+            const first = [...inScope.filter(isClassSpecific).sort(byName), ...inScope.filter(status => !isClassSpecific(status)).sort(byName)][0];
+            if (first) {
+                setSelectedId(first.id);
+                setPolarity(first.polarity || 'neutral');
+                setColor(first.color || '');
+                setStacks(first.defaultStacks || 0);
             }
         }
         loadPresets().catch(error => console.log(error));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userId]);
 
-    const options = useMemo(() => [...presets, CUSTOM_OPTION], [presets]);
+    // Statuses made for this character's class get their own section, so a
+    // player isn't reading through every status in the game to find them.
+    const classPresets = useMemo(() => presets.filter(isClassSpecific).sort(byName), [presets]);
+    const generalPresets = useMemo(() => presets.filter(status => !isClassSpecific(status)).sort(byName), [presets]);
+    const options = useMemo(() => [...classPresets, ...generalPresets, CUSTOM_OPTION], [classPresets, generalPresets]);
     const selected = options.find(o => o.id === selectedId) || CUSTOM_OPTION;
     const isCustom = selected.id === 'custom';
     const description = isCustom ? customDescription : selected.description;
     const name = isCustom ? customName : selected.name;
+    const token = isToken({ polarity });
 
     function selectPreset(option) {
         setSelectedId(option.id);
         if (option.id !== 'custom') {
             setPolarity(option.polarity || 'neutral');
+            setColor(option.color || '');
             setStacks(option.defaultStacks || 0);
         }
     }
@@ -101,9 +110,11 @@ export function AddStatusDialog({characterPage, userId, onClose, onUpdateStatuse
             polarity,
             stacks,
             description,
-            effects: isCustom ? [] : getEffectsArray(selected),
-            decaysPerTurn: isCustom ? false : Boolean(selected.decaysPerTurn),
-            grantedAction: isCustom ? null : (selected.grantedAction || null),
+            ...(isHexColor(color) ? { color } : {}),
+            // A Token has no mechanics, even if the preset it came from did.
+            effects: isCustom || token ? [] : getEffectsArray(selected),
+            decaysPerTurn: isCustom || token ? false : Boolean(selected.decaysPerTurn),
+            grantedAction: isCustom || token ? null : (selected.grantedAction || null),
             ...(isCustom ? {} : { sourceStatusId: selected.id }),
         };
         try {
@@ -121,6 +132,23 @@ export function AddStatusDialog({characterPage, userId, onClose, onUpdateStatuse
         setSubmitting(false);
     }
 
+    // The chosen chip shows what is about to be added, so it follows the type
+    // and colour picked below rather than the preset's own.
+    function presetChip(option) {
+        const isSelected = option.id === selectedId;
+        const className = isSelected
+            ? ['CharacterPage-status-preset-chip', `CharacterPage-status-chip-${polarity}`, statusColorClass({ color }, 'CharacterPage-status-chip'), 'CharacterPage-status-preset-chip-selected'].filter(Boolean).join(' ')
+            : 'CharacterPage-status-preset-chip';
+        return <button type="button"
+            key={option.id}
+            className={className}
+            style={isSelected ? statusColorStyle({ color }) : undefined}
+            onClick={() => selectPreset(option)}
+        >
+            {option.name}
+        </button>;
+    }
+
     return <>
         <button
             type="button"
@@ -131,19 +159,14 @@ export function AddStatusDialog({characterPage, userId, onClose, onUpdateStatuse
         <div className="CharacterPage-status-dialog">
             <h3>Add Status</h3>
 
+            {classPresets.length > 0 && <div className="CharacterPage-status-dialog-section">
+                <div className="CharacterPage-vitals-label">{characterClass} statuses</div>
+                <div className="CharacterPage-status-dialog-chip-row">{classPresets.map(presetChip)}</div>
+            </div>}
+
             <div className="CharacterPage-status-dialog-section">
-                <div className="CharacterPage-vitals-label">Choose a status</div>
-                <div className="CharacterPage-status-dialog-chip-row">
-                    {options.map(option =>
-                        <button type="button"
-                            key={option.id}
-                            className={option.id === selectedId ? `CharacterPage-status-preset-chip CharacterPage-status-chip-${option.polarity} CharacterPage-status-preset-chip-selected` : 'CharacterPage-status-preset-chip'}
-                            onClick={() => selectPreset(option)}
-                        >
-                            {option.name}
-                        </button>
-                    )}
-                </div>
+                <div className="CharacterPage-vitals-label">{classPresets.length > 0 ? 'General statuses' : 'Choose a status'}</div>
+                <div className="CharacterPage-status-dialog-chip-row">{[...generalPresets, CUSTOM_OPTION].map(presetChip)}</div>
             </div>
 
             {isCustom && <div className="CharacterPage-status-dialog-section">
@@ -174,17 +197,32 @@ export function AddStatusDialog({characterPage, userId, onClose, onUpdateStatuse
             </div>
 
             <div className="CharacterPage-status-dialog-section">
-                <div className="CharacterPage-vitals-label">Polarity</div>
+                <div className="CharacterPage-vitals-label">Type</div>
                 <div className="CharacterPage-status-dialog-chip-row">
-                    {POLARITIES.map(pol =>
+                    {STATUS_TYPES.map(type =>
                         <button type="button"
-                            key={pol.key}
-                            className={polarity === pol.key ? `CharacterPage-status-preset-chip CharacterPage-status-chip-${pol.key} CharacterPage-status-preset-chip-selected` : 'CharacterPage-status-preset-chip'}
-                            onClick={() => setPolarity(pol.key)}
+                            key={type.key}
+                            className={polarity === type.key ? `CharacterPage-status-preset-chip CharacterPage-status-chip-${type.key} CharacterPage-status-preset-chip-selected` : 'CharacterPage-status-preset-chip'}
+                            onClick={() => setPolarity(type.key)}
                         >
-                            {pol.label}
+                            {type.label}
                         </button>
                     )}
+                </div>
+            </div>
+
+            <div className="CharacterPage-status-dialog-section">
+                <div className="CharacterPage-vitals-label">Color</div>
+                <div className="CharacterPage-status-dialog-color-row">
+                    <input
+                        type="color"
+                        aria-label="Status color"
+                        value={isHexColor(color) ? color : '#7c4dff'}
+                        onChange={event => setColor(event.target.value)}
+                    />
+                    {isHexColor(color)
+                        ? <button type="button" className="CharacterPage-status-preset-chip" onClick={() => setColor('')}>Use the type's color</button>
+                        : <span className="CharacterPage-status-dialog-hint">Using the color of its type</span>}
                 </div>
             </div>
 

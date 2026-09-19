@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { AddStatusDialog } from './AddStatusDialog';
+import { StatusChip } from './StatusChip';
 import { MAX_STACKS, NO_STACK_COUNT, clampStacks, stacksLabel } from '../utils/statusEffects';
 import Markdown from 'markdown-to-jsx';
 
@@ -61,14 +62,7 @@ export function Statuses({characterPage, userId, onUpdateStatuses, hasWritePermi
         <div className="CharacterPage-status-list">
             {statuses.map(status =>
                 <div className="CharacterPage-status-wrap" key={status.id}>
-                    <button type="button"
-                        className={`CharacterPage-status-chip CharacterPage-status-chip-${status.polarity || 'neutral'}`}
-                        onClick={() => toggleExpanded(status.id)}
-                    >
-                        <span className="CharacterPage-status-chip-dot"/>
-                        <span className="CharacterPage-status-chip-name">{status.name}</span>
-                        {status.stacks > 0 && <span className="CharacterPage-status-chip-badge">{status.stacks}</span>}
-                    </button>
+                    <StatusChip status={status} onClick={() => toggleExpanded(status.id)}/>
                     {expandedIds.includes(status.id) && <div className="CharacterPage-status-detail">
                         <div className="CharacterPage-status-detail-description"><Markdown options={{ disableParsingRawHTML: true }}>{status.description || ""}</Markdown></div>
                         <div className="CharacterPage-status-detail-stacks">

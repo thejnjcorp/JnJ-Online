@@ -4,6 +4,7 @@ import { collection, getDocs, or, query, where } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../utils/firebase';
 import { STATUS_STAT_DEFINITIONS, getEffectsArray } from '../utils/statusEffects';
+import { STATUS_TYPES, statusColorClass, statusColorStyle } from '../utils/statusStyle';
 import '../styles/StatusListPage.scss';
 import Markdown from 'markdown-to-jsx';
 
@@ -28,7 +29,7 @@ function visibilityLabel(status) {
     return 'Creator-locked';
 }
 
-const POLARITY_FILTERS = ['all', 'buff', 'debuff', 'neutral'];
+const POLARITY_FILTERS = ['all', ...STATUS_TYPES.map(type => type.key)];
 const OWNERSHIP_FILTERS = [
     { key: 'all', label: 'All' },
     { key: 'mine', label: 'Mine' },
@@ -110,7 +111,8 @@ export function StatusListPage() {
             {visibleStatuses.map(status =>
                 <button type="button"
                     key={status.id}
-                    className={`StatusListPage-card StatusListPage-card-${status.polarity || 'neutral'}`}
+                    className={`StatusListPage-card StatusListPage-card-${status.polarity || 'neutral'} ${statusColorClass(status, 'StatusListPage-card')}`.trim()}
+                    style={statusColorStyle(status)}
                     onClick={() => navigate('/statuses/' + status.id)}
                 >
                     <div className="StatusListPage-card-header">

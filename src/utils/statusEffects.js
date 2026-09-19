@@ -1,3 +1,5 @@
+import { isToken } from './statusStyle';
+
 // Mirrors isAdmin() in firebase/firestore.rules - only this account can
 // create/promote a status to isDefault (an admin-curated status every
 // campaign gets automatically, no subscription needed). Everything else a
@@ -60,6 +62,8 @@ export const STATUS_STAT_DEFINITIONS = [
 // Statuses created before `effects` (an array) existed only had a single
 // `effect` object - keeps those readable without a data migration.
 export function getEffectsArray(status) {
+    // A Token has no mechanics, whatever an older edit left in its effects.
+    if (isToken(status)) return [];
     if (Array.isArray(status.effects)) return status.effects;
     if (status.effect) return [status.effect];
     return [];
@@ -127,7 +131,7 @@ export function getPassiveDelta(characterPage, statKey) {
 // they're visually distinguishable from the character's own class actions.
 export function getGrantedActions(characterPage) {
     return activeStatuses(characterPage)
-        .filter(status => status.grantedAction?.actionName)
+        .filter(status => !isToken(status) && status.grantedAction?.actionName)
         .map(status => ({
             ...status.grantedAction,
             tags: [
@@ -147,6 +151,7 @@ export function getGrantedActions(characterPage) {
 // status has a turn_start effect only for statuses saved before this field
 // existed - StatusPage.js always sets it explicitly now.
 function decaysPerTurn(status) {
+    if (isToken(status)) return false;
     if (typeof status.decaysPerTurn === 'boolean') return status.decaysPerTurn;
     return getEffectsArray(status).some(e => e.trigger === 'turn_start');
 }

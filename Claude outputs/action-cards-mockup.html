@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Action cards mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d10; --card: #131317; --border: #26262c; --text: #ececf0; --muted: #a9a9b3; --faint: #82828d;
+    --label: #a9a9b3;
+  }
+  body.light {
+    --bg: #ffffff; --card: #ffffff; --border: #e6e6ea; --text: #1f1f24; --muted: #55555e; --faint: #8a8a93; --label:#8a8a93;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, sans-serif; transition: background .15s; }
+  .bar { display: flex; gap: 12px; align-items: center; padding: 12px 32px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--muted); }
+  .bar button { background: none; border: 1px solid var(--border); color: var(--text); border-radius: 999px; padding: 4px 12px; cursor: pointer; font: inherit; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 32px 64px; }
+  .section { text-align: center; font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--label); margin: 8px 0 14px; }
+  .cards { display: flex; flex-direction: column; gap: 10px; }
+
+  .card { position: relative; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; text-align: left; font-family: 'Source Serif 4', Georgia, serif; }
+  .name { font-size: 18px; font-weight: 700; line-height: 1.3; }
+  .sub { margin-top: 2px; font-size: 14px; color: var(--faint); }
+  .body { margin-top: 10px; font-size: 16px; line-height: 1.6; padding-right: 110px; }
+  .body p { margin: 0 0 10px; } .body p:last-child { margin-bottom: 0; }
+  .body p.flavor { font-style: italic; color: var(--muted); }
+  .body ul { margin: 0 0 10px; padding-left: 22px; }
+  .use { position: absolute; right: 16px; bottom: 14px; border: 0; border-radius: 6px; padding: 7px 14px; background: #7c6cf0; color: #fff; font: 700 12.5px Inter, sans-serif; }
+  table { border-collapse: collapse; width: calc(100% - 110px); margin: 8px 0 0; font-size: 14px; }
+  th, td { border: 1px solid var(--border); padding: 5px 10px; text-align: left; }
+  th { width: 22%; font-weight: 600; } td { color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="bar">Action cards, proposed layout <button id="t">Toggle light / dark</button></div>
+<div class="wrap">
+  <div class="section">Available Actions</div>
+  <div class="cards">
+
+    <div class="card">
+      <div class="name">Locally Sourced</div>
+      <div class="sub">1 Action · DC14 check</div>
+      <div class="body">
+        <p class="flavor">With enough willpower and loss of tastebuds, anything can be eaten as a delicacy…even if it's dead and rotting.</p>
+        <p>Cook a lovely meal from locally sourced herbs and spices, drizzled with homemade sauce over something you found. It's delicious.</p>
+        <p>Force feed an enemy some of your scrumptious food. The target makes a Strength Save against your Class DC to see if they can handle it.</p>
+      </div>
+      <table>
+        <tr><th>Critical Success</th><td>They like it?? The target becomes immune to Sickened from Locally Sourced for the rest of combat.</td></tr>
+        <tr><th>Success</th><td>They stomach it. Nothing happens.</td></tr>
+        <tr><th>Failure</th><td>The target gains Sickened 1.</td></tr>
+        <tr><th>Critical Failure</th><td>The target gains Sickened 2.</td></tr>
+      </table>
+      <button class="use">Use Action</button>
+    </div>
+
+    <div class="card">
+      <div class="name">Claw Arts: Venomous Slash</div>
+      <div class="sub">1/Day, 1 Action · DC14 check</div>
+      <div class="body">
+        <p class="flavor">With years of perfecting your fighting style, you master your claw attacks, imbuing it with poison without poisoning yourself.</p>
+        <p>Until the end of your next turn, all of your melee attacks deal 1 additional Poison Damage. This additional damage is included when calculating critical damage.</p>
+      </div>
+      <button class="use">Use Action</button>
+    </div>
+
+    <div class="card">
+      <div class="name">Fleetfoot</div>
+      <div class="sub">1 Action · DC14 check</div>
+      <div class="body">
+        <p class="flavor">Fast of mind, body and spirit, or at least one of those things.</p>
+        <p>You focus your mind and move quickly on your feet. Spend 1 action to move up to 2 Zones away. You move twice as fast or pass hard-to-traverse terrain with no trouble. This still triggers Reactions.</p>
+        <p><strong>Outside Combat:</strong> When you use Fleetfoot to overcome a physical obstacle through speed, balance, climbing, jumping, or similar movement, make any required movement-related Check normally. Treat the result as one degree of success higher.</p>
+      </div>
+      <button class="use">Use Action</button>
+    </div>
+
+    <div class="card">
+      <div class="name">Look Into the Evergreen</div>
+      <div class="sub">1 Action · DC14 check</div>
+      <div class="body">
+        <p class="flavor">With the eye of a fighter, you're trained in noticing the finer details in hidden or unfair tactics.</p>
+        <p>You notice the surroundings, posture, and equipment your enemies have. From this, you interpret how best to approach or defend against the scenario.</p>
+        <p>Instead of making a generic Analysis check, you make a stronger class-specific ability called <strong>Look Into the Evergreen</strong>. After successfully Analyzing an opponent, identify one elemental damage type they are capable of dealing. You gain the <strong>Quick Thinking</strong> Reaction against that opponent.</p>
+      </div>
+      <button class="use">Use Action</button>
+    </div>
+
+  </div>
+</div>
+<script>document.getElementById('t').onclick = () => document.body.classList.toggle('light');</script>
+</body>
+</html>

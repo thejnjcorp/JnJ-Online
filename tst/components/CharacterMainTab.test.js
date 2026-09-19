@@ -215,6 +215,55 @@ describe('CharacterMainTab', () => {
             expect(container.querySelector('.TabContainer-content > .CharacterMainTab-action-points')).toBeInTheDocument();
         });
 
+        describe('statuses next to the action points', () => {
+            const statuses = [
+                { id: 's1', name: 'Haste', polarity: 'buff', stacks: 2 },
+                { id: 's2', name: 'Stance: Heartstealer', polarity: 'token', stacks: -1 },
+                { id: 's3', name: 'Inspired', polarity: 'buff', stacks: 0, color: '#f5a623' },
+            ];
+
+            test('sit in the sticky bar under the action points, so they stay in view while scrolling', () => {
+                const { container } = render(<CharacterMainTab characterPage={{ ...characterPage, statuses }} userId="owner-1" />);
+                goToTab('Combat');
+
+                const bar = container.querySelector('.TabContainer-content > .CharacterMainTab-action-points');
+                const strip = within(bar).getByRole('group', { name: 'Active statuses' });
+                expect(within(strip).getAllByText(/Haste|Stance: Heartstealer|Inspired/).map(el => el.textContent)).toEqual(['Haste', 'Stance: Heartstealer', 'Inspired']);
+                expect(bar.querySelector('.CharacterMainTab-ap-row').compareDocumentPosition(strip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+            });
+
+            test('show their type, stack count and own color', () => {
+                render(<CharacterMainTab characterPage={{ ...characterPage, statuses }} userId="owner-1" />);
+                goToTab('Combat');
+                const strip = screen.getByRole('group', { name: 'Active statuses' });
+
+                expect(within(strip).getByText('Haste').closest('.CharacterPage-status-chip')).toHaveClass('CharacterPage-status-chip-buff');
+                expect(within(strip).getByText('2')).toBeInTheDocument();
+                expect(within(strip).getByText('Stance: Heartstealer').closest('.CharacterPage-status-chip')).toHaveClass('CharacterPage-status-chip-token');
+                expect(within(strip).getByText('Inspired').closest('.CharacterPage-status-chip').style.getPropertyValue('--status-color')).toBe('#f5a623');
+            });
+
+            test('are read-only labels here (the sheet\'s status panel is where they are managed)', () => {
+                render(<CharacterMainTab characterPage={{ ...characterPage, statuses }} userId="owner-1" />);
+                goToTab('Combat');
+                expect(within(screen.getByRole('group', { name: 'Active statuses' })).queryAllByRole('button')).toHaveLength(0);
+            });
+
+            test('leave the bar exactly as it was for a character with none', () => {
+                const { container } = render(<CharacterMainTab characterPage={{ ...characterPage, statuses: [] }} userId="owner-1" />);
+                goToTab('Combat');
+                expect(screen.queryByRole('group', { name: 'Active statuses' })).not.toBeInTheDocument();
+                expect(container.querySelector('.CharacterMainTab-action-points').children).toHaveLength(1);
+            });
+
+            test('a character with no statuses field at all is fine', () => {
+                const { statuses: _omit, ...withoutStatuses } = characterPage;
+                render(<CharacterMainTab characterPage={withoutStatuses} userId="owner-1" />);
+                goToTab('Combat');
+                expect(screen.queryByRole('group', { name: 'Active statuses' })).not.toBeInTheDocument();
+            });
+        });
+
         test('the label is "Action Points", shortened to "AP" (hidden from screen readers) for phones', () => {
             render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
             goToTab('Combat');

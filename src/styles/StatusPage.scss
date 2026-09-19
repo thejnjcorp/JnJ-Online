@@ -116,6 +116,33 @@
     border-color: var(--jnj-color-arcane);
 }
 
+.StatusPage-chip-token.StatusPage-chip-selected {
+    background: var(--jnj-color-success);
+    border-color: var(--jnj-color-success);
+}
+
+.StatusPage-color-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+
+    input[type='color'] {
+        width: 2.5rem;
+        height: 2rem;
+        padding: 0;
+        border: 1px solid var(--jnj-color-border-strong);
+        border-radius: var(--jnj-radius-sm);
+        background: transparent;
+        cursor: pointer;
+    }
+
+    input[type='color']:disabled {
+        cursor: default;
+        opacity: 0.6;
+    }
+}
+
 .StatusPage-hint {
     margin: 0;
     font-size: 0.71875rem;

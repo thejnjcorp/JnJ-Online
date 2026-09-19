@@ -46,7 +46,8 @@ async function main() {
         assert.equal(new Set(wanted.map(s => s.name)).size, wanted.length);
         for (const s of wanted) {
             assert.ok(s.name && s.description, s.name);
-            assert.ok(['buff', 'debuff', 'neutral'].includes(s.polarity), s.name);
+            assert.ok(['buff', 'debuff', 'neutral', 'token'].includes(s.polarity), s.name);
+            if (s.polarity === 'token') assert.deepEqual(s.effects, [], s.name);
             assert.ok(Number.isInteger(s.defaultStacks) && s.defaultStacks >= 0 && s.defaultStacks <= 9, s.name);
             assert.deepEqual(s.classes, ['Monk'], s.name);
             assert.equal(s.decaysPerTurn, false, s.name);
@@ -102,6 +103,15 @@ async function main() {
         assert.deepEqual(data.classes, ['Monk']);
     });
 
+    await check('the Tokens and Stances use the Token status type, and the Unlocks stay Buffs', async () => {
+        for (const name of ['Critical Token', 'Flair Token', 'Analyze Token', 'Defender Token', 'Stance: Heartstealer', 'Stance: Waverider', 'Stance: Philosopher', 'Stance: Scalebearer']) {
+            const [doc] = (await named(name)).filter(d => d.data().classes.includes('Monk'));
+            assert.equal(doc.data().polarity, 'token', name);
+        }
+        const [unlock] = await named('Unlock: Heartstealer');
+        assert.equal(unlock.data().polarity, 'buff');
+    });
+
     await check('the Heartstealer Unlock carries the +1 to hit as a passive effect', async () => {
         const [doc] = await named('Unlock: Heartstealer');
         assert.deepEqual(doc.data().effects, [{ stat: 'base_hit_modifier', trigger: 'passive', mode: 'flat', delta: 1 }]);
@@ -110,7 +120,7 @@ async function main() {
     await check('a drifted status has its content refreshed but keeps its own permissions', async () => {
         const data = (await driftedFlair.get()).data();
         assert.equal(data.description, wanted.find(s => s.name === 'Flair Token').description);
-        assert.equal(data.polarity, 'buff');
+        assert.equal(data.polarity, 'token');
         assert.equal(data.defaultStacks, 1);
         assert.equal(data.isDefault, false);
         assert.deepEqual(data.admins, ['owner']);

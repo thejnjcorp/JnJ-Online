@@ -9,9 +9,11 @@ function status({ name, polarity, defaultStacks = 0, description, effects = [] }
     return { name, polarity, defaultStacks, classes: MONK, effects, decaysPerTurn: false, grantedAction: null, description };
 }
 
+// Tokens and Stances have no mechanics of their own - the Monk's actions refer
+// to them - so they use the Token status type.
 const token = (name, gained, consumedBy, cost) => status({
     name,
-    polarity: 'buff',
+    polarity: 'token',
     defaultStacks: 1,
     description: `Ignatious Shift resource. ${gained} ${consumedBy} consumes ${cost}. Unspent Tokens remain when you enter or complete a Stance; all Tokens are lost at the end of combat.`,
 });
@@ -20,7 +22,7 @@ const TRIAL_RULES = 'You may have up to two active Trials at a time; entering a 
 
 const stance = (heartName, cost, token, refund, trial) => status({
     name: `Stance: ${heartName}`,
-    polarity: 'neutral',
+    polarity: 'token',
     description: `Ignatious Shift Trial in progress. Entered by consuming ${cost} ${token}; on entering, immediately regain one charge of ${refund} (once per combat). Trial: ${trial} ${TRIAL_RULES}`,
 });
 

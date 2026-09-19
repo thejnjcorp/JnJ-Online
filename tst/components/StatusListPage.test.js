@@ -196,6 +196,28 @@ describe('StatusListPage', () => {
             expect(screen.getByText('Poisoned')).toBeInTheDocument();
         });
 
+        test('there is a Token filter, and Token cards get the token style', async () => {
+            const stance = { id: 'status-stance', name: 'Stance: Heartstealer', polarity: 'token', public: true };
+            signIn({ uid: 'user-1' }, [blessed, stance]);
+            renderWithRouter(<StatusListPage />);
+            await screen.findByText('Blessed');
+
+            fireEvent.click(screen.getByRole('button', { name: 'Token' }));
+
+            expect(screen.queryByText('Blessed')).not.toBeInTheDocument();
+            expect(screen.getByText('Stance: Heartstealer').closest('button')).toHaveClass('StatusListPage-card-token');
+        });
+
+        test('a card with its own color wears it', async () => {
+            const glowing = { id: 'status-glow', name: 'Glowing', polarity: 'buff', public: true, color: '#1abc9c' };
+            signIn({ uid: 'user-1' }, [glowing]);
+            renderWithRouter(<StatusListPage />);
+
+            const card = (await screen.findByText('Glowing')).closest('button');
+            expect(card).toHaveClass('StatusListPage-card-custom');
+            expect(card.style.getPropertyValue('--status-color')).toBe('#1abc9c');
+        });
+
         test('"Mine" shows only statuses the user can write to', async () => {
             renderWithRouter(<StatusListPage />);
             await screen.findByText('Blessed');

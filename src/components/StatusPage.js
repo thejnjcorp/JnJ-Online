@@ -5,13 +5,12 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../utils/firebase';
 import { ADMIN_UIDS, MAX_STACKS, NO_STACK_COUNT, STATUS_STAT_DEFINITIONS, clampStacks, getEffectsArray } from '../utils/statusEffects';
 import { statusFormReducer } from '../utils/statusFormReducer';
+import { STATUS_TYPES, isHexColor, isToken, statusColorClass, statusColorStyle } from '../utils/statusStyle';
 import { DocAdminManager } from './DocAdminManager';
 import '../styles/StatusPage.scss';
 import MarkdownEditor from './MarkdownEditor';
 
 const formReducer = statusFormReducer;
-
-const POLARITIES = ['buff', 'debuff', 'neutral'];
 
 // Both roles write `public: true` for this option - what differs is
 // `isDefault` (see handleSubmit), which only the admin account can ever set.
@@ -38,6 +37,7 @@ const EMPTY_STATUS = {
     name: '',
     description: '',
     polarity: 'neutral',
+    color: '',
     defaultStacks: 1,
     classes: [],
     effects: [],
@@ -125,6 +125,8 @@ export function StatusPage() {
     // signed in is creating it fresh, so it can't be someone else's yet.
     const canWrite = isEditing && Boolean(userId) && !formData.canWrite?.includes(userId);
     const isAdmin = Boolean(userId) && ADMIN_UIDS.includes(userId);
+    const token = isToken(formData);
+    const hasColor = isHexColor(formData.color);
     const VISIBILITIES = getVisibilityOptions(isAdmin);
     // Subscribing writes to the campaign doc, not the status - needs actual
     // write access there (director or canWrite), not just membership (the
@@ -239,7 +241,7 @@ export function StatusPage() {
     async function handleSubmit() {
         if (!formData.name?.trim()) return alert('A status needs a name.');
         if (formData.visibility === 'campaign' && !formData.campaignId) return alert('Pick a campaign to lock this status to.');
-        if (formData.grantedAction && !formData.grantedAction.actionName?.trim()) return alert('The granted action needs a name (or turn off "Grants a special action").');
+        if (!token && formData.grantedAction && !formData.grantedAction.actionName?.trim()) return alert('The granted action needs a name (or turn off "Grants a special action").');
         setSubmitting(true);
         try {
             const uid = userId;
@@ -267,11 +269,13 @@ export function StatusPage() {
                 name: formData.name,
                 description: formData.description || '',
                 polarity: formData.polarity || 'neutral',
+                color: isHexColor(formData.color) ? formData.color : null,
                 defaultStacks: clampStacks(Math.trunc(Number(formData.defaultStacks) || 0)),
                 classes: formData.classes || [],
-                effects: formData.effects || [],
-                decaysPerTurn: Boolean(formData.decaysPerTurn),
-                grantedAction: formData.grantedAction?.actionName ? formData.grantedAction : null,
+                // A Token has no mechanics, so none are kept.
+                effects: token ? [] : (formData.effects || []),
+                decaysPerTurn: token ? false : Boolean(formData.decaysPerTurn),
+                grantedAction: !token && formData.grantedAction?.actionName ? formData.grantedAction : null,
                 ...visibilityFields,
             };
             if (isEditing) {
@@ -348,20 +352,44 @@ export function StatusPage() {
         </div>
 
         <div className="StatusPage-field">
-            <span className="StatusPage-label">Polarity</span>
+            <span className="StatusPage-label">Type</span>
             <div className="StatusPage-chip-row">
-                {POLARITIES.map(polarity =>
+                {STATUS_TYPES.map(type =>
                     <button
-                        key={polarity}
+                        key={type.key}
                         type="button"
-                        className={formData.polarity === polarity ? `StatusPage-chip StatusPage-chip-${polarity} StatusPage-chip-selected` : `StatusPage-chip StatusPage-chip-${polarity}`}
-                        onClick={() => !canWrite && setFormData({ name: 'polarity', value: polarity })}
+                        className={formData.polarity === type.key ? `StatusPage-chip StatusPage-chip-${type.key} StatusPage-chip-selected` : `StatusPage-chip StatusPage-chip-${type.key}`}
+                        onClick={() => !canWrite && setFormData({ name: 'polarity', value: type.key })}
                         disabled={canWrite}
                     >
-                        {polarity[0].toUpperCase() + polarity.slice(1)}
+                        {type.label}
                     </button>
                 )}
             </div>
+            {token && <p className="StatusPage-hint">{STATUS_TYPES.find(type => type.key === 'token').hint}</p>}
+        </div>
+
+        <div className="StatusPage-field">
+            <span className="StatusPage-label">Color</span>
+            <div className="StatusPage-color-row">
+                <input
+                    type="color"
+                    aria-label="Status color"
+                    value={hasColor ? formData.color : '#7c4dff'}
+                    onChange={event => setFormData({ name: 'color', value: event.target.value })}
+                    disabled={canWrite}
+                />
+                {hasColor && !canWrite && <button type="button" className="StatusPage-chip" onClick={() => setFormData({ name: 'color', value: '' })}>Use the type's color</button>}
+                <span
+                    className={['CharacterPage-status-chip', `CharacterPage-status-chip-${formData.polarity || 'neutral'}`, statusColorClass(formData, 'CharacterPage-status-chip')].filter(Boolean).join(' ')}
+                    style={statusColorStyle(formData)}
+                    aria-label="Color preview"
+                >
+                    <span className="CharacterPage-status-chip-dot"/>
+                    <span className="CharacterPage-status-chip-name">{formData.name || 'Status'}</span>
+                </span>
+            </div>
+            <p className="StatusPage-hint">{hasColor ? 'This status uses its own color everywhere it appears.' : "Uses the color of its type. Pick a color to give this status its own."}</p>
         </div>
 
         <div className="StatusPage-field">
@@ -429,6 +457,10 @@ export function StatusPage() {
             </>}
         </div>
 
+        {token ? <div className="StatusPage-field">
+            <span className="StatusPage-label">Mechanical effects</span>
+            <p className="StatusPage-hint">A Token has none - it is only a marker on the sheet for a class to refer to.</p>
+        </div> : <>
         <div className="StatusPage-field">
             <span className="StatusPage-label">Mechanical effects</span>
             <p className="StatusPage-hint">Action Points is a turn-based resource - its effect applies once per "Next Turn" while stacks remain (Haste/Slowed/Stunned). Every other stat is a continuous modifier, applied everywhere that stat is shown or used (AC, hit rolls, ability scores, hardness) for as long as this status is on the character (Exhaustion, a temporary Strength buff, Frightened's hit penalty).</p>
@@ -583,6 +615,7 @@ export function StatusPage() {
                 />
             </div>}
         </div>
+        </>}
 
         {isEditing && formData.public && !formData.isDefault && <div className="StatusPage-field">
             <span className="StatusPage-label">Subscribe your campaigns</span>

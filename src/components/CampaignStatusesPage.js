@@ -3,10 +3,11 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { arrayRemove, arrayUnion, collection, doc, getDocs, onSnapshot, or, query, updateDoc, where } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../utils/firebase';
+import { STATUS_TYPES, statusColorClass, statusColorStyle } from '../utils/statusStyle';
 import '../styles/CampaignClassesPage.scss';
 import Markdown from 'markdown-to-jsx';
 
-const POLARITY_FILTERS = ['all', 'buff', 'debuff', 'neutral'];
+const POLARITY_FILTERS = ['all', ...STATUS_TYPES.map(type => type.key)];
 
 // The director-facing counterpart to CampaignClassesPage.js, for statuses -
 // same three sections (default/subscribed/browsable), same
@@ -96,7 +97,7 @@ export function CampaignStatusesPage() {
                 </div>
                 <div className="CampaignClassesPage-grid CampaignClassesPage-grid-compact">
                     {defaultStatuses.map(s =>
-                        <div key={s.id} className={`CampaignClassesPage-card CampaignClassesPage-card-default CampaignClassesPage-card-${s.polarity || 'neutral'}`}>
+                        <div key={s.id} className={`CampaignClassesPage-card CampaignClassesPage-card-default CampaignClassesPage-card-${s.polarity || 'neutral'} ${statusColorClass(s, 'CampaignClassesPage-card')}`.trim()} style={statusColorStyle(s)}>
                             <div className="CampaignClassesPage-card-row">
                                 <span className="CampaignClassesPage-card-name">{s.name}</span>
                                 <span className="CampaignClassesPage-card-included-badge">Included</span>
@@ -115,7 +116,7 @@ export function CampaignStatusesPage() {
                 </div>
                 {subscribedStatuses.length > 0 ? <div className="CampaignClassesPage-grid">
                     {subscribedStatuses.map(s =>
-                        <div key={s.id} className={`CampaignClassesPage-card CampaignClassesPage-card-subscribed CampaignClassesPage-card-${s.polarity || 'neutral'}`}>
+                        <div key={s.id} className={`CampaignClassesPage-card CampaignClassesPage-card-subscribed CampaignClassesPage-card-${s.polarity || 'neutral'} ${statusColorClass(s, 'CampaignClassesPage-card')}`.trim()} style={statusColorStyle(s)}>
                             <div className="CampaignClassesPage-card-row">
                                 <span className="CampaignClassesPage-card-name">{s.name}</span>
                                 <span className="CampaignClassesPage-card-type">{s.polarity || 'neutral'}</span>
@@ -149,7 +150,7 @@ export function CampaignStatusesPage() {
                 </div>
                 {browseStatuses.length > 0 ? <div className="CampaignClassesPage-grid">
                     {browseStatuses.map(s =>
-                        <div key={s.id} className={`CampaignClassesPage-card CampaignClassesPage-card-${s.polarity || 'neutral'}`}>
+                        <div key={s.id} className={`CampaignClassesPage-card CampaignClassesPage-card-${s.polarity || 'neutral'} ${statusColorClass(s, 'CampaignClassesPage-card')}`.trim()} style={statusColorStyle(s)}>
                             <div className="CampaignClassesPage-card-row">
                                 <span className="CampaignClassesPage-card-name">{s.name}</span>
                                 <span className="CampaignClassesPage-card-type">{s.polarity || 'neutral'}</span>

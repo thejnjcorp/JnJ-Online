@@ -25,6 +25,7 @@ import { getEffectiveCharacterStats, getGrantedActions } from "../utils/statusEf
 import { getActionCategory } from "../utils/classActions";
 import { filterActions, filterOptions, isFilterActive, sortActions } from "../utils/tags";
 import { ActionViewControls } from "./ActionViewControls";
+import { StatusChip } from "./StatusChip";
 
 function isPassive(action) {
     const category = getActionCategory(action);
@@ -40,6 +41,7 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
     // character's own class actions - see utils/statusEffects.js.
     const effectiveStats = getEffectiveCharacterStats(characterPage);
     const allActions = [...characterPage.actions, ...getGrantedActions(characterPage)];
+    const statuses = characterPage.statuses || [];
     // How the Combat tab's lists are narrowed and ordered. A filter for something
     // the actions no longer have (a class change, say) is dropped rather than
     // silently hiding everything.
@@ -181,32 +183,39 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
             content: <>
                 
                 <div className="CharacterMainTab-action-points">
-                    <span className="CharacterMainTab-caps-label">
-                        <span className="CharacterMainTab-ap-full">Action Points</span>
-                        <span className="CharacterMainTab-ap-short" aria-hidden="true">AP</span>
-                    </span>{"\xa0\xa0"}
-                    {/* Wrapped in a real <button> (rather than just an onClick on the
-                        <img>) so mobile gets an actual 44x44 tap target - see
-                        .CharacterMainTab-circle-button in CharacterMainTab.scss. */}
-                    {[1, 2, 3, 4].map(n =>
-                        <button
-                            key={n}
-                            type="button"
-                            className="CharacterMainTab-circle-button"
-                            disabled={!hasWritePermissions}
-                            onClick={hasWritePermissions ? () => setActionPoints(n) : undefined}
-                        >
-                            <img
-                                src={characterPage.action_points >= n ? circleFilledIcon : circleIcon}
-                                alt={characterPage.action_points >= n ? 'circleFilled' : 'circle'}
-                                className="CharacterMainTab-circle"
-                                width={30}
-                            />
-                        </button>
-                    )}
-                    <span className="CharacterMainTab-action-points-label">
-                        {characterPage.action_points} / 4 available<span className="CharacterMainTab-ap-hint">{hasWritePermissions ? " · click a circle to spend" : ""}</span>
-                    </span>
+                    <div className="CharacterMainTab-ap-row">
+                        <span className="CharacterMainTab-caps-label">
+                            <span className="CharacterMainTab-ap-full">Action Points</span>
+                            <span className="CharacterMainTab-ap-short" aria-hidden="true">AP</span>
+                        </span>{"\xa0\xa0"}
+                        {/* Wrapped in a real <button> (rather than just an onClick on the
+                            <img>) so mobile gets an actual 44x44 tap target - see
+                            .CharacterMainTab-circle-button in CharacterMainTab.scss. */}
+                        {[1, 2, 3, 4].map(n =>
+                            <button
+                                key={n}
+                                type="button"
+                                className="CharacterMainTab-circle-button"
+                                disabled={!hasWritePermissions}
+                                onClick={hasWritePermissions ? () => setActionPoints(n) : undefined}
+                            >
+                                <img
+                                    src={characterPage.action_points >= n ? circleFilledIcon : circleIcon}
+                                    alt={characterPage.action_points >= n ? 'circleFilled' : 'circle'}
+                                    className="CharacterMainTab-circle"
+                                    width={30}
+                                />
+                            </button>
+                        )}
+                        <span className="CharacterMainTab-action-points-label">
+                            {characterPage.action_points} / 4 available<span className="CharacterMainTab-ap-hint">{hasWritePermissions ? " · click a circle to spend" : ""}</span>
+                        </span>
+                    </div>
+                    {/* Riding along with the action points, so the statuses in play stay in
+                        view while the actions scroll (their details are on the vitals card). */}
+                    {statuses.length > 0 && <div className="CharacterMainTab-status-strip" role="group" aria-label="Active statuses">
+                        {statuses.map(status => <StatusChip key={status.id} status={status}/>)}
+                    </div>}
                 </div>
                 <div className="CharacterMainTab-action-body">
                     <ActionViewControls actions={allActions} filter={activeFilter} onFilter={setCombatFilter} sort={combatSort} onSort={setCombatSort}/>

@@ -22,7 +22,7 @@ jest.mock('firebase/firestore', () => ({
 }));
 
 // eslint-disable-next-line import/first
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 // eslint-disable-next-line import/first
 import { AddStatusDialog } from '../../src/components/AddStatusDialog';
 
@@ -266,11 +266,172 @@ describe('AddStatusDialog', () => {
             mockGetDocs.mockResolvedValue(docsFrom([poisoned, blessed]));
             render(<AddStatusDialog characterPage={characterPage} userId="user-1" onClose={jest.fn()} />);
             await screen.findByRole('button', { name: 'Poisoned' });
+            expect(screen.getByRole('button', { name: 'Blessed' }).className).toMatch(/selected/); // the first by name
+
+            fireEvent.click(screen.getByRole('button', { name: 'Poisoned' }));
+
+            expect(screen.getByRole('button', { name: 'Debuff' }).className).toMatch(/selected/);
+            expect(screen.getByText('3')).toBeInTheDocument();
 
             fireEvent.click(screen.getByRole('button', { name: 'Blessed' }));
 
             expect(screen.getByRole('button', { name: 'Buff' }).className).toMatch(/selected/);
             expect(screen.getByText('1')).toBeInTheDocument();
+        });
+    });
+
+    describe('class-specific statuses', () => {
+        const stance = { id: 'status-stance', name: 'Stance: Heartstealer', polarity: 'token', defaultStacks: -1, description: 'In the stance.', classes: ['Fighter'], public: true, isDefault: true, effects: [{ stat: 'base_armor_class', trigger: 'passive', mode: 'flat', delta: 5 }] };
+        const rage = { id: 'status-rage', name: 'Rage', polarity: 'buff', defaultStacks: 1, classes: ['Fighter'], public: true, isDefault: true };
+
+        test('get their own section, above the general ones, named for the class', async () => {
+            mockGetDocs.mockResolvedValue(docsFrom([poisoned, stance, rage]));
+            render(<AddStatusDialog characterPage={characterPage} userId="user-1" onClose={jest.fn()} />);
+            await screen.findByRole('button', { name: 'Rage' });
+
+            const classSection = screen.getByText('Fighter statuses').parentElement;
+            const generalSection = screen.getByText('General statuses').parentElement;
+            expect(within(classSection).getAllByRole('button').map(b => b.textContent)).toEqual(['Rage', 'Stance: Heartstealer']);
+            expect(within(generalSection).getAllByRole('button').map(b => b.textContent)).toEqual(['Poisoned', 'Custom…']);
+            expect(classSection.compareDocumentPosition(generalSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+            expect(screen.queryByText('Choose a status')).not.toBeInTheDocument();
+        });
+
+        test('use the character\'s class_name when it has one', async () => {
+            mockGetDocs.mockResolvedValue(docsFrom([rage]));
+            render(<AddStatusDialog characterPage={{ ...characterPage, class: 'Old', class_name: 'Fighter' }} userId="user-1" onClose={jest.fn()} />);
+            await screen.findByRole('button', { name: 'Rage' });
+            expect(screen.getByText('Fighter statuses')).toBeInTheDocument();
+        });
+
+        test('the first class-specific status is the one selected to begin with', async () => {
+            mockGetDocs.mockResolvedValue(docsFrom([poisoned, stance, rage]));
+            render(<AddStatusDialog characterPage={characterPage} userId="user-1" onClose={jest.fn()} />);
+            await screen.findByRole('button', { name: 'Rage' });
+            expect(screen.getByRole('button', { name: 'Rage' }).className).toMatch(/selected/);
+        });
+
+        test('with none for this class there is a single "Choose a status" list', async () => {
+            mockGetDocs.mockResolvedValue(docsFrom([poisoned, wrongClass]));
+            render(<AddStatusDialog characterPage={characterPage} userId="user-1" onClose={jest.fn()} />);
+            await screen.findByRole('button', { name: 'Poisoned' });
+            expect(screen.getByText('Choose a status')).toBeInTheDocument();
+            expect(screen.queryByText('General statuses')).not.toBeInTheDocument();
+            expect(screen.queryByText('Fighter statuses')).not.toBeInTheDocument();
+        });
+
+        test('a status for a different class stays out of both sections', async () => {
+            mockGetDocs.mockResolvedValue(docsFrom([rage, wrongClass]));
+            render(<AddStatusDialog characterPage={characterPage} userId="user-1" onClose={jest.fn()} />);
+            await screen.findByRole('button', { name: 'Rage' });
+            expect(screen.queryByRole('button', { name: 'Blessed' })).not.toBeInTheDocument();
+        });
+    });
+
+    describe('Token statuses', () => {
+        const stance = { id: 'status-stance', name: 'Stance: Heartstealer', polarity: 'token', defaultStacks: -1, description: 'In the stance.', public: true, isDefault: true, effects: [{ stat: 'base_armor_class', trigger: 'passive', mode: 'flat', delta: 5 }], decaysPerTurn: true, grantedAction: { actionName: 'Free hit' } };
+
+        test('Token is one of the types to pick from', () => {
+            render(<AddStatusDialog characterPage={characterPage} userId={undefined} onClose={jest.fn()} />);
+            fireEvent.click(screen.getByRole('button', { name: 'Token' }));
+            expect(screen.getByRole('button', { name: 'Token' }).className).toMatch(/selected/);
+        });
+
+        test('a Token preset is selected as a token', async () => {
+            mockGetDocs.mockResolvedValue(docsFrom([stance]));
+            render(<AddStatusDialog characterPage={characterPage} userId="user-1" onClose={jest.fn()} />);
+            await screen.findByRole('button', { name: 'Stance: Heartstealer' });
+            expect(screen.getByRole('button', { name: 'Token' }).className).toMatch(/selected/);
+        });
+
+        test('is added with no effects, no action and no countdown, whatever its preset had', async () => {
+            mockGetDocs.mockResolvedValue(docsFrom([stance]));
+            const onUpdateStatuses = jest.fn().mockResolvedValue(undefined);
+            render(<AddStatusDialog characterPage={characterPage} userId="user-1" onClose={jest.fn()} onUpdateStatuses={onUpdateStatuses} />);
+            await screen.findByRole('button', { name: 'Stance: Heartstealer' });
+
+            fireEvent.click(screen.getByRole('button', { name: 'Add Status' }));
+
+            await waitFor(() => expect(onUpdateStatuses).toHaveBeenCalled());
+            expect(onUpdateStatuses.mock.calls[0][0].at(-1)).toMatchObject({ polarity: 'token', effects: [], decaysPerTurn: false, grantedAction: null });
+        });
+
+        test('changing a mechanical preset to Token drops its effects', async () => {
+            mockGetDocs.mockResolvedValue(docsFrom([poisoned]));
+            const onUpdateStatuses = jest.fn().mockResolvedValue(undefined);
+            render(<AddStatusDialog characterPage={characterPage} userId="user-1" onClose={jest.fn()} onUpdateStatuses={onUpdateStatuses} />);
+            await screen.findByRole('button', { name: 'Poisoned' });
+
+            fireEvent.click(screen.getByRole('button', { name: 'Token' }));
+            fireEvent.click(screen.getByRole('button', { name: 'Add Status' }));
+
+            await waitFor(() => expect(onUpdateStatuses).toHaveBeenCalled());
+            expect(onUpdateStatuses.mock.calls[0][0].at(-1)).toMatchObject({ polarity: 'token', effects: [] });
+        });
+    });
+
+    describe('status colors', () => {
+        const inspired = { id: 'status-inspired', name: 'Inspired', polarity: 'buff', defaultStacks: 1, public: true, isDefault: true, color: '#f5a623' };
+
+        test('start on the type\'s color for a status with none of its own', async () => {
+            mockGetDocs.mockResolvedValue(docsFrom([poisoned]));
+            render(<AddStatusDialog characterPage={characterPage} userId="user-1" onClose={jest.fn()} />);
+            await screen.findByRole('button', { name: 'Poisoned' });
+            expect(screen.getByText("Using the color of its type")).toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: "Use the type's color" })).not.toBeInTheDocument();
+        });
+
+        test('a preset with a color starts on it, and the chosen chip shows it', async () => {
+            mockGetDocs.mockResolvedValue(docsFrom([inspired]));
+            render(<AddStatusDialog characterPage={characterPage} userId="user-1" onClose={jest.fn()} />);
+            const chip = await screen.findByRole('button', { name: 'Inspired' });
+            expect(screen.getByLabelText('Status color')).toHaveValue('#f5a623');
+            expect(chip.style.getPropertyValue('--status-color')).toBe('#f5a623');
+        });
+
+        test('picking a color adds it to the status', async () => {
+            const onUpdateStatuses = jest.fn().mockResolvedValue(undefined);
+            render(<AddStatusDialog characterPage={characterPage} userId={undefined} onClose={jest.fn()} onUpdateStatuses={onUpdateStatuses} />);
+            fireEvent.change(screen.getByPlaceholderText('Status name'), { target: { value: 'Glowing' } });
+            fireEvent.change(screen.getByLabelText('Status color'), { target: { value: '#1abc9c' } });
+
+            fireEvent.click(screen.getByRole('button', { name: 'Add Status' }));
+
+            await waitFor(() => expect(onUpdateStatuses).toHaveBeenCalled());
+            expect(onUpdateStatuses.mock.calls[0][0].at(-1).color).toBe('#1abc9c');
+        });
+
+        test('"Use the type\'s color" takes a preset\'s color off again', async () => {
+            mockGetDocs.mockResolvedValue(docsFrom([inspired]));
+            const onUpdateStatuses = jest.fn().mockResolvedValue(undefined);
+            render(<AddStatusDialog characterPage={characterPage} userId="user-1" onClose={jest.fn()} onUpdateStatuses={onUpdateStatuses} />);
+            await screen.findByRole('button', { name: 'Inspired' });
+
+            fireEvent.click(screen.getByRole('button', { name: "Use the type's color" }));
+            fireEvent.click(screen.getByRole('button', { name: 'Add Status' }));
+
+            await waitFor(() => expect(onUpdateStatuses).toHaveBeenCalled());
+            expect(onUpdateStatuses.mock.calls[0][0].at(-1)).not.toHaveProperty('color');
+        });
+
+        test('a status with no color chosen is added without a color field', async () => {
+            const onUpdateStatuses = jest.fn().mockResolvedValue(undefined);
+            render(<AddStatusDialog characterPage={characterPage} userId={undefined} onClose={jest.fn()} onUpdateStatuses={onUpdateStatuses} />);
+            fireEvent.change(screen.getByPlaceholderText('Status name'), { target: { value: 'Plain' } });
+            fireEvent.click(screen.getByRole('button', { name: 'Add Status' }));
+
+            await waitFor(() => expect(onUpdateStatuses).toHaveBeenCalled());
+            expect(onUpdateStatuses.mock.calls[0][0].at(-1)).not.toHaveProperty('color');
+        });
+
+        test('switching to a preset without a color clears the previous one', async () => {
+            mockGetDocs.mockResolvedValue(docsFrom([inspired, poisoned]));
+            render(<AddStatusDialog characterPage={characterPage} userId="user-1" onClose={jest.fn()} />);
+            await screen.findByRole('button', { name: 'Inspired' });
+
+            fireEvent.click(screen.getByRole('button', { name: 'Poisoned' }));
+
+            expect(screen.getByText("Using the color of its type")).toBeInTheDocument();
         });
     });
 });

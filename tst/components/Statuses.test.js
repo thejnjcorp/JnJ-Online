@@ -51,6 +51,32 @@ describe('Statuses', () => {
         expect(screen.queryByText('0')).not.toBeInTheDocument();
     });
 
+    describe('chip colors', () => {
+        const chipOf = name => screen.getByText(name).closest('button');
+
+        test('a status uses the color of its type', () => {
+            render(<Statuses characterPage={characterPageWith([haste, { id: 's-t', name: 'Stance', polarity: 'token', stacks: -1 }])} userId="owner-1" />);
+            expect(chipOf('Haste')).toHaveClass('CharacterPage-status-chip-buff');
+            expect(chipOf('Stance')).toHaveClass('CharacterPage-status-chip-token');
+            expect(chipOf('Haste')).not.toHaveClass('CharacterPage-status-chip-custom');
+            expect(chipOf('Haste').style.getPropertyValue('--status-color')).toBe('');
+        });
+
+        test('a status with its own color wears it', () => {
+            render(<Statuses characterPage={characterPageWith([{ ...haste, color: '#1abc9c' }])} userId="owner-1" />);
+            expect(chipOf('Haste')).toHaveClass('CharacterPage-status-chip-custom');
+            expect(chipOf('Haste').style.getPropertyValue('--status-color')).toBe('#1abc9c');
+            expect(chipOf('Haste').style.getPropertyValue('--status-on-color')).toBe('#1b1b1f');
+        });
+
+        test('a token has its detail and stacks like any other status', () => {
+            render(<Statuses characterPage={characterPageWith([{ id: 's-t', name: 'Stance', polarity: 'token', stacks: -1, description: 'In the stance.' }])} userId="owner-1" />);
+            fireEvent.click(screen.getByText('Stance'));
+            expect(screen.getByText('In the stance.')).toBeInTheDocument();
+            expect(screen.getByText('None')).toBeInTheDocument();
+        });
+    });
+
     describe('a status with no stack count (-1)', () => {
         const prone = { id: 'status-3', name: 'Prone', polarity: 'debuff', stacks: -1, description: 'On the ground.' };
 

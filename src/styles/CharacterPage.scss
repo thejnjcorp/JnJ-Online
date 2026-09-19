@@ -552,7 +552,13 @@
     color: var(--jnj-color-arcane);
 }
 
-.CharacterPage-status-chip-buff, .CharacterPage-status-chip-debuff, .CharacterPage-status-chip-neutral {
+.CharacterPage-status-chip-token {
+    border-color: var(--jnj-color-success);
+    background: color-mix(in srgb, var(--jnj-color-success) 16%, transparent);
+    color: var(--jnj-color-success);
+}
+
+.CharacterPage-status-chip-buff, .CharacterPage-status-chip-debuff, .CharacterPage-status-chip-neutral, .CharacterPage-status-chip-token, .CharacterPage-status-chip-custom {
     // Scoped to the name specifically - a bare `span` here also matched the
     // stack-count badge, whose own (deliberately different) text color
     // needs to win instead.
@@ -571,6 +577,23 @@
 
 .CharacterPage-status-chip-neutral .CharacterPage-status-chip-badge {
     background: var(--jnj-color-arcane);
+}
+
+.CharacterPage-status-chip-token .CharacterPage-status-chip-badge {
+    background: var(--jnj-color-success);
+}
+
+// A status with its own colour (statusStyle.js sets --status-color inline).
+// Placed after the type colours so it wins over them.
+.CharacterPage-status-chip-custom {
+    border-color: var(--status-color);
+    background: color-mix(in srgb, var(--status-color) 16%, transparent);
+    color: var(--status-color);
+
+    .CharacterPage-status-chip-badge {
+        background: var(--status-color);
+        color: var(--status-on-color);
+    }
 }
 
 .CharacterPage-status-detail {
@@ -728,6 +751,28 @@
     gap: 6px;
 }
 
+.CharacterPage-status-dialog-color-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+
+    input[type='color'] {
+        width: 2.5rem;
+        height: 2rem;
+        padding: 0;
+        border: 1px solid var(--jnj-color-border-strong);
+        border-radius: var(--jnj-radius-sm);
+        background: transparent;
+        cursor: pointer;
+    }
+}
+
+.CharacterPage-status-dialog-hint {
+    font-size: 0.75rem;
+    color: var(--jnj-color-text-faint);
+}
+
 .CharacterPage-status-preset-chip {
     padding: 7px 13px;
     border-radius: var(--jnj-radius-pill);
@@ -755,6 +800,17 @@
     &.CharacterPage-status-chip-neutral {
         background: var(--jnj-color-arcane);
         border-color: var(--jnj-color-arcane);
+    }
+
+    &.CharacterPage-status-chip-token {
+        background: var(--jnj-color-success);
+        border-color: var(--jnj-color-success);
+    }
+
+    &.CharacterPage-status-chip-custom {
+        background: var(--status-color);
+        border-color: var(--status-color);
+        color: var(--status-on-color);
     }
 }
 

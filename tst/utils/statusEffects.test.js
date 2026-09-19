@@ -360,3 +360,33 @@ describe('advanceTurnStatuses', () => {
         expect(result.statuses).toEqual([{ ...status, stacks: 1 }]);
     });
 });
+
+describe('Token statuses', () => {
+    const effect = { stat: 'base_armor_class', trigger: 'passive', mode: 'flat', delta: 5 };
+    const turnEffect = { stat: 'action_points', trigger: 'turn_start', mode: 'flat', delta: 1 };
+    const token = { id: 't', name: 'Stance: Heartstealer', polarity: 'token', stacks: 2, effects: [effect, turnEffect], decaysPerTurn: true, grantedAction: { actionName: 'Free hit' } };
+
+    test('have no effects, even if some were left on the status', () => {
+        expect(getEffectsArray(token)).toEqual([]);
+    });
+
+    test('change no stats', () => {
+        const stats = getEffectiveCharacterStats({ base_armor_class: 10, statuses: [token] });
+        expect(stats.base_armor_class).toBe(10);
+    });
+
+    test('grant no action', () => {
+        expect(getGrantedActions({ statuses: [token] })).toEqual([]);
+    });
+
+    test('never count down and never change action points', () => {
+        const result = advanceTurnStatuses({ action_points: 2, statuses: [token] });
+        expect(result.action_points).toBe(2);
+        expect(result.statuses).toEqual([token]);
+    });
+
+    test('leave other statuses working as before', () => {
+        const buff = { id: 'b', name: 'Shield', polarity: 'buff', stacks: 1, effects: [effect] };
+        expect(getEffectiveCharacterStats({ base_armor_class: 10, statuses: [token, buff] }).base_armor_class).toBe(15);
+    });
+});

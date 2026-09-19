@@ -174,6 +174,134 @@ describe('StatusPage', () => {
                 expect(payload.grantedAction.description).toBe('Move *twice*.');
             });
 
+            describe('type', () => {
+                async function fillNameAndPickType(name, type) {
+                    signIn({ uid: 'user-1' });
+                    renderNew();
+                    await screen.findByLabelText('Name');
+                    fireEvent.change(screen.getByLabelText('Name'), { target: { value: name } });
+                    if (type) fireEvent.click(screen.getByRole('button', { name: type }));
+                }
+
+                test('offers Buff, Debuff, Neutral and Token', async () => {
+                    renderNew();
+                    ['Buff', 'Debuff', 'Neutral', 'Token'].forEach(type => expect(screen.getByRole('button', { name: type })).toBeInTheDocument());
+                });
+
+                test('choosing Token explains it and hides the mechanics (effects, countdown, granted action)', async () => {
+                    renderNew();
+                    expect(screen.getByRole('button', { name: '+ Add Effect' })).toBeInTheDocument();
+
+                    fireEvent.click(screen.getByRole('button', { name: 'Token' }));
+
+                    expect(screen.getByText(/A marker with no mechanical effect of its own/)).toBeInTheDocument();
+                    expect(screen.getByText(/A Token has none/)).toBeInTheDocument();
+                    expect(screen.queryByRole('button', { name: '+ Add Effect' })).not.toBeInTheDocument();
+                    expect(screen.queryByLabelText('Grants a special action while active')).not.toBeInTheDocument();
+                    expect(screen.queryByLabelText('Counts down by 1 stack each "Next Turn"')).not.toBeInTheDocument();
+                });
+
+                test('switching back from Token brings the mechanics back', async () => {
+                    renderNew();
+                    fireEvent.click(screen.getByRole('button', { name: 'Token' }));
+                    fireEvent.click(screen.getByRole('button', { name: 'Neutral' }));
+                    expect(screen.getByRole('button', { name: '+ Add Effect' })).toBeInTheDocument();
+                });
+
+                test('a Token is saved as one, with no effects, countdown or granted action, even if some had been set up first', async () => {
+                    signIn({ uid: 'user-1' });
+                    renderNew();
+                    await screen.findByLabelText('Name');
+                    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Stance: Heartstealer' } });
+                    fireEvent.click(screen.getByRole('button', { name: '+ Add Effect' }));
+                    fireEvent.click(screen.getByLabelText('Grants a special action while active'));
+                    fireEvent.change(screen.getByPlaceholderText('Action name'), { target: { value: 'Dash' } });
+                    fireEvent.click(screen.getByRole('button', { name: 'Token' }));
+
+                    fireEvent.click(screen.getByRole('button', { name: 'Create Status' }));
+
+                    await waitFor(() => expect(mockAddDoc).toHaveBeenCalled());
+                    const [, payload] = mockAddDoc.mock.calls[0];
+                    expect(payload).toMatchObject({ polarity: 'token', effects: [], decaysPerTurn: false, grantedAction: null });
+                });
+
+                test('a Token with a half-filled granted action still saves (the action is not kept)', async () => {
+                    signIn({ uid: 'user-1' });
+                    renderNew();
+                    await screen.findByLabelText('Name');
+                    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Stance' } });
+                    fireEvent.click(screen.getByLabelText('Grants a special action while active')); // no action name typed
+                    fireEvent.click(screen.getByRole('button', { name: 'Token' }));
+
+                    fireEvent.click(screen.getByRole('button', { name: 'Create Status' }));
+
+                    await waitFor(() => expect(mockAddDoc).toHaveBeenCalled());
+                    expect(window.alert).not.toHaveBeenCalledWith(expect.stringMatching(/granted action needs a name/));
+                });
+
+                test('the other types still save their effects', async () => {
+                    await fillNameAndPickType('Shield', 'Buff');
+                    fireEvent.click(screen.getByRole('button', { name: '+ Add Effect' }));
+
+                    fireEvent.click(screen.getByRole('button', { name: 'Create Status' }));
+
+                    await waitFor(() => expect(mockAddDoc).toHaveBeenCalled());
+                    const [, payload] = mockAddDoc.mock.calls[0];
+                    expect(payload.polarity).toBe('buff');
+                    expect(payload.effects).toHaveLength(1);
+                });
+            });
+
+            describe('color', () => {
+                async function createWithColor(color) {
+                    signIn({ uid: 'user-1' });
+                    renderNew();
+                    await screen.findByLabelText('Name');
+                    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Glowing' } });
+                    if (color) fireEvent.change(screen.getByLabelText('Status color'), { target: { value: color } });
+                    fireEvent.click(screen.getByRole('button', { name: 'Create Status' }));
+                    await waitFor(() => expect(mockAddDoc).toHaveBeenCalled());
+                    return mockAddDoc.mock.calls[0][1];
+                }
+
+                test('a status starts on its type\'s color', () => {
+                    renderNew();
+                    expect(screen.getByText(/Uses the color of its type/)).toBeInTheDocument();
+                    expect(screen.queryByRole('button', { name: "Use the type's color" })).not.toBeInTheDocument();
+                });
+
+                test('and saves no color of its own', async () => {
+                    expect((await createWithColor()).color).toBeNull();
+                });
+
+                test('a picked color is saved, and the preview shows it', async () => {
+                    signIn({ uid: 'user-1' });
+                    renderNew();
+                    await screen.findByLabelText('Name');
+                    fireEvent.change(screen.getByLabelText('Status color'), { target: { value: '#1abc9c' } });
+
+                    expect(screen.getByLabelText('Color preview').style.getPropertyValue('--status-color')).toBe('#1abc9c');
+                    expect(screen.getByText(/uses its own color/)).toBeInTheDocument();
+
+                    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Glowing' } });
+                    fireEvent.click(screen.getByRole('button', { name: 'Create Status' }));
+                    await waitFor(() => expect(mockAddDoc).toHaveBeenCalled());
+                    expect(mockAddDoc.mock.calls[0][1].color).toBe('#1abc9c');
+                });
+
+                test('"Use the type\'s color" goes back to the default', async () => {
+                    signIn({ uid: 'user-1' });
+                    renderNew();
+                    await screen.findByLabelText('Name');
+                    fireEvent.change(screen.getByLabelText('Status color'), { target: { value: '#1abc9c' } });
+
+                    fireEvent.click(screen.getByRole('button', { name: "Use the type's color" }));
+
+                    expect(screen.getByLabelText('Color preview').style.getPropertyValue('--status-color')).toBe('');
+                    expect(screen.queryByRole('button', { name: "Use the type's color" })).not.toBeInTheDocument();
+                });
+            });
+
             describe('default stacks / duration', () => {
                 async function createWithDefaultStacks(value, inspect = () => {}) {
                     signIn({ uid: 'user-1' });
@@ -407,6 +535,36 @@ describe('StatusPage', () => {
             await waitFor(() => expect(screen.getByLabelText('Name')).toBeDisabled());
             expect(screen.queryByRole('button', { name: 'Delete Status' })).not.toBeInTheDocument();
             expect(screen.getByRole('button', { name: 'Update Status' })).toBeDisabled();
+        });
+
+        test('loads a status\'s own color, and clearing it saves null', async () => {
+            signIn({ uid: 'user-1' });
+            renderExisting(statusDoc({ color: '#f5a623' }));
+            await screen.findByDisplayValue('Haste');
+            await waitFor(() => expect(screen.getByLabelText('Status color')).toHaveValue('#f5a623'));
+
+            fireEvent.click(screen.getByRole('button', { name: "Use the type's color" }));
+            fireEvent.click(screen.getByRole('button', { name: 'Update Status' }));
+
+            await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalled());
+            expect(mockUpdateDoc.mock.calls[0][1].color).toBeNull();
+        });
+
+        test('an existing Token opens with the mechanics hidden', async () => {
+            signIn({ uid: 'user-1' });
+            renderExisting(statusDoc({ name: 'Stance', polarity: 'token' }));
+            await screen.findByDisplayValue('Stance');
+            expect(screen.getByText(/A Token has none/)).toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: '+ Add Effect' })).not.toBeInTheDocument();
+        });
+
+        test('the type and color are read-only for a non-writer', async () => {
+            signIn({ uid: 'stranger-1' });
+            renderExisting(statusDoc({ canWrite: ['user-1'], color: '#f5a623' }));
+            await screen.findByDisplayValue('Haste');
+            await waitFor(() => expect(screen.getByLabelText('Status color')).toBeDisabled());
+            expect(screen.getByRole('button', { name: 'Token' })).toBeDisabled();
+            expect(screen.queryByRole('button', { name: "Use the type's color" })).not.toBeInTheDocument();
         });
 
         test('Update Status writes via updateDoc and alerts', async () => {

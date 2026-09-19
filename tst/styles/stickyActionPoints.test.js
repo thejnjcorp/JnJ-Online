@@ -30,6 +30,20 @@ describe('sticky action points', () => {
         expect(rule(phone, '.CharacterMainTab-ap-short')).toContain('display: inline');
     });
 
+    test('the statuses ride in the same sticky bar, in a row that scrolls rather than growing without limit', () => {
+        expect(rule(css, '.CharacterMainTab-action-points')).toContain('flex-direction: column');
+        const strip = rule(css, '.CharacterMainTab-status-strip');
+        expect(strip).toMatch(/max-height: [\d.]+rem/);
+        expect(strip).toContain('overflow-y: auto');
+    });
+
+    test('on phones the statuses are one row that scrolls sideways', () => {
+        const phone = css.slice(css.indexOf('@media (max-width: 640px)'));
+        const strip = rule(phone, '.CharacterMainTab-status-strip');
+        expect(strip).toContain('flex-wrap: nowrap');
+        expect(strip).toContain('overflow-x: auto');
+    });
+
     test('the tab content wrapper stops being a scroll container for tabs that ask (or sticky has nowhere to go)', () => {
         expect(rule(styles('TabContainer.scss'), '.TabContainer-content.TabContainer-content-unclipped')).toContain('overflow: visible');
     });

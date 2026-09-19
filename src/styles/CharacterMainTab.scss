@@ -73,14 +73,14 @@
 }
 
 .CharacterMainTab-action-points {
+    // A sticky wrapper: the action points row and, below it, the statuses in
+    // play (.CharacterMainTab-status-strip) - both stay in view while the
+    // actions scroll past.
     display: flex;
-    justify-content: start;
-    align-items: center;
-    gap: 6px;
+    flex-direction: column;
     padding-bottom: 18px;
     margin-bottom: 20px;
     border-bottom: 1px solid var(--jnj-color-border);
-    height: 5vh;
     // Stays at the top of whatever scrolls (the right column on desktop, the
     // page on phones) so the points are visible while scrolling the actions.
     // It bleeds out over .TabContainer-content's 30px side padding so the
@@ -95,6 +95,30 @@
     padding-left: 40px;
     padding-right: 30px;
     background-color: var(--jnj-color-bg-raised);
+}
+
+.CharacterMainTab-ap-row {
+    display: flex;
+    justify-content: start;
+    align-items: center;
+    gap: 6px;
+    height: 5vh;
+}
+
+.CharacterMainTab-status-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-top: 6px;
+    // A character with many statuses scrolls this row instead of eating the screen.
+    max-height: 5.5rem;
+    overflow-y: auto;
+
+    .CharacterPage-status-chip {
+        padding: 3px 10px;
+        font-size: 0.75rem;
+        cursor: default;
+    }
 }
 
 .CharacterMainTab-ap-short {
@@ -508,11 +532,27 @@
     // "click a circle" hint. The circles keep their 44px tap targets.
     .CharacterMainTab-action-points {
         top: 0; // on phones the page itself scrolls, with no padding above it
-        height: auto;
         padding-bottom: 8px;
         margin-bottom: 12px;
         padding-top: 4px;
+    }
+
+    .CharacterMainTab-ap-row {
+        height: auto;
         gap: 2px;
+    }
+
+    // One row of statuses that scrolls sideways, so the bar stays short.
+    .CharacterMainTab-status-strip {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding-bottom: 2px;
+
+        .CharacterPage-status-chip {
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
     }
 
     .CharacterMainTab-ap-full,

@@ -231,6 +231,21 @@ describe('CampaignStatusesPage', () => {
             expect(screen.getByText(/Every pool status matching this filter is already subscribed/)).toBeInTheDocument();
         });
 
+        test('a Token filter narrows the browse list to tokens, and a colored card wears its color', async () => {
+            const stance = { id: 'status-stance', name: 'Stance: Heartstealer', polarity: 'token', public: true, description: 'In the stance.', color: '#1abc9c' };
+            signIn({ uid: 'owner-1' }, [browsableStatus, stance]);
+            renderWithRouter(<CampaignStatusesPage />, { route: '/campaigns/camp-1/statuses' });
+            fireCampaignSnapshot({ campaign_name: 'The Iron Vale', director_uid: 'owner-1' });
+            await screen.findByText('Dazed');
+
+            fireEvent.click(screen.getByRole('button', { name: 'Token' }));
+
+            expect(screen.queryByText('Dazed')).not.toBeInTheDocument();
+            const card = screen.getByText('Stance: Heartstealer').closest('.CampaignClassesPage-card');
+            expect(card).toHaveClass('CampaignClassesPage-card-token', 'CampaignClassesPage-card-custom');
+            expect(card.style.getPropertyValue('--status-color')).toBe('#1abc9c');
+        });
+
         test('+ Add to Campaign writes arrayUnion for that status id', async () => {
             signIn({ uid: 'owner-1' }, [browsableStatus]);
             renderWithRouter(<CampaignStatusesPage />, { route: '/campaigns/camp-1/statuses' });
