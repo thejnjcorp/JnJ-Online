@@ -39,6 +39,8 @@ export function ActionPreview({ action, stats = {} }) {
 
     const [requestedView, setView] = useState('combat');
     const [phone, setPhone] = useState(false);
+    // A limited-use action's uses can be tried out here, though nothing is saved.
+    const [uses, setUses] = useState({});
     // The action's category or cost can change while previewing, which can
     // remove the view that was showing.
     const view = views.some(v => v.key === requestedView) ? requestedView : 'combat';
@@ -65,6 +67,8 @@ export function ActionPreview({ action, stats = {} }) {
         locked={view === 'locked'}
         hasWritePermissions={true}
         onUseAction={noop}
+        actionUses={uses}
+        onActionUsesChange={setUses}
     />;
 
     return <div className="ActionPreview">

@@ -106,6 +106,28 @@ describe('ActionPreview', () => {
         });
     });
 
+    describe('a limited-use action', () => {
+        const limited = { ...action, actionType: 'perDay', actionTypeCount: 1 };
+
+        test('shows its uses, which can be tried out in the preview (nothing is saved)', () => {
+            render(<ActionPreview action={limited} />);
+            expect(screen.getByText('1 / 1')).toBeInTheDocument();
+
+            fireEvent.click(screen.getByRole('button', { name: 'Use Action' }));
+
+            expect(screen.getByText('0 / 1')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'No uses left' })).toBeDisabled();
+
+            fireEvent.click(screen.getByRole('button', { name: 'Give back a use of Stab' }));
+            expect(screen.getByRole('button', { name: 'Use Action' })).toBeEnabled();
+        });
+
+        test('shows the DC with its stat', () => {
+            render(<ActionPreview action={{ ...limited, toHitBool: false, difficultyClass: 'Dex,0' }} />);
+            expect(screen.getByText(/DC 14 Dex check/)).toBeInTheDocument();
+        });
+    });
+
     describe('an action that is part-way through being edited', () => {
         test('an unnamed action is labelled rather than blank', () => {
             render(<ActionPreview action={{ ...action, actionName: '' }} />);

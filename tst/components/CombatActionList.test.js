@@ -48,9 +48,19 @@ describe('CombatActionList', () => {
             expect(screen.getByText(/\+5 to hit/)).toBeInTheDocument();
         });
 
-        test('a DC-check action shows "DC<n> check"', () => {
-            render(<CombatActionList actions={[dcAction]} {...STAT_PROPS} characterPage={characterPage} userId="owner-1" />);
-            expect(screen.getByText(/DC16 check/)).toBeInTheDocument();
+        test('a DC-check action shows "DC <n> <stat> check"', () => {
+            render(<CombatActionList actions={[{ ...dcAction, difficultyClass: 'Dex,2' }]} {...STAT_PROPS} characterPage={characterPage} userId="owner-1" />);
+            expect(screen.getByText(/DC 16 Dex check/)).toBeInTheDocument();
+        });
+
+        test('a DC with no stat named is just "DC <n> check"', () => {
+            render(<CombatActionList actions={[{ ...dcAction, difficultyClass: ',2' }]} {...STAT_PROPS} characterPage={characterPage} userId="owner-1" />);
+            expect(screen.getByText(/DC 16 check/)).toBeInTheDocument();
+        });
+
+        test('a DC with no modifier is the class DC', () => {
+            render(<CombatActionList actions={[{ ...dcAction, difficultyClass: 'Cha' }]} {...STAT_PROPS} characterPage={characterPage} userId="owner-1" />);
+            expect(screen.getByText(/DC 14 Cha check/)).toBeInTheDocument();
         });
 
         test('includes the action\'s range when present', () => {
@@ -70,9 +80,9 @@ describe('CombatActionList', () => {
     });
 
     describe('action point pips', () => {
-        test('shows one pip per action point cost when unlocked', () => {
+        test('shows the action cost in the subtitle when unlocked', () => {
             render(<CombatActionList actions={[{ ...toHitAction, actionCost: 3 }]} {...STAT_PROPS} characterPage={characterPage} userId="owner-1" />);
-            expect(screen.getAllByAltText('circle')).toHaveLength(3);
+            expect(screen.getByText(/3 Actions/)).toBeInTheDocument();
         });
 
         test('shows no pips when locked (replaced by the lock icon)', () => {
@@ -208,6 +218,103 @@ describe('CombatActionList', () => {
                 render(<CombatActionList actions={[toHitAction]} {...STAT_PROPS} characterPage={characterPage} userId="owner-1" canUseActions hasWritePermissions={false} />);
                 expect(screen.queryByRole('button')).not.toBeInTheDocument();
             });
+        });
+    });
+    describe('limited-use actions', () => {
+        const fleetfoot = { ...toHitAction, actionName: 'Fleetfoot', category: 'action', actionType: 'perDay', actionTypeCount: 2 };
+        const setup = (props = {}, action = fleetfoot) => {
+            const onActionUsesChange = jest.fn();
+            render(<CombatActionList actions={[action]} {...STAT_PROPS} characterPage={{ ...characterPage, action_uses: {} }} userId="owner-1" canUseActions actionUses={{}} onActionUsesChange={onActionUsesChange} {...props} />);
+            return onActionUsesChange;
+        };
+
+        test('shows how many uses are left, next to the Use button', () => {
+            setup({ actionUses: { Fleetfoot: 1 } });
+            expect(screen.getByText('1 / 2')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Use Action' })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Use Action' }).closest('.CombatActionListCard-footer')).toContainElement(screen.getByRole('group', { name: 'Uses of Fleetfoot' }));
+        });
+
+        test('using it spends a use along with the action points, in one write', () => {
+            setup({ actionUses: { Fleetfoot: 1 } });
+            fireEvent.click(screen.getByRole('button', { name: 'Use Action' }));
+            expect(mockUpdateDoc).toHaveBeenCalledTimes(1);
+            expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { action_points: 2, action_uses: { Fleetfoot: 2 } });
+        });
+
+        test('with none left the Use button is off, says so, and does nothing', () => {
+            setup({ actionUses: { Fleetfoot: 2 } });
+            const button = screen.getByRole('button', { name: 'No uses left' });
+            expect(button).toBeDisabled();
+            fireEvent.click(button);
+            expect(mockUpdateDoc).not.toHaveBeenCalled();
+            expect(button.closest('.CombatActionListCard')).toHaveClass('CombatActionListCard-spent');
+        });
+
+        test('a use given back by hand turns the Use button back on', () => {
+            const { rerender } = render(<CombatActionList actions={[fleetfoot]} {...STAT_PROPS} characterPage={characterPage} userId="owner-1" canUseActions actionUses={{ Fleetfoot: 2 }} onActionUsesChange={jest.fn()} />);
+            expect(screen.getByRole('button', { name: 'No uses left' })).toBeDisabled();
+            rerender(<CombatActionList actions={[fleetfoot]} {...STAT_PROPS} characterPage={characterPage} userId="owner-1" canUseActions actionUses={{ Fleetfoot: 1 }} onActionUsesChange={jest.fn()} />);
+            expect(screen.getByRole('button', { name: 'Use Action' })).toBeEnabled();
+        });
+
+        test('the uses can be corrected by hand, without using the action', () => {
+            const onActionUsesChange = setup({ actionUses: { Fleetfoot: 1 } });
+            fireEvent.click(screen.getByRole('button', { name: 'Spend a use of Fleetfoot' }));
+            expect(onActionUsesChange).toHaveBeenCalledWith({ Fleetfoot: 2 });
+            expect(mockUpdateDoc).not.toHaveBeenCalled();
+        });
+
+        test('someone who cannot edit the sheet sees the uses but cannot change them', () => {
+            setup({ userId: 'stranger-1', actionUses: { Fleetfoot: 1 } });
+            expect(screen.getByText('1 / 2')).toBeInTheDocument();
+            expect(screen.queryByRole('button')).not.toBeInTheDocument();
+        });
+
+        test('a passive with limited uses shows them without a Use button', () => {
+            setup({ canUseActions: false }, { ...fleetfoot, category: 'passive' });
+            expect(screen.getByText('2 / 2')).toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: /^Use/ })).not.toBeInTheDocument();
+        });
+
+        test('an action that is not limited shows no uses, and uses its points as before', () => {
+            setup({}, toHitAction);
+            expect(screen.queryByRole('group', { name: /Uses of/ })).not.toBeInTheDocument();
+            fireEvent.click(screen.getByRole('button', { name: 'Use Action' }));
+            expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { action_points: 2 });
+        });
+
+        test('a locked (unaffordable) card shows no tracker', () => {
+            setup({ locked: true, canUseActions: false });
+            expect(screen.queryByRole('group', { name: /Uses of/ })).not.toBeInTheDocument();
+        });
+
+        test('without onActionUsesChange (an enemy card, a preview) the uses are only the "2/Day" label', () => {
+            const onUseAction = jest.fn();
+            render(<CombatActionList actions={[fleetfoot]} {...STAT_PROPS} characterPage={characterPage} userId="owner-1" canUseActions onUseAction={onUseAction} />);
+            expect(screen.getByText(/2\/Day/)).toBeInTheDocument();
+            expect(screen.queryByRole('group', { name: /Uses of/ })).not.toBeInTheDocument();
+            fireEvent.click(screen.getByRole('button', { name: 'Use Action' }));
+            expect(onUseAction).toHaveBeenCalledWith(fleetfoot);
+        });
+
+        test('with an onUseAction override and tracking, the use is spent through onActionUsesChange', () => {
+            const onUseAction = jest.fn();
+            const onActionUsesChange = jest.fn();
+            render(<CombatActionList actions={[fleetfoot]} {...STAT_PROPS} characterPage={characterPage} hasWritePermissions canUseActions onUseAction={onUseAction} actionUses={{}} onActionUsesChange={onActionUsesChange} />);
+            fireEvent.click(screen.getByRole('button', { name: 'Use Action' }));
+            expect(onUseAction).toHaveBeenCalledWith(fleetfoot);
+            expect(onActionUsesChange).toHaveBeenCalledWith({ Fleetfoot: 1 });
+        });
+    });
+
+    describe('the footer', () => {
+        test('holds the Use button in the card (not pinned over its content), and is absent when there is nothing for it', () => {
+            const { container, rerender } = render(<CombatActionList actions={[toHitAction]} {...STAT_PROPS} characterPage={characterPage} userId="owner-1" canUseActions />);
+            expect(screen.getByRole('button', { name: 'Use Action' }).parentElement).toHaveClass('CombatActionListCard-footer');
+
+            rerender(<CombatActionList actions={[toHitAction]} {...STAT_PROPS} characterPage={characterPage} userId="owner-1" />);
+            expect(container.querySelector('.CombatActionListCard-footer')).not.toBeInTheDocument();
         });
     });
 });

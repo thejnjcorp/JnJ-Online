@@ -413,6 +413,90 @@ describe('CharacterMainTab', () => {
             expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { action_points: 3 });
         });
 
+        test('clicking the last filled circle spends it', () => {
+            render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />); // 2 action points
+            goToTab('Combat');
+
+            fireEvent.click(circleButtons()[1]); // the 2nd circle, the last one filled
+
+            expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { action_points: 1 });
+        });
+
+        test('a character can get to 0 action points by clicking the first circle when it is the only one filled', () => {
+            render(<CharacterMainTab characterPage={{ ...characterPage, action_points: 1 }} userId="owner-1" />);
+            goToTab('Combat');
+
+            fireEvent.click(circleButtons()[0]);
+
+            expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { action_points: 0 });
+        });
+
+        test('with 0 action points, the first circle sets 1 again', () => {
+            render(<CharacterMainTab characterPage={{ ...characterPage, action_points: 0 }} userId="owner-1" />);
+            goToTab('Combat');
+
+            fireEvent.click(circleButtons()[0]);
+
+            expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { action_points: 1 });
+        });
+
+        test('at 4 action points, the 4th circle spends one and an earlier one sets that many', () => {
+            render(<CharacterMainTab characterPage={{ ...characterPage, action_points: 4 }} userId="owner-1" />);
+            goToTab('Combat');
+
+            fireEvent.click(circleButtons()[3]);
+            expect(mockUpdateDoc).toHaveBeenLastCalledWith({ __doc: ['characters', 'char-1'] }, { action_points: 3 });
+
+            fireEvent.click(circleButtons()[1]);
+            expect(mockUpdateDoc).toHaveBeenLastCalledWith({ __doc: ['characters', 'char-1'] }, { action_points: 2 });
+        });
+
+        describe('limited-use actions', () => {
+            const limited = { actionName: 'Fleetfoot', actionCost: 1, category: 'action', toHitBool: true, toHit: 2, actionType: 'perDay', actionTypeCount: 1 };
+            const withLimited = (extra = {}) => ({ ...characterPage, actions: [...characterPage.actions, limited], ...extra });
+
+            test('track their uses on the card, and spending one is saved on the character', () => {
+                render(<CharacterMainTab characterPage={withLimited()} userId="owner-1" />);
+                goToTab('Combat');
+                expect(screen.getByText('1 / 1')).toBeInTheDocument();
+
+                fireEvent.click(screen.getByRole('button', { name: 'Spend a use of Fleetfoot' }));
+
+                expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { action_uses: { Fleetfoot: 1 } });
+            });
+
+            test('a spent-out action cannot be used until the uses are restored', () => {
+                render(<CharacterMainTab characterPage={withLimited({ action_uses: { Fleetfoot: 1 } })} userId="owner-1" />);
+                goToTab('Combat');
+                expect(screen.getByText('0 / 1')).toBeInTheDocument();
+                expect(screen.getByRole('button', { name: 'No uses left' })).toBeDisabled();
+
+                fireEvent.click(screen.getByRole('button', { name: 'Give back a use of Fleetfoot' }));
+
+                expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { action_uses: {} });
+            });
+
+            test('Reset uses gives them back for a new day', () => {
+                render(<CharacterMainTab characterPage={withLimited({ action_uses: { Fleetfoot: 1 } })} userId="owner-1" />);
+                goToTab('Combat');
+
+                fireEvent.click(screen.getByRole('button', { name: 'New day' }));
+
+                expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { action_uses: {} });
+            });
+
+            test('the reset row only shows for someone who can edit, and only when the character has limited actions', () => {
+                const { unmount } = render(<CharacterMainTab characterPage={withLimited()} userId="stranger-1" />);
+                goToTab('Combat');
+                expect(screen.queryByRole('group', { name: 'Reset limited uses' })).not.toBeInTheDocument();
+                unmount();
+
+                render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
+                goToTab('Combat');
+                expect(screen.queryByRole('group', { name: 'Reset limited uses' })).not.toBeInTheDocument();
+            });
+        });
+
         test('partitions actions into Passives, Available, and Unavailable by cost and category', () => {
             render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
             goToTab('Combat');

@@ -26,6 +26,8 @@ import { getActionCategory } from "../utils/classActions";
 import { filterActions, filterOptions, isFilterActive, sortActions } from "../utils/tags";
 import { ActionViewControls } from "./ActionViewControls";
 import { StatusChip } from "./StatusChip";
+import { ActionUsesReset } from "./ActionUses";
+import { isLimitedUse } from "../utils/actionUses";
 
 function isPassive(action) {
     const category = getActionCategory(action);
@@ -125,6 +127,14 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
         }
     }
 
+    // Clicking the last filled circle spends it, which is how a character gets to
+    // 0 (clicking circle 1 alone would only ever set 1).
+    const clickCircle = n => setActionPoints(characterPage.action_points === n ? n - 1 : n);
+
+    const actionUses = characterPage.action_uses || {};
+    const setActionUses = next => updateDoc(doc(db, "characters", characterPage.character_id), { action_uses: next }).catch(e => alert(e));
+    const limitedActions = allActions.filter(isLimitedUse);
+
     function setActionPoints(actionPoints) {
         try {
             updateDoc(doc(db, "characters", characterPage.character_id), {
@@ -197,7 +207,8 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                                 type="button"
                                 className="CharacterMainTab-circle-button"
                                 disabled={!hasWritePermissions}
-                                onClick={hasWritePermissions ? () => setActionPoints(n) : undefined}
+                                title={hasWritePermissions ? (characterPage.action_points === n ? `Spend this point (leaves ${n - 1})` : `Set to ${n}`) : undefined}
+                                onClick={hasWritePermissions ? () => clickCircle(n) : undefined}
                             >
                                 <img
                                     src={characterPage.action_points >= n ? circleFilledIcon : circleIcon}
@@ -218,6 +229,7 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                     </div>}
                 </div>
                 <div className="CharacterMainTab-action-body">
+                    {hasWritePermissions && limitedActions.length > 0 && <ActionUsesReset actions={limitedActions} uses={actionUses} onChange={setActionUses}/>}
                     <ActionViewControls actions={allActions} filter={activeFilter} onFilter={setCombatFilter} sort={combatSort} onSort={setCombatSort}/>
                     <span className="CharacterMainTab-caps-label CharacterMainTab-section-label">Passives</span>
                     {noMatch(passiveActions)}
@@ -232,6 +244,9 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                         baseHealingDiceType={characterPage.base_healing_dice_type}
                         canUseActions={false}
                         characterPage={characterPage}
+                        userId={userId}
+                        actionUses={actionUses}
+                        onActionUsesChange={setActionUses}
                     />
                     <span className="CharacterMainTab-caps-label CharacterMainTab-section-label">Available Actions</span>
                     {noMatch(availableActions)}
@@ -247,6 +262,8 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                         canUseActions={true}
                         characterPage={characterPage}
                         userId={userId}
+                        actionUses={actionUses}
+                        onActionUsesChange={setActionUses}
                     />
                     <span className="CharacterMainTab-caps-label CharacterMainTab-section-label">Unavailable — not enough Action Points</span>
                     {noMatch(unavailableActions)}

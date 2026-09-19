@@ -393,14 +393,14 @@ describe('ClassActionEditor', () => {
             expect(screen.queryByText('1 to fix')).not.toBeInTheDocument();
             expect(screen.getByDisplayValue('Stab')).toBeInTheDocument(); // still open
 
-            fireEvent.click(screen.getByRole('button', { name: /Stab/ }));
+            fireEvent.click(screen.getByText('Stab', { selector: '.ClassPage-action-name' }).closest('button'));
 
             expect(screen.queryByDisplayValue('Stab')).not.toBeInTheDocument();
         });
 
         test('a card cannot be collapsed while it still has a problem showing', () => {
             render_();
-            fireEvent.click(screen.getByRole('button', { name: /Unnamed/ }));
+            fireEvent.click(screen.getByText('Unnamed').closest('button'));
             expect(screen.getByText('Give this action a name.')).toBeInTheDocument();
         });
 

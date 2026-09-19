@@ -1,0 +1,70 @@
+.ActionUses {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    color: var(--jnj-color-text-muted);
+}
+
+.ActionUses-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--jnj-color-text-faint);
+}
+
+.ActionUses-count {
+    min-width: 3.25rem;
+    text-align: center;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--jnj-color-text);
+}
+
+.ActionUses-empty .ActionUses-count {
+    color: var(--jnj-color-danger);
+}
+
+.ActionUses-step {
+    width: 1.625rem;
+    height: 1.625rem;
+    padding: 0;
+    border-radius: var(--jnj-radius-sm);
+    border: 1px solid var(--jnj-color-border-strong);
+    background: var(--jnj-color-bg-raised);
+    color: var(--jnj-color-text);
+    font-size: 0.9375rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+
+    &:disabled {
+        opacity: 0.4;
+        cursor: default;
+    }
+}
+
+.ActionUsesReset {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.ActionUsesReset-button {
+    padding: 4px 12px;
+    border-radius: var(--jnj-radius-pill);
+    border: 1px solid var(--jnj-color-border-strong);
+    background: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:disabled {
+        opacity: 0.45;
+        cursor: default;
+    }
+}

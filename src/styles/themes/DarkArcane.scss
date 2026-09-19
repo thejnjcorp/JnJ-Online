@@ -47,6 +47,7 @@
   /* --- Type ---------------------------------------------------------- */
   /* Cinzel is loaded in public/index.html; the stack degrades to a serif if
      the webfont is blocked or offline. */
+  --jnj-action-font: 'Source Serif 4', 'Georgia', 'Times New Roman', serif;
   --jnj-font-display: 'Cinzel', 'Georgia', 'Times New Roman', serif;
   --jnj-font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
     'Roboto', 'Helvetica Neue', sans-serif;

@@ -14,6 +14,7 @@
 html[data-a11y-font] {
     --jnj-font-body: var(--jnj-a11y-font);
     --jnj-font-display: var(--jnj-a11y-font);
+    --jnj-action-font: var(--jnj-a11y-font);
 }
 
 html[data-a11y-font] :where(button, input, select, textarea) {

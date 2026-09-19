@@ -1,10 +1,11 @@
 import '../styles/CombatActionList.scss';
 import Markdown from 'markdown-to-jsx';
-import circleFilledIcon from '../icons/circle_filled.svg';
 import { ReactComponent as LockIcon } from '../icons/lock.svg';
 import { CharacterStatCalculator } from './CharacterStatCalculator';
 import { getActionCategory } from '../utils/classActions';
 import { namedTags } from '../utils/tags';
+import { isLimitedUse, spendUse, usesLeft } from '../utils/actionUses';
+import { ActionUsesTracker } from './ActionUses';
 import { updateDoc, doc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 
@@ -26,11 +27,27 @@ const OUTCOME_TABLE_ROWS = [
 // `character_id`/`characters` doc to write to, see DirectorsPage.js's
 // setEnemyActionPoints). Omitted, this defaults to exactly the original
 // character-doc behavior.
+// actionUses/onActionUsesChange turn on tracking of limited-use actions ("1/Day"):
+// how many uses each has left, shown with the Use button, which stops working at
+// none. Without onActionUsesChange (the Director's enemy cards, the new-character
+// preview) they are just a label.
+const FREQUENCY_SUFFIX = { perDay: 'Day', perShortRest: 'Short Rest', perCombat: 'Combat' };
+
+// "1/Day, 1 Action" style line under the name (frequency, then cost).
+function subtitleParts(action) {
+    const parts = [];
+    const suffix = FREQUENCY_SUFFIX[action.actionType];
+    if (suffix) parts.push(`${action.actionTypeCount || 1}/${suffix}`);
+    if (getActionCategory(action) === 'reaction') parts.push('Reaction');
+    else if (action.actionCost > 0) parts.push(`${action.actionCost} ${action.actionCost === 1 ? 'Action' : 'Actions'}`);
+    return parts;
+}
+
 function containsReaction(action){
     return getActionCategory(action) === 'reaction';
 }
 
-export function CombatActionList({actions, experience_points, baseArmorClass, baseHitModifier, baseDamageModifier, baseDamageDice, baseDamageDiceType, baseHealingDiceType, canUseActions = false, locked = false, characterPage, userId, onUseAction, hasWritePermissions: hasWritePermissionsProp}) {
+export function CombatActionList({actions, experience_points, baseArmorClass, baseHitModifier, baseDamageModifier, baseDamageDice, baseDamageDiceType, baseHealingDiceType, canUseActions = false, locked = false, characterPage, userId, onUseAction, hasWritePermissions: hasWritePermissionsProp, actionUses = {}, onActionUsesChange}) {
     let hasWritePermissions = false;
     if (hasWritePermissionsProp !== undefined) hasWritePermissions = hasWritePermissionsProp;
     else if (userId) hasWritePermissions = characterPage.userId === userId || characterPage.canWrite?.includes(userId);
@@ -44,8 +61,10 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
     function DifficultyClassInterperlator(difficultyClass) {
         const array = difficultyClass.split(",");
         const characterStats = CharacterStatCalculator(experience_points, baseArmorClass, baseHitModifier, baseDamageModifier, baseDamageDice, baseDamageDiceType, baseHealingDiceType);
-        const num = Number(array[1]) + characterStats.ClassDifficultyClass;
-        return "DC" + num + " check";
+        const num = (Number(array[1]) || 0) + characterStats.ClassDifficultyClass;
+        // "Dex,0" is a Dexterity check: "DC 14 Dex check"
+        const stat = (array[0] || '').trim();
+        return ["DC", num, stat, "check"].filter(part => part !== '').join(" ");
     }
 
     function metaText(action) {
@@ -65,13 +84,14 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
                 ? [{ tagInfo: 'Feat' }, ...namedTags(action)]
                 : namedTags(action);
             const hasOutcomeTable = action.outcomeTable && Object.values(action.outcomeTable).some(Boolean);
-            return <div className={locked ? 'CombatActionListCard CombatActionListCard-locked' : 'CombatActionListCard'} key={index}>
+            const tracked = !locked && Boolean(onActionUsesChange) && isLimitedUse(action);
+            const spentOut = tracked && usesLeft(action, actionUses) === 0;
+            const showUse = !locked && canUseActions && hasWritePermissions;
+            const cardClass = ['CombatActionListCard', locked && 'CombatActionListCard-locked', spentOut && 'CombatActionListCard-spent'].filter(Boolean).join(' ');
+            return <div className={cardClass} key={index}>
                 <div className='CombatActionListCard-header'>
                     {locked && <LockIcon className="CombatActionListCard-lock"/>}
                     <span className='CombatActionListCard-name'>{action.actionName}</span>
-                    {!locked && action.actionCost > 0 && Array.from({ length: action.actionCost }, (_, i) => (
-                        <img key={i} src={circleFilledIcon} alt='circle' className='CombatActionList-circle' width={13}/>
-                    ))}
                     {!locked && displayTags?.map((tag, i) =>
                         <span
                             className='CombatActionList-tag'
@@ -84,8 +104,8 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
                             </div>}
                         </span>
                     )}
-                    <span className='CombatActionListCard-meta'>{metaText(action)}</span>
                 </div>
+                <div className='CombatActionListCard-subtitle'>{[...subtitleParts(action), metaText(action)].join(' · ')}</div>
 
                 {!locked && (action.trigger || action.requirement) && <div className='CombatActionListCard-meta-lines'>
                     {action.trigger && <div className='CombatActionListCard-trigger'><strong>Trigger:</strong> {action.trigger}</div>}
@@ -105,19 +125,24 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
                     </tbody>
                 </table>}
 
-                {!locked && canUseActions && hasWritePermissions && <button type="button" className='CombatActionList-use-action-button' onClick={() => {
-                    try {
-                        if (onUseAction) {
-                            onUseAction(action);
-                        } else {
-                            updateDoc(doc(db, "characters", characterPage.character_id), {
-                                action_points: characterPage.action_points - action.actionCost
-                            })
+                {(tracked || showUse) && <div className='CombatActionListCard-footer'>
+                    {tracked && <ActionUsesTracker action={action} uses={actionUses} canEdit={hasWritePermissions} onChange={onActionUsesChange}/>}
+                    {showUse && <button type="button" className='CombatActionList-use-action-button' disabled={spentOut} onClick={() => {
+                        try {
+                            if (onUseAction) {
+                                onUseAction(action);
+                                if (tracked) onActionUsesChange(spendUse(actionUses, action));
+                            } else {
+                                updateDoc(doc(db, "characters", characterPage.character_id), {
+                                    action_points: characterPage.action_points - action.actionCost,
+                                    ...(tracked ? { action_uses: spendUse(actionUses, action) } : {}),
+                                })
+                            }
+                        } catch (e) {
+                            alert(e);
                         }
-                    } catch (e) {
-                        alert(e);
-                    }
-                }}>Use { containsReaction(action) ? "Reaction" : "Action"}</button>}
+                    }}>{spentOut ? "No uses left" : `Use ${containsReaction(action) ? "Reaction" : "Action"}`}</button>}
+                </div>}
             </div>;
         })}
     </div>

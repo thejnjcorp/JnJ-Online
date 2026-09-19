@@ -16,7 +16,9 @@
     background-color: var(--jnj-color-bg-sunken);
     border: 1px solid var(--jnj-color-border);
     border-radius: var(--jnj-radius-md);
-    padding: 12px 16px;
+    padding: 16px 20px;
+    text-align: left;
+    font-family: var(--jnj-action-font);
 }
 
 .CombatActionListCard-locked {
@@ -26,15 +28,8 @@
 .CombatActionListCard-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    // room for the always-visible pinned button - only actually needed when
-    // one renders, but a fixed reserve keeps the meta text from reflowing
-    // depending on whether this specific card has a button or not
-    padding-right: 6.875rem;
-}
-
-.CombatActionListCard-locked .CombatActionListCard-header {
-    padding-right: 0;
+    flex-wrap: wrap;
+    gap: 6px 10px;
 }
 
 .CombatActionListCard-lock {
@@ -43,20 +38,16 @@
 }
 
 .CombatActionListCard-name {
-    font-weight: 600;
-    font-size: 0.90625rem;
+    font-weight: 700;
+    font-size: 1.125rem;
+    line-height: 1.3;
     color: var(--jnj-color-text);
 }
 
-.CombatActionListCard-meta {
-    margin-left: auto;
-    flex-shrink: 0;
-    font-size: 0.78125rem;
+.CombatActionListCard-subtitle {
+    margin-top: 2px;
+    font-size: 0.875rem;
     color: var(--jnj-color-text-muted);
-}
-
-.CombatActionListCard-locked .CombatActionListCard-meta {
-    color: var(--jnj-color-text-faint);
 }
 
 .CombatActionListCard-meta-lines {
@@ -64,9 +55,8 @@
     flex-direction: column;
     gap: 2px;
     text-align: left;
-    margin-top: 6px;
-    padding-right: 110px;
-    font-size: 0.8125rem;
+    margin-top: 10px;
+    font-size: 0.9375rem;
     color: var(--jnj-color-text-muted);
 
     strong {
@@ -76,14 +66,18 @@
 
 .CombatActionListCard-description {
     text-align: left;
-    margin-top: 6px;
-    font-size: 0.8125rem;
-    line-height: 1.5;
-    color: var(--jnj-color-text-muted);
-    padding-right: 110px;
+    margin-top: 10px;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--jnj-color-text);
+
+    // the italic flavour line that opens most descriptions
+    > p:first-child > em:only-child {
+        color: var(--jnj-color-text-muted);
+    }
 
     p, ul, ol {
-        margin: 0 0 6px;
+        margin: 0 0 10px;
     }
 
     ul, ol {
@@ -99,10 +93,9 @@
 
 .CombatActionListCard-outcome-table {
     width: 100%;
-    max-width: calc(100% - 110px);
-    margin-top: 8px;
+    margin-top: 10px;
     border-collapse: collapse;
-    font-size: 0.75rem;
+    font-size: 0.875rem;
 
     th, td {
         border: 1px solid var(--jnj-color-border);
@@ -111,7 +104,7 @@
     }
 
     th {
-        width: 30%;
+        width: 9rem;
         font-weight: 600;
         color: var(--jnj-color-text);
     }
@@ -157,10 +150,23 @@
     }
 }
 
+.CombatActionListCard-spent {
+    opacity: 0.75;
+}
+
+// The uses left (when the action has them) on the left, the Use button on the
+// right - in the card's flow, so nothing above can run underneath it.
+.CombatActionListCard-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 16px;
+    margin-top: 12px;
+}
+
 .CombatActionList-use-action-button {
-    position: absolute;
-    right: 16px;
-    bottom: 12px;
+    margin-left: auto;
     padding: 7px 14px;
     border: none;
     border-radius: 6px;
@@ -171,30 +177,31 @@
     cursor: pointer;
     transition: background-color var(--jnj-transition);
 
-    &:hover {
+    &:hover:not(:disabled) {
         background-color: var(--jnj-color-accent-hover);
+    }
+
+    &:disabled {
+        background-color: var(--jnj-color-bg-raised);
+        color: var(--jnj-color-text-faint);
+        border: 1px solid var(--jnj-color-border);
+        cursor: default;
     }
 }
 
-// Mobile: the pinned bottom-right button doesn't leave enough room at this
-// width, and isn't a real touch-friendly target - it moves into normal card
-// flow as a full-width button below the description instead. Also applied
-// inside the class editor's "Phone" preview (ActionPreview.js), which can't
-// use the media query because the editor itself is on a wide screen.
+// Mobile: the Use button is a full-width, touch-friendly target under the uses
+// left. Also applied inside the class editor's "Phone" preview (ActionPreview.js),
+// which can't use the media query because the editor itself is on a wide screen.
 @mixin phone-layout {
-    .CombatActionListCard-header, .CombatActionListCard-description, .CombatActionListCard-meta-lines {
-        padding-right: 0;
-    }
-
-    .CombatActionListCard-outcome-table {
-        max-width: 100%;
+    .CombatActionListCard-footer {
+        flex-direction: column;
+        align-items: stretch;
     }
 
     .CombatActionList-use-action-button {
-        position: static;
         display: block;
         width: 100%;
-        margin-top: 10px;
+        margin-left: 0;
         padding: 10px 14px;
         text-align: center;
     }
