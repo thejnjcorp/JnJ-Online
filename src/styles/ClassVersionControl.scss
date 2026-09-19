@@ -8,7 +8,7 @@
     border: 1px solid var(--jnj-color-border-strong);
     background: rgba(0, 0, 0, 0.25);
     color: var(--jnj-color-text);
-    font-size: 11px;
+    font-size: 0.6875rem;
     font-weight: 600;
     cursor: pointer;
 
@@ -22,13 +22,13 @@
     border-radius: var(--jnj-radius-pill);
     background: var(--jnj-color-accent);
     color: var(--jnj-color-on-accent);
-    font-size: 10px;
+    font-size: 0.625rem;
     font-weight: 700;
 }
 
 .ClassVersionControl-fallback {
     margin-top: var(--jnj-space-1);
-    font-size: 11px;
+    font-size: 0.6875rem;
     color: var(--jnj-color-text-faint);
 }
 
@@ -62,19 +62,19 @@
     h3 {
         margin: 0 0 var(--jnj-space-3);
         font-family: var(--jnj-font-display);
-        font-size: 16px;
+        font-size: 1rem;
     }
 }
 
 .ClassVersionControl-hint {
     margin: 0 0 var(--jnj-space-3);
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--jnj-color-text-faint);
 }
 
 .ClassVersionControl-error {
     margin: 0 0 var(--jnj-space-3);
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--jnj-color-danger);
 }
 
@@ -111,12 +111,12 @@
 
 .ClassVersionControl-row-title {
     font-weight: 700;
-    font-size: 13px;
+    font-size: 0.8125rem;
 
     em {
         margin-left: 6px;
         font-style: normal;
-        font-size: 10px;
+        font-size: 0.625rem;
         font-weight: 600;
         color: var(--jnj-color-accent);
         text-transform: uppercase;
@@ -125,12 +125,12 @@
 }
 
 .ClassVersionControl-row-notes {
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--jnj-color-text-muted);
 }
 
 .ClassVersionControl-row-date {
-    font-size: 11px;
+    font-size: 0.6875rem;
     color: var(--jnj-color-text-faint);
 }
 
@@ -141,7 +141,7 @@
     border: none;
     background: var(--jnj-color-accent-soft);
     color: var(--jnj-color-accent);
-    font-size: 11px;
+    font-size: 0.6875rem;
     font-weight: 700;
     cursor: pointer;
 
@@ -157,7 +157,7 @@
     border: 1px solid var(--jnj-color-border);
     background: transparent;
     color: var(--jnj-color-text-muted);
-    font-size: 12px;
+    font-size: 0.75rem;
     font-weight: 600;
     cursor: pointer;
 }

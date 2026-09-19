@@ -4,6 +4,7 @@ import { auth, db } from '../utils/firebase';
 import { collection, where, getDoc, doc, getDocs, query, or, updateDoc } from 'firebase/firestore';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import defaultProfileIcon from '../icons/default_profile.svg';
+import { AccessibilitySettings } from './AccessibilitySettings';
 import '../styles/AccountPage.scss';
 
 async function getCampaigns(user) {
@@ -151,6 +152,8 @@ export function AccountPage({setUserInfo}) {
             </div>
             <button type="button" className="AccountPage-signout-button" onClick={handleSignOut}>Sign Out</button>
         </section>
+
+        <AccessibilitySettings/>
 
         <AccountSection
             title="Your Characters"

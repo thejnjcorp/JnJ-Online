@@ -1,0 +1,225 @@
+/*
+ * Reading & vision settings (see utils/accessibility.js). All of these are off
+ * by default and only take effect when utils/accessibility.js puts a class,
+ * attribute or custom property on <html> - nothing here changes the site for
+ * someone who hasn't turned a setting on.
+ *
+ * Text size needs no rule of its own: the root font size in index.scss reads
+ * --jnj-text-scale, and every font size in the app is rem-based.
+ */
+
+/* --- Reading font --------------------------------------------------------
+   Replaces the display font too: the decorative caps face is the hardest one
+   for dyslexic readers. Form controls don't inherit a font on their own. */
+html[data-a11y-font] {
+    --jnj-font-body: var(--jnj-a11y-font);
+    --jnj-font-display: var(--jnj-a11y-font);
+}
+
+html[data-a11y-font] :where(button, input, select, textarea) {
+    font-family: var(--jnj-font-body);
+}
+
+/* --- Text adapt mode -----------------------------------------------------
+   Set whenever a setting changes how big or how wide the text is (a larger
+   size, another font, roomier spacing). The layouts were tuned for the default
+   metrics, so give the text a way to fit: break a word rather than let it
+   overflow, and let the single-line names that would otherwise be cut off
+   with an ellipsis wrap onto more lines. */
+html.A11y-text-adapt body * {
+    overflow-wrap: break-word;
+}
+
+/* Rows that put a name beside badges and other details: wrap the details
+   onto their own line rather than squeezing the name into a sliver. */
+html.A11y-text-adapt :is(
+    .CombatActionListCard-header,
+    .ClassPage-action-card-header,
+    .ClassListPage-card-header,
+    .CampaignClassesPage-card-row,
+    .StatusListPage-card-header
+) {
+    flex-wrap: wrap;
+}
+
+html.A11y-text-adapt :is(
+    .CharacterPage-masthead-name,
+    .CharacterPage-masthead-subline,
+    .ClassListPage-card-weapons,
+    .DirectorsPage-sidebar-char-name,
+    .DirectorsPage-panel-title-name,
+    .DirectorsPage-entity-chip-title,
+    .SkillsAndFlaws-name
+) {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    height: auto;
+}
+
+/* The tab strip is as wide as its labels, which stops being on-screen once the
+   text is big: wrap it. On a phone it is normally pinned to the bottom of the
+   screen at a fixed height, where a wrapped, taller bar would cover the page
+   (and its overflowing tabs can't be reached), so it flows inline instead. */
+html.A11y-text-adapt .TabContainer .TabContainer-tabs {
+    flex-wrap: wrap;
+    max-width: 100%;
+}
+
+@media (max-width: 640px) {
+    html.A11y-text-adapt .TabContainer .TabContainer-tabs {
+        position: static;
+        gap: 6px;
+        border-top: none;
+        border-radius: var(--jnj-radius-lg);
+    }
+
+    html.A11y-text-adapt .TabContainer .TabButton {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    html.A11y-text-adapt .TabContainer .TabContainer-content {
+        padding-bottom: 26px;
+    }
+}
+
+/* A page's root sizes itself to its content, and an input's built-in width
+   grows with its font, so a big enough font would push the page past the edge
+   of the screen. Keep both within the space there is. */
+html.A11y-text-adapt .App-body > * {
+    max-width: 100%;
+}
+
+html.A11y-text-adapt :is(input, select, textarea) {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Page roots sized to 100vw include the width of a vertical scrollbar, which
+   only appears once the bigger text makes the page taller than the screen. */
+html.A11y-text-adapt :is(.NewCharacterPage, .CharacterPage, .DirectorsPage, .Blog, .App-banner) {
+    width: 100%;
+}
+
+/* The character sheet's vitals are two columns beside a fixed-width portrait,
+   which is only wide enough at the default text size. One column (the same
+   layout the phone view uses) keeps the text out of the portrait. */
+html.A11y-text-adapt .CharacterPage-vitals {
+    grid-template-columns: 1fr;
+}
+
+html.A11y-text-adapt .CharacterPage-vitals-xp-hardness-label {
+    width: auto;
+    min-width: 4rem;
+}
+
+/* The bar is a fixed 10vh with one row of links, which is only right at the
+   default text size. Let it grow, and wrap its contents, instead of running
+   off the edge of the screen. */
+html.A11y-text-adapt .App-header {
+    height: auto;
+}
+
+html.A11y-text-adapt .Navigation {
+    height: auto;
+    flex-wrap: wrap;
+    row-gap: var(--jnj-space-2);
+    padding-top: var(--jnj-space-2);
+    padding-bottom: var(--jnj-space-2);
+}
+
+html.A11y-text-adapt .Navigation-links {
+    flex-wrap: wrap;
+    flex-basis: auto;
+}
+
+html.A11y-text-adapt .Navigation-brand-name {
+    white-space: normal;
+}
+
+/* --- Roomier spacing -----------------------------------------------------
+   The WCAG text-spacing measures: 1.5+ line height and a little extra
+   letter and word spacing. !important because components set their own.
+   Single-line form controls keep their own line height so a field with a
+   fixed height doesn't clip what's typed into it. */
+html.A11y-spacing body *:not(input):not(select) {
+    line-height: 1.6 !important;
+}
+
+html.A11y-spacing body,
+html.A11y-spacing body * {
+    letter-spacing: 0.03em !important;
+    word-spacing: 0.1em !important;
+}
+
+/* --- Plain text -----------------------------------------------------------
+   Long runs of capitals and italics are both harder to read. */
+html.A11y-plain-text body,
+html.A11y-plain-text body * {
+    text-transform: none !important;
+    font-style: normal !important;
+    font-variant-caps: normal !important;
+}
+
+/* --- High contrast --------------------------------------------------------
+   Darker surfaces, near-white text, and borders that meet the 3:1 minimum for
+   non-text contrast. Every text token is 6.3:1 or better on every surface. */
+html.A11y-contrast {
+    --jnj-color-bg: #0b0b0e;
+    --jnj-color-bg-sunken: #050507;
+    --jnj-color-bg-raised: #141419;
+    --jnj-color-bg-hover: #22222b;
+
+    --jnj-color-border: #77778a;
+    --jnj-color-border-strong: #a9a9bd;
+
+    --jnj-color-text: #ffffff;
+    --jnj-color-text-muted: #e2ded6;
+    --jnj-color-text-faint: #c4bfb6;
+    --jnj-color-on-accent: #0b0b0e;
+
+    --jnj-color-accent: #f0c860;
+    --jnj-color-accent-hover: #ffd97a;
+    --jnj-color-arcane: #b39dff;
+    --jnj-color-ember: #ff9a66;
+    --jnj-color-danger: #ff7b74;
+    --jnj-color-success: #86dc98;
+
+    --jnj-color-nav-bg: #000000;
+    --jnj-color-nav-text: #ffffff;
+    --jnj-color-nav-border: #77778a;
+}
+
+html.A11y-contrast :focus-visible {
+    outline: 3px solid #ffffff !important;
+    outline-offset: 2px !important;
+}
+
+html.A11y-contrast a {
+    text-decoration: underline;
+}
+
+/* --- Reduce motion ----------------------------------------------------------
+   The account setting, and the operating system's own preference. */
+html.A11y-reduce-motion,
+html.A11y-reduce-motion *,
+html.A11y-reduce-motion *::before,
+html.A11y-reduce-motion *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html,
+    html *,
+    html *::before,
+    html *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+    }
+}

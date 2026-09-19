@@ -28,7 +28,7 @@
     // room for the always-visible pinned button - only actually needed when
     // one renders, but a fixed reserve keeps the meta text from reflowing
     // depending on whether this specific card has a button or not
-    padding-right: 110px;
+    padding-right: 6.875rem;
 }
 
 .CombatActionListCard-locked .CombatActionListCard-header {
@@ -42,14 +42,14 @@
 
 .CombatActionListCard-name {
     font-weight: 600;
-    font-size: 14.5px;
+    font-size: 0.90625rem;
     color: var(--jnj-color-text);
 }
 
 .CombatActionListCard-meta {
     margin-left: auto;
     flex-shrink: 0;
-    font-size: 12.5px;
+    font-size: 0.78125rem;
     color: var(--jnj-color-text-muted);
 }
 
@@ -63,7 +63,7 @@
     gap: 2px;
     margin-top: 6px;
     padding-right: 110px;
-    font-size: 13px;
+    font-size: 0.8125rem;
     color: var(--jnj-color-text-muted);
 
     strong {
@@ -73,7 +73,7 @@
 
 .CombatActionListCard-description {
     margin-top: 6px;
-    font-size: 13px;
+    font-size: 0.8125rem;
     line-height: 1.5;
     color: var(--jnj-color-text-muted);
     padding-right: 110px;
@@ -96,7 +96,7 @@
     max-width: calc(100% - 110px);
     margin-top: 8px;
     border-collapse: collapse;
-    font-size: 12px;
+    font-size: 0.75rem;
 
     th, td {
         border: 1px solid var(--jnj-color-border);
@@ -120,7 +120,7 @@
     position: relative;
     border-radius: var(--jnj-radius-pill);
     padding: 2px 8px;
-    font-size: 10.5px;
+    font-size: 0.65625rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -161,7 +161,7 @@
     background-color: var(--jnj-color-accent);
     color: var(--jnj-color-on-accent);
     font-weight: 700;
-    font-size: 12.5px;
+    font-size: 0.78125rem;
     cursor: pointer;
     transition: background-color var(--jnj-transition);
 

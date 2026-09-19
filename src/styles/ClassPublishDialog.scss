@@ -32,7 +32,7 @@
 
 .ClassPublishDialog-title {
     font-family: var(--jnj-font-display);
-    font-size: 16px;
+    font-size: 1rem;
 }
 
 .ClassPublishDialog-notes {
@@ -52,7 +52,7 @@
     border: 1px solid var(--jnj-color-border);
     background: transparent;
     color: var(--jnj-color-text-muted);
-    font-size: 12px;
+    font-size: 0.75rem;
     font-weight: 600;
     cursor: pointer;
 }
@@ -63,7 +63,7 @@
     border: none;
     background: var(--jnj-color-accent);
     color: var(--jnj-color-on-accent);
-    font-size: 12px;
+    font-size: 0.75rem;
     font-weight: 700;
     cursor: pointer;
 

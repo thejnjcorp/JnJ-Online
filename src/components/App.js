@@ -17,6 +17,7 @@ import { RaceListPage } from './RaceListPage.js';
 import { StatusPage } from './StatusPage.js';
 import { StatusListPage } from './StatusListPage.js';
 import { auth } from '../utils/firebase.js';
+import { AccessibilityProvider } from '../utils/AccessibilityContext.js';
 
 // The site shell (nav + home) reads its palette from a theme class - see
 // styles/themes/BaseTheme.scss for the token contract and DarkArcane.scss for
@@ -55,6 +56,7 @@ function App() {
   );
 
   return (
+    <AccessibilityProvider userId={userInfo?.uid}>
     <BrowserRouter basename='JnJ-Online'>
       <div className="App">
         <div className='App-header'>
@@ -81,7 +83,7 @@ function App() {
         </div>
       </div>
     </BrowserRouter>
-    
+    </AccessibilityProvider>
   );
 }
 

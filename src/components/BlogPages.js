@@ -112,7 +112,7 @@ const BlogPages =(props)=> {
                             type="button"
                             style={{
                                 fontFamily: 'inherit',
-                                fontSize: 24,
+                                fontSize: '1.5rem',
                                 color: 'inherit',
                                 background: 'none',
                                 border: 'none',

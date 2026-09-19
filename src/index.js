@@ -4,6 +4,10 @@ import './styles/index.scss';
 import App from './components/App';
 import reportWebVitals from './reportWebVitals';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { applyAccessibility, loadCachedSettings } from './utils/accessibility';
+
+// Before the first paint, so reading settings never flash the default look.
+applyAccessibility(loadCachedSettings());
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 const queryClient = new QueryClient();

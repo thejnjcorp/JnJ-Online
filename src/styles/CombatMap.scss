@@ -20,7 +20,7 @@
     // authored against - so labels stay legible whether the map renders
     // small (a phone-width tab) or large (a wide desktop window), instead of
     // a flat px size that's only ever right at one specific rendered width.
-    font-size: calc(11px * var(--map-scale, 1));
+    font-size: calc(11px * var(--map-scale, 1) * var(--jnj-text-scale, 1));
     font-weight: bold;
     color: var(--jnj-color-text);
     text-align: center;
@@ -63,7 +63,7 @@
 }
 
 .CombatMap-tile-title {
-    font-size: calc(11px * var(--map-scale, 1));
+    font-size: calc(11px * var(--map-scale, 1) * var(--jnj-text-scale, 1));
     color: var(--jnj-color-text);
     white-space: nowrap;
     overflow: hidden;

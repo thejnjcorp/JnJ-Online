@@ -125,6 +125,12 @@ describe('AccountPage', () => {
             expect(await screen.findByText('Sam Google')).toBeInTheDocument();
         });
 
+        test('has a Reading & vision section for the account', async () => {
+            signIn({ uid: 'user-1', email: 'sam@example.com' });
+            renderWithRouter(<AccountPage setUserInfo={jest.fn()} />);
+            expect(await screen.findByRole('heading', { name: 'Reading & vision' })).toBeInTheDocument();
+        });
+
         test('queries characters by playerId and campaigns the user can read or write', async () => {
             signIn(authUser);
             renderWithRouter(<AccountPage setUserInfo={jest.fn()} />);

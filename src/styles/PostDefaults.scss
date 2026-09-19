@@ -14,7 +14,7 @@
 .PostColumn-header-default {
     color: var(--jnj-color-text);
     font-weight: bold;
-    font-size: 30px;
+    font-size: 1.875rem;
     height: calc(max(10%, 40px));
 }
 
@@ -25,13 +25,13 @@
 }
 
 .PostCardTitle-default {
-    font-size: 20px;
+    font-size: 1.25rem;
     color: var(--jnj-color-text);
     font-weight: bold;
 }
 
 .PostCardContent-default {
-    font-size: 16px;
+    font-size: 1rem;
     color: var(--jnj-color-text-muted);
 }
 

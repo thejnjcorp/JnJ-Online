@@ -10,6 +10,9 @@ jest.mock('../../src/utils/firebase.js', () => ({
     auth: { onAuthStateChanged: (cb) => { mockAuthCallback = cb; return mockUnsubscribe; } },
 }));
 
+jest.mock('../../src/utils/AccessibilityContext.js', () => ({
+    AccessibilityProvider: ({ userId, children }) => <div data-testid="a11y-provider" data-user={userId || ''}>{children}</div>,
+}));
 jest.mock('../../src/components/Homepage', () => ({ Homepage: () => <div>Homepage-stub</div> }));
 jest.mock('../../src/components/Blog', () => ({ Blog: ({ markdowns }) => <div>Blog-stub:{(markdowns || []).join(',')}</div> }));
 jest.mock('../../src/components/Navigation', () => ({ Navigation: ({ userInfo }) => <div>Navigation-stub:{userInfo ? userInfo.uid : 'signed-out'}</div> }));
@@ -129,6 +132,16 @@ describe('App', () => {
         act(() => mockAuthCallback({ uid: 'user-123' }));
 
         expect(await screen.findByText('Navigation-stub:user-123')).toBeInTheDocument();
+    });
+
+    test('gives the reading-settings provider the signed-in user, so their saved settings load', async () => {
+        await renderApp('/home');
+        expect(screen.getByTestId('a11y-provider')).toHaveAttribute('data-user', '');
+
+        act(() => mockAuthCallback({ uid: 'user-123' }));
+
+        expect(screen.getByTestId('a11y-provider')).toHaveAttribute('data-user', 'user-123');
+        expect(screen.getByTestId('a11y-provider')).toContainElement(screen.getByText('Homepage-stub'));
     });
 
     test('unsubscribes the auth listener on unmount', async () => {

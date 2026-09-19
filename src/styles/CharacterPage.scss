@@ -123,7 +123,7 @@
 
 .CharacterPage-masthead-name {
     font-family: var(--jnj-font-display);
-    font-size: 30px;
+    font-size: 1.875rem;
     font-weight: 600;
     color: #fff;
     line-height: 1.1;
@@ -134,7 +134,7 @@
 
 .CharacterPage-masthead-subline {
     margin-top: 6px;
-    font-size: 12.5px;
+    font-size: 0.78125rem;
     color: rgba(255, 255, 255, 0.72);
     text-transform: uppercase;
     letter-spacing: 0.09em;
@@ -257,7 +257,7 @@
 }
 
 .CharacterPage-vitals-label {
-    font-size: 11px;
+    font-size: 0.6875rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.09em;
@@ -292,13 +292,13 @@
     margin-left: auto;
     display: flex;
     align-items: baseline;
-    font-size: 20px;
+    font-size: 1.25rem;
     font-weight: 700;
     color: var(--jnj-color-text);
 }
 
 .CharacterPage-vitals-health-input {
-    width: 44px;
+    width: 2.75rem;
     background: transparent;
     border: none;
     color: inherit;
@@ -325,10 +325,10 @@
 }
 
 .CharacterPage-vitals-health-input-max {
-    font-size: 14px;
+    font-size: 0.875rem;
     font-weight: 500;
     color: var(--jnj-color-text-muted);
-    width: 36px;
+    width: 2.25rem;
 }
 
 .CharacterPage-vitals-health-bar {
@@ -349,12 +349,12 @@
     align-items: center;
     gap: 6px;
     margin-top: 8px;
-    font-size: 11.5px;
+    font-size: 0.71875rem;
     color: var(--jnj-color-text-muted);
 }
 
 .CharacterPage-vitals-temp-input {
-    width: 34px;
+    width: 2.125rem;
     background: var(--jnj-color-bg-sunken);
     border: none;
     border-radius: 4px;
@@ -412,7 +412,7 @@
     align-items: center;
     justify-content: center;
     padding-top: 4px;
-    font-size: 21px;
+    font-size: 1.3125rem;
     font-weight: 700;
     color: var(--jnj-color-text);
 }
@@ -422,7 +422,7 @@
     flex-direction: column;
     gap: 10px;
     flex-shrink: 0;
-    font-size: 13px;
+    font-size: 0.8125rem;
 }
 
 .CharacterPage-vitals-xp-hardness-row {
@@ -432,12 +432,12 @@
 }
 
 .CharacterPage-vitals-xp-hardness-label {
-    width: 64px;
+    width: 4rem;
 }
 
 .CharacterPage-vitals-pill-input {
-    min-width: 34px;
-    width: 44px;
+    min-width: 2.125rem;
+    width: 2.75rem;
     padding: 3px 10px;
     border-radius: 6px;
     background: var(--jnj-color-bg-sunken);
@@ -503,7 +503,7 @@
     border: 1px solid var(--jnj-color-border-strong);
     background: var(--jnj-color-bg-sunken);
     color: var(--jnj-color-text);
-    font-size: 12.5px;
+    font-size: 0.78125rem;
     font-weight: 600;
     cursor: pointer;
 }
@@ -529,7 +529,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 10px;
+    font-size: 0.625rem;
     font-weight: 700;
     padding: 0 4px;
 }
@@ -583,7 +583,7 @@
 }
 
 .CharacterPage-status-detail-description {
-    font-size: 12.5px;
+    font-size: 0.78125rem;
     line-height: 1.5;
     color: var(--jnj-color-text-muted);
 }
@@ -597,7 +597,7 @@
 }
 
 .CharacterPage-status-detail-stacks-value {
-    font-size: 13px;
+    font-size: 0.8125rem;
     font-weight: 700;
     color: var(--jnj-color-text);
 }
@@ -614,7 +614,7 @@
         border: 1px solid var(--jnj-color-border-strong);
         background: var(--jnj-color-bg-raised);
         color: var(--jnj-color-text);
-        font-size: 13px;
+        font-size: 0.8125rem;
         font-weight: 700;
         line-height: 1;
         cursor: pointer;
@@ -626,7 +626,7 @@
     }
 
     span {
-        font-size: 13px;
+        font-size: 0.8125rem;
         font-weight: 700;
         min-width: 14px;
         text-align: center;
@@ -641,7 +641,7 @@
     background: none;
     border: none;
     color: var(--jnj-color-danger);
-    font-size: 11.5px;
+    font-size: 0.71875rem;
     font-weight: 600;
     padding: 0;
     cursor: pointer;
@@ -656,7 +656,7 @@
     border: 1px dashed var(--jnj-color-border-strong);
     background: transparent;
     color: var(--jnj-color-text-muted);
-    font-size: 12.5px;
+    font-size: 0.78125rem;
     font-weight: 600;
     cursor: pointer;
     transition: border-color var(--jnj-transition), color var(--jnj-transition);
@@ -703,7 +703,7 @@
     h3 {
         margin: 0;
         font-family: var(--jnj-font-display);
-        font-size: 19px;
+        font-size: 1.1875rem;
         font-weight: 600;
     }
 }
@@ -726,7 +726,7 @@
     border: 1px solid var(--jnj-color-border-strong);
     background: var(--jnj-color-bg-sunken);
     color: var(--jnj-color-text-muted);
-    font-size: 12.5px;
+    font-size: 0.78125rem;
     font-weight: 600;
     cursor: pointer;
 }
@@ -783,13 +783,13 @@
         border: 1px solid var(--jnj-color-border-strong);
         background: var(--jnj-color-bg-sunken);
         color: var(--jnj-color-text);
-        font-size: 16px;
+        font-size: 1rem;
         font-weight: 700;
         cursor: pointer;
     }
 
     span {
-        font-size: 16px;
+        font-size: 1rem;
         font-weight: 700;
         min-width: 20px;
         text-align: center;
@@ -800,7 +800,7 @@
     padding: 12px 14px;
     border-radius: var(--jnj-radius-md);
     background: var(--jnj-color-bg-sunken);
-    font-size: 12.5px;
+    font-size: 0.78125rem;
     line-height: 1.5;
     color: var(--jnj-color-text-muted);
 }
@@ -818,7 +818,7 @@
     background: transparent;
     color: var(--jnj-color-text);
     font-weight: 600;
-    font-size: 13.5px;
+    font-size: 0.84375rem;
     cursor: pointer;
 }
 
@@ -866,7 +866,7 @@
 }
 
 .CharacterPage-portrait-placeholder-text {
-    font-size: 11.5px;
+    font-size: 0.71875rem;
     text-align: center;
     padding: 0 16px;
     color: var(--jnj-color-text-faint);
@@ -921,11 +921,11 @@
 }
 
 .CharacterPage-vitals-score-input {
-    width: 34px;
+    width: 2.125rem;
     background: transparent;
     border: none;
     color: var(--jnj-color-text);
-    font-size: 16px;
+    font-size: 1rem;
     font-weight: 700;
     text-align: center;
     font-family: inherit;
@@ -951,7 +951,7 @@
    to their (unmodified) editable input - see the comment on that component
    for why the input itself never shows the adjusted number. */
 .CharacterPage-vitals-delta-badge {
-    font-size: 10.5px;
+    font-size: 0.65625rem;
     font-weight: 700;
     padding: 1px 5px;
     border-radius: var(--jnj-radius-pill);
@@ -1003,7 +1003,7 @@
         border-radius: var(--jnj-radius-md);
         background: var(--jnj-color-bg-sunken);
         color: var(--jnj-color-text);
-        font-size: 13px;
+        font-size: 0.8125rem;
         font-weight: 600;
         cursor: pointer;
     }
@@ -1048,7 +1048,7 @@
         border-style: none;
         background: var(--jnj-color-bg-hover);
         color: var(--jnj-color-text);
-        font-size: 18px;
+        font-size: 1.125rem;
         line-height: 1;
         cursor: pointer;
     }
@@ -1073,11 +1073,11 @@
     }
 
     .CharacterPage-masthead-name {
-        font-size: 21px;
+        font-size: 1.3125rem;
     }
 
     .CharacterPage-masthead-subline {
-        font-size: 11px;
+        font-size: 0.6875rem;
     }
 
     /* No portrait column on mobile - the narrow vitals card never had the

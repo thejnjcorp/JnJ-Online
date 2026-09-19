@@ -49,6 +49,23 @@ describe('scrollToProblem', () => {
         expect(screen.getByLabelText('Cost')).toHaveFocus();
     });
 
+    test('scrolls smoothly, unless the account setting or the operating system asks for reduced motion', () => {
+        const behaviors = [];
+        window.HTMLElement.prototype.scrollIntoView = function (options) { behaviors.push(options.behavior); };
+        window.matchMedia = () => ({ matches: false });
+        page();
+
+        scrollToProblem();
+        document.documentElement.classList.add('A11y-reduce-motion');
+        scrollToProblem();
+        document.documentElement.classList.remove('A11y-reduce-motion');
+        window.matchMedia = query => ({ matches: query === '(prefers-reduced-motion: reduce)' });
+        scrollToProblem();
+
+        expect(behaviors).toEqual(['smooth', 'auto', 'auto']);
+        delete window.matchMedia;
+    });
+
     test('an id that is no longer on the page (already fixed) is quietly ignored', () => {
         page();
         expect(() => scrollToProblem('gone')).not.toThrow();

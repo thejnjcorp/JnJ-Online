@@ -1,3 +1,4 @@
+import { prefersReducedMotion } from '../utils/accessibility';
 import '../styles/ClassPage.scss';
 
 // Props to spread onto an input (or the wrapper of a pill group) so a
@@ -24,7 +25,7 @@ function findProblemElement(problemId) {
 export function scrollToProblem(problemId) {
     const element = problemId ? findProblemElement(problemId) : document.querySelector('[data-problem]');
     if (!element) return;
-    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    element.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'center' });
     if (typeof element.focus === 'function') element.focus({ preventScroll: true });
 }
 

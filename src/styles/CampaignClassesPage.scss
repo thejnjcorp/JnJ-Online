@@ -31,7 +31,7 @@
     border: none;
     background: none;
     color: var(--jnj-color-text-muted);
-    font-size: 12.5px;
+    font-size: 0.78125rem;
     cursor: pointer;
     transition: color var(--jnj-transition);
 
@@ -49,7 +49,7 @@
 .CampaignClassesPage-subtitle {
     margin: var(--jnj-space-2) 0 0;
     color: var(--jnj-color-text-muted);
-    font-size: 13.5px;
+    font-size: 0.84375rem;
 }
 
 .CampaignClassesPage-readonly-banner {
@@ -58,7 +58,7 @@
     background: var(--jnj-color-bg-sunken);
     border: 1px solid var(--jnj-color-border);
     color: var(--jnj-color-text-muted);
-    font-size: 12.5px;
+    font-size: 0.78125rem;
 }
 
 .CampaignClassesPage-section {
@@ -81,12 +81,12 @@
 
 .CampaignClassesPage-section-title {
     font-family: var(--jnj-font-display);
-    font-size: 15.5px;
+    font-size: 0.96875rem;
 }
 
 .CampaignClassesPage-section-hint {
     color: var(--jnj-color-text-faint);
-    font-size: 11.5px;
+    font-size: 0.71875rem;
 }
 
 .CampaignClassesPage-filters {
@@ -98,7 +98,7 @@
 .CampaignClassesPage-filter-button {
     padding: 5px 12px;
     border-radius: var(--jnj-radius-pill);
-    font-size: 11.5px;
+    font-size: 0.71875rem;
     font-weight: 600;
     border: 1px solid var(--jnj-color-border-strong);
     background: var(--jnj-color-bg-sunken);
@@ -171,7 +171,7 @@
 
 .CampaignClassesPage-card-name {
     font-weight: 600;
-    font-size: 13.5px;
+    font-size: 0.84375rem;
     flex: 1;
     min-width: 0;
 }
@@ -181,24 +181,24 @@
     border-radius: var(--jnj-radius-pill);
     background: var(--jnj-color-accent-soft);
     color: var(--jnj-color-accent);
-    font-size: 9.5px;
+    font-size: 0.59375rem;
     font-weight: 700;
     flex-shrink: 0;
 }
 
 .CampaignClassesPage-card-type {
-    font-size: 11px;
+    font-size: 0.6875rem;
     color: var(--jnj-color-text-faint);
 }
 
 .CampaignClassesPage-card-author {
-    font-size: 11px;
+    font-size: 0.6875rem;
     color: var(--jnj-color-text-faint);
     flex-shrink: 0;
 }
 
 .CampaignClassesPage-card-description {
-    font-size: 12px;
+    font-size: 0.75rem;
     line-height: 1.5;
     color: var(--jnj-color-text-muted);
     display: -webkit-box;
@@ -214,7 +214,7 @@
     border: 1px solid var(--jnj-color-danger);
     background: transparent;
     color: var(--jnj-color-danger);
-    font-size: 11.5px;
+    font-size: 0.71875rem;
     font-weight: 600;
     cursor: pointer;
     transition: background-color var(--jnj-transition), color var(--jnj-transition);
@@ -232,7 +232,7 @@
     border: none;
     background: var(--jnj-color-accent);
     color: var(--jnj-color-on-accent);
-    font-size: 11.5px;
+    font-size: 0.71875rem;
     font-weight: 700;
     cursor: pointer;
     transition: background-color var(--jnj-transition);
@@ -243,7 +243,7 @@
 }
 
 .CampaignClassesPage-hint {
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--jnj-color-text-muted);
 }
 
@@ -254,5 +254,5 @@
     border: 1px solid var(--jnj-color-border);
     border-radius: var(--jnj-radius-lg);
     color: var(--jnj-color-text-muted);
-    font-size: 13px;
+    font-size: 0.8125rem;
 }

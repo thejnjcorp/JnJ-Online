@@ -61,7 +61,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     font-family: var(--jnj-font-display);
-    font-size: 14.5px;
+    font-size: 0.90625rem;
     font-weight: 600;
 }
 
@@ -117,7 +117,7 @@
     border: 1px solid var(--jnj-color-accent);
     background: transparent;
     color: var(--jnj-color-accent);
-    font-size: 11px;
+    font-size: 0.6875rem;
     font-weight: 600;
     cursor: pointer;
     transition: background-color var(--jnj-transition), color var(--jnj-transition);
@@ -188,7 +188,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     font-family: var(--jnj-font-display);
-    font-size: 16px;
+    font-size: 1rem;
 }
 
 .DirectorsPage-panel-collapse-button {
@@ -261,18 +261,18 @@
 
 .DirectorsPage-entity-name {
     font-weight: 600;
-    font-size: 14.5px;
+    font-size: 0.90625rem;
 }
 
 .DirectorsPage-entity-subtitle {
     color: var(--jnj-color-text-faint);
-    font-size: 11.5px;
+    font-size: 0.71875rem;
 }
 
 .DirectorsPage-entity-hp-label {
     margin-left: auto;
     color: var(--jnj-color-text-muted);
-    font-size: 12px;
+    font-size: 0.75rem;
     white-space: nowrap;
 }
 
@@ -315,7 +315,7 @@
 
 .DirectorsPage-temp-hp-label {
     color: var(--jnj-color-text-faint);
-    font-size: 10.5px;
+    font-size: 0.65625rem;
     margin-top: 3px;
 }
 
@@ -345,7 +345,7 @@
     align-items: center;
     justify-content: center;
     padding-top: 2px;
-    font-size: 11px;
+    font-size: 0.6875rem;
     font-weight: 700;
     color: var(--jnj-color-text);
 }
@@ -372,7 +372,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 5px;
-    font-size: 10.5px;
+    font-size: 0.65625rem;
 }
 
 .DirectorsPage-weak-chip {
@@ -400,7 +400,7 @@
     border: none;
     padding: 0;
     color: var(--jnj-color-text-muted);
-    font-size: 11px;
+    font-size: 0.6875rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -423,7 +423,7 @@
     border: none;
     border-radius: var(--jnj-radius-pill);
     font-weight: 600;
-    font-size: 12px;
+    font-size: 0.75rem;
     background: transparent;
     color: var(--jnj-color-text-muted);
     cursor: pointer;
@@ -454,7 +454,7 @@
     border-radius: var(--jnj-radius-pill);
     background: var(--jnj-color-bg-sunken);
     color: var(--jnj-color-text);
-    font-size: 11.5px;
+    font-size: 0.71875rem;
     font-weight: 600;
     cursor: pointer;
     transition: border-color var(--jnj-transition), color var(--jnj-transition);
@@ -501,7 +501,7 @@
 
 .DirectorsPage-tracker-empty {
     color: var(--jnj-color-text-faint);
-    font-size: 11px;
+    font-size: 0.6875rem;
     line-height: 1.5;
 }
 
@@ -527,7 +527,7 @@
 }
 
 .DirectorsPage-zone-title {
-    font-size: 11px;
+    font-size: 0.6875rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -567,7 +567,7 @@
     border-radius: 6px;
     background: var(--jnj-color-accent-soft);
     border: 1px solid var(--jnj-color-accent);
-    font-size: 12px;
+    font-size: 0.75rem;
     font-weight: 600;
     color: var(--jnj-color-text);
 }

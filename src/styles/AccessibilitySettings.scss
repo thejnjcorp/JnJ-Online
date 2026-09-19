@@ -1,0 +1,130 @@
+.AccessibilitySettings {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-4);
+}
+
+/* The shared section header is a single row; with big text or a narrow screen
+   the Reset button has to wrap below the title instead of being squeezed. */
+.AccessibilitySettings .AccountPage-section-header {
+    flex-wrap: wrap;
+    gap: var(--jnj-space-2) var(--jnj-space-4);
+}
+
+.AccessibilitySettings-intro {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--jnj-color-text-muted);
+}
+
+.AccessibilitySettings-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--jnj-color-text-muted);
+    margin-bottom: var(--jnj-space-2);
+}
+
+.AccessibilitySettings-choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--jnj-space-2);
+}
+
+.AccessibilitySettings-choice {
+    padding: 8px 16px;
+    border-radius: var(--jnj-radius-pill);
+    border: 1px solid var(--jnj-color-border-strong);
+    background: transparent;
+    color: var(--jnj-color-text);
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover {
+        border-color: var(--jnj-color-accent);
+    }
+}
+
+.AccessibilitySettings-choice-selected {
+    background: var(--jnj-color-accent);
+    border-color: var(--jnj-color-accent);
+    color: var(--jnj-color-on-accent);
+}
+
+.AccessibilitySettings-toggles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: var(--jnj-space-3);
+}
+
+.AccessibilitySettings-toggle {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--jnj-space-3);
+    padding: var(--jnj-space-3);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-md);
+    background: var(--jnj-color-bg-sunken);
+    cursor: pointer;
+
+    input {
+        width: 18px;
+        height: 18px;
+        margin-top: 2px;
+        accent-color: var(--jnj-color-accent);
+        flex-shrink: 0;
+    }
+}
+
+.AccessibilitySettings-toggle-title {
+    display: block;
+    font-size: 0.9375rem;
+    font-weight: 600;
+}
+
+.AccessibilitySettings-toggle-hint {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.8125rem;
+    color: var(--jnj-color-text-muted);
+}
+
+.AccessibilitySettings-sample {
+    padding: var(--jnj-space-4);
+    border: 1px dashed var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-md);
+
+    p {
+        margin: 0;
+        font-size: 1rem;
+        line-height: 1.5;
+    }
+}
+
+.AccessibilitySettings-reset {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 6px 14px;
+    border-radius: var(--jnj-radius-pill);
+    border: 1px solid var(--jnj-color-border-strong);
+    background: transparent;
+    color: var(--jnj-color-text);
+    font-family: inherit;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:disabled {
+        opacity: 0.45;
+        cursor: default;
+    }
+}
+
+.AccessibilitySettings-status {
+    min-height: 1.2em;
+    font-size: 0.8125rem;
+    color: var(--jnj-color-text-muted);
+}
