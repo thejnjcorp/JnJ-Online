@@ -63,6 +63,12 @@ beforeEach(() => {
 });
 
 describe('Campaigns', () => {
+    test('every /campaigns/... page sits in a full-width shell (an unstyled wrapper shrank them to fit their contents)', () => {
+        const { container } = renderWithRouter(<Campaigns />, { route: '/campaigns' });
+        expect(container.firstElementChild).toHaveClass('Campaigns-shell');
+        expect(container.querySelector('.Campaigns-shell > .Campaigns-page')).not.toBeNull();
+    });
+
     describe('on /campaigns', () => {
         test('shows a loading state before the auth listener has resolved', () => {
             renderWithRouter(<Campaigns />, { route: '/campaigns' });

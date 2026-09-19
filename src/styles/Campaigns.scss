@@ -1,12 +1,19 @@
 /* Same height-capped, internally-scrolling idiom as every other list page -
    see the note on .Homepage in styles/Homepage.scss. */
+/* Wraps every /campaigns/... page (list, one campaign, new campaign...): a
+   full-width box for them to size against, instead of one that shrinks to
+   fit whatever is inside. */
+.Campaigns-shell {
+    width: 100%;
+}
+
 .Campaigns-page {
     box-sizing: border-box;
     width: 100%;
-    max-width: var(--jnj-content-max);
+    max-width: var(--jnj-content-max-wide);
     height: calc(100vh - var(--jnj-nav-height));
     margin: 0 auto;
-    padding: var(--jnj-space-6) var(--jnj-space-5);
+    padding: var(--jnj-space-6) var(--jnj-gutter-wide);
     overflow-y: auto;
     text-align: left;
 }

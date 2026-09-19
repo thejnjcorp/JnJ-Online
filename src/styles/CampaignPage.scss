@@ -1,10 +1,10 @@
 .CampaignPage {
     box-sizing: border-box;
     width: 100%;
-    max-width: var(--jnj-content-max);
+    max-width: var(--jnj-content-max-wide);
     height: calc(100vh - var(--jnj-nav-height));
     margin: 0 auto;
-    padding: var(--jnj-space-6) var(--jnj-space-5);
+    padding: var(--jnj-space-6) var(--jnj-gutter-wide);
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -53,6 +53,7 @@
 
 .CampaignPage-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: var(--jnj-space-3);
 }
 
@@ -74,6 +75,22 @@
 }
 
 /* --- Players --------------------------------------------------------------*/
+/* Players beside Admins + Danger Zone once there is room for two columns
+   (about 1150px of page, more with bigger text); below that it is one column
+   in the same order as before. */
+.CampaignPage-lower {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 36rem), 1fr));
+    gap: var(--jnj-space-5);
+    align-items: start;
+}
+
+.CampaignPage-side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-5);
+}
+
 .CampaignPage-players {
     display: flex;
     flex-direction: column;

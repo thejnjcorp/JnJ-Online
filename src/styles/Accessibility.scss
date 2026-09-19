@@ -86,12 +86,15 @@ html.A11y-text-adapt .TabContainer .TabContainer-tabs {
 
 /* A page's root sizes itself to its content, and an input's built-in width
    grows with its font, so a big enough font would push the page past the edge
-   of the screen. Keep both within the space there is. */
-html.A11y-text-adapt .App-body > * {
+   of the screen. Keep both within the space there is.
+   :where() gives these zero specificity on purpose: a page that already sets
+   its own max-width (the centred content column on the Account page, say)
+   must keep it, and only pages with none get this cap. */
+:where(html.A11y-text-adapt) :where(.App-body) > * {
     max-width: 100%;
 }
 
-html.A11y-text-adapt :is(input, select, textarea) {
+:where(html.A11y-text-adapt) :where(input, select, textarea) {
     max-width: 100%;
     box-sizing: border-box;
 }

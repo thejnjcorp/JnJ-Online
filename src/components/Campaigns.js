@@ -55,7 +55,7 @@ export function Campaigns() {
         navigate("/campaigns/new");
     }
 
-    return <div>
+    return <div className="Campaigns-shell">
         {location.pathname.endsWith('campaigns') && <div className="Campaigns-page">
             <div className="Campaigns-title">
                 Campaigns

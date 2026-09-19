@@ -14,8 +14,8 @@
 .ClassListPage-inner {
     box-sizing: border-box;
     width: 100%;
-    max-width: var(--jnj-content-max);
-    padding: var(--jnj-space-6) var(--jnj-space-5);
+    max-width: var(--jnj-content-max-wide);
+    padding: var(--jnj-space-6) var(--jnj-gutter-wide);
     display: flex;
     flex-direction: column;
     gap: var(--jnj-space-5);

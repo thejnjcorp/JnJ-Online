@@ -70,6 +70,12 @@ beforeEach(() => {
 });
 
 describe('Characters', () => {
+    test('the page sits in a full-width shell (an unstyled wrapper shrank it to the width of its cards)', () => {
+        const { container } = renderWithRouter(<Characters />, { route: '/characters' });
+        expect(container.firstElementChild).toHaveClass('Characters-shell');
+        expect(container.querySelector('.Characters-shell > .Character-page')).not.toBeNull();
+    });
+
     describe('on /characters', () => {
         test('shows a loading state before the auth listener resolves', () => {
             renderWithRouter(<Characters />, { route: '/characters' });

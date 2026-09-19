@@ -104,6 +104,12 @@
   --jnj-nav-height: 10vh;
   --jnj-nav-height-min: 52px;
   --jnj-content-max: 1200px;
+  /* Pages made of cards and lists use the whole screen (their grids add columns
+     as it widens); this only stops them stretching absurdly on an ultra-wide
+     monitor. The side gutter is the page's normal 24px up to 1200px wide, then
+     grows gently with the screen. */
+  --jnj-content-max-wide: 2400px;
+  --jnj-gutter-wide: clamp(var(--jnj-space-5), calc(var(--jnj-space-5) + (100vw - 1200px) / 20), var(--jnj-space-8));
 
   /* --- Motion -------------------------------------------------------- */
   --jnj-transition: 160ms ease;

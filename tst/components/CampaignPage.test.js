@@ -136,6 +136,31 @@ describe('CampaignPage', () => {
             expect(screen.getByText('DocAdminManager-stub:["director-1"]:user-1')).toBeInTheDocument();
         });
 
+        test('lays out Players, then Admins, then Danger Zone: two columns on a wide screen, in this order in a narrow one', async () => {
+            signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale', canWrite: ['user-1'], admins: ['user-1'], players: ['Sam'] }, [character]);
+            const { container } = renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
+            await screen.findByText('Aria');
+
+            const lower = container.querySelector('.CampaignPage-lower');
+            expect(lower).not.toBeNull();
+            const players = lower.querySelector('.CampaignPage-players');
+            const side = lower.querySelector('.CampaignPage-side');
+            expect(players.nextElementSibling).toBe(side);
+            const [admins, danger] = side.children;
+            expect(admins).toHaveTextContent('DocAdminManager-stub');
+            expect(danger).toHaveClass('CampaignPage-danger-zone');
+        });
+
+        test('a non-admin still gets Players and Admins in the lower section, just without the Danger Zone', async () => {
+            signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale', admins: ['director-1'] }, [character]);
+            const { container } = renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
+            await screen.findByText('Aria');
+
+            const side = container.querySelector('.CampaignPage-lower .CampaignPage-side');
+            expect(side.children).toHaveLength(1);
+            expect(container.querySelector('.CampaignPage-danger-zone')).toBeNull();
+        });
+
         test('queries characters belonging to this campaign', async () => {
             signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale' }, [character]);
             renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });

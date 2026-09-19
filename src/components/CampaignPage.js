@@ -233,6 +233,7 @@ export function CampaignPage() {
             </button>
         </div>
 
+        <div className="CampaignPage-lower">
         <section className="CampaignPage-players">
             <div className="CampaignPage-players-header">
                 <h2>Players</h2>
@@ -263,6 +264,7 @@ export function CampaignPage() {
             </div> : <p className="CampaignPage-empty-text">No players yet.</p>}
         </section>
 
+        <div className="CampaignPage-side">
         <DocAdminManager docRef={doc(db, "campaigns", campaignId)} admins={campaignInfo.admins} userId={user?.uid} onChanged={getCharacterList}/>
 
         {isDocAdmin && <section className="CampaignPage-danger-zone">
@@ -302,6 +304,8 @@ export function CampaignPage() {
                 <button type="button" className="CampaignPage-danger-button" onClick={handleCancelDeletion}>Cancel Deletion</button>
             </div>}
         </section>}
+        </div>
+        </div>
 
         {visibleScheduleDeletionScreen && <>
             <div className="CampaignPage-scrim"/>

@@ -84,7 +84,7 @@ export function Characters() {
         return campaignNames[character.campaign] || "Unknown Campaign";
     }
 
-    return <div>
+    return <div className="Characters-shell">
         {location.pathname.endsWith('characters') && <div className="Character-page">
             <div className="Characters-title">
                 Characters

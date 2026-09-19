@@ -1,12 +1,18 @@
 /* Same height-capped, internally-scrolling idiom as Homepage/AccountPage/
    ClassListPage - see the note on .Homepage in styles/Homepage.scss. */
+/* The page sits in .App-body's centring column, so without this its own
+   `width: 100%` was measured against a wrapper that shrank to fit the cards. */
+.Characters-shell {
+    width: 100%;
+}
+
 .Character-page {
     box-sizing: border-box;
     width: 100%;
-    max-width: var(--jnj-content-max);
+    max-width: var(--jnj-content-max-wide);
     height: calc(100vh - var(--jnj-nav-height));
     margin: 0 auto;
-    padding: var(--jnj-space-6) var(--jnj-space-5);
+    padding: var(--jnj-space-6) var(--jnj-gutter-wide);
     overflow-y: auto;
     text-align: left;
 }
