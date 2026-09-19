@@ -12,7 +12,7 @@ const MAP_REFERENCE_WIDTH = 500;
 // data arrives, not on every render while a usePosts hook is still loading.
 const EMPTY_POSTS: Post[] = [];
 
-export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, grid=false, columnFormat=true, swappableMode=false, className={}, PostCardComponent, backgroundImage, zoneLayout }: {
+export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, grid=false, columnFormat=true, swappableMode=false, className={}, PostCardComponent, backgroundImage, zoneLayout, overlay }: {
   inputStatuses,
   usePosts,
   updatePosts,
@@ -22,7 +22,9 @@ export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, 
   className?,
   PostCardComponent?: PostCardComponentType,
   backgroundImage?: string,
-  zoneLayout?: { name: string; x: number; y: number; width: number; height: number }[]
+  zoneLayout?: { name: string; x: number; y: number; width: number; height: number }[],
+  // drawn over the map image and its zones, at exactly the image's rendered size
+  overlay?: (size: { width: number; height: number }) => React.ReactNode
 }) => {
   const { posts: rawPosts, loading: isLoading } = usePosts();
   // A usePosts producer that reads a Firestore field directly (rather than
@@ -244,6 +246,7 @@ export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, 
               overlayHeader
             />
           ))}
+          {renderedSize && overlay?.(renderedSize)}
         </div>
         </div>
       </DragDropContext>

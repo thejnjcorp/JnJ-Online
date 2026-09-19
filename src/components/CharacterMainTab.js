@@ -407,6 +407,7 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                     campaignId={characterPage.campaign}
                     activeMap={activeMap}
                     entities={combatEntities}
+                    userId={userId}
                     noActiveMapMessage="The director hasn't set an active combat map yet."
                 />
             </div>

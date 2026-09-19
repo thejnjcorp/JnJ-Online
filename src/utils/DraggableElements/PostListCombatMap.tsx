@@ -1,6 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
+import { useMapDrawing } from "../useMapDrawing";
+import { MapDrawingLayer } from "../../components/MapDrawingLayer";
+import { MapDrawingToolbar } from "../../components/MapDrawingToolbar";
 import { Post, PostListContentAbstract } from "./Post.ts";
 import "../../styles/CombatMap.scss";
 
@@ -13,13 +16,23 @@ const combatMapClassName = {
     postCardBox: "CombatMap-tile-box",
 };
 
-export function PostListContentCombatMap({ campaignId, activeMap, entities = [], noActiveMapMessage = "No active map selected. Set one from the Maps tab." }) {
+export function PostListContentCombatMap({ campaignId, activeMap, entities = [], userId = undefined, noActiveMapMessage = "No active map selected. Set one from the Maps tab." }) {
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
 
     const docQuery = useMemo(() => doc(db, "campaigns", campaignId), [campaignId]);
-    const zones = useMemo(() => activeMap?.zones ?? [], [activeMap]);
+    // Every write to the map doc (a drawn stroke, say) hands back a fresh activeMap
+    // object with a fresh zones array. PostListContentAbstract re-measures the
+    // image whenever zoneLayout changes identity - and the <img> never reloads to
+    // report its size again - so the zones must only change when they really do.
+    // (Compared field by field: Firestore doesn't return a map's keys in the same
+    // order every time, so a JSON string of the zones isn't a stable key.)
+    const zonesKey = (activeMap?.zones ?? []).map((zone) => [zone.name, zone.x, zone.y, zone.width, zone.height].join("|")).join(";");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const zones = useMemo(() => activeMap?.zones ?? [], [zonesKey]);
     const zoneNames = useMemo(() => zones.map((zone) => zone.name), [zones]);
+    // What the director has drawn on the map (shown to everyone), and their tools for adding to it.
+    const drawing = useMapDrawing(activeMap, userId);
 
     useEffect(() => {
         const unsubscribe = onSnapshot(docQuery, (docSnap) => {
@@ -67,12 +80,25 @@ export function PostListContentCombatMap({ campaignId, activeMap, entities = [],
         return <div className="CombatMap-no-active-map">{noActiveMapMessage}</div>;
     }
 
-    return <PostListContentAbstract
-        inputStatuses={zoneNames}
-        usePosts={usePosts}
-        updatePosts={updatePosts}
-        backgroundImage={activeMap.link}
-        zoneLayout={zones}
-        className={combatMapClassName}
-    />;
+    return <>
+        {drawing.canDraw && <MapDrawingToolbar drawing={drawing}/>}
+        <PostListContentAbstract
+            inputStatuses={zoneNames}
+            usePosts={usePosts}
+            updatePosts={updatePosts}
+            backgroundImage={activeMap.link}
+            zoneLayout={zones}
+            className={combatMapClassName}
+            overlay={({ width, height }) => <MapDrawingLayer
+                strokes={drawing.strokes}
+                aspect={height / width}
+                tool={drawing.drawing ? drawing.tool : null}
+                color={drawing.color}
+                size={drawing.size}
+                blocked={drawing.full}
+                onStroke={drawing.addStroke}
+                onErase={drawing.eraseStrokes}
+            />}
+        />
+    </>;
 }

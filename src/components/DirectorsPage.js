@@ -549,6 +549,7 @@ export function DirectorsPage() {
                                 campaignId={campaignId}
                                 activeMap={activeMap}
                                 entities={combatEntities}
+                                userId={userId}
                             />
                         </div>
                     </div>
@@ -678,6 +679,7 @@ export function DirectorsPage() {
                     campaignId={campaignId}
                     activeMap={activeMap}
                     entities={combatEntities}
+                    userId={userId}
                 />
             </div>
         </>}
