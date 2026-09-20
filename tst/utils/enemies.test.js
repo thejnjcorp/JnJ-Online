@@ -1,6 +1,6 @@
 import {
     ENEMY_TIERS, ENEMY_STAT_FIELDS, enemyDocFields, enemyInstance, formatModifier, instanceNames, newEnemy, parseModifier, removeEnemies,
-    rosterEntry, rosterSummary, stageEncounter, summaryText, tierClass, tierOf, uniqueEnemyName, validateEnemy,
+    npcIdOf, rosterEntry, rosterSummary, stageEncounter, summaryText, tierClass, tierOf, uniqueEnemyName, validateEnemy,
 } from '../../src/utils/enemies';
 import { validAction } from '../testUtils/actions';
 
@@ -293,5 +293,16 @@ describe('uniqueEnemyName', () => {
     test('a missing or blank name becomes "Enemy"', () => {
         expect(uniqueEnemyName(['Enemy'], undefined)).toBe('Enemy 2');
         expect(uniqueEnemyName([], '   ')).toBe('Enemy');
+    });
+});
+
+describe('npcIdOf', () => {
+    test('is an NPC\'s id in the campaign\'s lists, from its id on the combat tracker', () => {
+        expect(npcIdOf('npc:goblin-1')).toBe('goblin-1');
+        expect(npcIdOf('npc:a:b')).toBe('a:b');
+    });
+
+    test('is nothing for a player\'s character or anything else', () => {
+        [ 'character:char-1', 'goblin-1', '', 'npc', null, undefined, 5 ].forEach(value => expect(npcIdOf(value)).toBeNull());
     });
 });

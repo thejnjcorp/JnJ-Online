@@ -67,3 +67,13 @@ export function addToTracker(storedPosts, entities, zoneNames, rects = null) {
     const changed = next.some((post, i) => post !== all[i]) || additions.length > 0 || !Array.isArray(storedPosts);
     return changed ? next : null;
 }
+
+// Who may drag a combatant around: a director anyone; a player only their own
+// characters (or ones they can write). Returns a function of a tracker post, for the
+// line view's `canMovePost`.
+export function combatantMover(entities, userId, isDirector) {
+    const owned = new Set(entities
+        .filter(entity => entity.kind === 'player' && Boolean(userId) && Boolean(entity.ownerIds?.includes(userId)))
+        .map(entity => entity.id));
+    return post => Boolean(userId) && (isDirector || owned.has(post.id));
+}

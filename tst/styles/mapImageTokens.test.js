@@ -32,6 +32,15 @@ describe('the image tokens\' stylesheet', () => {
         expect(rule('.MapImageToken-image')).toContain('height: auto');
     });
 
+    test('while a library token is dragged over the map the layer takes the drop, and otherwise it lets clicks through', () => {
+        expect(rule('.MapImageTokens-droppable')).toContain('pointer-events: auto');
+        expect(css.indexOf('.MapImageTokens-droppable {')).toBeGreaterThan(css.indexOf('.MapImageTokens {'));
+    });
+
+    test('a library token\'s picture does not take the drag from the button that carries it', () => {
+        expect(rule('.MapImageTokenToolbar-token-image')).toContain('pointer-events: none');
+    });
+
     test('dragging one with a finger does not scroll the page', () => {
         expect(rule('.MapImageToken-editable')).toContain('touch-action: none');
     });

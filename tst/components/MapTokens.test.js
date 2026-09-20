@@ -223,4 +223,142 @@ describe('MapTokens', () => {
             expect(onMove).not.toHaveBeenCalled();
         });
     });
+    describe('defeated enemies', () => {
+        const goblin = { id: 'g', title: 'Goblin 1', kind: 'enemy', x: 0.7, y: 0.2, defeated: true };
+
+        test('are greyed out and crossed through, and their name says so', () => {
+            const { token } = setup({ tokens: [goblin, tokens[0]] });
+            expect(token('Goblin 1')).toHaveClass('MapToken-defeated');
+            expect(token('Goblin 1')).toHaveAccessibleName('Goblin 1, Right, defeated');
+        });
+
+        test('a token that is not defeated is not', () => {
+            const { token } = setup({ tokens: [{ ...goblin, defeated: false }] });
+            expect(token('Goblin 1')).not.toHaveClass('MapToken-defeated');
+            expect(token('Goblin 1')).toHaveAccessibleName('Goblin 1, Right');
+        });
+
+        test('are still where they fell, and can still be moved', () => {
+            const { token, drag, pointer, onMove } = setup({ tokens: [goblin] });
+            drag('Goblin 1', [700, 200], [400, 100]);
+            pointer(token('Goblin 1'), 'pointerup', 400, 100);
+            expect(token('Goblin 1').style.left).toBe('70%');
+            expect(onMove).toHaveBeenCalledWith('g', { x: 0.4, y: 0.1 }, 'Left');
+        });
+    });
+
+    describe('selecting a token', () => {
+        const npc = { id: 'g', title: 'Goblin 1', kind: 'enemy', x: 0.7, y: 0.2, selectable: true };
+
+        test('pressing one that can be selected selects it', () => {
+            const onSelect = jest.fn();
+            const { token, pointer } = setup({ tokens: [npc], onSelect });
+            pointer(token('Goblin 1'), 'pointerdown', 700, 200, { button: 0 });
+            expect(onSelect).toHaveBeenCalledWith('g');
+        });
+
+        test('the selected one is marked', () => {
+            const { token } = setup({ tokens: [npc, tokens[0]], selected: 'g' });
+            expect(token('Goblin 1')).toHaveClass('MapToken-selected');
+            expect(token('Goblin 1')).toHaveAttribute('aria-pressed', 'true');
+            expect(token('Aria Vale')).not.toHaveClass('MapToken-selected');
+        });
+
+        test('a token that cannot be selected (a player\'s) is not a toggle and does not select', () => {
+            const onSelect = jest.fn();
+            const { token, pointer } = setup({ onSelect });
+            expect(token('Aria Vale')).not.toHaveAttribute('aria-pressed');
+            pointer(token('Aria Vale'), 'pointerdown', 200, 200, { button: 0 });
+            expect(onSelect).not.toHaveBeenCalled();
+        });
+
+        test('a right click does not select', () => {
+            const onSelect = jest.fn();
+            const { token, pointer } = setup({ tokens: [npc], onSelect });
+            pointer(token('Goblin 1'), 'pointerdown', 700, 200, { button: 2 });
+            expect(onSelect).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('dropping a token on the trash can', () => {
+        const npc = { id: 'g', title: 'Goblin 1', kind: 'enemy', x: 0.7, y: 0.2, trashable: true };
+        const fakeTrash = (over = false) => ({ carry: jest.fn(), hot: jest.fn(), hit: jest.fn(() => over) });
+
+        test('a token that can be thrown away shows the can as soon as it is picked up', () => {
+            const trash = fakeTrash();
+            const { token, pointer } = setup({ tokens: [npc], trash });
+            pointer(token('Goblin 1'), 'pointerdown', 700, 200, { button: 0 });
+            expect(trash.carry).toHaveBeenCalledWith(true);
+        });
+
+        test('one that cannot (a player\'s) does not', () => {
+            const trash = fakeTrash();
+            const { token, pointer } = setup({ trash });
+            pointer(token('Aria Vale'), 'pointerdown', 200, 200, { button: 0 });
+            pointer(token('Aria Vale'), 'pointermove', 400, 100);
+            pointer(token('Aria Vale'), 'pointerup', 400, 100);
+            expect(trash.carry).not.toHaveBeenCalled();
+            expect(trash.hit).not.toHaveBeenCalled();
+        });
+
+        test('the can lights up as the pointer goes over it, going by where the pointer is', () => {
+            const trash = fakeTrash(true);
+            const { token, pointer } = setup({ tokens: [npc], trash });
+            pointer(token('Goblin 1'), 'pointerdown', 700, 200, { button: 0 });
+            pointer(token('Goblin 1'), 'pointermove', 950, 480);
+            expect(trash.hit).toHaveBeenCalledWith(950, 480);
+            expect(trash.hot).toHaveBeenLastCalledWith(true);
+        });
+
+        test('let go over the can, it is thrown away and does not move', () => {
+            const trash = fakeTrash(true);
+            const onTrash = jest.fn();
+            const { token, pointer, onMove } = setup({ tokens: [npc], trash, onTrash });
+            pointer(token('Goblin 1'), 'pointerdown', 700, 200, { button: 0 });
+            pointer(token('Goblin 1'), 'pointermove', 400, 100);
+            pointer(token('Goblin 1'), 'pointerup', 950, 480);
+
+            expect(onTrash).toHaveBeenCalledWith('g');
+            expect(onMove).not.toHaveBeenCalled();
+            expect(trash.carry).toHaveBeenLastCalledWith(false);
+            expect(trash.hot).toHaveBeenLastCalledWith(false);
+        });
+
+        test('let go anywhere else it is moved as usual, and the can goes away', () => {
+            const trash = fakeTrash(false);
+            const onTrash = jest.fn();
+            const { token, pointer, onMove } = setup({ tokens: [npc], trash, onTrash });
+            pointer(token('Goblin 1'), 'pointerdown', 700, 200, { button: 0 });
+            pointer(token('Goblin 1'), 'pointermove', 400, 100);
+            pointer(token('Goblin 1'), 'pointerup', 400, 100);
+
+            expect(onTrash).not.toHaveBeenCalled();
+            expect(onMove).toHaveBeenCalledWith('g', { x: 0.4, y: 0.1 }, 'Left');
+            expect(trash.carry).toHaveBeenLastCalledWith(false);
+        });
+
+        test('a token dragged over the can is not faded as if it were about to snap back, even outside every zone', () => {
+            const trash = fakeTrash(true);
+            const { token, pointer } = setup({ tokens: [npc], trash });
+            pointer(token('Goblin 1'), 'pointerdown', 700, 200, { button: 0 });
+            pointer(token('Goblin 1'), 'pointermove', 450, 450); // outside every zone
+            expect(token('Goblin 1')).not.toHaveClass('MapToken-outside');
+        });
+
+        test('a drag that is cancelled puts the can away', () => {
+            const trash = fakeTrash();
+            const { token, pointer } = setup({ tokens: [npc], trash });
+            pointer(token('Goblin 1'), 'pointerdown', 700, 200, { button: 0 });
+            pointer(token('Goblin 1'), 'pointercancel', 700, 200);
+            expect(trash.carry).toHaveBeenLastCalledWith(false);
+        });
+
+        test('with no trash can there is nothing to drop on, and dragging works as before', () => {
+            const { token, pointer, onMove } = setup({ tokens: [npc] });
+            pointer(token('Goblin 1'), 'pointerdown', 700, 200, { button: 0 });
+            pointer(token('Goblin 1'), 'pointermove', 400, 100);
+            pointer(token('Goblin 1'), 'pointerup', 400, 100);
+            expect(onMove).toHaveBeenCalled();
+        });
+    });
 });

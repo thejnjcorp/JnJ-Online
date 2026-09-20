@@ -2,12 +2,14 @@
 // (fire, trees, pillars, holes...), shown to everyone.
 //
 // Like the drawing, they belong to the map, not the fight: each is
-// { id, image, label, x, y, size } in the map doc's `image_tokens` list, they are
-// tied to no zone, and only someone who can edit the map moves them. `x` and `y`
+// { id, image, label, x, y, size } in the map doc's `image_tokens` list (`image` is
+// an image ref - see imageRefs.js), they are tied to no zone, and only someone who
+// can edit the map moves them. `x` and `y`
 // are the picture's centre in "map widths" (x runs 0 to 1 across the map, y 0 to
 // height/width down it) and `size` is its width in the same unit, so it lines up
 // and scales at any size the map is shown at.
 
+import { isImageRef } from './imageRefs';
 import { round } from './mapTokens';
 
 export const IMAGE_TOKEN_SIZES = [
@@ -19,28 +21,15 @@ export const IMAGE_TOKEN_SIZES = [
 
 export const DEFAULT_IMAGE_TOKEN_SIZE = IMAGE_TOKEN_SIZES[1].value;
 
-// Each is a link and a few numbers, so this is nowhere near the map doc's 1 MiB
+// Each is a picture ref and a few numbers, so this is nowhere near the map doc's 1 MiB
 // limit; it is there so a map stays readable, not to protect the document.
 export const MAX_IMAGE_TOKENS = 60;
 export const MAX_LABEL_LENGTH = 40;
-export const MAX_IMAGE_URL_LENGTH = 500;
 
 // How far (in map widths) a copy is put from the token it was copied from, and how
 // far a keyboard arrow moves one.
 export const COPY_OFFSET = 0.03;
 export const KEY_STEP = 0.02;
-
-// A web link to a picture: only http(s), so nothing else is ever set as an image's
-// source.
-export function isImageUrl(value) {
-    if (typeof value !== 'string' || value.length === 0 || value.length > MAX_IMAGE_URL_LENGTH) return false;
-    try {
-        const { protocol } = new URL(value);
-        return protocol === 'https:' || protocol === 'http:';
-    } catch {
-        return false;
-    }
-}
 
 // The saved image tokens, as far as the doc can be trusted: anything not shaped
 // like one is left out rather than breaking the map.
@@ -48,7 +37,7 @@ export function validImageTokens(value) {
     if (!Array.isArray(value)) return [];
     return value.filter(token => token
         && typeof token.id === 'string'
-        && isImageUrl(token.image)
+        && isImageRef(token.image)
         && Number.isFinite(token.x)
         && Number.isFinite(token.y)
         && Number.isFinite(token.size)

@@ -176,6 +176,10 @@ export function stageEncounter(encounter, campaign, zoneNames = [], tracker = []
     };
 }
 
+// The id an NPC has in the campaign's lists, from its id on the combat tracker
+// ("npc:<id>"); null for anything that is not an NPC (a player's character).
+export const npcIdOf = entityId => (typeof entityId === 'string' && entityId.startsWith('npc:') ? entityId.slice(4) : null);
+
 // The campaign's enemies with these enemies taken out. (Taking them off the combat
 // tracker, on the party doc, is removeFromTracker in utils/party.js.)
 export function removeEnemies(campaign, ids) {

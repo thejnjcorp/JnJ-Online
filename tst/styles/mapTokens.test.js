@@ -35,4 +35,14 @@ describe('the map tokens\' stylesheet', () => {
     test('each side has its own colour', () => {
         ['player', 'ally', 'enemy', 'neutral'].forEach(kind => expect(css).toContain(`.MapToken-${kind} {`));
     });
+    test('a defeated token is greyed out and crossed through, but not made a different size or removed', () => {
+        expect(rule('.MapToken-defeated')).toContain('grayscale');
+        expect(rule('.MapToken-defeated')).toContain('opacity');
+        expect(css).toContain('.MapToken-defeated {');
+        expect(css.slice(css.indexOf('.MapToken-defeated {'))).toContain('&::after');
+    });
+
+    test('the selected token is outlined', () => {
+        expect(rule('.MapToken-selected')).toContain('outline');
+    });
 });

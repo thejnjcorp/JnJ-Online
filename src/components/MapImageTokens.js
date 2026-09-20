@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react';
+import { imageSrc } from '../utils/imageRefs';
 import { KEY_STEP, clampToMap } from '../utils/mapImageTokens';
+import { DRAG_TYPE, readDragPayload } from '../utils/tokenLibrary';
 import '../styles/MapImageTokens.scss';
 
 // A press that moves less than this (in map widths) was a click, not a drag.
@@ -14,8 +16,14 @@ const DRAG_THRESHOLD = 0.004;
 //
 // `tokens` are { id, image, label, x, y, size } in map widths (see
 // utils/mapImageTokens.js); `aspect` is the map's height over its width. `onMove(id,
-// { x, y })`, `onSelect(id)` and `onRemove(id)` are called for the edits.
-export function MapImageTokens({ tokens, aspect, canEdit = false, selected = null, onSelect, onMove, onRemove }) {
+// { x, y })`, `onSelect(id)` and `onRemove(id)` are called for the edits. Given a
+// `trash` (see utils/useMapTrash.js), a token dragged onto the map's trash can is
+// removed, with `onRemove(id)`.
+//
+// While a token from the library is being dragged (`droppable`), the layer takes
+// the pointer so the token can be dropped anywhere on the map; `onDropToken(token,
+// { x, y })` is given what was dropped and where.
+export function MapImageTokens({ tokens, aspect, canEdit = false, selected = null, droppable = false, trash, onSelect, onMove, onRemove, onDropToken }) {
     const layerRef = useRef(null);
     const grab = useRef(null);
     const [drag, setDrag] = useState(null); // { id, x, y } while one is being dragged
@@ -34,19 +42,32 @@ export function MapImageTokens({ tokens, aspect, canEdit = false, selected = nul
         grab.current = { dx: token.x - at.x, dy: token.y - at.y, x: token.x, y: token.y };
         setDrag({ id: token.id, x: token.x, y: token.y });
         onSelect(token.id);
+        trash?.carry(true);
     }
 
     function handleMove(event) {
         if (!drag || !grab.current) return;
         const at = pointer(event);
         setDrag({ id: drag.id, ...clampToMap({ x: at.x + grab.current.dx, y: at.y + grab.current.dy }, aspect) });
+        trash?.hot(trash.hit(event.clientX, event.clientY));
     }
 
-    function handleUp() {
+    function endCarry() {
+        trash?.carry(false);
+        trash?.hot(false);
+    }
+
+    function handleUp(event) {
         const finished = drag;
         const start = grab.current;
         grab.current = null;
         setDrag(null);
+        const overTrash = Boolean(finished) && Boolean(trash?.hit(event.clientX, event.clientY));
+        endCarry();
+        if (overTrash) {
+            onRemove(finished.id);
+            return;
+        }
         if (!finished || !start) return;
         if (Math.hypot(finished.x - start.x, finished.y - start.y) < DRAG_THRESHOLD) return;
         onMove(finished.id, { x: finished.x, y: finished.y });
@@ -64,7 +85,27 @@ export function MapImageTokens({ tokens, aspect, canEdit = false, selected = nul
         onMove(token.id, clampToMap({ x: token.x + step[0], y: token.y + step[1] }, aspect));
     }
 
-    return <div ref={layerRef} className="MapImageTokens">
+    const carriesToken = event => Array.from(event.dataTransfer?.types ?? []).includes(DRAG_TYPE);
+
+    function handleDragOver(event) {
+        if (!droppable || !carriesToken(event)) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'copy';
+    }
+
+    function handleDrop(event) {
+        if (!droppable || !carriesToken(event)) return;
+        event.preventDefault();
+        const token = readDragPayload(event.dataTransfer.getData(DRAG_TYPE));
+        if (token) onDropToken(token, clampToMap(pointer(event), aspect));
+    }
+
+    return <div
+        ref={layerRef}
+        className={droppable ? 'MapImageTokens MapImageTokens-droppable' : 'MapImageTokens'}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+    >
         {tokens.map(token => {
             const dragging = drag?.id === token.id;
             const x = dragging ? drag.x : token.x;
@@ -76,7 +117,7 @@ export function MapImageTokens({ tokens, aspect, canEdit = false, selected = nul
                 ? <span className="MapImageToken-broken">Image not found</span>
                 : <img
                     className="MapImageToken-image"
-                    src={token.image}
+                    src={imageSrc(token.image)}
                     alt={canEdit ? '' : name}
                     draggable={false}
                     onError={() => setBroken(current => [...current, token.id])}
@@ -98,7 +139,7 @@ export function MapImageTokens({ tokens, aspect, canEdit = false, selected = nul
                 onPointerDown={event => handleDown(event, token)}
                 onPointerMove={handleMove}
                 onPointerUp={handleUp}
-                onPointerCancel={() => { grab.current = null; setDrag(null); }}
+                onPointerCancel={() => { grab.current = null; setDrag(null); endCarry(); }}
                 onKeyDown={event => handleKey(event, token)}
             >{picture}</button>;
         })}

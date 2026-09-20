@@ -25,8 +25,12 @@ jest.mock('../../src/utils/DraggableElements/PostListInventory.tsx', () => ({
 jest.mock('../../src/utils/DraggableElements/PostListInventoryPocket.tsx', () => ({
     PostListContentInventoryPocket: ({ characterId }) => <div>Pocket-stub:{characterId}</div>,
 }));
+const mockLineProps = [];
 jest.mock('../../src/utils/DraggableElements/PostListCombat.tsx', () => ({
-    PostListContentCombat: ({ campaignId, readOnly }) => <div data-readonly={String(Boolean(readOnly))}>Combat-stub:{campaignId}</div>,
+    PostListContentCombat: props => {
+        mockLineProps.push(props);
+        return <div>Combat-stub:{props.campaignId}</div>;
+    },
 }));
 jest.mock('../../src/utils/DraggableElements/PostListCombatMap.tsx', () => ({
     PostListContentCombatMap: ({ campaignId, activeMap, entities, canEdit }) => <div data-canedit={String(Boolean(canEdit))}>CombatMap-stub:{campaignId}:{activeMap?.map_id}:{entities.length}</div>,
@@ -770,16 +774,67 @@ describe('CharacterMainTab', () => {
             expect(screen.getByText('Combat-stub:camp-1')).toBeInTheDocument();
         });
 
-        test('the list is only for looking at: a player cannot drag people between zones in it', () => {
-            render(<CharacterMainTab characterPage={characterPage} userId="owner-1" campaignInfo={{ director_uid: 'someone-else' }} />);
-            goToTab('Combat Map');
-            expect(screen.getByText('Combat-stub:camp-1')).toHaveAttribute('data-readonly', 'true');
-        });
+        describe('moving people between zones in the list', () => {
+            const lineProps = () => mockLineProps[mockLineProps.length - 1];
+            const entities = [
+                { id: 'character:char-1', title: 'Aria', kind: 'player', ownerIds: ['owner-1'] },
+                { id: 'character:char-2', title: 'Bram', kind: 'player', ownerIds: ['other-player'] },
+                { id: 'npc:goblin', title: 'Goblin', kind: 'enemy' },
+            ];
 
-        test('a director can drag them', () => {
-            render(<CharacterMainTab characterPage={characterPage} userId="owner-1" campaignInfo={{ director_uid: 'owner-1' }} />);
-            goToTab('Combat Map');
-            expect(screen.getByText('Combat-stub:camp-1')).toHaveAttribute('data-readonly', 'false');
+            beforeEach(() => {
+                mockLineProps.length = 0;
+                mockUseCombatEntities.mockReturnValue(entities);
+            });
+
+            test('a player can drag their own character, and nobody else\'s, nor the enemies\'', () => {
+                render(<CharacterMainTab characterPage={characterPage} userId="owner-1" campaignInfo={{ director_uid: 'someone-else' }} />);
+                goToTab('Combat Map');
+                expect(lineProps().readOnly).toBeFalsy();
+                expect(lineProps().canMovePost({ id: 'character:char-1' })).toBe(true);
+                expect(lineProps().canMovePost({ id: 'character:char-2' })).toBe(false);
+                expect(lineProps().canMovePost({ id: 'npc:goblin' })).toBe(false);
+            });
+
+            test('a director can drag anyone', () => {
+                render(<CharacterMainTab characterPage={characterPage} userId="owner-1" campaignInfo={{ director_uid: 'owner-1' }} />);
+                goToTab('Combat Map');
+                ['character:char-1', 'character:char-2', 'npc:goblin'].forEach(id => expect(lineProps().canMovePost({ id })).toBe(true));
+            });
+
+            test('someone who is signed out cannot drag anyone', () => {
+                render(<CharacterMainTab characterPage={characterPage} userId={undefined} campaignInfo={{ director_uid: 'someone-else' }} />);
+                goToTab('Combat Map');
+                expect(lineProps().canMovePost({ id: 'character:char-1' })).toBe(false);
+            });
+
+            test('the columns are the active map\'s zones, so a move can only be to a zone the map has', () => {
+                mockUseCampaignMaps.mockReturnValue({ activeMap: { map_id: 'map-1', zones: [{ name: 'Gate', x: 10, y: 10, width: 100, height: 80 }, { name: 'Yard', x: 200, y: 10, width: 100, height: 80 }] } });
+                render(<CharacterMainTab characterPage={characterPage} userId="owner-1" campaignInfo={{ director_uid: 'owner-1' }} />);
+                goToTab('Combat Map');
+                expect(lineProps().inputStatuses).toEqual(['Gate', 'Yard']);
+            });
+
+            test('with no active map there are no zones to list, and no positions to give', () => {
+                render(<CharacterMainTab characterPage={characterPage} userId="owner-1" campaignInfo={{ director_uid: 'owner-1' }} />);
+                goToTab('Combat Map');
+                expect(lineProps().inputStatuses).toEqual([]);
+                expect(lineProps().rects).toBeNull();
+            });
+
+            test('given the map\'s zones as rectangles, for where a moved token lands on the map', () => {
+                mockUseCampaignMaps.mockReturnValue({ activeMap: { map_id: 'map-1', zones: [{ name: 'Gate', x: 50, y: 100, width: 100, height: 50 }] } });
+                render(<CharacterMainTab characterPage={characterPage} userId="owner-1" campaignInfo={{ director_uid: 'owner-1' }} />);
+                goToTab('Combat Map');
+                expect(lineProps().rects).toEqual([{ name: 'Gate', x: 0.1, y: 0.2, w: 0.2, h: 0.1 }]);
+            });
+
+            test('a map with no zones list is fine', () => {
+                mockUseCampaignMaps.mockReturnValue({ activeMap: { map_id: 'map-1' } });
+                render(<CharacterMainTab characterPage={characterPage} userId="owner-1" campaignInfo={{ director_uid: 'owner-1' }} />);
+                goToTab('Combat Map');
+                expect(lineProps().inputStatuses).toEqual([]);
+            });
         });
 
         test('the player\'s own characters put themselves on the tracker, given the campaign, the active map and everyone in the fight', () => {

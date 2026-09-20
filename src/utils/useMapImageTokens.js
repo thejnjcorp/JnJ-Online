@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { arrayUnion, doc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
-import { MAX_IMAGE_TOKENS, copyImageToken, moveImageToken, newImageToken, removeImageToken, resizeImageToken, validImageTokens } from './mapImageTokens';
+import { MAX_IMAGE_TOKENS, clampToMap, copyImageToken, moveImageToken, newImageToken, removeImageToken, resizeImageToken, validImageTokens } from './mapImageTokens';
 
 // A map's image tokens: what is saved on it, and - for someone who can edit the map
 // (the director, the same people who can draw on it) - the means to add, move,
@@ -29,10 +29,10 @@ export function useMapImageTokens(map, userId) {
         full: tokens.length >= MAX_IMAGE_TOKENS,
         selected,
         select: setSelectedId,
-        // put a new one in the middle of the map, selected, ready to be dragged
-        add: (fields, aspect) => {
+        // put a new one where it was dropped, or in the middle of the map, selected
+        add: (fields, aspect, at = { x: 0.5, y: aspect / 2 }) => {
             if (!canEdit || tokens.length >= MAX_IMAGE_TOKENS) return null;
-            const token = newImageToken(fields, { x: 0.5, y: aspect / 2 });
+            const token = newImageToken(fields, clampToMap(at, aspect));
             save({ image_tokens: arrayUnion(token) });
             setSelectedId(token.id);
             return token.id;

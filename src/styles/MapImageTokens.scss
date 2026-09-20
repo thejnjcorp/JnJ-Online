@@ -9,6 +9,10 @@
     pointer-events: none;
 }
 
+.MapImageTokens-droppable {
+    pointer-events: auto;
+}
+
 .MapImageToken {
     position: absolute;
     box-sizing: border-box;
@@ -117,4 +121,110 @@
     border: 1px solid var(--jnj-color-border-strong);
     border-radius: 4px;
     background: var(--jnj-color-bg-sunken);
+}
+
+// The token library inside that toolbar: the saved tokens as a row of pictures to
+// press or drag, and the form for a new one beside it.
+.MapImageTokenToolbar-library,
+.MapImageTokenToolbar-new {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 8px 14px;
+}
+
+.MapImageTokenToolbar-library {
+    flex-direction: column;
+    align-items: flex-start;
+    flex-basis: 100%;
+}
+
+.MapImageTokenToolbar-empty {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--jnj-color-text-muted);
+}
+
+.MapImageTokenToolbar-tokens {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.MapImageTokenToolbar-item {
+    position: relative;
+}
+
+.MapImageTokenToolbar-token {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    width: 4rem;
+    padding: 4px;
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: 6px;
+    background: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text);
+    font-size: 0.6875rem;
+    cursor: grab;
+    box-sizing: border-box;
+    user-select: none;
+
+    &:hover:not(.MapImageTokenToolbar-token-disabled),
+    &:focus-visible {
+        border-color: var(--jnj-color-accent);
+    }
+}
+
+.MapImageTokenToolbar-token-disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.MapImageTokenToolbar-token-image {
+    width: 2.5rem;
+    height: 2.5rem;
+    object-fit: contain;
+    pointer-events: none;
+}
+
+.MapImageTokenToolbar-token-name {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.MapImageTokenToolbar-forget {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 1.125rem;
+    height: 1.125rem;
+    padding: 0;
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: 50%;
+    background: var(--jnj-color-bg-raised);
+    color: var(--jnj-color-text-muted);
+    font-size: 0.75rem;
+    line-height: 1;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+        border-color: var(--jnj-color-danger);
+        color: var(--jnj-color-danger);
+    }
+}
+
+.MapImageTokenToolbar-keep {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: var(--jnj-color-text);
 }

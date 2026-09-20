@@ -1,4 +1,4 @@
-import { REFERENCE_WIDTH, TOKEN_SIZE, moveToken, placeTokens, round, settlePending, slotPosition, tokenInitials, withPending, zoneAt, zoneRects } from '../../src/utils/mapTokens';
+import { REFERENCE_WIDTH, TOKEN_SIZE, applyLineMove, moveToken, openSpot, placeTokens, round, settlePending, slotPosition, tokenInitials, withPending, zoneAt, zoneRects } from '../../src/utils/mapTokens';
 
 // two zones authored on the 500px-wide reference map: 100 x 100 at (50, 50), and 200 x 100 at (250, 100)
 const zones = [{ name: 'Zone 1', x: 50, y: 50, width: 100, height: 100 }, { name: 'Zone 2', x: 250, y: 100, width: 200, height: 100 }];
@@ -262,5 +262,184 @@ describe('dropped tokens waiting for the tracker to catch up', () => {
             settlePending(pending, [at('a', 0.6, 0.2)]);
             expect(pending).toEqual({ a: drop });
         });
+    });
+});
+
+describe('openSpot', () => {
+    // a zone 0.4 wide and 0.4 tall at (0.1, 0.1): its middle is (0.3, 0.3)
+    const rect = { name: 'Zone', x: 0.1, y: 0.1, w: 0.4, h: 0.4 };
+    const step = TOKEN_SIZE * 1.2;
+
+    test('is the middle of the zone when nobody is there', () => {
+        expect(openSpot(rect, [])).toEqual({ x: 0.3, y: 0.3 });
+        expect(openSpot(rect)).toEqual({ x: 0.3, y: 0.3 });
+    });
+
+    test('is the next spot to the right when someone is in the middle', () => {
+        const spot = openSpot(rect, [{ x: 0.3, y: 0.3 }]);
+        expect(spot.y).toBe(0.3);
+        expect(spot.x).toBeCloseTo(0.3 + step, 4);
+    });
+
+    test('keeps going right for each one already there', () => {
+        const spot = openSpot(rect, [{ x: 0.3, y: 0.3 }, { x: 0.3 + step, y: 0.3 }]);
+        expect(spot.y).toBe(0.3);
+        expect(spot.x).toBeCloseTo(0.3 + 2 * step, 4);
+    });
+
+    test('goes down to the next row once the way right is used up, starting back in the middle column', () => {
+        // fill the middle row from the middle to the right-hand edge
+        const taken = [];
+        for (let k = 0; ; k++) {
+            const x = 0.3 + k * step;
+            if (x > 0.5 - 0.012 - TOKEN_SIZE / 2) break;
+            taken.push({ x, y: 0.3 });
+        }
+        const spot = openSpot(rect, taken);
+        // the row's left-hand half is still free, so it fills that before going down
+        expect(spot.y).toBe(0.3);
+        expect(spot.x).toBeLessThan(0.3);
+    });
+
+    test('and down to the next row once the whole row is full', () => {
+        const taken = [];
+        for (let x = 0.1; x <= 0.5; x += step / 2) taken.push({ x, y: 0.3 }); // a wall of tokens right across the middle row
+        const spot = openSpot(rect, taken);
+        expect(spot.y).toBeGreaterThan(0.3);
+    });
+
+    test('a token that is close to a spot but not on it still takes it', () => {
+        const spot = openSpot(rect, [{ x: 0.3 + TOKEN_SIZE * 0.4, y: 0.3 }]);
+        expect(spot).not.toEqual({ x: 0.3, y: 0.3 });
+    });
+
+    test('a token that is far enough away leaves the middle free', () => {
+        expect(openSpot(rect, [{ x: 0.3 + TOKEN_SIZE * 1.01, y: 0.3 }])).toEqual({ x: 0.3, y: 0.3 });
+    });
+
+    test('never puts a token outside the zone, however many are there', () => {
+        const taken = [];
+        for (let i = 0; i < 12; i++) {
+            const spot = openSpot(rect, taken);
+            expect(spot.x).toBeGreaterThanOrEqual(rect.x);
+            expect(spot.x).toBeLessThanOrEqual(rect.x + rect.w);
+            expect(spot.y).toBeGreaterThanOrEqual(rect.y);
+            expect(spot.y).toBeLessThanOrEqual(rect.y + rect.h);
+            taken.push(spot);
+        }
+    });
+
+    test('each token added in turn gets a spot of its own, until the zone is full', () => {
+        const taken = [];
+        const seen = new Set();
+        for (let i = 0; i < 12; i++) {
+            const spot = openSpot(rect, taken);
+            expect(seen.has(`${spot.x},${spot.y}`)).toBe(false);
+            seen.add(`${spot.x},${spot.y}`);
+            taken.push(spot);
+        }
+    });
+
+    test('a full zone gives its middle again, rather than nothing', () => {
+        const taken = [];
+        for (let i = 0; i < 200; i++) taken.push(openSpot(rect, taken));
+        expect(openSpot(rect, taken)).toEqual({ x: 0.3, y: 0.3 });
+    });
+
+    test('ignores those with no position yet', () => {
+        expect(openSpot(rect, [{}, { x: undefined, y: 0.3 }, { x: NaN, y: NaN }])).toEqual({ x: 0.3, y: 0.3 });
+    });
+
+    test('a zone too small to keep tokens off its edges gives its middle', () => {
+        const tiny = { name: 'Tiny', x: 0.1, y: 0.1, w: 0.03, h: 0.03 };
+        expect(openSpot(tiny, [{ x: 0.115, y: 0.115 }])).toEqual({ x: 0.115, y: 0.115 });
+    });
+
+    test('a zone whose middle is under its name is moved down out of it', () => {
+        const short = { name: 'Short', x: 0.1, y: 0.1, w: 0.4, h: 0.09 };
+        const spot = openSpot(short, []);
+        expect(spot.y).toBeGreaterThan(0.1 + 0.034); // clear of the header
+    });
+});
+
+describe('applyLineMove', () => {
+    const rects = zoneRects([{ name: 'Zone 1', x: 10, y: 10, width: 200, height: 200 }, { name: 'Zone 2', x: 250, y: 10, width: 200, height: 200 }]);
+    const at = (id, status, index, x, y) => ({ id, title: id, content: '', status, index, x, y });
+
+    test('puts someone dragged into another zone in the middle of it', () => {
+        const current = [at('a', 'Zone 1', 0, 0.1, 0.1), at('b', 'Zone 2', 0, 0.6, 0.1)];
+        const updated = [at('a', 'Zone 2', 1, 0.1, 0.1), at('b', 'Zone 2', 0, 0.6, 0.1)];
+        const next = applyLineMove(current, updated, rects);
+        const a = next.find(p => p.id === 'a');
+        expect(a).toMatchObject({ status: 'Zone 2', index: 1 });
+        // zone 2 is 0.5..0.9 across and 0.02..0.42 down: its middle is (0.7, 0.22)
+        expect(a.x).toBeCloseTo(0.7, 3);
+        expect(a.y).toBeCloseTo(0.22, 3);
+    });
+
+    test('shifts them right if someone is already in the middle', () => {
+        const current = [at('a', 'Zone 1', 0, 0.1, 0.1), at('b', 'Zone 2', 0, 0.7, 0.22)];
+        const updated = [at('a', 'Zone 2', 1), at('b', 'Zone 2', 0)];
+        const a = applyLineMove(current, updated, rects).find(p => p.id === 'a');
+        expect(a.x).toBeGreaterThan(0.7);
+        expect(a.y).toBeCloseTo(0.22, 3);
+    });
+
+    test('leaves everyone else exactly as they are', () => {
+        const current = [at('a', 'Zone 1', 0, 0.1, 0.1), at('b', 'Zone 2', 0, 0.6, 0.1), at('c', 'Zone 1', 1, 0.15, 0.15)];
+        const updated = [at('a', 'Zone 2', 1), at('b', 'Zone 2', 0), at('c', 'Zone 1', 1)];
+        const next = applyLineMove(current, updated, rects);
+        expect(next[1]).toBe(current[1]);
+        expect(next[2]).toBe(current[2]);
+    });
+
+    test('someone who only moved up or down within their zone keeps their place on the map', () => {
+        const current = [at('a', 'Zone 1', 0, 0.1, 0.1), at('b', 'Zone 1', 1, 0.15, 0.15)];
+        const updated = [at('b', 'Zone 1', 0), at('a', 'Zone 1', 1)];
+        const next = applyLineMove(current, updated, rects);
+        expect(next.map(p => [p.id, p.index, p.x, p.y])).toEqual([['a', 1, 0.1, 0.1], ['b', 0, 0.15, 0.15]]);
+    });
+
+    test('someone the line view does not have (added while it was open) is not lost', () => {
+        const current = [at('a', 'Zone 1', 0, 0.1, 0.1), at('newcomer', 'Zone 1', 1, 0.15, 0.15)];
+        const updated = [at('a', 'Zone 2', 0)];
+        const next = applyLineMove(current, updated, rects);
+        expect(next.map(p => p.id)).toEqual(['a', 'newcomer']);
+        expect(next[1]).toBe(current[1]);
+    });
+
+    test('someone the tracker no longer has (taken out while it was open) does not come back', () => {
+        const current = [at('a', 'Zone 1', 0, 0.1, 0.1)];
+        const updated = [at('a', 'Zone 1', 0), at('gone', 'Zone 1', 1)];
+        expect(applyLineMove(current, updated, rects).map(p => p.id)).toEqual(['a']);
+    });
+
+    test('two dragged into the same zone at once do not share a spot', () => {
+        const current = [at('a', 'Zone 1', 0, 0.1, 0.1), at('b', 'Zone 1', 1, 0.15, 0.15)];
+        const updated = [at('a', 'Zone 2', 0), at('b', 'Zone 2', 1)];
+        const [a, b] = applyLineMove(current, updated, rects);
+        expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeGreaterThanOrEqual(TOKEN_SIZE);
+    });
+
+    test('without a map the zone and place in line change, and no position is made up', () => {
+        const current = [at('a', 'Combatants', 0, undefined, undefined)];
+        const updated = [at('a', 'Combatants', 0)];
+        expect(applyLineMove(current, updated, null)).toEqual(current);
+        const moved = applyLineMove([at('a', 'X', 0)], [at('a', 'Y', 0)], null);
+        expect(moved[0]).toMatchObject({ status: 'Y' });
+        expect(moved[0].x).toBeUndefined();
+    });
+
+    test('moved into a zone the map does not have, it is left where it is', () => {
+        const current = [at('a', 'Zone 1', 0, 0.1, 0.1)];
+        const next = applyLineMove(current, [at('a', 'Old zone', 0)], rects);
+        expect(next[0]).toMatchObject({ status: 'Old zone', x: 0.1, y: 0.1 });
+    });
+
+    test('a tracker that is not a list is treated as empty, and does not change what it is given', () => {
+        expect(applyLineMove(undefined, [at('a', 'Zone 1', 0)], rects)).toEqual([]);
+        const current = [at('a', 'Zone 1', 0, 0.1, 0.1)];
+        applyLineMove(current, [at('a', 'Zone 2', 0)], rects);
+        expect(current).toEqual([at('a', 'Zone 1', 0, 0.1, 0.1)]);
     });
 });

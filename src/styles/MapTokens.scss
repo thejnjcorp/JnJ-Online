@@ -111,3 +111,29 @@
         display: block;
     }
 }
+
+// An enemy or NPC the director has marked defeated: greyed out and crossed through,
+// but still there, so the table can see what fell where (the director can take it
+// off the map altogether with the trash can).
+.MapToken-defeated {
+    filter: grayscale(1);
+    opacity: 0.6;
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        // an X across the circle
+        background:
+            linear-gradient(to bottom right, transparent calc(50% - 1.5px), var(--jnj-color-danger) calc(50% - 1.5px), var(--jnj-color-danger) calc(50% + 1.5px), transparent calc(50% + 1.5px)),
+            linear-gradient(to top right, transparent calc(50% - 1.5px), var(--jnj-color-danger) calc(50% - 1.5px), var(--jnj-color-danger) calc(50% + 1.5px), transparent calc(50% + 1.5px));
+        pointer-events: none;
+    }
+}
+
+// the NPC token whose controls are showing in the toolbar
+.MapToken-selected {
+    outline: 2px dashed var(--jnj-color-accent);
+    outline-offset: 2px;
+}

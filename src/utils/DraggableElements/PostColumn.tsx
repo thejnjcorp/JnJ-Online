@@ -24,6 +24,7 @@ export const PostColumn = ({
   swappableMode = false,
   draggableId,
   readOnly = false,
+  canMovePost,
 }: {
   status: Post["status"];
   posts: Post[];
@@ -47,6 +48,8 @@ export const PostColumn = ({
   draggableId?: string | null;
   // the cards can be looked at but not dragged
   readOnly?: boolean;
+  // when given, only the cards this says yes to can be dragged (a player moving their own character)
+  canMovePost?: (post: Post) => boolean;
 }) => {
   const {
     postColumn = "PostColumn-default",
@@ -86,7 +89,7 @@ export const PostColumn = ({
               contentClassName={postCardContent}
               boxClassName={postCardBox}
               extraClassNames={extraClassNames}
-              readOnly={readOnly}
+              readOnly={readOnly || (canMovePost ? !canMovePost(post) : false)}
             />
           ))}
           {droppableProvided.placeholder}

@@ -86,6 +86,14 @@ describe('useMapImageTokens', () => {
             expect(result.current.selected).toBeNull(); // not in the map doc yet: nothing to select until it arrives
         });
 
+        test('puts it where it was dropped, when told, kept on the map', () => {
+            const { result } = setup();
+            act(() => { result.current.add({ image: 'https://example.com/a.png' }, 0.5, { x: 0.8, y: 0.3 }); });
+            expect(mockUpdateDoc.mock.calls[0][1].image_tokens.__arrayUnion).toMatchObject({ x: 0.8, y: 0.3 });
+            act(() => { result.current.add({ image: 'https://example.com/a.png' }, 0.5, { x: 5, y: 5 }); });
+            expect(mockUpdateDoc.mock.calls[1][1].image_tokens.__arrayUnion).toMatchObject({ x: 1, y: 0.5 });
+        });
+
         test('is selected once the map doc has it', () => {
             const { result, rerender } = setup();
             let id;

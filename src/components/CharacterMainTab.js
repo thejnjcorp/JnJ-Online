@@ -16,6 +16,8 @@ import { PostListContentCombat } from "../utils/DraggableElements/PostListCombat
 import { PostListContentCombatMap } from "../utils/DraggableElements/PostListCombatMap.tsx";
 import { useCampaignMaps, useCombatEntities } from "../utils/useCampaignCombat";
 import { useOwnCombatTokens } from "../utils/useOwnCombatTokens";
+import { combatantMover } from "../utils/combatTracker";
+import { zoneRects } from "../utils/mapTokens";
 import { ReactComponent as ScrollIcon } from '../icons/scroll.svg';
 import { ReactComponent as SwordsIcon } from '../icons/swords.svg';
 import { ReactComponent as BagIcon } from '../icons/bag.svg';
@@ -445,9 +447,10 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                     </button>
                 </div>
                 <PostListContentCombat
-                    inputStatuses={["Zone 0", "Zone 1", "Zone 2", "Zone 3", "Zone 4"]}
+                    inputStatuses={(activeMap?.zones ?? []).map(zone => zone.name)}
                     campaignId={characterPage.campaign}
-                    readOnly={!canEditCampaign}
+                    canMovePost={combatantMover(combatEntities, userId, canEditCampaign)}
+                    rects={activeMap ? zoneRects(activeMap.zones ?? []) : null}
                 />
             </div>
         }

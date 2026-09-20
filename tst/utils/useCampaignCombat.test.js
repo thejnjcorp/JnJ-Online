@@ -72,10 +72,19 @@ describe('useCombatEntities', () => {
         };
         const { result } = renderHook(() => useCombatEntities([], campaignInfo));
         expect(result.current).toEqual([
-            { id: 'npc:a1', title: 'Ally One', kind: 'ally', image: undefined },
-            { id: 'npc:e1', title: 'Enemy One', kind: 'enemy', image: undefined },
-            { id: 'npc:n1', title: 'Neutral One', kind: 'neutral', image: undefined },
+            { id: 'npc:a1', title: 'Ally One', kind: 'ally', image: undefined, defeated: false },
+            { id: 'npc:e1', title: 'Enemy One', kind: 'enemy', image: undefined, defeated: false },
+            { id: 'npc:n1', title: 'Neutral One', kind: 'neutral', image: undefined, defeated: false },
         ]);
+    });
+
+    test('an NPC the director has marked defeated says so, and one with no flag is not', () => {
+        const campaignInfo = {
+            ally_combat_npc_list: [{ id: 'a1', enemy_name: 'Ally', defeated: true }],
+            enemy_list: [{ id: 'e1', enemy_name: 'Goblin', defeated: true }, { id: 'e2', enemy_name: 'Orc', defeated: false }, { id: 'e3', enemy_name: 'Imp' }],
+        };
+        const { result } = renderHook(() => useCombatEntities([], campaignInfo));
+        expect(result.current.map(entity => [entity.id, entity.defeated])).toEqual([['npc:a1', true], ['npc:e1', true], ['npc:e2', false], ['npc:e3', false]]);
     });
 
     test('missing NPC list fields default to empty rather than throwing', () => {

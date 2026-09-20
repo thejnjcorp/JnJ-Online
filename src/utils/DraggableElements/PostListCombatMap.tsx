@@ -2,12 +2,15 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { subscribeParty, updateCombatTracker } from "../party";
 import { useMapDrawing } from "../useMapDrawing";
 import { useMapImageTokens } from "../useMapImageTokens";
+import { useMapTrash } from "../useMapTrash";
 import { NO_MAP_ZONE, syncCombatTracker } from "../combatTracker";
 import { moveToken, round, settlePending, withPending, zoneRects } from "../mapTokens";
 import { MapDrawingLayer } from "../../components/MapDrawingLayer";
 import { MapDrawingToolbar } from "../../components/MapDrawingToolbar";
 import { MapImageTokens } from "../../components/MapImageTokens";
 import { MapImageTokenToolbar } from "../../components/MapImageTokenToolbar";
+import { MapCombatantToolbar } from "../../components/MapCombatantToolbar";
+import { MapTrashCan } from "../../components/MapTrashCan";
 import { MapTokens } from "../../components/MapTokens";
 import { Post, PostListContentAbstract } from "./Post.ts";
 import "../../styles/CombatMap.scss";
@@ -29,7 +32,11 @@ const combatMapClassName = {
     postCardBox: "CombatMap-tile-box",
 };
 
-export function PostListContentCombatMap({ campaignId, activeMap, entities = [], userId = undefined, canEdit = false, noMap = false, noActiveMapMessage = "No active map selected. Set one from the Maps tab." }) {
+// `onSetDefeated(entityId, defeated)` and `onRemoveEntity(entity)` are how a director
+// marks an enemy defeated, or takes it out of the fight, from its token
+// on the map (or by dropping it on the trash can); the map does not own the enemy
+// list, so whoever does supplies them. Without them there are no such controls.
+export function PostListContentCombatMap({ campaignId, activeMap, entities = [], userId = undefined, canEdit = false, noMap = false, noActiveMapMessage = "No active map selected. Set one from the Maps tab.", onSetDefeated = undefined, onRemoveEntity = undefined }) {
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
     // Tokens just dropped that the tracker hasn't caught up with yet (see settlePending).
@@ -61,6 +68,13 @@ export function PostListContentCombatMap({ campaignId, activeMap, entities = [],
     const imageTokens = useMapImageTokens(activeMap, userId);
     // where a new one goes depends on the map's shape, which is only known once it has been drawn
     const aspectRef = useRef(0.5);
+    // while a token from the director's library is being dragged, the map takes the drop
+    const [libraryDragging, setLibraryDragging] = useState(false);
+    // A token dropped on the trash can is taken away; the can shows only while one is carried.
+    const mapTrash = useMapTrash();
+    // The enemy whose token is selected, for the toolbar's controls.
+    const [selectedNpc, setSelectedNpc] = useState<string | null>(null);
+    const npcControls = canEdit && Boolean(onSetDefeated || onRemoveEntity);
 
     // Every change to the tracker is applied, whoever made it, so a token moved by
     // anyone moves on everyone's map.
@@ -103,9 +117,19 @@ export function PostListContentCombatMap({ campaignId, activeMap, entities = [],
                 const entity = byId.get(post.id);
                 // a director moves anyone's token; a player, their own character's
                 const movable = !drawing.drawing && (canEdit || (entity.kind === "player" && Boolean(userId) && Boolean(entity.ownerIds?.includes(userId))));
-                return { id: post.id, title: entity.title || post.title, kind: entity.kind, image: entity.image, x: post.x, y: post.y, movable };
+                // only enemies can be marked defeated or taken out of the fight from the map
+                const isEnemy = entity.kind === "enemy";
+                return {
+                    id: post.id, title: entity.title || post.title, kind: entity.kind, image: entity.image, x: post.x, y: post.y, movable,
+                    defeated: Boolean(entity.defeated),
+                    selectable: npcControls && isEnemy && !drawing.drawing,
+                    trashable: canEdit && Boolean(onRemoveEntity) && isEnemy && !drawing.drawing,
+                };
             });
-    }, [activeMap, posts, entities, pending, canEdit, userId, drawing.drawing]);
+    }, [activeMap, posts, entities, pending, canEdit, userId, drawing.drawing, npcControls, onRemoveEntity]);
+
+    // a combatant taken out of the fight is no longer selected
+    const selectedEntity = npcControls ? entities.find((entity) => entity.id === selectedNpc && entity.kind === "enemy") : undefined;
 
     // The token stays where it was dropped while the move is saved, and until the
     // tracker shows it there (a transaction isn't reflected locally until the server
@@ -149,11 +173,16 @@ export function PostListContentCombatMap({ campaignId, activeMap, entities = [],
 
     return <>
         {drawing.canDraw && <MapDrawingToolbar drawing={drawing}/>}
-        {imageTokens.canEdit && <MapImageTokenToolbar imageTokens={{
+        {imageTokens.canEdit && <MapImageTokenToolbar userId={userId} onDragging={setLibraryDragging} imageTokens={{
             ...imageTokens,
             add: (fields: { image: string; label: string; size: number }) => imageTokens.add(fields, aspectRef.current),
             copy: (id: string) => imageTokens.copy(id, aspectRef.current),
         }}/>}
+        {selectedEntity && <MapCombatantToolbar
+            combatant={selectedEntity}
+            onSetDefeated={onSetDefeated}
+            onRemove={onRemoveEntity}
+        />}
         <PostListContentAbstract
             inputStatuses={zoneNames}
             usePosts={usePosts}
@@ -169,8 +198,14 @@ export function PostListContentCombatMap({ campaignId, activeMap, entities = [],
                         tokens={imageTokens.tokens}
                         aspect={aspect}
                         canEdit={imageTokens.canEdit && !drawing.drawing}
+                        droppable={imageTokens.canEdit && !drawing.drawing && libraryDragging}
+                        onDropToken={(token: { image: string; label: string; size: number }, point: Spot) => {
+                            setLibraryDragging(false);
+                            imageTokens.add(token, aspect, point);
+                        }}
                         selected={imageTokens.selected}
-                        onSelect={imageTokens.select}
+                        trash={imageTokens.canEdit && !drawing.drawing ? mapTrash.trash : undefined}
+                        onSelect={(id: string) => { setSelectedNpc(null); imageTokens.select(id); }}
                         onMove={(id: string, point: Spot) => imageTokens.move(id, point, aspect)}
                         onRemove={imageTokens.remove}
                     />
@@ -184,7 +219,20 @@ export function PostListContentCombatMap({ campaignId, activeMap, entities = [],
                         onStroke={drawing.addStroke}
                         onErase={drawing.eraseStrokes}
                     />
-                    <MapTokens tokens={tokens} rects={rects} aspect={aspect} onMove={handleMove}/>
+                    <MapTokens
+                        tokens={tokens}
+                        rects={rects}
+                        aspect={aspect}
+                        onMove={handleMove}
+                        selected={selectedEntity?.id ?? null}
+                        onSelect={(id: string) => { imageTokens.select(null); setSelectedNpc(id); }}
+                        trash={mapTrash.trash}
+                        onTrash={(id: string) => {
+                            const entity = entities.find((candidate) => candidate.id === id);
+                            if (entity) onRemoveEntity?.(entity);
+                        }}
+                    />
+                    <MapTrashCan ref={mapTrash.ref} carrying={mapTrash.carrying} hot={mapTrash.hot}/>
                 </>;
             }}
         />

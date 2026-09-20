@@ -10,6 +10,12 @@ service cloud.firestore {
     	allow read, write: if isSignedIn() && uid() == userId;
 
       allow read: if isSignedIn();
+
+      // A director's library of pictures to put on maps (see tokenLibrary.js). Private
+      // to its owner, unlike the player doc itself, which anyone signed in can read.
+      match /tokens/{tokenId} {
+        allow read, write: if isSignedIn() && uid() == userId;
+      }
     }
 
     match /campaigns/{campaignId} {

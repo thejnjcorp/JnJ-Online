@@ -56,6 +56,42 @@ export function slotPosition(rect, n) {
     };
 }
 
+// The offsets 0, 1, 2 ... up to `after` steps, then -1, -2 ... down to `before` steps:
+// the spots along a line in the order they are tried - the middle first, then
+// onwards, then back the other way.
+function outwards(after, before) {
+    const steps = [];
+    for (let k = 0; k <= after; k++) steps.push(k);
+    for (let k = 1; k <= before; k++) steps.push(-k);
+    return steps;
+}
+
+// Where a token put into a zone (moved there from another, say) goes: the middle of
+// the zone, and if another token is already there, the next spot to the right, then
+// on across the row and down to the next row until one is free. `taken` are the
+// positions ({ x, y }) of the tokens already in the zone. A zone with no free spot
+// left gives its middle.
+export function openSpot(rect, taken = []) {
+    const low = { x: rect.x + SIDE_PADDING + TOKEN_SIZE / 2, y: rect.y + HEADER + TOKEN_SIZE / 2 };
+    const high = { x: rect.x + rect.w - SIDE_PADDING - TOKEN_SIZE / 2, y: rect.y + rect.h - SIDE_PADDING - TOKEN_SIZE / 2 };
+    // a zone too small to keep its tokens clear of its edges: just its middle
+    const centre = { x: round(rect.x + rect.w / 2), y: round(rect.y + rect.h / 2) };
+    if (high.x < low.x || high.y < low.y) return centre;
+    const middle = { x: Math.min(high.x, Math.max(low.x, centre.x)), y: Math.min(high.y, Math.max(low.y, centre.y)) };
+
+    const across = outwards(Math.floor((high.x - middle.x) / SPACING), Math.floor((middle.x - low.x) / SPACING));
+    const down = outwards(Math.floor((high.y - middle.y) / SPACING), Math.floor((middle.y - low.y) / SPACING));
+    const occupied = spot => taken.some(other => Number.isFinite(other.x) && Number.isFinite(other.y) && Math.hypot(other.x - spot.x, other.y - spot.y) < TOKEN_SIZE);
+
+    for (const row of down) {
+        for (const column of across) {
+            const spot = { x: round(middle.x + column * SPACING), y: round(middle.y + row * SPACING) };
+            if (!occupied(spot)) return spot;
+        }
+    }
+    return { x: round(middle.x), y: round(middle.y) };
+}
+
 const hasPosition = post => Number.isFinite(post.x) && Number.isFinite(post.y);
 
 // Every token given a place in its own zone: one that already has a position
@@ -129,4 +165,37 @@ export function tokenInitials(title) {
     if (words.length === 0) return '?';
     if (words.length === 1) return Array.from(words[0]).slice(0, 2).join('').toUpperCase();
     return (Array.from(words[0])[0] + Array.from(words[words.length - 1])[0]).toUpperCase();
+}
+
+// The tracker after a change made from the line view, where combatants are dragged
+// between zone lists (and reordered within them). `updated` is the whole list as the
+// line view now has it; `current` is the tracker as it stands now. A combatant is
+// taken from `updated` for its zone and place in the line; everyone else - including
+// someone added or moved while the drag was going on - is left as it is now. A
+// combatant that has changed zone is put in the middle of the new zone, or the next
+// free spot in it (see openSpot), so it lands somewhere sensible on the map; one that
+// only moved within its zone keeps its place there. `rects` are the map's zones (none
+// without a map, which leaves positions alone).
+export function applyLineMove(current, updated, rects = null) {
+    const now = Array.isArray(current) ? current : [];
+    const byId = new Map(updated.map(post => [post.id, post]));
+    const next = now.map(post => {
+        const change = byId.get(post.id);
+        if (!change || (change.status === post.status && change.index === post.index)) return post;
+        return { ...post, status: change.status, index: change.index };
+    });
+
+    const moved = now.filter((post, i) => next[i].status !== post.status).map(post => post.id);
+    if (!rects || moved.length === 0) return next;
+
+    const byName = Object.fromEntries(rects.map(rect => [rect.name, rect]));
+    const settled = [...next];
+    moved.forEach(id => {
+        const i = settled.findIndex(post => post.id === id);
+        const rect = byName[settled[i].status];
+        if (!rect) return;
+        const taken = settled.filter((post, j) => j !== i && post.status === settled[i].status);
+        settled[i] = { ...settled[i], ...openSpot(rect, taken) };
+    });
+    return settled;
 }

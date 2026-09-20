@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
 import { subscribeParty, updateCombatTracker } from "../party";
+import { applyLineMove } from "../mapTokens";
 import { Post, PostListContentAbstract } from "./Post.ts";
 
 // The combat tracker lives on the campaign's party doc (utils/party.js). `readOnly`
-// lists it without letting anyone drag people between zones.
-export function PostListContentCombat({ inputStatuses, campaignId, className, PostCardComponent, readOnly = false }) {
+// lists it without letting anyone drag people between zones; `canMovePost` lets only
+// some be dragged (a player, their own characters). Dragging someone into another
+// zone puts their token in the middle of that zone - or the next free spot in it -
+// on the map, given the map's zones as `rects` (see applyLineMove).
+export function PostListContentCombat({ inputStatuses, campaignId, className, PostCardComponent, readOnly = false, canMovePost = undefined, rects = null }) {
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -20,7 +24,7 @@ export function PostListContentCombat({ inputStatuses, campaignId, className, Po
     }
 
     const updateCombatTrackerPosts = (updatedPosts: Post[]) => {
-        updateCombatTracker(campaignId, () => updatedPosts).catch((error) => alert("Couldn't move them: " + error));
+        updateCombatTracker(campaignId, (current) => applyLineMove(current, updatedPosts, rects)).catch((error) => alert("Couldn't move them: " + error));
     }
 
     return <PostListContentAbstract
@@ -30,5 +34,6 @@ export function PostListContentCombat({ inputStatuses, campaignId, className, Po
         className={className}
         PostCardComponent={PostCardComponent}
         readOnly={readOnly}
+        canMovePost={canMovePost}
     />
 }

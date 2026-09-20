@@ -548,6 +548,10 @@
     border: 1px solid var(--jnj-color-border);
     border-radius: var(--jnj-radius-md);
     padding: var(--jnj-space-3);
+    // The zone's title, then its list filling the rest of the card (see
+    // .DirectorsPage-zone-chips): the list is what someone is dragged into.
+    display: flex;
+    flex-direction: column;
 }
 
 .DirectorsPage-zone-title {
@@ -567,8 +571,14 @@
 // against zone-chips' real content-box width, full stop. Multiple entities
 // in one zone now stack as separate rows instead of wrapping side by side,
 // which reads fine at these widths anyway.
+//
+// The list fills the zone's card, however few people are in it: it is the drop
+// area for dragging someone into the zone, and an empty zone's list has no height
+// of its own - which left nowhere to drop.
 .DirectorsPage-zone-chips {
     display: block;
+    flex: 1 1 auto;
+    min-height: 4rem;
 }
 
 .DirectorsPage-entity-chip {
@@ -716,6 +726,12 @@
     }
 }
 
+.DirectorsPage-entity-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--jnj-space-2);
+}
+
 .DirectorsPage-remove-enemy-button {
     align-self: flex-start;
     margin-top: var(--jnj-space-2);
@@ -768,4 +784,37 @@
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
+}
+
+
+// An enemy the director has marked defeated: its card is dimmed and its name struck
+// through, with a badge; its chip in the line view likewise.
+.DirectorsPage-entity-card-defeated {
+    opacity: 0.6;
+    border-left-color: var(--jnj-color-text-faint);
+
+    .DirectorsPage-entity-name {
+        text-decoration: line-through;
+    }
+}
+
+.DirectorsPage-defeated-badge {
+    padding: 1px 8px;
+    border: 1px solid var(--jnj-color-danger);
+    border-radius: var(--jnj-radius-pill);
+    color: var(--jnj-color-danger);
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.DirectorsPage-entity-chip-defeated {
+    opacity: 0.55;
+    border-color: var(--jnj-color-text-faint);
+    background: transparent;
+
+    .DirectorsPage-entity-chip-title {
+        text-decoration: line-through;
+    }
 }

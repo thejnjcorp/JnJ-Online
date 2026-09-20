@@ -1,26 +1,9 @@
 import {
-    COPY_OFFSET, DEFAULT_IMAGE_TOKEN_SIZE, IMAGE_TOKEN_SIZES, MAX_IMAGE_URL_LENGTH, MAX_LABEL_LENGTH,
-    clampToMap, copyImageToken, isImageUrl, moveImageToken, newImageToken, removeImageToken, resizeImageToken, validImageTokens,
+    COPY_OFFSET, DEFAULT_IMAGE_TOKEN_SIZE, IMAGE_TOKEN_SIZES, MAX_LABEL_LENGTH,
+    clampToMap, copyImageToken, moveImageToken, newImageToken, removeImageToken, resizeImageToken, validImageTokens,
 } from '../../src/utils/mapImageTokens';
 
 const token = (id, extra = {}) => ({ id, image: 'https://example.com/fire.png', label: 'Fire', x: 0.3, y: 0.2, size: 0.07, ...extra });
-
-describe('isImageUrl', () => {
-    test('accepts web links', () => {
-        expect(isImageUrl('https://i.imgur.com/abc.png')).toBe(true);
-        expect(isImageUrl('http://example.com/tree.jpg')).toBe(true);
-    });
-
-    test('nothing else can become an image source', () => {
-        ['javascript:alert(1)', 'data:image/png;base64,AAAA', 'ftp://example.com/a.png', 'not a link', '', '   ', null, undefined, 42].forEach(value => {
-            expect(isImageUrl(value)).toBe(false);
-        });
-    });
-
-    test('a link that is too long is refused', () => {
-        expect(isImageUrl(`https://example.com/${'a'.repeat(MAX_IMAGE_URL_LENGTH)}`)).toBe(false);
-    });
-});
 
 describe('validImageTokens', () => {
     test('keeps well-formed tokens', () => {
@@ -35,6 +18,12 @@ describe('validImageTokens', () => {
             token('e', { size: 0 }), token('f', { size: -1 }), token('g', { size: undefined }),
         ]);
         expect(result).toEqual([good]);
+    });
+
+    test('takes a picture stored as an Imgur hash as well as one stored as a web link', () => {
+        const hashed = token('h', { image: 'AbC1d2E.png' });
+        expect(validImageTokens([hashed, token('u')])).toEqual([hashed, token('u')]);
+        expect(validImageTokens([token('bad', { image: 'not a ref' })])).toEqual([]);
     });
 
     test('is empty when the map has none, or the field is not a list', () => {

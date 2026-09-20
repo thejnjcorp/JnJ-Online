@@ -1,16 +1,26 @@
+jest.mock('../../src/utils/firebase', () => ({ db: {} }));
+jest.mock('firebase/firestore', () => ({ collection: jest.fn(), doc: jest.fn(), addDoc: jest.fn(), deleteDoc: jest.fn(), onSnapshot: jest.fn(), serverTimestamp: jest.fn() }));
+
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MapImageTokenToolbar } from '../../src/components/MapImageTokenToolbar';
 import { IMAGE_TOKEN_SIZES, MAX_IMAGE_TOKENS } from '../../src/utils/mapImageTokens';
+import { DRAG_TYPE } from '../../src/utils/tokenLibrary';
 
 const mockUpload = jest.fn();
 jest.mock('../../src/utils/imgurUploader', () => ({ uploadImageToImgur: (...args) => mockUpload(...args) }));
 
+const mockUseTokenLibrary = jest.fn();
+jest.mock('../../src/utils/useTokenLibrary', () => ({ useTokenLibrary: (...args) => mockUseTokenLibrary(...args) }));
+
 const token = (id, extra = {}) => ({ id, image: 'https://example.com/fire.png', label: 'Fire', x: 0.3, y: 0.2, size: 0.07, ...extra });
 const size = key => IMAGE_TOKEN_SIZES.find(option => option.key === key).value;
 
-function setup(extra = {}) {
+const libraryToken = (id, extra = {}) => ({ id, image: 'AbC1d2E.png', label: 'Fire', size: 0.12, ...extra });
+let library;
+
+function setup(extra = {}, props = {}) {
     const imageTokens = { tokens: [], full: false, selected: null, add: jest.fn(), resize: jest.fn(), copy: jest.fn(), remove: jest.fn(), ...extra };
-    render(<MapImageTokenToolbar imageTokens={imageTokens} />);
+    render(<MapImageTokenToolbar imageTokens={imageTokens} userId="director-1" {...props} />);
     return imageTokens;
 }
 const open = () => fireEvent.click(screen.getByRole('button', { name: 'Add image token' }));
@@ -18,6 +28,8 @@ const type = (label, value) => fireEvent.change(screen.getByLabelText(label), { 
 
 beforeEach(() => {
     window.alert = jest.fn();
+    library = { tokens: [], loaded: true, full: false, save: jest.fn(), remove: jest.fn() };
+    mockUseTokenLibrary.mockImplementation(() => library);
 });
 
 afterEach(() => {
@@ -94,6 +106,157 @@ describe('MapImageTokenToolbar', () => {
             type('Picture link', 'https://example.com/tree.png');
             expect(screen.getByRole('button', { name: 'Place on map' })).toBeDisabled();
             expect(screen.getByRole('alert')).toHaveTextContent(`${MAX_IMAGE_TOKENS} image tokens`);
+        });
+    });
+
+    describe('the token library', () => {
+        test('listens to the director\'s library only while the panel is open', () => {
+            setup();
+            expect(mockUseTokenLibrary).toHaveBeenLastCalledWith('director-1', false);
+            open();
+            expect(mockUseTokenLibrary).toHaveBeenLastCalledWith('director-1', true);
+        });
+
+        test('says so when nothing is saved yet, and while it is still loading', () => {
+            setup();
+            open();
+            expect(within(screen.getByRole('region', { name: 'Token library' })).getByText(/Nothing saved yet/)).toBeInTheDocument();
+        });
+
+        test('while loading it says that instead', () => {
+            library.loaded = false;
+            setup();
+            open();
+            expect(within(screen.getByRole('region', { name: 'Token library' })).getByText('Loading...')).toBeInTheDocument();
+        });
+
+        test('shows each saved token as a picture, named, loading an Imgur hash from Imgur', () => {
+            library.tokens = [libraryToken('a'), libraryToken('b', { image: 'https://example.com/tree.png', label: '' })];
+            setup();
+            open();
+            const fire = screen.getByRole('button', { name: 'Place Fire' });
+            expect(within(fire).getByText('Fire')).toBeInTheDocument();
+            expect(fire.querySelector('img')).toHaveAttribute('src', 'https://i.imgur.com/AbC1d2E.png');
+            expect(screen.getByRole('button', { name: 'Place image token' }).querySelector('img')).toHaveAttribute('src', 'https://example.com/tree.png');
+        });
+
+        test('pressing one places it with its own name and size', () => {
+            library.tokens = [libraryToken('a')];
+            const imageTokens = setup();
+            open();
+            fireEvent.click(screen.getByRole('button', { name: 'Place Fire' }));
+            expect(imageTokens.add).toHaveBeenCalledWith({ image: 'AbC1d2E.png', label: 'Fire', size: 0.12 });
+        });
+
+        test('cannot place one when the map is full', () => {
+            library.tokens = [libraryToken('a')];
+            const imageTokens = setup({ full: true });
+            open();
+            const button = screen.getByRole('button', { name: 'Place Fire' });
+            expect(button).toHaveAttribute('aria-disabled', 'true');
+            expect(button).toHaveAttribute('draggable', 'false');
+            fireEvent.click(button);
+            fireEvent.keyDown(button, { key: 'Enter' });
+            expect(imageTokens.add).not.toHaveBeenCalled();
+        });
+
+        test('can be placed from the keyboard, with Enter or Space', () => {
+            library.tokens = [libraryToken('a')];
+            const imageTokens = setup();
+            open();
+            const button = screen.getByRole('button', { name: 'Place Fire' });
+            fireEvent.keyDown(button, { key: 'Enter' });
+            fireEvent.keyDown(button, { key: ' ' });
+            fireEvent.keyDown(button, { key: 'a' });
+            expect(imageTokens.add).toHaveBeenCalledTimes(2);
+        });
+
+        test('a token can be taken out of the library', () => {
+            library.tokens = [libraryToken('a')];
+            setup();
+            open();
+            fireEvent.click(screen.getByRole('button', { name: 'Remove Fire from library' }));
+            expect(library.remove).toHaveBeenCalledWith('a');
+        });
+
+        test('dragging one carries its picture, name and size, and tells the map a drag has begun and ended', () => {
+            library.tokens = [libraryToken('a')];
+            const onDragging = jest.fn();
+            setup({}, { onDragging });
+            open();
+            const button = screen.getByRole('button', { name: 'Place Fire' });
+            expect(button).toHaveAttribute('draggable', 'true');
+            const dataTransfer = { setData: jest.fn(), effectAllowed: '' };
+
+            fireEvent.dragStart(button, { dataTransfer });
+            expect(dataTransfer.setData).toHaveBeenCalledWith(DRAG_TYPE, JSON.stringify({ image: 'AbC1d2E.png', label: 'Fire', size: 0.12 }));
+            expect(onDragging).toHaveBeenLastCalledWith(true);
+
+            fireEvent.dragEnd(button);
+            expect(onDragging).toHaveBeenLastCalledWith(false);
+        });
+
+        test('says when the library is full', () => {
+            library.tokens = [libraryToken('a')];
+            library.full = true;
+            setup();
+            open();
+            expect(screen.getByRole('alert')).toHaveTextContent('100 tokens');
+        });
+
+        test('a token that is placed is saved to the library, by default, as its hash', () => {
+            const imageTokens = setup();
+            open();
+            type('Picture link', 'https://i.imgur.com/AbC1d2E.gif');
+            type('Name (optional)', 'Fire');
+            fireEvent.click(screen.getByRole('button', { name: 'Place on map' }));
+            expect(imageTokens.add).toHaveBeenCalledWith({ image: 'AbC1d2E.gif', label: 'Fire', size: size('medium') });
+            expect(library.save).toHaveBeenCalledWith({ image: 'AbC1d2E.gif', label: 'Fire', size: size('medium') });
+        });
+
+        test('a link from anywhere else is saved as the link', () => {
+            setup();
+            open();
+            type('Picture link', 'https://example.com/tree.png');
+            fireEvent.click(screen.getByRole('button', { name: 'Place on map' }));
+            expect(library.save).toHaveBeenCalledWith(expect.objectContaining({ image: 'https://example.com/tree.png' }));
+        });
+
+        test('unticking "Save to my library" places it without saving it', () => {
+            const imageTokens = setup();
+            open();
+            fireEvent.click(screen.getByRole('checkbox', { name: 'Save to my library' }));
+            type('Picture link', 'https://example.com/tree.png');
+            fireEvent.click(screen.getByRole('button', { name: 'Place on map' }));
+            expect(imageTokens.add).toHaveBeenCalled();
+            expect(library.save).not.toHaveBeenCalled();
+        });
+
+        test('one already in the library is not saved a second time', () => {
+            library.tokens = [libraryToken('a')];
+            const imageTokens = setup();
+            open();
+            type('Picture link', 'https://i.imgur.com/AbC1d2E.png');
+            fireEvent.click(screen.getByRole('button', { name: 'Place on map' }));
+            expect(imageTokens.add).toHaveBeenCalled();
+            expect(library.save).not.toHaveBeenCalled();
+        });
+
+        test('a full library is not saved to, but the token is still placed', () => {
+            library.full = true;
+            const imageTokens = setup();
+            open();
+            type('Picture link', 'https://example.com/tree.png');
+            fireEvent.click(screen.getByRole('button', { name: 'Place on map' }));
+            expect(imageTokens.add).toHaveBeenCalled();
+            expect(library.save).not.toHaveBeenCalled();
+        });
+
+        test('the preview shows an Imgur link as the picture it points to', () => {
+            setup();
+            open();
+            type('Picture link', 'https://i.imgur.com/AbC1d2E.png');
+            expect(screen.getByAltText('Preview')).toHaveAttribute('src', 'https://i.imgur.com/AbC1d2E.png');
         });
     });
 

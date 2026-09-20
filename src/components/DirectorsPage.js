@@ -39,10 +39,11 @@ import { advanceTurnStatuses, getEffectiveCharacterStats, getGrantedActions } fr
 import { CharacterStatCalculator } from './CharacterStatCalculator';
 import { AddEnemyDialog } from './AddEnemyDialog';
 import { EnemyTierBadge } from './EnemyTierBadge';
-import { removeEnemies } from '../utils/enemies';
+import { npcIdOf, removeEnemies } from '../utils/enemies';
 import { removeFromTracker, updateCombatTracker } from '../utils/party';
 import { isCombatAction, isReactionAction } from '../utils/classActions';
-import { NO_MAP_ZONE } from '../utils/combatTracker';
+import { NO_MAP_ZONE, combatantMover } from '../utils/combatTracker';
+import { zoneRects } from '../utils/mapTokens';
 
 // Matches the mockup's .zone-card/.zone-title/.entity-chip recipe (see
 // design/directors-page/handoff/reference.html) rather than the generic
@@ -69,9 +70,12 @@ const lineViewClassName = {
 // the plain accent-colored name-only card. Built as a factory (called via
 // useMemo below, keyed on characterList) rather than a module-level constant
 // like lineViewClassName, since it needs to close over the live per-player info.
-function makeLineViewCard(playerInfoById) {
-    return function LineViewEntityCard({ post, index, titleClassName, boxClassName }) {
+function makeLineViewCard(playerInfoById, defeatedIds = []) {
+    return function LineViewEntityCard({ post, index, titleClassName, boxClassName: baseBoxClassName, readOnly = false }) {
         const info = playerInfoById[post.id];
+        // an enemy the director has marked defeated is dimmed and struck through
+        const defeated = defeatedIds.includes(post.id);
+        const boxClassName = defeated ? `${baseBoxClassName} DirectorsPage-entity-chip-defeated` : baseBoxClassName;
         const chipStyle = info?.color ? { borderColor: info.color, background: info.color + '22' } : undefined;
         // The tooltip should only appear when the name is actually cut off -
         // showing it over an already-fully-visible name is just noise (and
@@ -93,7 +97,7 @@ function makeLineViewCard(playerInfoById) {
             return () => observer.disconnect();
         }, [titleEl]);
 
-        return <Draggable draggableId={String(post.id)} index={index}>
+        return <Draggable draggableId={String(post.id)} index={index} isDragDisabled={readOnly}>
             {(provided, snapshot) => (
                 <div style={{ marginBottom: "1px" }} {...provided.dragHandleProps} {...provided.draggableProps} ref={provided.innerRef}>
                     <div
@@ -123,7 +127,7 @@ function makeLineViewCard(playerInfoById) {
 // need to know whether it's looking at a real `characters` doc or an NPC
 // object embedded in the campaign doc.
 function DirectorsEntityCard({
-    kind, name, tier, subtitle, hpNow, hpMax, tempHp, ac, ap, onSetAp, reactionUsed, onToggleReaction, onRemove,
+    kind, name, tier, subtitle, hpNow, hpMax, tempHp, ac, ap, onSetAp, reactionUsed, onToggleReaction, onRemove, defeated = false, onSetDefeated,
     canAdvanceTurn, onNextTurn, weaknesses, resistances,
     statusEntity, onUpdateStatuses, hasStatusWrite, userId,
     actions, experiencePoints, baseHitModifier, baseDamageModifier,
@@ -136,11 +140,12 @@ function DirectorsEntityCard({
     const hasTempHp = tempHp > 0;
     const hasWeakRes = kind === 'enemy' && ((weaknesses?.length || 0) + (resistances?.length || 0) > 0);
 
-    return <div className={`DirectorsPage-entity-card DirectorsPage-entity-card-${kind}`}>
+    return <div className={`DirectorsPage-entity-card DirectorsPage-entity-card-${kind}${defeated ? ' DirectorsPage-entity-card-defeated' : ''}`}>
         <button type="button" className="DirectorsPage-entity-header" onClick={() => setOpen(o => !o)}>
             <ChevronDownIcon className={open ? "DirectorsPage-chevron DirectorsPage-chevron-open" : "DirectorsPage-chevron"}/>
             <span className="DirectorsPage-entity-name">{name}</span>
             {tier && <EnemyTierBadge tier={tier}/>}
+            {defeated && <span className="DirectorsPage-defeated-badge">Defeated</span>}
             {subtitle && <span className="DirectorsPage-entity-subtitle">{subtitle}</span>}
             <span className="DirectorsPage-entity-hp-label">{hpNow}/{hpMax} HP</span>
         </button>
@@ -208,7 +213,10 @@ function DirectorsEntityCard({
                 />}
             </div>
 
-            {onRemove && <button type="button" className="DirectorsPage-remove-enemy-button" onClick={onRemove}>Remove from fight</button>}
+            {(onSetDefeated || onRemove) && <div className="DirectorsPage-entity-footer">
+                {onSetDefeated && <button type="button" className="DirectorsPage-remove-enemy-button" onClick={() => onSetDefeated(!defeated)}>{defeated ? 'Revive' : 'Mark defeated'}</button>}
+                {onRemove && <button type="button" className="DirectorsPage-remove-enemy-button" onClick={onRemove}>Remove from fight</button>}
+            </div>}
         </div>}
     </div>;
 }
@@ -354,6 +362,8 @@ export function DirectorsPage() {
     // actually does, so the memo - and each chip's remount-sensitive state
     // - stays stable across unrelated echoes.
     const playerInfoKey = characterList.map(c => `${c.character_id}:${c.portrait_url || ''}:${c.navigation_color || ''}`).join('|');
+    const defeatedIds = (campaignInfo.enemy_list ?? []).filter(enemy => enemy.defeated).map(enemy => 'npc:' + enemy.id);
+    const defeatedKey = defeatedIds.join(',');
     const lineViewCard = useMemo(() => {
         const playerInfoById = {};
         characterList.forEach(character => {
@@ -362,9 +372,9 @@ export function DirectorsPage() {
                 color: character.navigation_color,
             };
         });
-        return makeLineViewCard(playerInfoById);
+        return makeLineViewCard(playerInfoById, defeatedIds);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [playerInfoKey]);
+    }, [playerInfoKey, defeatedKey]);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -398,6 +408,17 @@ export function DirectorsPage() {
         updateCombatTracker(campaignId, removeFromTracker([enemy.id])).catch(e => console.log(e));
     }
 
+    // From the map: marking an enemy's token defeated, or dropping it on the trash can.
+    function setEnemyDefeated(entityId, defeated) {
+        const id = npcIdOf(entityId);
+        if (id && campaignInfo.enemy_list.some(enemy => enemy.id === id)) updateEnemy(id, { defeated }).catch(e => alert(e));
+    }
+
+    function removeEntityFromFight(entity) {
+        const enemy = campaignInfo.enemy_list.find(candidate => candidate.id === npcIdOf(entity.id));
+        if (enemy) removeEnemyFromFight(enemy);
+    }
+
     function clearEnemies() {
         if (!window.confirm('Remove every enemy from the fight?')) return;
         const ids = campaignInfo.enemy_list.map(enemy => enemy.id);
@@ -410,6 +431,10 @@ export function DirectorsPage() {
     const isDirector = Boolean(userId) && (campaignInfo.director_uid === userId
         || campaignInfo.canWrite?.includes(userId)
         || campaignInfo.admins?.includes(userId));
+    // In the line view a director drags anyone between zones, and a player their own
+    // characters; the map's zones say where a token lands on the map after a move.
+    const canMoveCombatant = combatantMover(combatEntities, userId, isDirector);
+    const activeMapRects = activeMap ? zoneRects(activeMap.zones) : null;
 
     return <div className="DirectorsPage">
         <div className={'DirectorsPage-sidebar ' + pageTheme}>
@@ -579,7 +604,8 @@ export function DirectorsPage() {
                                 inputStatuses={zoneNames.length > 0 ? zoneNames : (noMap ? [NO_MAP_ZONE] : [])}
                                 className={lineViewClassName}
                                 PostCardComponent={lineViewCard}
-                                readOnly={!isDirector}
+                                canMovePost={canMoveCombatant}
+                                rects={activeMapRects}
                             />
                             {activeMap && zoneNames.length === 0 && <div className="DirectorsPage-tracker-empty">This map has no zones yet. Add some from the Maps tab.</div>}
                             {/* One shared Tooltip, matched by data-tooltip-id on every
@@ -597,6 +623,8 @@ export function DirectorsPage() {
                                 userId={userId}
                                 canEdit={isDirector}
                                 noMap={noMap}
+                                onSetDefeated={isDirector ? setEnemyDefeated : undefined}
+                                onRemoveEntity={isDirector ? removeEntityFromFight : undefined}
                             />
                         </div>
                     </div>
@@ -646,6 +674,8 @@ export function DirectorsPage() {
                                 tier={enemy.enemy_type} /* not actualEnemy: the layout it is merged over has a tier of its own */
                                 subtitle={"Lvl " + actualEnemy.level}
                                 onRemove={isDirector ? () => removeEnemyFromFight(actualEnemy) : undefined}
+                                defeated={Boolean(enemy.defeated)}
+                                onSetDefeated={isDirector ? (defeated) => updateEnemy(actualEnemy.id, { defeated }).catch(e => alert(e)) : undefined}
                                 hpNow={actualEnemy.current_health}
                                 hpMax={actualEnemy.maximum_health}
                                 tempHp={actualEnemy.temporary_health}
@@ -737,6 +767,8 @@ export function DirectorsPage() {
                     userId={userId}
                     canEdit={isDirector}
                     noMap={noMap}
+                    onSetDefeated={isDirector ? setEnemyDefeated : undefined}
+                    onRemoveEntity={isDirector ? removeEntityFromFight : undefined}
                 />
             </div>
         </>}

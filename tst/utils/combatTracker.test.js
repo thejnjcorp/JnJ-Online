@@ -1,4 +1,4 @@
-import { NO_MAP_ZONE, addToTracker, syncCombatTracker } from '../../src/utils/combatTracker';
+import { NO_MAP_ZONE, addToTracker, combatantMover, syncCombatTracker } from '../../src/utils/combatTracker';
 import { slotPosition, zoneAt, zoneRects } from '../../src/utils/mapTokens';
 
 const post = (id, status, index) => ({ id, title: id, content: '', status, index });
@@ -176,5 +176,39 @@ describe('addToTracker', () => {
         const stored = [post('a', 'Zone 2', 0)];
         addToTracker(stored, [entity('b')], zones, rects);
         expect(stored).toEqual([post('a', 'Zone 2', 0)]);
+    });
+});
+
+describe('combatantMover', () => {
+    const entities = [
+        { id: 'character:a', kind: 'player', ownerIds: ['alice'] },
+        { id: 'character:b', kind: 'player', ownerIds: ['bob', 'alice'] },
+        { id: 'character:c', kind: 'player', ownerIds: ['carol'] },
+        { id: 'npc:goblin', kind: 'enemy', ownerIds: ['alice'] },
+    ];
+
+    test('a director can move anyone, players and enemies alike', () => {
+        const canMove = combatantMover(entities, 'dm', true);
+        entities.forEach(entity => expect(canMove({ id: entity.id })).toBe(true));
+    });
+
+    test('a player can move their own characters, and ones they share, and no one else\'s', () => {
+        const canMove = combatantMover(entities, 'alice', false);
+        expect(canMove({ id: 'character:a' })).toBe(true);
+        expect(canMove({ id: 'character:b' })).toBe(true);
+        expect(canMove({ id: 'character:c' })).toBe(false);
+    });
+
+    test('and never an enemy, whatever its owner list says', () => {
+        expect(combatantMover(entities, 'alice', false)({ id: 'npc:goblin' })).toBe(false);
+    });
+
+    test('someone who is signed out can move no one, even as a director', () => {
+        expect(combatantMover(entities, undefined, true)({ id: 'character:a' })).toBe(false);
+        expect(combatantMover(entities, '', false)({ id: 'character:a' })).toBe(false);
+    });
+
+    test('a post that is not in the fight cannot be moved by a player', () => {
+        expect(combatantMover(entities, 'alice', false)({ id: 'character:nobody' })).toBe(false);
     });
 });

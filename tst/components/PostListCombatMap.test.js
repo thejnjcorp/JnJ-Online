@@ -2,6 +2,7 @@ jest.mock('../../src/utils/firebase', () => ({ db: {} }));
 
 const mockOnSnapshot = jest.fn();
 const mockUpdateDoc = jest.fn();
+const mockAddDoc = jest.fn();
 // What the party doc's tracker is right now, and what gets saved to it (the party
 // module runs each change against it, as its transaction does).
 let mockTracker = [];
@@ -19,6 +20,10 @@ jest.mock('firebase/firestore', () => ({
     onSnapshot: (...args) => mockOnSnapshot(...args),
     updateDoc: (...args) => mockUpdateDoc(...args),
     arrayUnion: value => ({ __arrayUnion: value }),
+    collection: (_db, ...path) => ({ __collection: path }),
+    addDoc: (...args) => mockAddDoc(...args),
+    deleteDoc: jest.fn(),
+    serverTimestamp: () => '__serverTimestamp__',
 }));
 
 // The map itself (image sizing, drag and drop) is out of scope here: a stand-in
@@ -497,6 +502,7 @@ describe('PostListContentCombatMap image tokens', () => {
 
     beforeEach(() => {
         mockUpdateDoc.mockResolvedValue(undefined);
+        mockAddDoc.mockResolvedValue({ id: 'saved' });
         withTracker([]);
     });
 
@@ -537,6 +543,69 @@ describe('PostListContentCombatMap image tokens', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Place on map' }));
 
         expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['maps', 'map-1'] }, { image_tokens: { __arrayUnion: expect.objectContaining({ image: 'https://example.com/pillar.png', label: 'Pillar', x: 0.5, y: 0.25 }) } });
+    });
+
+    test('a new token placed is kept in the director\'s library, as its Imgur hash, and placed as that hash', () => {
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={withTokens()} userId="director-1" />);
+        fireEvent.click(screen.getByRole('button', { name: 'Add image token' }));
+        fireEvent.change(screen.getByLabelText('Picture link'), { target: { value: 'https://i.imgur.com/AbC1d2E.png' } });
+        fireEvent.change(screen.getByLabelText('Name (optional)'), { target: { value: 'Pillar' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Place on map' }));
+
+        expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['maps', 'map-1'] }, { image_tokens: { __arrayUnion: expect.objectContaining({ image: 'AbC1d2E.png', label: 'Pillar' }) } });
+        expect(mockAddDoc).toHaveBeenCalledWith({ __collection: ['players', 'director-1', 'tokens'] }, expect.objectContaining({ image: 'AbC1d2E.png', label: 'Pillar' }));
+    });
+
+    describe('dragging a token from the library onto the map', () => {
+        const saved = { id: 'lib-1', image: 'AbC1d2E.png', label: 'Fire', size: 0.12 };
+        const openLibrary = () => {
+            mockOnSnapshot.mockImplementation((_ref, onNext) => {
+                if (_ref?.__collection?.[0] === 'players') onNext({ docs: [{ id: saved.id, data: () => ({ image: saved.image, label: saved.label, size: saved.size }) }] });
+                return jest.fn();
+            });
+            render(<PostListContentCombatMap campaignId="camp-1" activeMap={withTokens()} userId="director-1" />);
+            fireEvent.click(screen.getByRole('button', { name: 'Add image token' }));
+        };
+        const carry = () => {
+            const dataTransfer = { types: [], data: {}, effectAllowed: '', dropEffect: '' };
+            dataTransfer.setData = (type, value) => { dataTransfer.data[type] = value; dataTransfer.types = Object.keys(dataTransfer.data); };
+            dataTransfer.getData = type => dataTransfer.data[type];
+            return dataTransfer;
+        };
+
+        test('pressing one places it in the middle of the map', () => {
+            openLibrary();
+            fireEvent.click(screen.getByRole('button', { name: 'Place Fire' }));
+            expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['maps', 'map-1'] }, { image_tokens: { __arrayUnion: expect.objectContaining({ image: 'AbC1d2E.png', label: 'Fire', size: 0.12, x: 0.5, y: 0.25 }) } });
+        });
+
+        test('the map takes a drop only once a drag has begun, and stops when it ends', () => {
+            openLibrary();
+            expect(imageLayer()).not.toHaveClass('MapImageTokens-droppable');
+            const dataTransfer = carry();
+            fireEvent.dragStart(screen.getByRole('button', { name: 'Place Fire' }), { dataTransfer });
+            expect(imageLayer()).toHaveClass('MapImageTokens-droppable');
+            fireEvent.dragEnd(screen.getByRole('button', { name: 'Place Fire' }));
+            expect(imageLayer()).not.toHaveClass('MapImageTokens-droppable');
+        });
+
+        test('dropping it puts it where it was let go, and the map stops waiting for a drop', () => {
+            openLibrary();
+            mockLayerBox();
+            const dataTransfer = carry();
+            fireEvent.dragStart(screen.getByRole('button', { name: 'Place Fire' }), { dataTransfer });
+            fireEvent(imageLayer(), Object.assign(new MouseEvent('drop', { bubbles: true, cancelable: true, clientX: 700, clientY: 200 }), { dataTransfer })); // jsdom's drag events ignore coordinates
+
+            expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['maps', 'map-1'] }, { image_tokens: { __arrayUnion: expect.objectContaining({ image: 'AbC1d2E.png', label: 'Fire', size: 0.12, x: 0.7, y: 0.2 }) } });
+            expect(imageLayer()).not.toHaveClass('MapImageTokens-droppable');
+        });
+
+        test('while drawing, it does not take a drop', () => {
+            openLibrary();
+            fireEvent.click(screen.getByRole('button', { name: 'Draw on map' }));
+            fireEvent.dragStart(screen.getByRole('button', { name: 'Place Fire' }), { dataTransfer: carry() });
+            expect(imageLayer()).not.toHaveClass('MapImageTokens-droppable');
+        });
     });
 
     test('dragging one saves where it was let go, leaving the others', () => {
@@ -598,5 +667,238 @@ describe('PostListContentCombatMap image tokens', () => {
         expect(screen.getByRole('group', { name: 'Selected image token' })).toBeInTheDocument();
         rerender(<PostListContentCombatMap campaignId="camp-1" activeMap={withTokens(fire)} userId="director-1" />);
         expect(screen.queryByRole('group', { name: 'Selected image token' })).not.toBeInTheDocument();
+    });
+});
+
+describe('PostListContentCombatMap enemies: defeating them and taking them off the map', () => {
+    const entities = [
+        { id: 'character:a', title: 'Aria Vale', kind: 'player', ownerIds: ['player-1'] },
+        { id: 'npc:goblin', title: 'Goblin 1', kind: 'enemy', defeated: false },
+        { id: 'npc:ally', title: 'Friendly Bear', kind: 'ally' },
+    ];
+    const tracker = () => [
+        { ...post('character:a', 'Zone 1', 0), x: 0.1, y: 0.1 },
+        { ...post('npc:goblin', 'Zone 2', 0), x: 0.5, y: 0.1 },
+        { ...post('npc:ally', 'Zone 2', 1), x: 0.6, y: 0.1 },
+    ];
+    const fire = { id: 'fire', image: 'https://example.com/fire.png', label: 'Fire', x: 0.3, y: 0.1, size: 0.07 };
+    const tokenLayer = () => document.querySelector('.MapTokens');
+    const trashCan = () => document.querySelector('.MapTrash');
+    const mockBoxes = () => {
+        const box = { left: 0, top: 0, width: 1000, height: 500, right: 1000, bottom: 500, x: 0, y: 0 };
+        tokenLayer().getBoundingClientRect = () => box;
+        document.querySelector('.MapImageTokens').getBoundingClientRect = () => box;
+        // the can, bottom right of the map, 80 x 60
+        trashCan().getBoundingClientRect = () => ({ left: 900, top: 430, width: 80, height: 60, right: 980, bottom: 490, x: 900, y: 430 });
+    };
+    const pointer = (element, type, x, y, extra = {}) => fireEvent(element, Object.assign(new MouseEvent(type, { bubbles: true, clientX: x, clientY: y, ...extra }), { pointerId: 1, pointerType: 'mouse' }));
+    const enemyToken = () => screen.getByRole('button', { name: /^Goblin 1/ });
+    const drawMap = (props = {}, map = activeMap()) => render(<PostListContentCombatMap campaignId="camp-1" activeMap={map} entities={entities} userId="director-1" canEdit {...props} />);
+
+    beforeEach(() => {
+        mockUpdateDoc.mockResolvedValue(undefined);
+        withTracker(tracker());
+    });
+
+    describe('marking one defeated', () => {
+        test('a defeated enemy\'s token is crossed through, and says so', () => {
+            const view = render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={entities.map(e => (e.id === 'npc:goblin' ? { ...e, defeated: true } : e))} userId="player-1" />);
+            const token = within(view.container).getByRole('button', { name: /^Goblin 1/ });
+            expect(token).toHaveClass('MapToken-defeated');
+            expect(token).toHaveAccessibleName('Goblin 1, Zone 2, defeated');
+        });
+
+        test('everyone sees it, not just the director', () => {
+            render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={entities.map(e => (e.id === 'npc:goblin' ? { ...e, defeated: true } : e))} userId="player-1" />);
+            expect(enemyToken()).toHaveClass('MapToken-defeated');
+        });
+
+        test('pressing an enemy\'s token shows what a director can do with it', () => {
+            const onSetDefeated = jest.fn();
+            drawMap({ onSetDefeated, onRemoveEntity: jest.fn() });
+            expect(screen.queryByRole('toolbar', { name: 'Selected combatant' })).not.toBeInTheDocument();
+
+            pointer(enemyToken(), 'pointerdown', 500, 100, { button: 0 });
+            pointer(enemyToken(), 'pointerup', 500, 100);
+
+            const toolbar = screen.getByRole('toolbar', { name: 'Selected combatant' });
+            expect(within(toolbar).getByText('Goblin 1')).toBeInTheDocument();
+            expect(enemyToken()).toHaveClass('MapToken-selected');
+
+            fireEvent.click(within(toolbar).getByRole('button', { name: 'Mark defeated' }));
+            expect(onSetDefeated).toHaveBeenCalledWith('npc:goblin', true);
+        });
+
+        test('a defeated one offers to be revived', () => {
+            const onSetDefeated = jest.fn();
+            const view = render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={entities.map(e => (e.id === 'npc:goblin' ? { ...e, defeated: true } : e))} userId="director-1" canEdit onSetDefeated={onSetDefeated} />);
+            pointer(within(view.container).getByRole('button', { name: /^Goblin 1/ }), 'pointerdown', 500, 100, { button: 0 });
+            fireEvent.click(screen.getByRole('button', { name: 'Revive' }));
+            expect(onSetDefeated).toHaveBeenCalledWith('npc:goblin', false);
+        });
+
+        test('taking it out of the fight from the toolbar gives the enemy', () => {
+            const onRemoveEntity = jest.fn();
+            drawMap({ onRemoveEntity, onSetDefeated: jest.fn() });
+            pointer(enemyToken(), 'pointerdown', 500, 100, { button: 0 });
+            fireEvent.click(screen.getByRole('button', { name: 'Remove from fight' }));
+            expect(onRemoveEntity).toHaveBeenCalledWith(expect.objectContaining({ id: 'npc:goblin', title: 'Goblin 1' }));
+        });
+
+        test('players\' tokens, and allies\', cannot be selected for it', () => {
+            drawMap({ onSetDefeated: jest.fn(), onRemoveEntity: jest.fn() });
+            pointer(screen.getByRole('button', { name: /^Aria Vale/ }), 'pointerdown', 100, 100, { button: 0 });
+            pointer(screen.getByRole('button', { name: /^Friendly Bear/ }), 'pointerdown', 600, 100, { button: 0 });
+            expect(screen.queryByRole('toolbar', { name: 'Selected combatant' })).not.toBeInTheDocument();
+        });
+
+        test('with no means to do anything, there is no toolbar and tokens are not selectable', () => {
+            drawMap();
+            pointer(enemyToken(), 'pointerdown', 500, 100, { button: 0 });
+            expect(screen.queryByRole('toolbar', { name: 'Selected combatant' })).not.toBeInTheDocument();
+            expect(enemyToken()).not.toHaveAttribute('aria-pressed');
+        });
+
+        test('someone who cannot edit the map gets none of it, even given the means', () => {
+            render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={entities} userId="player-1" onSetDefeated={jest.fn()} onRemoveEntity={jest.fn()} />);
+            expect(enemyToken()).not.toHaveAttribute('aria-pressed');
+            expect(screen.queryByRole('toolbar', { name: 'Selected combatant' })).not.toBeInTheDocument();
+        });
+
+        test('selecting an enemy deselects an image token, and the other way round', () => {
+            drawMap({ onSetDefeated: jest.fn(), onRemoveEntity: jest.fn() }, activeMap({ image_tokens: [fire] }));
+            pointer(screen.getByRole('button', { name: 'Fire' }), 'pointerdown', 300, 100, { button: 0 });
+            pointer(screen.getByRole('button', { name: 'Fire' }), 'pointerup', 300, 100);
+            expect(screen.getByRole('group', { name: 'Selected image token' })).toBeInTheDocument();
+
+            pointer(enemyToken(), 'pointerdown', 500, 100, { button: 0 });
+            expect(screen.getByRole('toolbar', { name: 'Selected combatant' })).toBeInTheDocument();
+            expect(screen.queryByRole('group', { name: 'Selected image token' })).not.toBeInTheDocument();
+
+            pointer(screen.getByRole('button', { name: 'Fire' }), 'pointerdown', 300, 100, { button: 0 });
+            expect(screen.queryByRole('toolbar', { name: 'Selected combatant' })).not.toBeInTheDocument();
+        });
+
+        test('an enemy that leaves the fight is no longer selected', () => {
+            const props = { onSetDefeated: jest.fn(), onRemoveEntity: jest.fn() };
+            const { rerender } = drawMap(props);
+            pointer(enemyToken(), 'pointerdown', 500, 100, { button: 0 });
+            expect(screen.getByRole('toolbar', { name: 'Selected combatant' })).toBeInTheDocument();
+            rerender(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={entities.filter(e => e.id !== 'npc:goblin')} userId="director-1" canEdit {...props} />);
+            expect(screen.queryByRole('toolbar', { name: 'Selected combatant' })).not.toBeInTheDocument();
+        });
+
+        test('while drawing, tokens are not selectable, so the pen is not interrupted', () => {
+            drawMap({ onSetDefeated: jest.fn(), onRemoveEntity: jest.fn() });
+            fireEvent.click(screen.getByRole('button', { name: 'Draw on map' }));
+            expect(enemyToken()).not.toHaveAttribute('aria-pressed');
+        });
+    });
+
+    describe('the trash can', () => {
+        test('is not showing until something that can be thrown away is picked up, and goes away when it is put down', () => {
+            drawMap({ onRemoveEntity: jest.fn() });
+            mockBoxes();
+            expect(trashCan()).not.toHaveClass('MapTrash-visible');
+
+            pointer(enemyToken(), 'pointerdown', 500, 100, { button: 0 });
+            expect(trashCan()).toHaveClass('MapTrash-visible');
+
+            pointer(enemyToken(), 'pointerup', 500, 100);
+            expect(trashCan()).not.toHaveClass('MapTrash-visible');
+        });
+
+        test('lights up when the pointer is over it', () => {
+            drawMap({ onRemoveEntity: jest.fn() });
+            mockBoxes();
+            pointer(enemyToken(), 'pointerdown', 500, 100, { button: 0 });
+            pointer(enemyToken(), 'pointermove', 400, 200);
+            expect(trashCan()).not.toHaveClass('MapTrash-hot');
+            pointer(enemyToken(), 'pointermove', 940, 460);
+            expect(trashCan()).toHaveClass('MapTrash-hot');
+            pointer(enemyToken(), 'pointermove', 400, 200);
+            expect(trashCan()).not.toHaveClass('MapTrash-hot');
+        });
+
+        test('an enemy let go over it is taken out of the fight, and its token is not moved', () => {
+            const onRemoveEntity = jest.fn();
+            drawMap({ onRemoveEntity });
+            mockBoxes();
+            pointer(enemyToken(), 'pointerdown', 500, 100, { button: 0 });
+            pointer(enemyToken(), 'pointermove', 940, 460);
+            pointer(enemyToken(), 'pointerup', 940, 460);
+
+            expect(onRemoveEntity).toHaveBeenCalledWith(expect.objectContaining({ id: 'npc:goblin' }));
+            expect(mockSaveTracker).not.toHaveBeenCalled();
+            expect(trashCan()).not.toHaveClass('MapTrash-visible');
+        });
+
+        test('let go anywhere else it is moved as usual', () => {
+            const onRemoveEntity = jest.fn();
+            drawMap({ onRemoveEntity });
+            mockBoxes();
+            pointer(enemyToken(), 'pointerdown', 500, 100, { button: 0 });
+            pointer(enemyToken(), 'pointermove', 150, 100);
+            pointer(enemyToken(), 'pointerup', 150, 100);
+            expect(onRemoveEntity).not.toHaveBeenCalled();
+            expect(mockSaveTracker).toHaveBeenCalled();
+        });
+
+        test('a player\'s character cannot be thrown away: no can appears, and letting go there does nothing', () => {
+            const onRemoveEntity = jest.fn();
+            drawMap({ onRemoveEntity });
+            mockBoxes();
+            const aria = screen.getByRole('button', { name: /^Aria Vale/ });
+            pointer(aria, 'pointerdown', 100, 100, { button: 0 });
+            expect(trashCan()).not.toHaveClass('MapTrash-visible');
+            pointer(aria, 'pointermove', 940, 460);
+            pointer(aria, 'pointerup', 940, 460);
+            expect(onRemoveEntity).not.toHaveBeenCalled();
+        });
+
+        test('nor an ally', () => {
+            const onRemoveEntity = jest.fn();
+            drawMap({ onRemoveEntity });
+            mockBoxes();
+            const bear = screen.getByRole('button', { name: /^Friendly Bear/ });
+            pointer(bear, 'pointerdown', 600, 100, { button: 0 });
+            expect(trashCan()).not.toHaveClass('MapTrash-visible');
+        });
+
+        test('with no means to take an enemy out of the fight, an enemy cannot be thrown away either', () => {
+            drawMap({ onSetDefeated: jest.fn() });
+            mockBoxes();
+            pointer(enemyToken(), 'pointerdown', 500, 100, { button: 0 });
+            expect(trashCan()).not.toHaveClass('MapTrash-visible');
+        });
+
+        test('an image token let go over it is deleted from the map', () => {
+            drawMap({}, activeMap({ image_tokens: [fire, { ...fire, id: 'tree', label: 'Tree', x: 0.7 }] }));
+            mockBoxes();
+            const token = screen.getByRole('button', { name: 'Fire' });
+            pointer(token, 'pointerdown', 300, 100, { button: 0 });
+            expect(trashCan()).toHaveClass('MapTrash-visible');
+            pointer(token, 'pointermove', 940, 460);
+            pointer(token, 'pointerup', 940, 460);
+
+            expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['maps', 'map-1'] }, { image_tokens: [{ ...fire, id: 'tree', label: 'Tree', x: 0.7 }] });
+        });
+
+        test('an image token let go anywhere else is moved, not deleted', () => {
+            drawMap({}, activeMap({ image_tokens: [fire] }));
+            mockBoxes();
+            const token = screen.getByRole('button', { name: 'Fire' });
+            pointer(token, 'pointerdown', 300, 100, { button: 0 });
+            pointer(token, 'pointermove', 500, 200);
+            pointer(token, 'pointerup', 500, 200);
+            expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['maps', 'map-1'] }, { image_tokens: [{ ...fire, x: 0.5, y: 0.2 }] });
+        });
+
+        test('someone who cannot edit the map has no way to throw anything away', () => {
+            render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap({ image_tokens: [fire] })} entities={entities} userId="player-1" onRemoveEntity={jest.fn()} />);
+            expect(screen.queryByRole('button', { name: 'Fire' })).not.toBeInTheDocument();
+            pointer(enemyToken(), 'pointerdown', 500, 100, { button: 0 });
+            expect(trashCan()).not.toHaveClass('MapTrash-visible');
+        });
     });
 });

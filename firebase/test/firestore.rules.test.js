@@ -748,6 +748,48 @@ async function main() {
         await assertFails(updateDoc(doc(mallory.firestore(), 'characters', 'char1'), { archived: true }));
     });
 
+    console.log('\nToken library (players/{uid}/tokens - private to its owner, unlike the player doc):');
+
+    await check('a user can save, read, list and delete tokens in their own library', async () => {
+        await testEnv.clearFirestore();
+        const alice = testEnv.authenticatedContext('alice');
+        const tokens = collection(alice.firestore(), 'players', 'alice', 'tokens');
+        const added = await assertSucceeds(addDoc(tokens, { image: 'AbC1d2E.png', label: 'Fire', size: 0.12 }));
+        await assertSucceeds(getDoc(doc(alice.firestore(), 'players', 'alice', 'tokens', added.id)));
+        await assertSucceeds(getDocs(tokens));
+        await assertSucceeds(deleteDoc(doc(alice.firestore(), 'players', 'alice', 'tokens', added.id)));
+    });
+
+    await check('nobody else can read someone\'s library, even though the player doc itself is readable by anyone signed in', async () => {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'players', 'alice'), { name: 'Alice' });
+            await setDoc(doc(adminCtx.firestore(), 'players', 'alice', 'tokens', 't1'), { image: 'AbC1d2E.png', label: 'Fire', size: 0.12 });
+        });
+        const bob = testEnv.authenticatedContext('bob');
+        await assertSucceeds(getDoc(doc(bob.firestore(), 'players', 'alice')));
+        await assertFails(getDoc(doc(bob.firestore(), 'players', 'alice', 'tokens', 't1')));
+        await assertFails(getDocs(collection(bob.firestore(), 'players', 'alice', 'tokens')));
+    });
+
+    await check('nor can they add to it, change it or empty it', async () => {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'players', 'alice', 'tokens', 't1'), { image: 'AbC1d2E.png', label: 'Fire', size: 0.12 });
+        });
+        const bob = testEnv.authenticatedContext('bob');
+        await assertFails(addDoc(collection(bob.firestore(), 'players', 'alice', 'tokens'), { image: 'AbC1d2E.png', label: 'Spam', size: 1 }));
+        await assertFails(updateDoc(doc(bob.firestore(), 'players', 'alice', 'tokens', 't1'), { label: 'Hijacked' }));
+        await assertFails(deleteDoc(doc(bob.firestore(), 'players', 'alice', 'tokens', 't1')));
+    });
+
+    await check('a signed-out visitor cannot read or write any library', async () => {
+        await testEnv.clearFirestore();
+        const anon = testEnv.unauthenticatedContext();
+        await assertFails(getDocs(collection(anon.firestore(), 'players', 'alice', 'tokens')));
+        await assertFails(addDoc(collection(anon.firestore(), 'players', 'alice', 'tokens'), { image: 'AbC1d2E.png', size: 0.1 }));
+    });
+
     console.log('\nMap and race creation (previously had no ownership check at all):');
 
     await check('a signed-in user cannot create a map without listing themselves as an admin', async () => {

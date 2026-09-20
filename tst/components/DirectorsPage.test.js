@@ -71,11 +71,20 @@ jest.mock('../../src/components/MapRenderer', () => ({
 jest.mock('../../src/components/DocAdminManager', () => ({
     DocAdminManager: ({ admins, userId }) => <div>DocAdminManager-stub:{JSON.stringify(admins)}:{userId}</div>,
 }));
+const mockLineProps = [];
 jest.mock('../../src/utils/DraggableElements/PostListCombat.tsx', () => ({
-    PostListContentCombat: ({ campaignId, inputStatuses, readOnly }) => <div data-readonly={String(Boolean(readOnly))}>Combat-stub:{campaignId}:{inputStatuses.length}</div>,
+    PostListContentCombat: props => {
+        mockLineProps.push(props);
+        return <div data-readonly={String(Boolean(props.readOnly))}>Combat-stub:{props.campaignId}:{props.inputStatuses.length}</div>;
+    },
 }));
+const mockMapProps = [];
 jest.mock('../../src/utils/DraggableElements/PostListCombatMap.tsx', () => ({
-    PostListContentCombatMap: ({ campaignId, activeMap, entities, noMap, canEdit }) => <div data-nomap={String(Boolean(noMap))} data-canedit={String(Boolean(canEdit))}>CombatMap-stub:{campaignId}:{activeMap?.map_id}:{entities.length}</div>,
+    PostListContentCombatMap: props => {
+        mockMapProps.push(props);
+        const { campaignId, activeMap, entities, noMap, canEdit } = props;
+        return <div data-nomap={String(Boolean(noMap))} data-canedit={String(Boolean(canEdit))}>CombatMap-stub:{campaignId}:{activeMap?.map_id}:{entities.length}</div>;
+    },
 }));
 
 // eslint-disable-next-line import/first
@@ -143,6 +152,8 @@ async function renderReady({ campaignInfo = baseCampaignInfo, characters = [char
 }
 
 beforeEach(() => {
+    mockMapProps.length = 0;
+    mockLineProps.length = 0;
     mockCollection.mockImplementation((_db, name) => ({ __collection: name }));
     mockDoc.mockImplementation((_db, ...path) => ({ __doc: path }));
     mockQuery.mockImplementation((...args) => ({ __query: args }));
@@ -545,6 +556,111 @@ describe('DirectorsPage', () => {
                 expect(trackerChange([{ id: 'npc:enemy-1' }, { id: 'npc:enemy-2' }, { id: 'character:char-1' }])).toEqual([{ id: 'npc:enemy-2' }, { id: 'character:char-1' }]);
             });
 
+            describe('defeating enemies', () => {
+                const card = () => screen.getByText('Goblin').closest('.DirectorsPage-entity-card');
+
+                test('a card offers to mark an enemy defeated, and writes it to the enemy on the campaign', async () => {
+                    const other = { ...enemy, id: 'enemy-2', enemy_name: 'Troll' };
+                    await renderReady({ campaignInfo: { ...directing, enemy_list: [enemy, other] } });
+                    goToTab('Combat');
+
+                    fireEvent.click(within(card()).getByRole('button', { name: 'Mark defeated' }));
+
+                    await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['campaigns', 'camp-1'] }, { enemy_list: [{ ...enemy, defeated: true }, other] }));
+                });
+
+                test('a defeated enemy\'s card says so, is dimmed, and offers to revive it instead', async () => {
+                    await renderReady({ campaignInfo: { ...directing, enemy_list: [{ ...enemy, defeated: true }] } });
+                    goToTab('Combat');
+
+                    expect(within(card()).getByText('Defeated')).toBeInTheDocument();
+                    expect(card()).toHaveClass('DirectorsPage-entity-card-defeated');
+                    expect(within(card()).queryByRole('button', { name: 'Mark defeated' })).not.toBeInTheDocument();
+
+                    fireEvent.click(within(card()).getByRole('button', { name: 'Revive' }));
+                    await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['campaigns', 'camp-1'] }, { enemy_list: [{ ...enemy, defeated: false }] }));
+                });
+
+                test('an enemy that is not defeated has no badge and is not dimmed', async () => {
+                    await renderReady({ campaignInfo: { ...directing, enemy_list: [enemy] } });
+                    goToTab('Combat');
+                    expect(within(card()).queryByText('Defeated')).not.toBeInTheDocument();
+                    expect(card()).not.toHaveClass('DirectorsPage-entity-card-defeated');
+                });
+
+                test('a player sees that an enemy is defeated, but cannot change it', async () => {
+                    await renderReady({ campaignInfo: { ...baseCampaignInfo, enemy_list: [{ ...enemy, defeated: true }], director_uid: 'someone-else', canRead: ['owner-1'] } });
+                    goToTab('Combat');
+                    expect(within(card()).getByText('Defeated')).toBeInTheDocument();
+                    ['Revive', 'Mark defeated'].forEach(name => expect(screen.queryByRole('button', { name })).not.toBeInTheDocument());
+                });
+
+                test('a failed write is alerted', async () => {
+                    mockUpdateDoc.mockRejectedValue(new Error('offline'));
+                    await renderReady({ campaignInfo: { ...directing, enemy_list: [enemy] } });
+                    goToTab('Combat');
+                    fireEvent.click(within(card()).getByRole('button', { name: 'Mark defeated' }));
+                    await waitFor(() => expect(window.alert).toHaveBeenCalled());
+                });
+
+                describe('from the map', () => {
+                    const lastMapProps = () => mockMapProps[mockMapProps.length - 1];
+
+                    test('a director\'s maps are given the means to mark an enemy defeated or take it out of the fight', async () => {
+                        await renderReady({ campaignInfo: { ...directing, enemy_list: [enemy] } });
+                        goToTab('Combat');
+                        expect(lastMapProps()).toMatchObject({ onSetDefeated: expect.any(Function), onRemoveEntity: expect.any(Function) });
+                    });
+
+                    test('a player\'s are not', async () => {
+                        await renderReady({ campaignInfo: { ...baseCampaignInfo, enemy_list: [enemy], director_uid: 'someone-else', canRead: ['owner-1'] } });
+                        goToTab('Combat');
+                        expect(lastMapProps().onSetDefeated).toBeUndefined();
+                        expect(lastMapProps().onRemoveEntity).toBeUndefined();
+                    });
+
+                    test('marking one defeated from its token writes it to that enemy, and reviving clears it', async () => {
+                        const other = { ...enemy, id: 'enemy-2', enemy_name: 'Troll' };
+                        await renderReady({ campaignInfo: { ...directing, enemy_list: [enemy, other] } });
+                        goToTab('Combat');
+
+                        lastMapProps().onSetDefeated('npc:enemy-2', true);
+
+                        await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['campaigns', 'camp-1'] }, { enemy_list: [enemy, { ...other, defeated: true }] }));
+                    });
+
+                    test('a token that is not an enemy in the fight (a player\'s, or one that is gone) is ignored', async () => {
+                        await renderReady({ campaignInfo: { ...directing, enemy_list: [enemy] } });
+                        goToTab('Combat');
+                        lastMapProps().onSetDefeated('character:char-1', true);
+                        lastMapProps().onSetDefeated('npc:nobody', true);
+                        lastMapProps().onRemoveEntity({ id: 'npc:nobody' });
+                        expect(mockUpdateDoc).not.toHaveBeenCalled();
+                        expect(window.confirm).not.toHaveBeenCalled();
+                    });
+
+                    test('taking one out from the map asks first, like the card does, and takes its tracker card too', async () => {
+                        const other = { ...enemy, id: 'enemy-2', enemy_name: 'Troll' };
+                        await renderReady({ campaignInfo: { ...directing, enemy_list: [enemy, other] } });
+                        goToTab('Combat');
+
+                        lastMapProps().onRemoveEntity({ id: 'npc:enemy-1', title: 'Goblin' });
+
+                        expect(window.confirm).toHaveBeenCalledWith('Remove Goblin from the fight?');
+                        await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['campaigns', 'camp-1'] }, { enemy_list: [other] }));
+                        expect(mockUpdateCombatTracker).toHaveBeenCalledWith('camp-1', expect.any(Function));
+                    });
+
+                    test('declining leaves it in the fight', async () => {
+                        window.confirm = jest.fn(() => false);
+                        await renderReady({ campaignInfo: { ...directing, enemy_list: [enemy] } });
+                        goToTab('Combat');
+                        lastMapProps().onRemoveEntity({ id: 'npc:enemy-1', title: 'Goblin' });
+                        expect(mockUpdateDoc).not.toHaveBeenCalled();
+                    });
+                });
+            });
+
             test('declining removes nothing', async () => {
                 window.confirm = jest.fn(() => false);
                 await renderReady({ campaignInfo: { ...directing, enemy_list: [enemy] } });
@@ -619,10 +735,42 @@ describe('DirectorsPage', () => {
             expect(screen.getByText(/Combat-stub/)).toHaveAttribute('data-readonly', 'false');
         });
 
-        test('for someone who is not a director the line view is read-only', async () => {
-            await renderReady();
-            goToTab('Combat');
-            expect(screen.getByText(/Combat-stub/)).toHaveAttribute('data-readonly', 'true');
+        describe('moving people in the line view', () => {
+            const lineProps = () => mockLineProps[mockLineProps.length - 1];
+            const entities = [
+                { id: 'character:char-1', title: 'Aria', kind: 'player', ownerIds: ['owner-1'] },
+                { id: 'character:char-2', title: 'Bram', kind: 'player', ownerIds: ['other-player'] },
+                { id: 'npc:goblin', title: 'Goblin', kind: 'enemy' },
+            ];
+            beforeEach(() => mockUseCombatEntities.mockReturnValue(entities));
+
+            test('a director drags anyone', async () => {
+                await renderReady({ campaignInfo: { ...baseCampaignInfo, director_uid: 'owner-1' } });
+                goToTab('Combat');
+                expect(lineProps().readOnly).toBeFalsy();
+                ['character:char-1', 'character:char-2', 'npc:goblin'].forEach(id => expect(lineProps().canMovePost({ id })).toBe(true));
+            });
+
+            test('a player drags their own character and nobody else', async () => {
+                await renderReady({ campaignInfo: { ...baseCampaignInfo, director_uid: 'someone-else', canRead: ['owner-1'] } });
+                goToTab('Combat');
+                expect(lineProps().canMovePost({ id: 'character:char-1' })).toBe(true);
+                expect(lineProps().canMovePost({ id: 'character:char-2' })).toBe(false);
+                expect(lineProps().canMovePost({ id: 'npc:goblin' })).toBe(false);
+            });
+
+            test('with the map\'s zones as rectangles for where a moved token lands, or none without a map', async () => {
+                mockUseCampaignMaps.mockReturnValue({ maps: [], activeMap: { map_id: 'map-1', zones: [{ name: 'Gate', x: 50, y: 100, width: 100, height: 50 }] } });
+                await renderReady({ campaignInfo: { ...baseCampaignInfo, director_uid: 'owner-1' } });
+                goToTab('Combat');
+                expect(lineProps().rects).toEqual([{ name: 'Gate', x: 0.1, y: 0.2, w: 0.2, h: 0.1 }]);
+            });
+
+            test('no rectangles without an active map', async () => {
+                await renderReady({ campaignInfo: { ...baseCampaignInfo, director_uid: 'owner-1' } });
+                goToTab('Combat');
+                expect(lineProps().rects).toBeNull();
+            });
         });
 
         test('someone who is not a director cannot', async () => {

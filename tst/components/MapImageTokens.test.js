@@ -1,6 +1,10 @@
+jest.mock('../../src/utils/firebase', () => ({ db: {} }));
+jest.mock('firebase/firestore', () => ({ collection: jest.fn(), doc: jest.fn(), addDoc: jest.fn(), deleteDoc: jest.fn(), onSnapshot: jest.fn(), serverTimestamp: jest.fn() }));
+
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MapImageTokens } from '../../src/components/MapImageTokens';
 import { KEY_STEP } from '../../src/utils/mapImageTokens';
+import { DRAG_TYPE, dragPayload } from '../../src/utils/tokenLibrary';
 
 // a 1000px wide map, 500px tall (aspect 0.5): 1 map width = 1000px
 const tokens = [
@@ -159,11 +163,154 @@ describe('MapImageTokens', () => {
         });
     });
 
+    describe('a picture stored as an Imgur hash', () => {
+        test('loads from Imgur', () => {
+            const { token } = setup({ tokens: [{ ...tokens[0], image: 'AbC1d2E.gif' }] });
+            expect(token('Fire').querySelector('img')).toHaveAttribute('src', 'https://i.imgur.com/AbC1d2E.gif');
+        });
+    });
+
+    describe('dropping a token from the library', () => {
+        const carried = { image: 'AbC1d2E.png', label: 'Fire', size: 0.12 };
+        const payload = JSON.stringify(carried);
+        // jsdom's drag events ignore coordinates, so the drop is a mouse event that carries the data
+        const dropAt = (element, dataTransfer, x, y) => fireEvent(element, Object.assign(new MouseEvent('drop', { bubbles: true, cancelable: true, clientX: x, clientY: y }), { dataTransfer }));
+        const transfer = (data = payload) => ({ types: [DRAG_TYPE], getData: type => (type === DRAG_TYPE ? data : ''), dropEffect: '' });
+
+        test('is not possible until a drag has started: the layer lets clicks through', () => {
+            const { layer } = setup();
+            expect(layer).not.toHaveClass('MapImageTokens-droppable');
+            const onDropToken = jest.fn();
+            const view = setup({ onDropToken });
+            fireEvent.drop(view.layer, { dataTransfer: transfer(), clientX: 500, clientY: 100 });
+            expect(onDropToken).not.toHaveBeenCalled();
+        });
+
+        test('while one is being dragged the layer takes the drop', () => {
+            const { layer } = setup({ droppable: true });
+            expect(layer).toHaveClass('MapImageTokens-droppable');
+        });
+
+        test('over the map it says a copy can be dropped', () => {
+            const { layer } = setup({ droppable: true });
+            const dataTransfer = transfer();
+            const notPrevented = fireEvent.dragOver(layer, { dataTransfer });
+            expect(notPrevented).toBe(false); // preventDefault was called
+            expect(dataTransfer.dropEffect).toBe('copy');
+        });
+
+        test('gives what was dropped and where, in map widths', () => {
+            const onDropToken = jest.fn();
+            const { layer } = setup({ droppable: true, onDropToken });
+            dropAt(layer, transfer(), 500, 100);
+            expect(onDropToken).toHaveBeenCalledWith(carried, { x: 0.5, y: 0.1 });
+        });
+
+        test('a drop off the edge is kept on the map', () => {
+            const onDropToken = jest.fn();
+            const { layer } = setup({ droppable: true, onDropToken });
+            dropAt(layer, transfer(), 5000, 5000);
+            expect(onDropToken).toHaveBeenCalledWith(carried, { x: 1, y: 0.5 });
+        });
+
+        test('works when dropped on a token that is already there', () => {
+            const onDropToken = jest.fn();
+            const { token } = setup({ droppable: true, onDropToken });
+            dropAt(token('Fire'), transfer(), 200, 100);
+            expect(onDropToken).toHaveBeenCalledWith(carried, { x: 0.2, y: 0.1 });
+        });
+
+        test('something else dragged over the map (a file, some text) is not accepted', () => {
+            const onDropToken = jest.fn();
+            const { layer } = setup({ droppable: true, onDropToken });
+            const other = { types: ['text/plain', 'Files'], getData: () => 'hello', dropEffect: '' };
+            expect(fireEvent.dragOver(layer, { dataTransfer: other })).toBe(true); // not prevented
+            fireEvent.drop(layer, { dataTransfer: other, clientX: 500, clientY: 100 });
+            expect(onDropToken).not.toHaveBeenCalled();
+        });
+
+        test('what claims to be a token but is not a usable one is refused', () => {
+            const onDropToken = jest.fn();
+            const { layer } = setup({ droppable: true, onDropToken });
+            fireEvent.drop(layer, { dataTransfer: transfer(JSON.stringify({ image: 'javascript:alert(1)', size: 0.1 })), clientX: 500, clientY: 100 });
+            dropAt(layer, transfer('not json'), 500, 100);
+            expect(onDropToken).not.toHaveBeenCalled();
+        });
+
+        test('takes what the palette really carries', () => {
+            const onDropToken = jest.fn();
+            const { layer } = setup({ droppable: true, onDropToken });
+            dropAt(layer, transfer(dragPayload({ image: 'AbC1d2E.png', label: 'Fire', size: 0.12 })), 500, 100);
+            expect(onDropToken).toHaveBeenCalledWith(carried, { x: 0.5, y: 0.1 });
+        });
+    });
+
     describe('a picture that will not load', () => {
         test('shows the director a marker they can still select, move and remove', () => {
             const { token } = setup();
             fireEvent.error(token('Fire').querySelector('img'));
             expect(token('Fire')).toHaveTextContent('Image not found');
+        });
+    });
+    describe('dropping a token on the trash can', () => {
+        const fakeTrash = (over = false) => ({ carry: jest.fn(), hot: jest.fn(), hit: jest.fn(() => over) });
+
+        test('shows the can as soon as one is picked up, and lights it as the pointer goes over', () => {
+            const trash = fakeTrash(true);
+            const { token, pointer } = setup({ trash });
+            pointer(token('Fire'), 'pointerdown', 200, 100, { button: 0 });
+            expect(trash.carry).toHaveBeenCalledWith(true);
+            pointer(token('Fire'), 'pointermove', 950, 480);
+            expect(trash.hit).toHaveBeenCalledWith(950, 480);
+            expect(trash.hot).toHaveBeenLastCalledWith(true);
+        });
+
+        test('let go over the can it is removed, and does not move', () => {
+            const trash = fakeTrash(true);
+            const { token, pointer, onRemove, onMove } = setup({ trash });
+            pointer(token('Fire'), 'pointerdown', 200, 100, { button: 0 });
+            pointer(token('Fire'), 'pointermove', 500, 200);
+            pointer(token('Fire'), 'pointerup', 950, 480);
+            expect(onRemove).toHaveBeenCalledWith('a');
+            expect(onMove).not.toHaveBeenCalled();
+            expect(trash.carry).toHaveBeenLastCalledWith(false);
+            expect(trash.hot).toHaveBeenLastCalledWith(false);
+        });
+
+        test('let go anywhere else it moves as usual, and the can goes away', () => {
+            const trash = fakeTrash(false);
+            const { token, pointer, onRemove, onMove } = setup({ trash });
+            pointer(token('Fire'), 'pointerdown', 200, 100, { button: 0 });
+            pointer(token('Fire'), 'pointermove', 500, 200);
+            pointer(token('Fire'), 'pointerup', 500, 200);
+            expect(onRemove).not.toHaveBeenCalled();
+            expect(onMove).toHaveBeenCalledWith('a', { x: 0.5, y: 0.2 });
+            expect(trash.carry).toHaveBeenLastCalledWith(false);
+        });
+
+        test('a plain click on the can\'s spot without a drag still counts as a drop only if the pointer is there', () => {
+            const trash = fakeTrash(false);
+            const { token, pointer, onRemove } = setup({ trash });
+            pointer(token('Fire'), 'pointerdown', 200, 100, { button: 0 });
+            pointer(token('Fire'), 'pointerup', 200, 100);
+            expect(onRemove).not.toHaveBeenCalled();
+        });
+
+        test('a cancelled drag puts the can away', () => {
+            const trash = fakeTrash();
+            const { token, pointer } = setup({ trash });
+            pointer(token('Fire'), 'pointerdown', 200, 100, { button: 0 });
+            pointer(token('Fire'), 'pointercancel', 200, 100);
+            expect(trash.carry).toHaveBeenLastCalledWith(false);
+        });
+
+        test('without a trash can it moves as before', () => {
+            const { token, pointer, onMove, onRemove } = setup();
+            pointer(token('Fire'), 'pointerdown', 200, 100, { button: 0 });
+            pointer(token('Fire'), 'pointermove', 500, 200);
+            pointer(token('Fire'), 'pointerup', 500, 200);
+            expect(onMove).toHaveBeenCalled();
+            expect(onRemove).not.toHaveBeenCalled();
         });
     });
 });
