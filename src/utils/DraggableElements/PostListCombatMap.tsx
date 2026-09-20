@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { useMapDrawing } from "../useMapDrawing";
+import { NO_MAP_ZONE, syncCombatTracker } from "../combatTracker";
 import { MapDrawingLayer } from "../../components/MapDrawingLayer";
 import { MapDrawingToolbar } from "../../components/MapDrawingToolbar";
 import { Post, PostListContentAbstract } from "./Post.ts";
@@ -16,7 +17,7 @@ const combatMapClassName = {
     postCardBox: "CombatMap-tile-box",
 };
 
-export function PostListContentCombatMap({ campaignId, activeMap, entities = [], userId = undefined, noActiveMapMessage = "No active map selected. Set one from the Maps tab." }) {
+export function PostListContentCombatMap({ campaignId, activeMap, entities = [], userId = undefined, noMap = false, noActiveMapMessage = "No active map selected. Set one from the Maps tab." }) {
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -31,6 +32,10 @@ export function PostListContentCombatMap({ campaignId, activeMap, entities = [],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     const zones = useMemo(() => activeMap?.zones ?? [], [zonesKey]);
     const zoneNames = useMemo(() => zones.map((zone) => zone.name), [zones]);
+    // The zones combatants are placed in: the map's, or - when the director has chosen
+    // no map (`noMap`; never guessed from a map that is merely still loading) - one
+    // shared column, so the tracker still works without a map.
+    const syncZones = useMemo(() => (activeMap ? zoneNames : (noMap ? [NO_MAP_ZONE] : [])), [activeMap, zoneNames, noMap]);
     // What the director has drawn on the map (shown to everyone), and their tools for adding to it.
     const drawing = useMapDrawing(activeMap, userId);
 
@@ -49,26 +54,11 @@ export function PostListContentCombatMap({ campaignId, activeMap, entities = [],
     // keep combat_tracker in sync with who's actually in the fight, without
     // disturbing the zone/position of entities that are still present
     useEffect(() => {
-        if (loading || zoneNames.length === 0) return;
-
-        const knownIds = new Set(entities.map((entity) => entity.id));
-        const existingIds = new Set(posts.map((post) => post.id));
-        const survivors = posts.filter((post) => knownIds.has(post.id));
-        const additions = entities
-            .filter((entity) => !existingIds.has(entity.id))
-            .map((entity, offset) => ({
-                id: entity.id,
-                title: entity.title,
-                content: "",
-                status: zoneNames[0],
-                index: survivors.length + offset,
-            }));
-
-        if (additions.length > 0 || survivors.length !== posts.length) {
-            updateDoc(docQuery, { combat_tracker: [...survivors, ...additions] });
-        }
+        if (loading) return;
+        const next = syncCombatTracker(posts, entities, syncZones);
+        if (next) Promise.resolve(updateDoc(docQuery, { combat_tracker: next })).catch((error) => console.log("Couldn't update the combat tracker: " + error));
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [entities, zoneNames, loading]);
+    }, [entities, syncZones, loading]);
 
     const usePosts = () => ({ posts, loading });
 

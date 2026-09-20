@@ -164,7 +164,8 @@ function decaysPerTurn(status) {
 // and remove haste"). A status that doesn't decay per turn (a passive
 // condition like Exhaustion, or a purely descriptive one like Wounded) is
 // left completely untouched here - it only goes away by being removed by
-// hand or (for Wounded) an explicit rest, not by turns passing.
+// hand or (for Wounded) an explicit rest, not by turns passing. The turn also
+// gives back the one reaction each creature has per turn.
 export function advanceTurnStatuses(characterPage) {
     let actionPoints = characterPage.action_points;
     const nextStatuses = [];
@@ -183,5 +184,6 @@ export function advanceTurnStatuses(characterPage) {
         if (remainingStacks > 0) nextStatuses.push({ ...status, stacks: remainingStacks });
     });
 
-    return { action_points: actionPoints, statuses: nextStatuses };
+    // a new turn gives the reaction back too
+    return { action_points: actionPoints, statuses: nextStatuses, reaction_used: false };
 }

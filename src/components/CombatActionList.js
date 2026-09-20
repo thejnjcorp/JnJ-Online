@@ -2,7 +2,7 @@ import '../styles/CombatActionList.scss';
 import Markdown from 'markdown-to-jsx';
 import { ReactComponent as LockIcon } from '../icons/lock.svg';
 import { CharacterStatCalculator } from './CharacterStatCalculator';
-import { getActionCategory } from '../utils/classActions';
+import { getActionCategory, isReactionAction } from '../utils/classActions';
 import { namedTags } from '../utils/tags';
 import { isLimitedUse, spendUse, usesLeft } from '../utils/actionUses';
 import { ActionUsesTracker } from './ActionUses';
@@ -31,6 +31,9 @@ const OUTCOME_TABLE_ROWS = [
 // how many uses each has left, shown with the Use button, which stops working at
 // none. Without onActionUsesChange (the Director's enemy cards, the new-character
 // preview) they are just a label.
+// A reaction can only be used once per turn: with the character's (or enemy's)
+// reaction already spent (`reaction_used`), a reaction card's button is off, and
+// using one spends it along with its action points.
 // roleplay shows the cards as the Roleplay tab does: no action point cost, and the
 // Use button (only for an action with limited uses) just spends one of them.
 const FREQUENCY_SUFFIX = { perDay: 'Day', perShortRest: 'Short Rest', perCombat: 'Combat' };
@@ -90,8 +93,10 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
             const hasOutcomeTable = action.outcomeTable && Object.values(action.outcomeTable).some(Boolean);
             const tracked = !locked && Boolean(onActionUsesChange) && isLimitedUse(action);
             const spentOut = tracked && usesLeft(action, actionUses) === 0;
+            const reaction = !roleplay && isReactionAction(action);
+            const reactionSpent = reaction && Boolean(characterPage?.reaction_used);
             const showUse = !locked && canUseActions && hasWritePermissions && (!roleplay || tracked);
-            const cardClass = ['CombatActionListCard', locked && 'CombatActionListCard-locked', spentOut && 'CombatActionListCard-spent'].filter(Boolean).join(' ');
+            const cardClass = ['CombatActionListCard', locked && 'CombatActionListCard-locked', (spentOut || reactionSpent) && 'CombatActionListCard-spent'].filter(Boolean).join(' ');
             return <div className={cardClass} key={index}>
                 <div className='CombatActionListCard-header'>
                     {locked && <LockIcon className="CombatActionListCard-lock"/>}
@@ -131,7 +136,7 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
 
                 {(tracked || showUse) && <div className='CombatActionListCard-footer'>
                     {tracked && <ActionUsesTracker action={action} uses={actionUses} canEdit={hasWritePermissions} onChange={onActionUsesChange}/>}
-                    {showUse && <button type="button" className='CombatActionList-use-action-button' disabled={spentOut} onClick={() => {
+                    {showUse && <button type="button" className='CombatActionList-use-action-button' disabled={spentOut || reactionSpent} onClick={() => {
                         try {
                             if (roleplay) {
                                 onActionUsesChange(spendUse(actionUses, action));
@@ -142,12 +147,13 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
                                 updateDoc(doc(db, "characters", characterPage.character_id), {
                                     action_points: characterPage.action_points - action.actionCost,
                                     ...(tracked ? { action_uses: spendUse(actionUses, action) } : {}),
+                                    ...(reaction ? { reaction_used: true } : {}),
                                 })
                             }
                         } catch (e) {
                             alert(e);
                         }
-                    }}>{spentOut ? "No uses left" : (roleplay ? "Use" : `Use ${containsReaction(action) ? "Reaction" : "Action"}`)}</button>}
+                    }}>{spentOut ? "No uses left" : reactionSpent ? "Reaction used" : (roleplay ? "Use" : `Use ${containsReaction(action) ? "Reaction" : "Action"}`)}</button>}
                 </div>}
             </div>;
         })}

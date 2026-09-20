@@ -51,6 +51,7 @@ jest.mock('../../src/components/CombatActionList', () => ({
     CombatActionList: ({ actions, onUseAction }) => <div>
         CombatActionList-stub:{actions.length}
         {onUseAction && <button type="button" onClick={() => onUseAction({ actionCost: 1 })}>StubUseAction</button>}
+        {onUseAction && <button type="button" onClick={() => onUseAction({ actionCost: 1, category: 'reaction' })}>StubUseReaction</button>}
     </div>,
 }));
 jest.mock('../../src/components/DirectorNotes', () => ({
@@ -66,7 +67,7 @@ jest.mock('../../src/utils/DraggableElements/PostListCombat.tsx', () => ({
     PostListContentCombat: ({ campaignId, inputStatuses }) => <div>Combat-stub:{campaignId}:{inputStatuses.length}</div>,
 }));
 jest.mock('../../src/utils/DraggableElements/PostListCombatMap.tsx', () => ({
-    PostListContentCombatMap: ({ campaignId, activeMap, entities }) => <div>CombatMap-stub:{campaignId}:{activeMap?.map_id}:{entities.length}</div>,
+    PostListContentCombatMap: ({ campaignId, activeMap, entities, noMap }) => <div data-nomap={String(Boolean(noMap))}>CombatMap-stub:{campaignId}:{activeMap?.map_id}:{entities.length}</div>,
 }));
 
 // eslint-disable-next-line import/first
@@ -256,6 +257,52 @@ describe('DirectorsPage', () => {
             apButtons.forEach(b => expect(b).toBeDisabled());
         });
 
+        describe('the reaction (one per turn)', () => {
+            const card = () => screen.getByText('20/25 HP').closest('.DirectorsPage-entity-card');
+            const pip = () => within(card()).getByRole('button', { name: /^Reaction (available|used)$/ });
+
+            test('each player card shows whether the reaction is available', async () => {
+                await renderReady();
+                goToTab('Combat');
+                expect(pip()).toHaveAccessibleName('Reaction available');
+                expect(pip()).toHaveAttribute('aria-pressed', 'true');
+            });
+
+            test('and whether it has been used', async () => {
+                await renderReady({ characters: [{ ...character, reaction_used: true }] });
+                goToTab('Combat');
+                expect(pip()).toHaveAccessibleName('Reaction used');
+                expect(pip()).toHaveAttribute('aria-pressed', 'false');
+            });
+
+            test('clicking it marks the reaction used, writing to the character', async () => {
+                await renderReady();
+                goToTab('Combat');
+                fireEvent.click(pip());
+                expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { reaction_used: true });
+            });
+
+            test('and clicking a used one gives it back', async () => {
+                await renderReady({ characters: [{ ...character, reaction_used: true }] });
+                goToTab('Combat');
+                fireEvent.click(pip());
+                expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { reaction_used: false });
+            });
+
+            test('someone who cannot edit the character sees it but cannot change it', async () => {
+                await renderReady({ characters: [{ ...character, userId: 'someone-else', canWrite: [] }] });
+                goToTab('Combat');
+                expect(pip()).toBeDisabled();
+            });
+
+            test('Next Turn gives the reaction back', async () => {
+                await renderReady({ characters: [{ ...character, reaction_used: true }] });
+                goToTab('Combat');
+                fireEvent.click(screen.getByRole('button', { name: 'Next Turn' }));
+                expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, expect.objectContaining({ reaction_used: false }));
+            });
+        });
+
         test('Next Turn writes the advanced-turn character data', async () => {
             await renderReady();
             goToTab('Combat');
@@ -344,6 +391,61 @@ describe('DirectorsPage', () => {
                 { __doc: ['campaigns', 'camp-1'] },
                 { enemy_list: [expect.objectContaining({ action_points: 0 })] }, // 1 - 1
             ));
+        });
+
+        describe('the reaction (one per turn)', () => {
+            const withEnemy = (extra = {}) => ({ characters: [], campaignInfo: { ...baseCampaignInfo, enemy_list: [{ ...enemy, actions: [{ actionName: 'Parry', actionCost: 1, category: 'reaction' }], ...extra }] } });
+            const pip = () => screen.getByRole('button', { name: /^Reaction (available|used)$/ });
+
+            test('an enemy card shows its reaction, available to begin with', async () => {
+                await renderReady(withEnemy());
+                goToTab('Combat');
+                expect(pip()).toHaveAccessibleName('Reaction available');
+            });
+
+            test('clicking it marks the enemy\'s reaction used, and again gives it back', async () => {
+                await renderReady(withEnemy());
+                goToTab('Combat');
+                fireEvent.click(pip());
+                await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['campaigns', 'camp-1'] }, { enemy_list: [expect.objectContaining({ reaction_used: true })] }));
+            });
+
+            test('a used reaction is shown as used', async () => {
+                await renderReady(withEnemy({ reaction_used: true }));
+                goToTab('Combat');
+                expect(pip()).toHaveAccessibleName('Reaction used');
+            });
+
+            test('using a reaction action spends the reaction as well as the action points', async () => {
+                await renderReady(withEnemy());
+                goToTab('Combat');
+                fireEvent.click(screen.getByRole('button', { name: /Actions$/ }));
+
+                fireEvent.click(screen.getByRole('button', { name: 'StubUseReaction' }));
+
+                await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith(
+                    { __doc: ['campaigns', 'camp-1'] },
+                    { enemy_list: [expect.objectContaining({ action_points: 0, reaction_used: true })] },
+                ));
+            });
+
+            test('using an ordinary action leaves the reaction alone', async () => {
+                await renderReady(withEnemy());
+                goToTab('Combat');
+                fireEvent.click(screen.getByRole('button', { name: /Actions$/ }));
+
+                fireEvent.click(screen.getByRole('button', { name: 'StubUseAction' }));
+
+                await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalled());
+                expect(mockUpdateDoc.mock.calls.at(-1)[1].enemy_list[0].reaction_used).toBeUndefined();
+            });
+
+            test('Next Turn gives an enemy its reaction back', async () => {
+                await renderReady(withEnemy({ reaction_used: true }));
+                goToTab('Combat');
+                fireEvent.click(screen.getAllByRole('button', { name: 'Next Turn' })[0]);
+                await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['campaigns', 'camp-1'] }, { enemy_list: [expect.objectContaining({ reaction_used: false })] }));
+            });
         });
 
         test('shows the enemy\'s tier as a badge beside its name', async () => {
@@ -476,15 +578,120 @@ describe('DirectorsPage', () => {
     });
 
     describe('Combat Tracker', () => {
-        test('starts in Line View, showing the empty-map hint when there is no active map', async () => {
+        test('starts in Line View', async () => {
             await renderReady();
             goToTab('Combat');
             expect(screen.getByRole('button', { name: 'Line View' })).toHaveClass('DirectorsPage-mode-btn-active');
-            expect(screen.getByText('No active map selected. Set one from the Maps tab.')).toBeInTheDocument();
         });
 
-        test('Map View shows the Open Full Map button; Line View does not', async () => {
+        test('with no map selected, the line view is one shared column (Combatants), with no hint', async () => {
             await renderReady();
+            goToTab('Combat');
+            expect(screen.getByText(/Combat-stub:camp-1:1/)).toBeInTheDocument(); // the one "Combatants" column
+            expect(screen.queryByText(/has no zones yet/)).not.toBeInTheDocument();
+            expect(screen.queryByText(/No active map selected/)).not.toBeInTheDocument();
+        });
+
+        test('the map views are told there is no map, so they keep everyone in that one column', async () => {
+            await renderReady();
+            goToTab('Combat');
+            screen.getAllByText(/CombatMap-stub/).forEach(stub => expect(stub).toHaveAttribute('data-nomap', 'true'));
+        });
+
+        test('a campaign that has not loaded yet is not taken for one with no map', async () => {
+            installSnapshotRouter();
+            renderWithRouter(<DirectorsPage />, { route: '/directors/camp-1' });
+            await act(async () => { await Promise.resolve(); });
+            goToTab('Combat');
+            screen.queryAllByText(/CombatMap-stub/).forEach(stub => expect(stub).toHaveAttribute('data-nomap', 'false'));
+            expect(screen.queryByText(/Combat-stub:camp-1:1/)).not.toBeInTheDocument();
+        });
+
+        test('waits for the characters too before treating the campaign as having no map', async () => {
+            const router = installSnapshotRouter();
+            renderWithRouter(<DirectorsPage />, { route: '/directors/camp-1' });
+            router.fireCampaign(baseCampaignInfo); // the campaign is in; the characters are not yet
+            await act(async () => { await Promise.resolve(); });
+            goToTab('Combat');
+            screen.getAllByText(/CombatMap-stub/).forEach(stub => expect(stub).toHaveAttribute('data-nomap', 'false'));
+
+            router.fireCharacters([character]);
+            await act(async () => { await Promise.resolve(); });
+            screen.getAllByText(/CombatMap-stub/).forEach(stub => expect(stub).toHaveAttribute('data-nomap', 'true'));
+        });
+
+        test('with a map selected, its zones are the columns, and the map views are not in no-map mode', async () => {
+            mockUseCampaignMaps.mockReturnValue({ maps: [], activeMap: { map_id: 'map-1', zones: [{ name: 'A' }, { name: 'B' }, { name: 'C' }] } });
+            await renderReady({ campaignInfo: { ...baseCampaignInfo, active_map: 'map-1' } });
+            goToTab('Combat');
+            expect(screen.getByText(/Combat-stub:camp-1:3/)).toBeInTheDocument();
+            screen.getAllByText(/CombatMap-stub/).forEach(stub => expect(stub).toHaveAttribute('data-nomap', 'false'));
+        });
+
+        test('a selected map with no zones says so', async () => {
+            mockUseCampaignMaps.mockReturnValue({ maps: [], activeMap: { map_id: 'map-1', zones: [] } });
+            await renderReady({ campaignInfo: { ...baseCampaignInfo, active_map: 'map-1' } });
+            goToTab('Combat');
+            expect(screen.getByText('This map has no zones yet. Add some from the Maps tab.')).toBeInTheDocument();
+        });
+
+        describe('choosing the map from the tracker', () => {
+            const maps = [{ map_id: 'map-1', link: 'a.png' }, { map_id: 'map-2', link: 'b.png' }];
+            const director = { ...baseCampaignInfo, director_uid: 'owner-1', maps: ['map-1', 'map-2'] };
+
+            test('a director gets a Combat map choice: No map, then each map', async () => {
+                mockUseCampaignMaps.mockReturnValue({ maps, activeMap: null });
+                await renderReady({ campaignInfo: director });
+                goToTab('Combat');
+                const select = screen.getByLabelText('Combat map');
+                expect([...select.options].map(option => option.text)).toEqual(['No map', 'Map 1', 'Map 2']);
+                expect(select).toHaveValue('');
+            });
+
+            test('shows the active map as chosen', async () => {
+                mockUseCampaignMaps.mockReturnValue({ maps, activeMap: maps[1] });
+                await renderReady({ campaignInfo: { ...director, active_map: 'map-2' } });
+                goToTab('Combat');
+                expect(screen.getByLabelText('Combat map')).toHaveValue('map-2');
+            });
+
+            test('choosing a map writes it as the active one', async () => {
+                mockUseCampaignMaps.mockReturnValue({ maps, activeMap: null });
+                await renderReady({ campaignInfo: director });
+                goToTab('Combat');
+
+                fireEvent.change(screen.getByLabelText('Combat map'), { target: { value: 'map-1' } });
+
+                expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['campaigns', 'camp-1'] }, { active_map: 'map-1' });
+            });
+
+            test('choosing No map clears the active map', async () => {
+                mockUseCampaignMaps.mockReturnValue({ maps, activeMap: maps[0] });
+                await renderReady({ campaignInfo: { ...director, active_map: 'map-1' } });
+                goToTab('Combat');
+
+                fireEvent.change(screen.getByLabelText('Combat map'), { target: { value: '' } });
+
+                expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['campaigns', 'camp-1'] }, { active_map: null });
+            });
+
+            test('is not offered when there are no maps to choose from, or to someone who is not a director', async () => {
+                await renderReady({ campaignInfo: director });
+                goToTab('Combat');
+                expect(screen.queryByLabelText('Combat map')).not.toBeInTheDocument();
+            });
+
+            test('a player is not offered it', async () => {
+                mockUseCampaignMaps.mockReturnValue({ maps, activeMap: null });
+                await renderReady({ campaignInfo: { ...baseCampaignInfo, maps: ['map-1', 'map-2'] } });
+                goToTab('Combat');
+                expect(screen.queryByLabelText('Combat map')).not.toBeInTheDocument();
+            });
+        });
+
+        test('Map View shows the Open Full Map button once there is a map; Line View does not', async () => {
+            mockUseCampaignMaps.mockReturnValue({ maps: [], activeMap: { map_id: 'map-1', zones: [{ name: 'A' }] } });
+            await renderReady({ campaignInfo: { ...baseCampaignInfo, active_map: 'map-1' } });
             goToTab('Combat');
             expect(screen.queryByRole('button', { name: /Open Full Map/ })).not.toBeInTheDocument();
 
@@ -493,8 +700,16 @@ describe('DirectorsPage', () => {
             expect(screen.getByRole('button', { name: /Open Full Map/ })).toBeInTheDocument();
         });
 
-        test('Open Full Map opens an overlay with the full combat map, closable via its own button or the scrim', async () => {
+        test('with no map there is nothing to open full-screen', async () => {
             await renderReady();
+            goToTab('Combat');
+            fireEvent.click(screen.getByRole('button', { name: 'Map View' }));
+            expect(screen.queryByRole('button', { name: /Open Full Map/ })).not.toBeInTheDocument();
+        });
+
+        test('Open Full Map opens an overlay with the full combat map, closable via its own button or the scrim', async () => {
+            mockUseCampaignMaps.mockReturnValue({ maps: [], activeMap: { map_id: 'map-1', zones: [{ name: 'A' }] } });
+            await renderReady({ campaignInfo: { ...baseCampaignInfo, active_map: 'map-1' } });
             goToTab('Combat');
             fireEvent.click(screen.getByRole('button', { name: 'Map View' }));
             fireEvent.click(screen.getByRole('button', { name: /Open Full Map/ }));
@@ -577,7 +792,26 @@ describe('DirectorsPage', () => {
                 await renderReady({ campaignInfo: { ...baseCampaignInfo, active_map: 'map-1' } });
                 goToTab('Maps');
                 expect(screen.getByText('MapRenderer-stub:map-1:owner-1')).toBeInTheDocument();
-                expect(screen.getByRole('button', { name: 'Active Map' })).toBeDisabled();
+                expect(screen.getByRole('button', { name: 'Unselect Map' })).toBeEnabled();
+                expect(screen.getByText('Active on the combat tracker')).toBeInTheDocument();
+                expect(screen.queryByRole('button', { name: 'Set as Active' })).not.toBeInTheDocument();
+            });
+
+            test('Unselect Map clears active_map, leaving no map for the combat tracker', async () => {
+                mockUseCampaignMaps.mockReturnValue({ maps: [map], activeMap: null });
+                await renderReady({ campaignInfo: { ...baseCampaignInfo, active_map: 'map-1' } });
+                goToTab('Maps');
+
+                fireEvent.click(screen.getByRole('button', { name: 'Unselect Map' }));
+
+                expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['campaigns', 'camp-1'] }, { active_map: null });
+            });
+
+            test('a map that is not active has no active badge, and Set as Active still selects it', async () => {
+                mockUseCampaignMaps.mockReturnValue({ maps: [map], activeMap: null });
+                await renderReady();
+                goToTab('Maps');
+                expect(screen.queryByText('Active on the combat tracker')).not.toBeInTheDocument();
             });
 
             test('passes the map\'s admins list and the signed-in user down to DocAdminManager', async () => {

@@ -265,11 +265,16 @@ describe('advanceTurnStatuses', () => {
     test('a status with no stack count never counts down, even one that would otherwise decay', () => {
         const status = { name: 'Odd', decaysPerTurn: true, stacks: -1, effects: [{ stat: 'action_points', trigger: 'turn_start', delta: 1 }] };
         const result = advanceTurnStatuses({ action_points: 1, statuses: [status] });
-        expect(result).toEqual({ action_points: 1, statuses: [status] });
+        expect(result).toEqual({ action_points: 1, statuses: [status], reaction_used: false });
+    });
+
+    test('a new turn gives the reaction back, whether or not it was used', () => {
+        expect(advanceTurnStatuses({ action_points: 2, reaction_used: true, statuses: [] }).reaction_used).toBe(false);
+        expect(advanceTurnStatuses({ action_points: 2, statuses: [] }).reaction_used).toBe(false);
     });
 
     test('a status with no statuses on the character just passes action_points through', () => {
-        expect(advanceTurnStatuses({ action_points: 2, statuses: [] })).toEqual({ action_points: 2, statuses: [] });
+        expect(advanceTurnStatuses({ action_points: 2, statuses: [] })).toEqual({ action_points: 2, statuses: [], reaction_used: false });
     });
 
     test('a status that does not decay per turn is left completely untouched', () => {

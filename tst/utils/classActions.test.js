@@ -1,4 +1,4 @@
-import { ACTION_USAGES, getActionCategory, getActionUsage, isCombatAction, isRoleplayAction, usageBadge } from '../../src/utils/classActions';
+import { ACTION_USAGES, getActionCategory, getActionUsage, isCombatAction, isReactionAction, isRoleplayAction, usageBadge } from '../../src/utils/classActions';
 
 describe('getActionCategory', () => {
     test('prefers an explicit category field over any tag-based inference', () => {
@@ -65,5 +65,19 @@ describe('where an action is used', () => {
         expect(usageBadge({ usage: 'combat' })).toBeNull();
         expect(usageBadge({ usage: 'roleplay' })).toBe('Roleplay');
         expect(usageBadge({ usage: 'both' })).toBe('Combat + Roleplay');
+    });
+});
+
+describe('isReactionAction', () => {
+    test('is true for the reaction category, including one only marked by its legacy tag', () => {
+        expect(isReactionAction({ category: 'reaction' })).toBe(true);
+        expect(isReactionAction({ tags: [{ tagInfo: 'Reaction' }] })).toBe(true);
+    });
+
+    test('is false for anything else', () => {
+        expect(isReactionAction({ category: 'action' })).toBe(false);
+        expect(isReactionAction({ category: 'passive' })).toBe(false);
+        expect(isReactionAction({ category: 'feat' })).toBe(false);
+        expect(isReactionAction({})).toBe(false);
     });
 });

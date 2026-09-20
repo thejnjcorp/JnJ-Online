@@ -30,3 +30,7 @@ export const isCombatAction = action => getActionUsage(action) !== 'roleplay';
 export const isRoleplayAction = action => getActionUsage(action) !== 'combat';
 
 export const usageBadge = action => ({ roleplay: 'Roleplay', both: 'Combat + Roleplay' })[getActionUsage(action)] || null;
+
+// Everyone gets one reaction per turn (`reaction_used` on a character or enemy says
+// whether it has been spent); using an action of this category spends it.
+export const isReactionAction = action => getActionCategory(action) === 'reaction';

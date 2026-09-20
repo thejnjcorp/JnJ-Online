@@ -370,4 +370,58 @@ describe('CombatActionList', () => {
             expect(screen.queryByRole('button', { name: 'Use' })).not.toBeInTheDocument();
         });
     });
+    describe('the reaction (one per turn)', () => {
+        const parry = { ...toHitAction, actionName: 'Parry', category: 'reaction', actionCost: 1 };
+        const setup = (extra = {}, sheet = characterPage, action = parry) => render(<CombatActionList actions={[action]} {...STAT_PROPS} characterPage={sheet} userId="owner-1" canUseActions {...extra} />);
+
+        test('using a reaction spends it along with its action points, in one write', () => {
+            setup();
+            fireEvent.click(screen.getByRole('button', { name: 'Use Reaction' }));
+            expect(mockUpdateDoc).toHaveBeenCalledTimes(1);
+            expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { action_points: 2, reaction_used: true });
+        });
+
+        test('using an ordinary action leaves the reaction alone', () => {
+            setup({}, characterPage, { ...toHitAction, category: 'action' });
+            fireEvent.click(screen.getByRole('button', { name: 'Use Action' }));
+            expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { action_points: 2 });
+        });
+
+        test('with the reaction already used, a reaction can\'t be used again this turn', () => {
+            setup({}, { ...characterPage, reaction_used: true });
+            const button = screen.getByRole('button', { name: 'Reaction used' });
+            expect(button).toBeDisabled();
+            fireEvent.click(button);
+            expect(mockUpdateDoc).not.toHaveBeenCalled();
+            expect(button.closest('.CombatActionListCard')).toHaveClass('CombatActionListCard-spent');
+        });
+
+        test('but the actions still can', () => {
+            setup({}, { ...characterPage, reaction_used: true }, { ...toHitAction, category: 'action' });
+            expect(screen.getByRole('button', { name: 'Use Action' })).toBeEnabled();
+        });
+
+        test('an override (an enemy card) is given the action, and left to spend the reaction', () => {
+            const onUseAction = jest.fn();
+            setup({ onUseAction });
+            fireEvent.click(screen.getByRole('button', { name: 'Use Reaction' }));
+            expect(onUseAction).toHaveBeenCalledWith(parry);
+            expect(mockUpdateDoc).not.toHaveBeenCalled();
+        });
+
+        test('an override with the reaction already used has the button off too', () => {
+            setup({ onUseAction: jest.fn() }, { ...characterPage, reaction_used: true });
+            expect(screen.getByRole('button', { name: 'Reaction used' })).toBeDisabled();
+        });
+
+        test('a reaction on the roleplay tab is not limited by the turn\'s reaction', () => {
+            render(<CombatActionList actions={[{ ...parry, actionType: 'perDay', actionTypeCount: 1 }]} {...STAT_PROPS} characterPage={{ ...characterPage, reaction_used: true }} userId="owner-1" canUseActions roleplay actionUses={{}} onActionUsesChange={jest.fn()} />);
+            expect(screen.getByRole('button', { name: 'Use' })).toBeEnabled();
+        });
+
+        test('a card with no character to look at (a preview) still works', () => {
+            render(<CombatActionList actions={[parry]} {...STAT_PROPS} hasWritePermissions canUseActions onUseAction={jest.fn()} />);
+            expect(screen.getByRole('button', { name: 'Use Reaction' })).toBeEnabled();
+        });
+    });
 });

@@ -369,6 +369,29 @@
     }
 }
 
+.DirectorsPage-reaction {
+    display: flex;
+    flex-shrink: 0;
+    margin-left: 4px;
+    padding-left: 6px;
+    border-left: 1px solid var(--jnj-color-border-strong);
+
+    .DirectorsPage-reaction-button {
+        display: flex;
+        padding: 1px;
+        border: none;
+        border-radius: 50%;
+        background: none;
+        // a ring around the circle sets the reaction apart from the action points
+        box-shadow: 0 0 0 1px var(--jnj-color-arcane);
+        cursor: pointer;
+
+        &:disabled {
+            cursor: default;
+        }
+    }
+}
+
 .DirectorsPage-weakres-row {
     display: flex;
     flex-wrap: wrap;
@@ -716,4 +739,33 @@
     font-size: var(--jnj-text-sm);
     color: var(--jnj-color-text-faint);
     text-align: center;
+}
+
+.DirectorsPage-map-select {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: var(--jnj-color-text-muted);
+
+    select {
+        padding: 3px 6px;
+        border: 1px solid var(--jnj-color-border-strong);
+        border-radius: var(--jnj-radius-sm);
+        background: var(--jnj-color-bg-sunken);
+        color: var(--jnj-color-text);
+        font: inherit;
+    }
+}
+
+.DirectorsPage-active-map-badge {
+    align-self: center;
+    padding: 2px 10px;
+    border-radius: var(--jnj-radius-pill);
+    background: var(--jnj-color-success);
+    color: #fff;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }

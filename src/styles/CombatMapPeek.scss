@@ -1,0 +1,120 @@
+// The combat map that slides out beside the Combat tab (CombatMapPeek.js).
+.CombatMapPeek {
+    display: inline-flex;
+    margin-left: auto;
+}
+
+.CombatMapPeek-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0.4rem;
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: 50%;
+    background: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text);
+    cursor: pointer;
+    transition: border-color var(--jnj-transition), color var(--jnj-transition);
+
+    svg {
+        width: 100%;
+        height: 100%;
+    }
+
+    &:hover,
+    &:focus-visible,
+    &.CombatMapPeek-button-open {
+        border-color: var(--jnj-color-accent);
+        color: var(--jnj-color-accent-hover);
+    }
+}
+
+// Fixed to the edge of the window, over the page but under the full-screen
+// overlays, and animated in from the side.
+.CombatMapPeek-panel {
+    position: fixed;
+    z-index: 30;
+    top: calc(var(--jnj-nav-height, 3.5rem) + var(--jnj-space-3));
+    right: var(--jnj-space-3);
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    width: min(36rem, 48vw);
+    height: min(70vh, 40rem);
+    padding: var(--jnj-space-3);
+    background: var(--jnj-color-bg-raised);
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-lg);
+    box-shadow: var(--jnj-shadow-lg);
+    animation: combat-map-peek-in 180ms ease-out;
+}
+
+@keyframes combat-map-peek-in {
+    from {
+        transform: translateX(3rem);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .CombatMapPeek-panel {
+        animation: none;
+    }
+}
+
+.CombatMapPeek-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 1.75rem;
+    margin-bottom: var(--jnj-space-2);
+}
+
+.CombatMapPeek-title {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--jnj-color-text-faint);
+}
+
+.CombatMapPeek-close {
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: 50%;
+    background: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text);
+    line-height: 1;
+    cursor: pointer;
+
+    &:hover {
+        border-color: var(--jnj-color-danger);
+        color: var(--jnj-color-danger);
+    }
+}
+
+// The map sizes itself to a flex column with a definite height (see
+// PostListContentAbstract), so this is one.
+.CombatMapPeek-body {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+// A phone has no hover and a bottom tab for the map already, and the bar has no
+// room for another button.
+@media (max-width: 640px) {
+    .CombatMapPeek {
+        display: none;
+    }
+}

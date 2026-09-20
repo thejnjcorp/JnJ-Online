@@ -116,10 +116,13 @@
 
 .CharacterMainTab-ap-row {
     display: flex;
+    // in a narrow column the label and the reaction drop to a second line
+    // rather than running off the edge
+    flex-wrap: wrap;
     justify-content: start;
     align-items: center;
-    gap: 6px;
-    height: 5vh;
+    gap: 4px 6px;
+    min-height: 5vh;
 }
 
 .CharacterMainTab-status-strip {
@@ -140,6 +143,22 @@
 
 .CharacterMainTab-ap-short {
     display: none;
+}
+
+// One reaction per turn, beside the action points: a ring around the circle
+// (filled while it is available, empty once used) sets it apart from them.
+.CharacterMainTab-reaction {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: var(--jnj-space-5);
+}
+
+.CharacterMainTab-circle-button.CharacterMainTab-reaction-button {
+    box-sizing: border-box;
+    padding: 3px;
+    border: 2px solid var(--jnj-color-arcane);
+    border-radius: 50%;
 }
 
 .CharacterMainTab-action-points-label {
@@ -555,7 +574,8 @@
     }
 
     .CharacterMainTab-ap-row {
-        height: auto;
+        min-height: 0;
+        flex-wrap: nowrap;
         gap: 2px;
     }
 
@@ -570,6 +590,24 @@
             flex-shrink: 0;
             white-space: nowrap;
         }
+    }
+
+    // the reaction joins the row, so it gives up some of its breathing room - and
+    // the "3 / 4 available" text, which the circles already say, stays for screen
+    // readers only
+    .CharacterMainTab-reaction {
+        gap: 4px;
+        margin-left: 6px;
+    }
+
+    .CharacterMainTab-action-points-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
     }
 
     .CharacterMainTab-ap-full,

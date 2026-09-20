@@ -571,6 +571,92 @@ describe('CharacterMainTab', () => {
             });
         });
 
+        describe('the reaction (one per turn)', () => {
+            const reactionButton = () => screen.getByRole('button', { name: /^Reaction (available|used)$/ });
+
+            test('sits in the sticky bar beside the action points, available to begin with', () => {
+                const { container } = render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
+                goToTab('Combat');
+                expect(reactionButton()).toHaveAccessibleName('Reaction available');
+                expect(reactionButton()).toHaveAttribute('aria-pressed', 'true');
+                expect(container.querySelector('.CharacterMainTab-action-points .CharacterMainTab-ap-row')).toContainElement(reactionButton());
+            });
+
+            test('its icon is not mistaken for one of the four action point circles', () => {
+                render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
+                goToTab('Combat');
+                expect(circleButtons()).toHaveLength(4);
+            });
+
+            test('shows a used reaction, with an empty circle', () => {
+                render(<CharacterMainTab characterPage={{ ...characterPage, reaction_used: true }} userId="owner-1" />);
+                goToTab('Combat');
+                expect(reactionButton()).toHaveAccessibleName('Reaction used');
+                expect(reactionButton()).toHaveAttribute('aria-pressed', 'false');
+                expect(reactionButton().querySelector('img').src).toMatch(/circle\.svg|circle$/);
+            });
+
+            test('clicking it marks the reaction used, and again gives it back', () => {
+                const { rerender } = render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
+                goToTab('Combat');
+                fireEvent.click(reactionButton());
+                expect(mockUpdateDoc).toHaveBeenLastCalledWith({ __doc: ['characters', 'char-1'] }, { reaction_used: true });
+
+                rerender(<CharacterMainTab characterPage={{ ...characterPage, reaction_used: true }} userId="owner-1" />);
+                fireEvent.click(reactionButton());
+                expect(mockUpdateDoc).toHaveBeenLastCalledWith({ __doc: ['characters', 'char-1'] }, { reaction_used: false });
+            });
+
+            test('someone who cannot edit the sheet sees it but cannot change it', () => {
+                render(<CharacterMainTab characterPage={characterPage} userId="stranger-1" />);
+                goToTab('Combat');
+                expect(reactionButton()).toBeDisabled();
+            });
+
+            test('a reaction card can not be used again once the reaction is used', () => {
+                const reaction = { actionName: 'Parry', actionCost: 1, category: 'reaction', toHitBool: true, toHit: 1 };
+                render(<CharacterMainTab characterPage={{ ...characterPage, actions: [...characterPage.actions, reaction], reaction_used: true }} userId="owner-1" />);
+                goToTab('Combat');
+                const useButton = screen.getAllByRole('button', { name: 'Reaction used' }).find(button => button.classList.contains('CombatActionList-use-action-button'));
+                expect(useButton).toBeDisabled();
+            });
+
+            test('using a reaction card spends the reaction', () => {
+                const reaction = { actionName: 'Parry', actionCost: 1, category: 'reaction', toHitBool: true, toHit: 1 };
+                render(<CharacterMainTab characterPage={{ ...characterPage, actions: [...characterPage.actions, reaction] }} userId="owner-1" />);
+                goToTab('Combat');
+
+                fireEvent.click(screen.getByRole('button', { name: 'Use Reaction' }));
+
+                expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { action_points: 1, reaction_used: true });
+            });
+        });
+
+        describe('the combat map peek', () => {
+            test('is a map icon in the sticky bar for a character in a campaign', () => {
+                const { container } = render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
+                goToTab('Combat');
+                expect(container.querySelector('.CharacterMainTab-action-points .CombatMapPeek')).toContainElement(screen.getByRole('button', { name: 'Combat map' }));
+            });
+
+            test('opens the combat map when clicked, without leaving the Combat tab', () => {
+                render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
+                goToTab('Combat');
+
+                fireEvent.click(screen.getByRole('button', { name: 'Combat map' }));
+
+                expect(screen.getByRole('region', { name: 'Combat map' })).toBeInTheDocument();
+                expect(screen.getByText(/CombatMap-stub:camp-1/)).toBeInTheDocument();
+                expect(screen.getByText('Passives')).toBeInTheDocument(); // still on the Combat tab
+            });
+
+            test('a character in no campaign has no map to peek at', () => {
+                render(<CharacterMainTab characterPage={{ ...characterPage, campaign: '' }} userId="owner-1" />);
+                goToTab('Combat');
+                expect(screen.queryByRole('button', { name: 'Combat map' })).not.toBeInTheDocument();
+            });
+        });
+
         describe('limited-use actions', () => {
             const limited = { actionName: 'Fleetfoot', actionCost: 1, category: 'action', toHitBool: true, toHit: 2, actionType: 'perDay', actionTypeCount: 1 };
             const withLimited = (extra = {}) => ({ ...characterPage, actions: [...characterPage.actions, limited], ...extra });

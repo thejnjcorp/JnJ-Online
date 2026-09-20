@@ -28,6 +28,7 @@ import { filterActions, filterOptions, isFilterActive, sortActions } from "../ut
 import { ActionViewControls } from "./ActionViewControls";
 import { StatusChip } from "./StatusChip";
 import { ActionUsesReset } from "./ActionUses";
+import { CombatMapPeek } from "./CombatMapPeek";
 import { isLimitedUse } from "../utils/actionUses";
 
 function isPassive(action) {
@@ -142,6 +143,11 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
     const limitedCombatActions = combatActions.filter(isLimitedUse);
     const limitedRoleplayActions = roleplayActions.filter(isLimitedUse);
 
+    // One reaction per turn: this marks it used (or gives it back). Using a reaction
+    // from the list spends it too, and the Director's "Next Turn" gives it back.
+    const reactionUsed = Boolean(characterPage.reaction_used);
+    const toggleReaction = () => updateDoc(doc(db, "characters", characterPage.character_id), { reaction_used: !reactionUsed }).catch(e => alert(e));
+
     function setActionPoints(actionPoints) {
         try {
             updateDoc(doc(db, "characters", characterPage.character_id), {
@@ -252,6 +258,24 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                         <span className="CharacterMainTab-action-points-label">
                             {characterPage.action_points} / 4 available<span className="CharacterMainTab-ap-hint">{hasWritePermissions ? " · click a circle to spend" : ""}</span>
                         </span>
+                        <span className="CharacterMainTab-reaction">
+                            <span className="CharacterMainTab-caps-label">
+                                <span className="CharacterMainTab-ap-full">Reaction</span>
+                                <span className="CharacterMainTab-ap-short" aria-hidden="true">R</span>
+                            </span>
+                            <button
+                                type="button"
+                                className="CharacterMainTab-circle-button CharacterMainTab-reaction-button"
+                                aria-label={reactionUsed ? 'Reaction used' : 'Reaction available'}
+                                aria-pressed={!reactionUsed}
+                                title={hasWritePermissions ? (reactionUsed ? 'Reaction used - click to give it back' : 'Reaction available - click to mark it used') : undefined}
+                                disabled={!hasWritePermissions}
+                                onClick={hasWritePermissions ? toggleReaction : undefined}
+                            >
+                                <img src={reactionUsed ? circleIcon : circleFilledIcon} alt="" className="CharacterMainTab-circle" width={30}/>
+                            </button>
+                        </span>
+                        {hasCampaign && <CombatMapPeek campaignId={characterPage.campaign} activeMap={activeMap} entities={combatEntities} userId={userId}/>}
                     </div>
                     {/* Riding along with the action points, so the statuses in play stay in
                         view while the actions scroll (their details are on the vitals card). */}

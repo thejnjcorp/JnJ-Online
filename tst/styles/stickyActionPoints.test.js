@@ -44,6 +44,14 @@ describe('sticky action points', () => {
         expect(strip).toContain('overflow-x: auto');
     });
 
+    test('the reaction sits in the same row, and on phones the row stays one line, the count is for screen readers only, and the map peek is left out', () => {
+        expect(rule(css, '.CharacterMainTab-ap-row')).toContain('flex-wrap: wrap');
+        const phone = css.slice(css.indexOf('@media (max-width: 640px)'));
+        expect(rule(phone, '.CharacterMainTab-ap-row')).toContain('flex-wrap: nowrap');
+        expect(rule(phone, '.CharacterMainTab-action-points-label')).toContain('clip: rect(0 0 0 0)');
+        expect(rule(styles('CombatMapPeek.scss').slice(styles('CombatMapPeek.scss').indexOf('@media (max-width: 640px)')), '.CombatMapPeek')).toContain('display: none');
+    });
+
     test('the tab content wrapper stops being a scroll container for tabs that ask (or sticky has nowhere to go)', () => {
         expect(rule(styles('TabContainer.scss'), '.TabContainer-content.TabContainer-content-unclipped')).toContain('overflow: visible');
     });

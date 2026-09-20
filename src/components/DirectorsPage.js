@@ -39,7 +39,8 @@ import { CharacterStatCalculator } from './CharacterStatCalculator';
 import { AddEnemyDialog } from './AddEnemyDialog';
 import { EnemyTierBadge } from './EnemyTierBadge';
 import { removeEnemies } from '../utils/enemies';
-import { isCombatAction } from '../utils/classActions';
+import { isCombatAction, isReactionAction } from '../utils/classActions';
+import { NO_MAP_ZONE } from '../utils/combatTracker';
 
 // Matches the mockup's .zone-card/.zone-title/.entity-chip recipe (see
 // design/directors-page/handoff/reference.html) rather than the generic
@@ -120,7 +121,7 @@ function makeLineViewCard(playerInfoById) {
 // need to know whether it's looking at a real `characters` doc or an NPC
 // object embedded in the campaign doc.
 function DirectorsEntityCard({
-    kind, name, tier, subtitle, hpNow, hpMax, tempHp, ac, ap, onSetAp, onRemove,
+    kind, name, tier, subtitle, hpNow, hpMax, tempHp, ac, ap, onSetAp, reactionUsed, onToggleReaction, onRemove,
     canAdvanceTurn, onNextTurn, weaknesses, resistances,
     statusEntity, onUpdateStatuses, hasStatusWrite, userId,
     actions, experiencePoints, baseHitModifier, baseDamageModifier,
@@ -159,6 +160,19 @@ function DirectorsEntityCard({
                             <img src={ap >= n ? circleFilledIcon : circleIcon} alt="" width={15}/>
                         </button>
                     )}
+                </div>
+                <div className="DirectorsPage-reaction">
+                    <button
+                        type="button"
+                        className="DirectorsPage-reaction-button"
+                        aria-label={reactionUsed ? 'Reaction used' : 'Reaction available'}
+                        aria-pressed={!reactionUsed}
+                        title={onToggleReaction ? (reactionUsed ? 'Reaction used - click to give it back' : 'Reaction available - click to mark it used') : (reactionUsed ? 'Reaction used' : 'Reaction available')}
+                        disabled={!onToggleReaction}
+                        onClick={() => onToggleReaction?.()}
+                    >
+                        <img src={reactionUsed ? circleIcon : circleFilledIcon} alt="" width={15}/>
+                    </button>
                 </div>
                 {canAdvanceTurn && <button type="button" className={`DirectorsPage-next-turn-button DirectorsPage-next-turn-button-${kind}`} onClick={onNextTurn}>Next Turn</button>}
             </div>
@@ -202,6 +216,7 @@ export function DirectorsPage() {
     const campaignId = location.pathname.split("/").at(2);
     const pageTheme = 'DefaultCharacterPage';
     const [isLoaded, setIsLoaded] = useState(false);
+    const [charactersLoaded, setCharactersLoaded] = useState(false);
     const [userId, setUserId] = useState("");
     const [trackerMode, setTrackerMode] = useState('line');
     const [mapOverlayOpen, setMapOverlayOpen] = useState(false);
@@ -254,6 +269,7 @@ export function DirectorsPage() {
         const unsubscribe = onSnapshot(charactersQuery, { includeMetadataChanges: true }, (querySnapshot) => {
             if (querySnapshot.metadata.hasPendingWrites || !isLoaded) {
                 setCharacterList(querySnapshot.docs.map(doc => ({character_id: doc.id, ...doc.data()})));
+                setCharactersLoaded(true);
             }
         });
         return () => unsubscribe();
@@ -315,6 +331,11 @@ export function DirectorsPage() {
     };
 
     const { maps, activeMap } = useCampaignMaps(campaignInfo);
+    // The director has chosen no map (as opposed to a campaign that hasn't loaded yet,
+    // whose placeholder also has none): the tracker then keeps everyone in one column.
+    // It waits for the characters too, so it never works from half the fight.
+    const noMap = isLoaded && charactersLoaded && !campaignInfo.active_map;
+    const selectMap = mapId => updateDoc(campaignDoc, { active_map: mapId || null }).catch(e => alert(e));
     const combatEntities = useCombatEntities(characterList, campaignInfo);
     // Each player's class data (actions, base AC/hit, class name) comes from the
     // class version they're pinned to - see useClassVersion.js. The raw list
@@ -447,6 +468,15 @@ export function DirectorsPage() {
                                     alert(e);
                                 }
                             }
+                            function toggleReaction() {
+                                try {
+                                    updateDoc(doc(db, "characters", actualCharacter.character_id), {
+                                        reaction_used: !actualCharacter.reaction_used
+                                    });
+                                } catch (e) {
+                                    alert(e);
+                                }
+                            }
                             // The only turn-based automation this pass wires up: statuses
                             // with a turn_start effect (currently just action_points, e.g.
                             // Haste +1 / Slowed -1 - see statusEffects.js) apply once, then
@@ -484,6 +514,8 @@ export function DirectorsPage() {
                                 ac={armorClass}
                                 ap={actualCharacter.action_points}
                                 onSetAp={hasWritePermissions ? setActionPoints : undefined}
+                                reactionUsed={Boolean(actualCharacter.reaction_used)}
+                                onToggleReaction={hasWritePermissions ? toggleReaction : undefined}
                                 canAdvanceTurn={hasWritePermissions}
                                 onNextTurn={advanceTurn}
                                 statusEntity={actualCharacter}
@@ -516,7 +548,14 @@ export function DirectorsPage() {
                                     onClick={() => setTrackerMode('map')}
                                 >Map View</button>
                             </div>
-                            {trackerMode === 'map' && <button type="button"
+                            {isDirector && maps.length > 0 && <label className="DirectorsPage-map-select">
+                                <span>Map</span>
+                                <select aria-label="Combat map" value={campaignInfo.active_map || ''} onChange={event => selectMap(event.target.value)}>
+                                    <option value="">No map</option>
+                                    {maps.map((map, index) => <option key={map.map_id} value={map.map_id}>{`Map ${index + 1}`}</option>)}
+                                </select>
+                            </label>}
+                            {trackerMode === 'map' && activeMap && <button type="button"
                                 className="DirectorsPage-tracker-expand-button"
                                 onClick={() => setMapOverlayOpen(true)}
                             >
@@ -533,11 +572,11 @@ export function DirectorsPage() {
                             <PostListContentCombat
                                 key={activeMap?.map_id || "no-active-map"}
                                 campaignId={campaignId}
-                                inputStatuses={zoneNames}
+                                inputStatuses={zoneNames.length > 0 ? zoneNames : (noMap ? [NO_MAP_ZONE] : [])}
                                 className={lineViewClassName}
                                 PostCardComponent={lineViewCard}
                             />
-                            {zoneNames.length === 0 && <div className="DirectorsPage-tracker-empty">No active map selected. Set one from the Maps tab.</div>}
+                            {activeMap && zoneNames.length === 0 && <div className="DirectorsPage-tracker-empty">This map has no zones yet. Add some from the Maps tab.</div>}
                             {/* One shared Tooltip, matched by data-tooltip-id on every
                                 chip (see makeLineViewCard) - react-tooltip reads each
                                 chip's own data-tooltip-content, so a single mount here
@@ -551,6 +590,7 @@ export function DirectorsPage() {
                                 activeMap={activeMap}
                                 entities={combatEntities}
                                 userId={userId}
+                                noMap={noMap}
                             />
                         </div>
                     </div>
@@ -582,8 +622,14 @@ export function DirectorsPage() {
                             function updateEnemyStatuses(nextStatuses) {
                                 return updateEnemy(actualEnemy.id, { statuses: nextStatuses });
                             }
+                            function toggleReaction() {
+                                updateEnemy(actualEnemy.id, { reaction_used: !actualEnemy.reaction_used }).catch(e => alert(e));
+                            }
                             function useAction(action) {
-                                setActionPoints(actualEnemy.action_points - action.actionCost);
+                                updateEnemy(actualEnemy.id, {
+                                    action_points: actualEnemy.action_points - action.actionCost,
+                                    ...(isReactionAction(action) ? { reaction_used: true } : {}),
+                                }).catch(e => alert(e));
                             }
                             const effectiveEnemy = getEffectiveCharacterStats(actualEnemy);
                             const grantedActions = getGrantedActions(actualEnemy);
@@ -600,6 +646,8 @@ export function DirectorsPage() {
                                 ac={effectiveEnemy.base_armor_class}
                                 ap={actualEnemy.action_points}
                                 onSetAp={setActionPoints}
+                                reactionUsed={Boolean(actualEnemy.reaction_used)}
+                                onToggleReaction={toggleReaction}
                                 canAdvanceTurn={true}
                                 onNextTurn={advanceTurn}
                                 weaknesses={actualEnemy.Weaknesses}
@@ -645,11 +693,11 @@ export function DirectorsPage() {
                                     <MapRenderer map={map} userId={userId}/>
                                     <button type="button"
                                         className='DirectorsPage-set-active-map-button'
-                                        disabled={isActive}
-                                        onClick={() => updateDoc(campaignDoc, { active_map: map.map_id })}
+                                        onClick={() => selectMap(isActive ? null : map.map_id)}
                                     >
-                                        {isActive ? "Active Map" : "Set as Active"}
+                                        {isActive ? "Unselect Map" : "Set as Active"}
                                     </button>
+                                    {isActive && <span className='DirectorsPage-active-map-badge'>Active on the combat tracker</span>}
                                     <button type="button"
                                         className='DirectorsPage-delete-map-button'
                                         onClick={() => deleteMap(map)}
@@ -681,6 +729,7 @@ export function DirectorsPage() {
                     activeMap={activeMap}
                     entities={combatEntities}
                     userId={userId}
+                    noMap={noMap}
                 />
             </div>
         </>}
