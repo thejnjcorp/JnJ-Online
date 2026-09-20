@@ -2,6 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { collection, documentId, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from './firebase';
 import { withoutArchived } from './characterArchive';
+import { imageSrc } from './imageRefs';
+
+// An NPC's picture for its token: what is saved (an image ref, or a link) as an address to load.
+const npcImage = npc => (npc.portrait_url ? imageSrc(npc.portrait_url) : undefined);
 
 // Shared between DirectorsPage and CharacterMainTab so both views of a
 // campaign's combat resolve the same active map from the same listener setup.
@@ -41,8 +45,8 @@ export function useCampaignMaps(campaignInfo) {
 export function useCombatEntities(characterList, campaignInfo) {
     return useMemo(() => [
         ...withoutArchived(characterList).map((character) => ({ id: "character:" + character.character_id, title: character.character_name, kind: 'player', image: character.portrait_url, ownerIds: [character.userId, ...(character.canWrite ?? [])].filter(Boolean) })),
-        ...(campaignInfo.ally_combat_npc_list ?? []).map((npc) => ({ id: "npc:" + npc.id, title: npc.enemy_name, kind: 'ally', image: npc.portrait_url, defeated: Boolean(npc.defeated) })),
-        ...(campaignInfo.enemy_list ?? []).map((npc) => ({ id: "npc:" + npc.id, title: npc.enemy_name, kind: 'enemy', image: npc.portrait_url, defeated: Boolean(npc.defeated) })),
-        ...(campaignInfo.neutral_combat_npc_list ?? []).map((npc) => ({ id: "npc:" + npc.id, title: npc.enemy_name, kind: 'neutral', image: npc.portrait_url, defeated: Boolean(npc.defeated) })),
+        ...(campaignInfo.ally_combat_npc_list ?? []).map((npc) => ({ id: "npc:" + npc.id, title: npc.enemy_name, kind: 'ally', image: npcImage(npc), defeated: Boolean(npc.defeated) })),
+        ...(campaignInfo.enemy_list ?? []).map((npc) => ({ id: "npc:" + npc.id, title: npc.enemy_name, kind: 'enemy', image: npcImage(npc), defeated: Boolean(npc.defeated) })),
+        ...(campaignInfo.neutral_combat_npc_list ?? []).map((npc) => ({ id: "npc:" + npc.id, title: npc.enemy_name, kind: 'neutral', image: npcImage(npc), defeated: Boolean(npc.defeated) })),
     ], [characterList, campaignInfo.ally_combat_npc_list, campaignInfo.enemy_list, campaignInfo.neutral_combat_npc_list]);
 }

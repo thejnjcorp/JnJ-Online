@@ -79,3 +79,72 @@
     padding: 20px;
     text-align: center;
 }
+
+// The director's tools beside the map, for the map opened full-size (the
+// `toolbarsBeside` prop of PostListContentCombatMap). Screens are usually wider than
+// tall, so on one wide enough the tools go in a column down the map's left instead
+// of stacking above it and pushing the map down the screen; on a narrower one they
+// stay above it, as everywhere else.
+.CombatMap-beside {
+    display: flex;
+    flex: 1 1 0%;
+    flex-direction: column;
+    gap: var(--jnj-space-2);
+    min-width: 0;
+    min-height: 0;
+}
+
+.CombatMap-beside-map {
+    display: flex;
+    flex: 1 1 0%;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+}
+
+.CombatMap-sidebar {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    gap: var(--jnj-space-2);
+    // the column scrolls on its own if the tools outgrow the screen's height
+    overflow-y: auto;
+}
+
+@media (min-width: 1000px) {
+    .CombatMap-beside {
+        flex-direction: row;
+        gap: var(--jnj-space-4);
+    }
+
+    .CombatMap-sidebar {
+        box-sizing: border-box;
+        width: 15rem;
+        padding-right: var(--jnj-space-3);
+        border-right: 1px solid var(--jnj-color-border);
+        text-align: left;
+
+        // each toolbar's controls stack in the narrow column instead of running along a row
+        // (no wrapping: a column that wraps starts a second column beside the first)
+        .MapDrawingToolbar,
+        .MapImageTokenToolbar {
+            flex-direction: column;
+            flex-wrap: nowrap;
+            align-items: stretch;
+            padding: 0 0 var(--jnj-space-2);
+        }
+
+        .MapImageTokenToolbar-form,
+        .MapImageTokenToolbar-new,
+        .MapImageTokenToolbar-library {
+            flex-direction: column;
+            flex-wrap: nowrap;
+            align-items: stretch;
+        }
+
+        .MapImageTokenToolbar-input,
+        .MapImageTokenToolbar-file {
+            width: 100%;
+        }
+    }
+}

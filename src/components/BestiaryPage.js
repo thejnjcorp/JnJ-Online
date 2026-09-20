@@ -5,6 +5,7 @@ import { auth } from '../utils/firebase';
 import { useBestiary } from '../utils/useBestiary';
 import { ENEMY_TIERS } from '../utils/enemies';
 import { EnemyTierBadge } from './EnemyTierBadge';
+import { imageSrc } from '../utils/imageRefs';
 import '../styles/StatusListPage.scss';
 import '../styles/BestiaryPage.scss';
 
@@ -68,6 +69,7 @@ export function BestiaryPage() {
             <div className="StatusListPage-grid">
                 {shown.map(enemy => <button type="button" key={enemy.id} className="StatusListPage-card StatusListPage-card-neutral" onClick={() => navigate('/enemies/' + enemy.id)}>
                     <div className="StatusListPage-card-header">
+                        {enemy.portrait_url && <img className="BestiaryPage-portrait" src={imageSrc(enemy.portrait_url)} alt="" loading="lazy"/>}
                         <span className="StatusListPage-card-name">{enemy.enemy_name || 'Unnamed'}</span>
                         <EnemyTierBadge tier={enemy.enemy_type}/>
                     </div>

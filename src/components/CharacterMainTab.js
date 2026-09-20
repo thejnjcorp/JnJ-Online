@@ -474,6 +474,7 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                     userId={userId}
                     canEdit={canEditCampaign}
                     noActiveMapMessage="The director hasn't set an active combat map yet."
+                    toolbarsBeside
                 />
             </div>
         </>}

@@ -888,6 +888,18 @@ describe('DirectorsPage', () => {
             expect(screen.queryByRole('button', { name: /Open Full Map/ })).not.toBeInTheDocument();
         });
 
+        test('the map opened full-size has its tools beside it; the one in the tracker column keeps them above', async () => {
+            mockUseCampaignMaps.mockReturnValue({ maps: [], activeMap: { map_id: 'map-1', zones: [{ name: 'A' }] } });
+            await renderReady({ campaignInfo: { ...baseCampaignInfo, active_map: 'map-1' } });
+            goToTab('Combat');
+            expect(mockMapProps.every(props => !props.toolbarsBeside)).toBe(true);
+
+            fireEvent.click(screen.getByRole('button', { name: 'Map View' }));
+            fireEvent.click(screen.getByRole('button', { name: /Open Full Map/ }));
+
+            expect(mockMapProps[mockMapProps.length - 1].toolbarsBeside).toBe(true);
+        });
+
         test('Open Full Map opens an overlay with the full combat map, closable via its own button or the scrim', async () => {
             mockUseCampaignMaps.mockReturnValue({ maps: [], activeMap: { map_id: 'map-1', zones: [{ name: 'A' }] } });
             await renderReady({ campaignInfo: { ...baseCampaignInfo, active_map: 'map-1' } });

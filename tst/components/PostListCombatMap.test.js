@@ -902,3 +902,55 @@ describe('PostListContentCombatMap enemies: defeating them and taking them off t
         });
     });
 });
+
+describe('PostListContentCombatMap with its tools beside it', () => {
+    const entities = [{ id: 'npc:goblin', title: 'Goblin 1', kind: 'enemy' }];
+    const tracker = () => [{ ...post('npc:goblin', 'Zone 1', 0), x: 0.1, y: 0.1 }];
+    const sidebar = () => screen.queryByRole('complementary', { name: 'Map tools' });
+    const draw = (props = {}, userId = 'director-1') => render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={entities} userId={userId} canEdit={userId === 'director-1'} {...props} />);
+
+    beforeEach(() => withTracker(tracker()));
+
+    test('a director\'s tools are in a column beside the map, and the map is in its own area next to it', () => {
+        draw({ toolbarsBeside: true });
+        expect(sidebar()).toBeInTheDocument();
+        expect(within(sidebar()).getByRole('toolbar', { name: 'Map drawing tools' })).toBeInTheDocument();
+        expect(within(sidebar()).getByRole('toolbar', { name: 'Map image tokens' })).toBeInTheDocument();
+        expect(screen.getByTestId('map').closest('.CombatMap-beside-map')).not.toBeNull();
+        expect(sidebar().closest('.CombatMap-beside')).toBe(screen.getByTestId('map').closest('.CombatMap-beside'));
+        expect(within(sidebar()).queryByTestId('map')).not.toBeInTheDocument();
+    });
+
+    test('the tools that come and go - a selected combatant\'s - appear in the column too', () => {
+        draw({ toolbarsBeside: true, onSetDefeated: jest.fn(), onRemoveEntity: jest.fn() });
+        fireEvent(screen.getByRole('button', { name: /^Goblin 1/ }), Object.assign(new MouseEvent('pointerdown', { bubbles: true, clientX: 100, clientY: 100, button: 0 }), { pointerId: 1, pointerType: 'mouse' }));
+        expect(within(sidebar()).getByRole('toolbar', { name: 'Selected combatant' })).toBeInTheDocument();
+    });
+
+    test('without it the tools are above the map, as they always were', () => {
+        draw();
+        expect(sidebar()).not.toBeInTheDocument();
+        expect(document.querySelector('.CombatMap-beside')).toBeNull();
+        expect(screen.getByRole('toolbar', { name: 'Map drawing tools' })).toBeInTheDocument();
+    });
+
+    test('someone with no tools gets just the map, with no empty column', () => {
+        draw({ toolbarsBeside: true }, 'player-1');
+        expect(sidebar()).not.toBeInTheDocument();
+        expect(document.querySelector('.CombatMap-beside')).toBeNull();
+        expect(screen.getByTestId('map')).toBeInTheDocument();
+    });
+
+    test('selecting something does not rebuild the map: the layout stays as it was', () => {
+        draw({ toolbarsBeside: true, onSetDefeated: jest.fn(), onRemoveEntity: jest.fn() });
+        const map = screen.getByTestId('map');
+        fireEvent(screen.getByRole('button', { name: /^Goblin 1/ }), Object.assign(new MouseEvent('pointerdown', { bubbles: true, clientX: 100, clientY: 100, button: 0 }), { pointerId: 1, pointerType: 'mouse' }));
+        expect(screen.getByTestId('map')).toBe(map);
+    });
+
+    test('with no active map there is only the message, whatever the layout', () => {
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={undefined} entities={[]} userId="director-1" canEdit toolbarsBeside />);
+        expect(screen.getByText(/No active map selected/)).toBeInTheDocument();
+        expect(sidebar()).not.toBeInTheDocument();
+    });
+});

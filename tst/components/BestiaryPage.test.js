@@ -55,6 +55,20 @@ describe('BestiaryPage', () => {
         expect(mockNavigate).toHaveBeenCalledWith('/enemies');
     });
 
+    describe('pictures', () => {
+        test('an enemy with a picture shows it beside its name, loading an Imgur hash from Imgur', () => {
+            renderPage([{ ...goon, portrait_url: 'AbC1d2E.png' }, { ...wolf, portrait_url: 'https://example.com/wolf.png' }]);
+            const card = name => screen.getByText(name).closest('button');
+            expect(card('Rust Bandit').querySelector('img')).toHaveAttribute('src', 'https://i.imgur.com/AbC1d2E.png');
+            expect(card('Wolf').querySelector('img')).toHaveAttribute('src', 'https://example.com/wolf.png');
+        });
+
+        test('an enemy without one has no picture, and no empty frame for it', () => {
+            renderPage([goon, { ...wolf, portrait_url: '' }]);
+            expect(document.querySelector('.BestiaryPage-portrait')).toBeNull();
+        });
+    });
+
     describe('filters', () => {
         test('a tier keeps just that tier', () => {
             renderPage([goon, wolf, captain]);

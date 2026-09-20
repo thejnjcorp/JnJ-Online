@@ -11,6 +11,7 @@
 // actions - is numbers the director sets.
 
 import { actionProblems } from './classValidation';
+import { imageRef } from './imageRefs';
 
 export const ENEMY_TIERS = [
     { key: 'Goon', plural: 'Goons' },
@@ -31,6 +32,8 @@ export const ENEMY_STAT_FIELDS = [
     'strength_stat', 'dexterity_stat', 'intelligence_stat', 'charisma_stat',
     'base_hit_modifier', 'base_damage_modifier', 'base_damage_dice', 'base_damage_dice_type', 'base_healing_dice_type',
     'Weaknesses', 'Resistances', 'actions',
+    // its picture, for its token on the combat map: an image ref (see imageRefs.js), or empty
+    'portrait_url',
 ];
 
 export function newEnemy(tier = 'Regular') {
@@ -39,7 +42,7 @@ export function newEnemy(tier = 'Regular') {
         base_armor_class: 12, maximum_health: 10, action_points: 3, hardness: 0,
         strength_stat: 0, dexterity_stat: 0, intelligence_stat: 0, charisma_stat: 0,
         base_hit_modifier: 0, base_damage_modifier: 0, base_damage_dice: 1, base_damage_dice_type: 2, base_healing_dice_type: 1,
-        Weaknesses: [], Resistances: [], actions: [],
+        Weaknesses: [], Resistances: [], actions: [], portrait_url: '',
     };
 }
 
@@ -88,6 +91,7 @@ export function validateEnemy(enemy) {
         else if (max !== undefined && value > max) message = `Must be from ${min ?? 'any'} to ${max}.`;
         if (message) add(`field-${field}`, field, label, message);
     });
+    if (!isBlank(enemy.portrait_url) && !imageRef(enemy.portrait_url)) add('field-portrait_url', 'portrait_url', 'Picture', 'Use a web link to a picture, starting with https://.');
     ['Weaknesses', 'Resistances'].forEach(field => {
         const bad = (enemy[field] || []).findIndex(entry => !isInt(parseModifier(entry).amount) || parseModifier(entry).type === '');
         if (bad >= 0) add(`field-${field}`, field, field, 'Each one needs a type and an amount, like "Fire 5".');
@@ -110,6 +114,8 @@ export function enemyDocFields(form) {
         return action;
     });
     payload.enemy_name = (form.enemy_name || '').trim();
+    // an Imgur link is kept as just its hash; nothing usable is kept as nothing
+    payload.portrait_url = imageRef(form.portrait_url) ?? '';
     return payload;
 }
 

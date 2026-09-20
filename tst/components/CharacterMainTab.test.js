@@ -33,7 +33,7 @@ jest.mock('../../src/utils/DraggableElements/PostListCombat.tsx', () => ({
     },
 }));
 jest.mock('../../src/utils/DraggableElements/PostListCombatMap.tsx', () => ({
-    PostListContentCombatMap: ({ campaignId, activeMap, entities, canEdit }) => <div data-canedit={String(Boolean(canEdit))}>CombatMap-stub:{campaignId}:{activeMap?.map_id}:{entities.length}</div>,
+    PostListContentCombatMap: ({ campaignId, activeMap, entities, canEdit, toolbarsBeside }) => <div data-canedit={String(Boolean(canEdit))} data-beside={String(Boolean(toolbarsBeside))}>CombatMap-stub:{campaignId}:{activeMap?.map_id}:{entities.length}</div>,
 }));
 
 // eslint-disable-next-line import/first
@@ -860,6 +860,15 @@ describe('CharacterMainTab', () => {
             fireEvent.click(screen.getByRole('button', { name: /Open Combat Map/ }));
 
             expect(screen.getByText('CombatMap-stub:camp-1:map-1:1')).toBeInTheDocument();
+        });
+
+        test('the overlay puts the director\'s map tools beside the map, where the wide screen has room for them', () => {
+            mockUseCampaignMaps.mockReturnValue({ activeMap: { map_id: 'map-1' } });
+            mockUseCombatEntities.mockReturnValue([{ id: 'character:char-1', title: 'Aria' }]);
+            render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
+            goToTab('Combat Map');
+            fireEvent.click(screen.getByRole('button', { name: /Open Combat Map/ }));
+            expect(screen.getByText('CombatMap-stub:camp-1:map-1:1')).toHaveAttribute('data-beside', 'true');
         });
 
         test('the overlay closes via its own close button', () => {

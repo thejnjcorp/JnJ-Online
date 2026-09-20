@@ -769,6 +769,7 @@ export function DirectorsPage() {
                     noMap={noMap}
                     onSetDefeated={isDirector ? setEnemyDefeated : undefined}
                     onRemoveEntity={isDirector ? removeEntityFromFight : undefined}
+                    toolbarsBeside
                 />
             </div>
         </>}

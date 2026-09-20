@@ -306,3 +306,59 @@ describe('npcIdOf', () => {
         [ 'character:char-1', 'goblin-1', '', 'npc', null, undefined, 5 ].forEach(value => expect(npcIdOf(value)).toBeNull());
     });
 });
+
+describe('an enemy\'s picture', () => {
+    const withPicture = { ...newEnemy('Goon'), enemy_name: 'Rust Bandit' };
+
+    test('a new enemy has none', () => {
+        expect(newEnemy().portrait_url).toBe('');
+    });
+
+    test('it is part of the stat block an enemy carries from the bestiary into a fight', () => {
+        expect(ENEMY_STAT_FIELDS).toContain('portrait_url');
+        expect(rosterEntry({ ...bandit, portrait_url: 'AbC1d2E.png' }).enemy.portrait_url).toBe('AbC1d2E.png');
+        expect(enemyInstance({ ...bandit, portrait_url: 'AbC1d2E.png' }, 'Rust Bandit 1').portrait_url).toBe('AbC1d2E.png');
+    });
+
+    test('an enemy from before pictures existed is given no picture, not an empty one it never had', () => {
+        const { portrait_url, ...old } = bandit;
+        expect(rosterEntry(old).enemy).not.toHaveProperty('portrait_url');
+        expect(enemyInstance(old, 'Old')).not.toHaveProperty('portrait_url');
+    });
+
+    describe('validation', () => {
+        test('none is fine', () => {
+            expect(validateEnemy({ ...withPicture, portrait_url: '' }).fields.portrait_url).toBeUndefined();
+            expect(validateEnemy({ ...withPicture, portrait_url: undefined }).fields.portrait_url).toBeUndefined();
+        });
+
+        test('a web link, or an Imgur hash, is fine', () => {
+            expect(validateEnemy({ ...withPicture, portrait_url: 'https://example.com/wolf.png' }).fields.portrait_url).toBeUndefined();
+            expect(validateEnemy({ ...withPicture, portrait_url: 'https://i.imgur.com/AbC1d2E.png' }).fields.portrait_url).toBeUndefined();
+            expect(validateEnemy({ ...withPicture, portrait_url: 'AbC1d2E.png' }).fields.portrait_url).toBeUndefined();
+        });
+
+        test('anything else is explained, and listed with the other problems', () => {
+            const result = validateEnemy({ ...withPicture, portrait_url: 'javascript:alert(1)' });
+            expect(result.valid).toBe(false);
+            expect(result.fields.portrait_url).toMatch(/web link to a picture/);
+            expect(result.problems).toContainEqual(expect.objectContaining({ id: 'field-portrait_url', label: 'Picture' }));
+        });
+    });
+
+    describe('what is saved', () => {
+        test('an Imgur link is kept as just its hash and extension', () => {
+            expect(enemyDocFields({ ...withPicture, portrait_url: ' https://i.imgur.com/AbC1d2E.gif ' }).portrait_url).toBe('AbC1d2E.gif');
+        });
+
+        test('a link from anywhere else is kept as it is', () => {
+            expect(enemyDocFields({ ...withPicture, portrait_url: 'https://example.com/wolf.png' }).portrait_url).toBe('https://example.com/wolf.png');
+        });
+
+        test('none, or nothing usable, is kept as an empty string - never undefined, which Firestore refuses', () => {
+            expect(enemyDocFields({ ...withPicture, portrait_url: '' }).portrait_url).toBe('');
+            expect(enemyDocFields({ ...withPicture, portrait_url: undefined }).portrait_url).toBe('');
+            expect(enemyDocFields({ ...withPicture, portrait_url: 'not a link' }).portrait_url).toBe('');
+        });
+    });
+});

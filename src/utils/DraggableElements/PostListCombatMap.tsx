@@ -36,7 +36,11 @@ const combatMapClassName = {
 // marks an enemy defeated, or takes it out of the fight, from its token
 // on the map (or by dropping it on the trash can); the map does not own the enemy
 // list, so whoever does supplies them. Without them there are no such controls.
-export function PostListContentCombatMap({ campaignId, activeMap, entities = [], userId = undefined, canEdit = false, noMap = false, noActiveMapMessage = "No active map selected. Set one from the Maps tab.", onSetDefeated = undefined, onRemoveEntity = undefined }) {
+//
+// The director's tools (drawing, image tokens, the selected combatant) sit above the
+// map, or - with `toolbarsBeside`, for the map opened full-size - in a column to its
+// left on screens wide enough for it.
+export function PostListContentCombatMap({ campaignId, activeMap, entities = [], userId = undefined, canEdit = false, noMap = false, noActiveMapMessage = "No active map selected. Set one from the Maps tab.", onSetDefeated = undefined, onRemoveEntity = undefined, toolbarsBeside = false }) {
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
     // Tokens just dropped that the tracker hasn't caught up with yet (see settlePending).
@@ -171,7 +175,7 @@ export function PostListContentCombatMap({ campaignId, activeMap, entities = [],
         return <div className="CombatMap-no-active-map">{noActiveMapMessage}</div>;
     }
 
-    return <>
+    const toolbars = <>
         {drawing.canDraw && <MapDrawingToolbar drawing={drawing}/>}
         {imageTokens.canEdit && <MapImageTokenToolbar userId={userId} onDragging={setLibraryDragging} imageTokens={{
             ...imageTokens,
@@ -183,6 +187,11 @@ export function PostListContentCombatMap({ campaignId, activeMap, entities = [],
             onSetDefeated={onSetDefeated}
             onRemove={onRemoveEntity}
         />}
+    </>;
+    // (not whether one is showing right now: the layout must not change under the map as tools come and go)
+    const hasToolbars = drawing.canDraw || imageTokens.canEdit || npcControls;
+
+    const map = (
         <PostListContentAbstract
             inputStatuses={zoneNames}
             usePosts={usePosts}
@@ -236,5 +245,14 @@ export function PostListContentCombatMap({ campaignId, activeMap, entities = [],
                 </>;
             }}
         />
-    </>;
+    );
+
+    if (!toolbarsBeside || !hasToolbars) return <>{toolbars}{map}</>;
+
+    // wide screens are wider than tall, so a map that has the room shows its tools
+    // down its left side instead of pushing itself down the screen (see CombatMap.scss)
+    return <div className="CombatMap-beside">
+        <aside className="CombatMap-sidebar" aria-label="Map tools">{toolbars}</aside>
+        <div className="CombatMap-beside-map">{map}</div>
+    </div>;
 }

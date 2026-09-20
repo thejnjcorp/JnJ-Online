@@ -20,3 +20,13 @@
     font-size: var(--jnj-text-sm);
     color: var(--jnj-color-text-muted);
 }
+
+// A small round picture beside an enemy's name, when it has one.
+.BestiaryPage-portrait {
+    flex: none;
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: 50%;
+    object-fit: cover;
+}

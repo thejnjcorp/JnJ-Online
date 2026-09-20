@@ -87,6 +87,17 @@ describe('useCombatEntities', () => {
         expect(result.current.map(entity => [entity.id, entity.defeated])).toEqual([['npc:a1', true], ['npc:e1', true], ['npc:e2', false], ['npc:e3', false]]);
     });
 
+    test('an enemy\'s picture is an address to load: an Imgur hash from Imgur, a link as it is, and none is none', () => {
+        const campaignInfo = { enemy_list: [
+            { id: 'e1', enemy_name: 'Bandit', portrait_url: 'AbC1d2E.png' },
+            { id: 'e2', enemy_name: 'Wolf', portrait_url: 'https://example.com/wolf.png' },
+            { id: 'e3', enemy_name: 'Imp', portrait_url: '' },
+            { id: 'e4', enemy_name: 'Orc' },
+        ] };
+        const { result } = renderHook(() => useCombatEntities([], campaignInfo));
+        expect(result.current.map(entity => entity.image)).toEqual(['https://i.imgur.com/AbC1d2E.png', 'https://example.com/wolf.png', undefined, undefined]);
+    });
+
     test('missing NPC list fields default to empty rather than throwing', () => {
         const { result } = renderHook(() => useCombatEntities([], {}));
         expect(result.current).toEqual([]);

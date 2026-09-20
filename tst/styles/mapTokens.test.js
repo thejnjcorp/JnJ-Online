@@ -36,8 +36,11 @@ describe('the map tokens\' stylesheet', () => {
         ['player', 'ally', 'enemy', 'neutral'].forEach(kind => expect(css).toContain(`.MapToken-${kind} {`));
     });
     test('a defeated token is greyed out and crossed through, but not made a different size or removed', () => {
-        expect(rule('.MapToken-defeated')).toContain('grayscale');
         expect(rule('.MapToken-defeated')).toContain('opacity');
+        // the picture is greyed, not the whole token - a filter on the token would grey the red cross too
+        const defeated = css.slice(css.indexOf('.MapToken-defeated {'));
+        expect(defeated.slice(0, defeated.indexOf('.MapToken-image'))).not.toContain('filter');
+        expect(defeated).toMatch(/\.MapToken-image[\s\S]*?filter: grayscale\(1\)/);
         expect(css).toContain('.MapToken-defeated {');
         expect(css.slice(css.indexOf('.MapToken-defeated {'))).toContain('&::after');
     });

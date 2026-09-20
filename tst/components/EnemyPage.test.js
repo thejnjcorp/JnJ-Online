@@ -17,6 +17,8 @@ jest.mock('firebase/firestore', () => ({
 
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({ ...jest.requireActual('react-router-dom'), useNavigate: () => mockNavigate }));
+const mockUpload = jest.fn();
+jest.mock('../../src/utils/imgurUploader', () => ({ uploadImageToImgur: (...args) => mockUpload(...args) }));
 jest.mock('../../src/utils/useTagCatalog', () => ({ useTagCatalog: () => ({ tags: [], status: 'ready' }) }));
 jest.mock('../../src/components/DocAdminManager', () => ({
     DocAdminManager: ({ admins, userId }) => <div>DocAdminManager-stub:{JSON.stringify(admins)}:{userId}</div>,
@@ -206,6 +208,129 @@ describe('EnemyPage', () => {
             expect(mockNavigate).not.toHaveBeenCalled();
         });
 
+        describe('the picture', () => {
+            const picture = () => document.querySelector('.EnemyPage-picture-token');
+
+            test('with none the token preview shows the enemy\'s initials, following its name', async () => {
+                renderNew();
+                await screen.findByLabelText('Name');
+                type('Name', 'Rust Bandit');
+                expect(picture()).toHaveTextContent('RB');
+                expect(picture().querySelector('img')).toBeNull();
+                expect(field('Picture link')).toHaveValue('');
+            });
+
+            test('a link shows as the token\'s picture', async () => {
+                renderNew();
+                await screen.findByLabelText('Name');
+                type('Picture link', 'https://example.com/bandit.png');
+                expect(picture().querySelector('img')).toHaveAttribute('src', 'https://example.com/bandit.png');
+            });
+
+            test('an Imgur link is saved as just its hash, and the token loads it from Imgur', async () => {
+                renderNew();
+                await screen.findByLabelText('Name');
+                type('Name', 'Rust Bandit');
+                type('Picture link', 'https://i.imgur.com/AbC1d2E.png');
+                expect(picture().querySelector('img')).toHaveAttribute('src', 'https://i.imgur.com/AbC1d2E.png');
+
+                fireEvent.click(save('Create Enemy'));
+                await waitFor(() => expect(mockAddDoc).toHaveBeenCalled());
+                expect(mockAddDoc.mock.calls[0][1].portrait_url).toBe('AbC1d2E.png');
+            });
+
+            test('an enemy saved without one is saved with an empty picture', async () => {
+                renderNew();
+                await screen.findByLabelText('Name');
+                type('Name', 'Wolf');
+                fireEvent.click(save('Create Enemy'));
+                await waitFor(() => expect(mockAddDoc).toHaveBeenCalled());
+                expect(mockAddDoc.mock.calls[0][1].portrait_url).toBe('');
+            });
+
+            test('something that is not a web link is explained, and stops the save', async () => {
+                renderNew();
+                await screen.findByLabelText('Name');
+                type('Name', 'Wolf');
+                type('Picture link', 'javascript:alert(1)');
+                fireEvent.click(save('Create Enemy'));
+
+                expect(summary()).toHaveTextContent('Picture');
+                expect(field('Picture link')).toHaveAttribute('aria-invalid', 'true');
+                expect(screen.getAllByText(/web link to a picture/).length).toBeGreaterThan(0);
+                expect(mockAddDoc).not.toHaveBeenCalled();
+            });
+
+            test('a file can be uploaded, and its link fills in the picture', async () => {
+                mockUpload.mockResolvedValue('https://i.imgur.com/UpLoad1.jpg');
+                renderNew();
+                await screen.findByLabelText('Name');
+                const file = new File(['x'], 'bandit.jpg', { type: 'image/jpeg' });
+
+                fireEvent.change(field('Or upload one'), { target: { files: [file] } });
+
+                await waitFor(() => expect(field('Picture link')).toHaveValue('https://i.imgur.com/UpLoad1.jpg'));
+                expect(mockUpload).toHaveBeenCalledWith(file);
+                expect(picture().querySelector('img')).toHaveAttribute('src', 'https://i.imgur.com/UpLoad1.jpg');
+            });
+
+            test('says it is uploading, and cannot be uploaded to again meanwhile', async () => {
+                let finish;
+                mockUpload.mockReturnValue(new Promise(resolve => { finish = resolve; }));
+                renderNew();
+                await screen.findByLabelText('Name');
+                fireEvent.change(field('Or upload one'), { target: { files: [new File(['x'], 'a.png', { type: 'image/png' })] } });
+
+                expect(await screen.findByRole('status')).toHaveTextContent('Uploading');
+                expect(field('Or upload one')).toBeDisabled();
+                finish('https://i.imgur.com/UpLoad1.jpg');
+                await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument());
+            });
+
+            test('an upload that did not work leaves the picture as it was', async () => {
+                mockUpload.mockResolvedValue(null);
+                renderNew();
+                await screen.findByLabelText('Name');
+                type('Picture link', 'https://example.com/keep.png');
+                fireEvent.change(field('Or upload one'), { target: { files: [new File(['x'], 'a.png', { type: 'image/png' })] } });
+                await waitFor(() => expect(mockUpload).toHaveBeenCalled());
+                expect(field('Picture link')).toHaveValue('https://example.com/keep.png');
+            });
+
+            test('an upload that throws is alerted', async () => {
+                mockUpload.mockRejectedValue(new Error('network down'));
+                renderNew();
+                await screen.findByLabelText('Name');
+                fireEvent.change(field('Or upload one'), { target: { files: [new File(['x'], 'a.png', { type: 'image/png' })] } });
+                await waitFor(() => expect(window.alert).toHaveBeenCalledWith("Couldn't upload the picture: network down"));
+            });
+
+            test('a picture that will not load says so, and the token goes back to initials', async () => {
+                renderNew();
+                await screen.findByLabelText('Name');
+                type('Name', 'Wolf');
+                type('Picture link', 'https://example.com/gone.png');
+                fireEvent.error(picture().querySelector('img'));
+
+                expect(screen.getByRole('alert')).toHaveTextContent("didn't load");
+                expect(picture()).toHaveTextContent('W');
+                expect(picture().querySelector('img')).toBeNull();
+
+                type('Picture link', 'https://example.com/other.png'); // a new link is tried again
+                expect(picture().querySelector('img')).not.toBeNull();
+            });
+
+            test('it can be taken off', async () => {
+                renderNew();
+                await screen.findByLabelText('Name');
+                expect(screen.queryByRole('button', { name: 'Remove picture' })).not.toBeInTheDocument();
+                type('Picture link', 'https://example.com/bandit.png');
+                fireEvent.click(screen.getByRole('button', { name: 'Remove picture' }));
+                expect(field('Picture link')).toHaveValue('');
+                expect(picture().querySelector('img')).toBeNull();
+            });
+        });
+
         describe('weaknesses and resistances', () => {
             test('are rows of a type and an amount, saved as "Fire 5" strings', async () => {
                 renderNew();
@@ -323,6 +448,30 @@ describe('EnemyPage', () => {
             mockGetDoc.mockResolvedValue({ exists: () => true, data: () => data });
             renderWithRouter(<EnemyPage />, { route: '/enemies/enemy-1' });
         }
+
+        test('loads its picture, shown as the address it loads from', async () => {
+            renderExisting(enemyDoc({ portrait_url: 'AbC1d2E.png' }));
+            await screen.findByDisplayValue('Iron Captain');
+            expect(field('Picture link')).toHaveValue('https://i.imgur.com/AbC1d2E.png');
+            expect(document.querySelector('.EnemyPage-picture-token img')).toHaveAttribute('src', 'https://i.imgur.com/AbC1d2E.png');
+        });
+
+        test('changing the picture saves it, as the hash', async () => {
+            renderExisting(enemyDoc({ portrait_url: 'AbC1d2E.png' }));
+            await screen.findByDisplayValue('Iron Captain');
+            type('Picture link', 'https://i.imgur.com/NewOne9.png');
+            fireEvent.click(save('Update Enemy'));
+            await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalled());
+            expect(mockUpdateDoc.mock.calls[0][1].portrait_url).toBe('NewOne9.png');
+        });
+
+        test('someone else\'s enemy has its picture shown but cannot be given another', async () => {
+            renderExisting(enemyDoc({ portrait_url: 'AbC1d2E.png' }), { uid: 'stranger' });
+            await screen.findByDisplayValue('Iron Captain');
+            expect(field('Picture link')).toBeDisabled();
+            expect(screen.queryByLabelText('Or upload one')).not.toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: 'Remove picture' })).not.toBeInTheDocument();
+        });
 
         test('loads the enemy into the form and titles the page with it', async () => {
             renderExisting();
