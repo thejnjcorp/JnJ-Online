@@ -59,7 +59,10 @@ service cloud.firestore {
 
       allow read: if isSignedIn() && inCampaign();
 
-      allow read, write: if isSignedIn() && uid() in canWriteField() && permissionFieldsUnchanged();
+      // Someone who can edit the sheet - a co-writer, the campaign's director - can't
+      // archive it or schedule its deletion; only its player and its admins can
+      // (see CharacterDangerZone.js).
+      allow read, write: if isSignedIn() && uid() in canWriteField() && permissionFieldsUnchanged() && archiveFieldsUnchanged();
 
       allow read, write: if isSignedIn() && isDocAdmin();
 
@@ -294,7 +297,8 @@ service cloud.firestore {
     }
 
     // Only a document's admin can archive/unarchive a campaign or schedule/
-    // cancel its deletion (see CampaignPage.js's Danger Zone) - a plain
+    // cancel its deletion (see CampaignPage.js's Danger Zone; characters work the same
+    // way, for their player and admins - see CharacterDangerZone.js) - a plain
     // canWrite collaborator or even the campaign's own director can still
     // edit everything else about it. True on a delete (and on reads) for the
     // same reasons permissionFieldsUnchanged() is - see its comment.

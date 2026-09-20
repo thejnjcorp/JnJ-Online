@@ -7,6 +7,7 @@ import '../styles/CampaignPage.scss';
 import { onAuthStateChanged } from "firebase/auth";
 import loadingIcon from '../icons/loading.svg';
 import { DocAdminManager } from "./DocAdminManager";
+import { withoutArchived } from "../utils/characterArchive";
 
 // campaigns.players holds three different shapes across live data: the
 // current { name, uid } map (e.g. PentGuard), a bare uid string, or a
@@ -63,7 +64,7 @@ export function CampaignPage() {
         ensureParty(campaignId).catch(error => console.log("Couldn't create the party doc: " + error));
         const characters = query(collection(db, "characters"), where("campaign", "==", campaignId));
         const querySnapshot = await getDocs(characters);
-        setCharacterList(querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
+        setCharacterList(withoutArchived(querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}))));
     }
 
     useEffect(() => {

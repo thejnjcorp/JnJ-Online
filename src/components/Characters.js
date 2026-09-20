@@ -6,6 +6,7 @@ import { getDocs, query, collection, where, or, documentId } from "firebase/fire
 import { auth, db } from "../utils/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import loadingIcon from '../icons/loading.svg';
+import { deletionDate, formatDeletionDate, isArchived } from '../utils/characterArchive';
 
 // Firestore 'in' queries cap at 30 values per query.
 const FIRESTORE_IN_LIMIT = 30;
@@ -14,6 +15,7 @@ export function Characters() {
     const [characterList, setCharacterList] = useState([]);
     const [campaignNames, setCampaignNames] = useState({});
     const [campaignNamesLoaded, setCampaignNamesLoaded] = useState(false);
+    const [showArchived, setShowArchived] = useState(false);
     // "loading" | "signed-out" | "ready" - distinguishes "nothing has loaded
     // yet" from "we checked, there's genuinely nothing here", and lets a
     // signed-out visitor get a real message instead of a silently empty grid.
@@ -43,7 +45,9 @@ export function Characters() {
             player_name: doc.data().player_name,
             class: doc.data().class,
             campaign: doc.data().campaign,
-            navigation_color: doc.data().navigation_color
+            navigation_color: doc.data().navigation_color,
+            archived: doc.data().archived,
+            scheduledDeletionAt: doc.data().scheduledDeletionAt
         })) || [];
         setCharacterList(list);
         setStatus("ready");
@@ -84,6 +88,25 @@ export function Characters() {
         return campaignNames[character.campaign] || "Unknown Campaign";
     }
 
+    // Old characters predate the `archived` field, so "not archived" includes those with none.
+    const activeCharacters = characterList.filter(character => !isArchived(character));
+    const archivedCharacters = characterList.filter(isArchived);
+
+    const characterCard = (character, extraClass = '') => <button type="button"
+        className={('CharacterCard ' + extraClass).trim()}
+        key={character.id}
+        onClick={() => handleCharacterCardSelect(character)}
+        style={character.navigation_color ? {"--character-accent": character.navigation_color} : undefined}
+    >
+        <div className="CharacterCard-name">{character.character_name}</div>
+        <div className="CharacterCard-small-text">
+            {character.class}<br/>
+            Player: {character.player_name}<br/>
+            {character.campaign && <>Campaign: {campaignLabel(character)}</>}
+            {deletionDate(character) && <><br/>Deletes {formatDeletionDate(deletionDate(character))}</>}
+        </div>
+    </button>;
+
     return <div className="Characters-shell">
         {location.pathname.endsWith('characters') && <div className="Character-page">
             <div className="Characters-title">
@@ -97,26 +120,21 @@ export function Characters() {
             {status === "loading" && <img src={loadingIcon} alt="Loading" className="Characters-loading-icon"/>}
 
             {status === "ready" && <div className="Characters-grid">
-                {characterList.map((character) =>
-                    <button type="button"
-                        className='CharacterCard'
-                        key={character.id}
-                        onClick={() => handleCharacterCardSelect(character)}
-                        style={character.navigation_color ? {"--character-accent": character.navigation_color} : undefined}
-                    >
-                        <div className="CharacterCard-name">{character.character_name}</div>
-                        <div className="CharacterCard-small-text">
-                            {character.class}<br/>
-                            Player: {character.player_name}<br/>
-                            {character.campaign && <>Campaign: {campaignLabel(character)}</>}
-                        </div>
-                    </button>
-                )}
+                {activeCharacters.map(character => characterCard(character))}
                 <button type="button" className='CharacterCard CharacterCard-create' onClick={() => navigate("/campaigns")}>
                     + Create one from a campaign
                 </button>
-                {characterList.length === 0 && <div className="Characters-empty-state Characters-empty-state-grid">
+                {activeCharacters.length === 0 && <div className="Characters-empty-state Characters-empty-state-grid">
                     No characters yet.
+                </div>}
+            </div>}
+
+            {status === "ready" && archivedCharacters.length > 0 && <div className="Characters-archived-section">
+                <button type="button" className="Characters-archived-toggle" onClick={() => setShowArchived(v => !v)}>
+                    {showArchived ? "Hide" : "Show"} Archived ({archivedCharacters.length})
+                </button>
+                {showArchived && <div className="Characters-grid Characters-archived-grid">
+                    {archivedCharacters.map(character => characterCard(character, 'CharacterCard-archived'))}
                 </div>}
             </div>}
         </div>}

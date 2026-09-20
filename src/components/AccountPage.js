@@ -6,6 +6,7 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import defaultProfileIcon from '../icons/default_profile.svg';
 import { AccessibilitySettings } from './AccessibilitySettings';
 import '../styles/AccountPage.scss';
+import { withoutArchived } from '../utils/characterArchive';
 
 async function getCampaigns(user) {
     try {
@@ -22,7 +23,7 @@ async function getCharacters(user) {
     try {
         const characters = query(collection(db, "characters"), where("playerId", "==", user.uid));
         const querySnapshot = await getDocs(characters);
-        return querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+        return withoutArchived(querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
     } catch (e) {
         console.log("Failed to get character info: " + e)
         return [];

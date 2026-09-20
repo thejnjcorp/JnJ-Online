@@ -8,6 +8,8 @@ jest.mock('firebase/firestore', () => ({
 }));
 
 const mockUseIsMobile = jest.fn();
+const mockUseOwnCombatTokens = jest.fn();
+jest.mock('../../src/utils/useOwnCombatTokens', () => ({ useOwnCombatTokens: (...args) => mockUseOwnCombatTokens(...args) }));
 jest.mock('../../src/utils/useIsMobile', () => ({ useIsMobile: () => mockUseIsMobile() }));
 
 const mockUseCampaignMaps = jest.fn();
@@ -778,6 +780,20 @@ describe('CharacterMainTab', () => {
             render(<CharacterMainTab characterPage={characterPage} userId="owner-1" campaignInfo={{ director_uid: 'owner-1' }} />);
             goToTab('Combat Map');
             expect(screen.getByText('Combat-stub:camp-1')).toHaveAttribute('data-readonly', 'false');
+        });
+
+        test('the player\'s own characters put themselves on the tracker, given the campaign, the active map and everyone in the fight', () => {
+            const activeMap = { map_id: 'map-1' };
+            const entities = [{ id: 'character:char-1', title: 'Aria' }];
+            mockUseCampaignMaps.mockReturnValue({ activeMap });
+            mockUseCombatEntities.mockReturnValue(entities);
+            render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
+            expect(mockUseOwnCombatTokens).toHaveBeenCalledWith({ campaignId: 'camp-1', activeMap, entities, userId: 'owner-1' });
+        });
+
+        test('a character with no campaign has no tracker to be put on', () => {
+            render(<CharacterMainTab characterPage={{ ...characterPage, campaign: undefined }} userId="owner-1" />);
+            expect(mockUseOwnCombatTokens).toHaveBeenCalledWith(expect.objectContaining({ campaignId: '' }));
         });
 
         test('Open Combat Map opens a full-screen overlay with the active map and combat entities', () => {

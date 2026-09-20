@@ -34,6 +34,7 @@ import { PostListContentCombat } from '../utils/DraggableElements/PostListCombat
 import { MapRenderer } from './MapRenderer';
 import { DocAdminManager } from './DocAdminManager';
 import { useCampaignMaps, useCombatEntities } from '../utils/useCampaignCombat';
+import { withoutArchived } from '../utils/characterArchive';
 import { advanceTurnStatuses, getEffectiveCharacterStats, getGrantedActions } from '../utils/statusEffects';
 import { CharacterStatCalculator } from './CharacterStatCalculator';
 import { AddEnemyDialog } from './AddEnemyDialog';
@@ -268,7 +269,7 @@ export function DirectorsPage() {
     useEffect(() => {
         const unsubscribe = onSnapshot(charactersQuery, { includeMetadataChanges: true }, (querySnapshot) => {
             if (querySnapshot.metadata.hasPendingWrites || !isLoaded) {
-                setCharacterList(querySnapshot.docs.map(doc => ({character_id: doc.id, ...doc.data()})));
+                setCharacterList(withoutArchived(querySnapshot.docs.map(doc => ({character_id: doc.id, ...doc.data()}))));
                 setCharactersLoaded(true);
             }
         });

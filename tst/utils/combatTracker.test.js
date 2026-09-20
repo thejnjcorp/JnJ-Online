@@ -1,4 +1,4 @@
-import { NO_MAP_ZONE, syncCombatTracker } from '../../src/utils/combatTracker';
+import { NO_MAP_ZONE, addToTracker, syncCombatTracker } from '../../src/utils/combatTracker';
 import { slotPosition, zoneAt, zoneRects } from '../../src/utils/mapTokens';
 
 const post = (id, status, index) => ({ id, title: id, content: '', status, index });
@@ -114,5 +114,67 @@ describe('syncCombatTracker', () => {
             expect(syncCombatTracker({ zones: [] }, [], zones)).toEqual([]);
             expect(syncCombatTracker(undefined, [], zones)).toEqual([]);
         });
+    });
+});
+
+describe('addToTracker', () => {
+    const zones = ['Zone 1', 'Zone 2'];
+    const rects = zoneRects([{ name: 'Zone 1', x: 10, y: 10, width: 100, height: 80 }, { name: 'Zone 2', x: 200, y: 10, width: 100, height: 80 }]);
+    const placed = (id, status, x, y, index = 0) => ({ ...post(id, status, index), x, y });
+
+    test('has nothing to do with no zones, or no one to add', () => {
+        expect(addToTracker([], [entity('a')], [])).toBeNull();
+        expect(addToTracker([post('a', 'Zone 1', 0)], [], zones)).toBeNull();
+    });
+
+    test('is already right when they are all there', () => {
+        expect(addToTracker([post('a', 'Zone 2', 0), post('b', 'Zone 1', 0)], [entity('a')], zones)).toBeNull();
+    });
+
+    test('puts someone who is missing in the first zone, after those already there', () => {
+        const next = addToTracker([post('a', 'Zone 2', 0)], [entity('b')], zones);
+        expect(next).toEqual([post('a', 'Zone 2', 0), { id: 'b', title: 'b', content: '', status: 'Zone 1', index: 1 }]);
+    });
+
+    test('never takes anyone out - someone it does not know about is not "gone"', () => {
+        const stored = [post('goblin', 'Zone 2', 0), post('a', 'Zone 1', 0)];
+        const next = addToTracker(stored, [entity('b')], zones);
+        expect(next.map(p => p.id)).toEqual(['goblin', 'a', 'b']);
+    });
+
+    test('leaves everyone else exactly as stored, even where they would be moved by a full sync', () => {
+        const stored = [post('lost', 'Old zone', 0), placed('outside', 'Zone 1', 0.9, 0.9)];
+        const next = addToTracker(stored, [entity('b')], zones, rects);
+        expect(next[0]).toBe(stored[0]);
+        expect(next[1]).toBe(stored[1]);
+    });
+
+    test('given the map, the newcomer gets a spot inside its zone, clear of those already there', () => {
+        const [first] = zoneRects([{ name: 'Zone 1', x: 10, y: 10, width: 100, height: 80 }]);
+        const next = addToTracker([placed('a', 'Zone 1', slotPosition(first, 0).x, slotPosition(first, 0).y)], [entity('b')], zones, rects);
+        const b = next.find(p => p.id === 'b');
+        expect(zoneAt(b, rects)).toBe('Zone 1');
+        expect(b).toMatchObject(slotPosition(first, 1));
+    });
+
+    test('someone of theirs who is on the tracker but has no spot on the map is given one', () => {
+        const next = addToTracker([post('a', 'Zone 2', 0)], [entity('a')], zones, rects);
+        expect(zoneAt(next[0], rects)).toBe('Zone 2');
+        expect(Number.isFinite(next[0].x)).toBe(true);
+    });
+
+    test('is not confused by a tracker that is not a list', () => {
+        expect(addToTracker(undefined, [entity('a')], zones)).toEqual([{ id: 'a', title: 'a', content: '', status: 'Zone 1', index: 0 }]);
+        expect(addToTracker('junk', [entity('a')], zones)).toHaveLength(1);
+    });
+
+    test('a combatant with no name is given an empty title, since Firestore refuses undefined', () => {
+        expect(addToTracker([], [{ id: 'a' }], zones)[0].title).toBe('');
+    });
+
+    test('does not change what it was given', () => {
+        const stored = [post('a', 'Zone 2', 0)];
+        addToTracker(stored, [entity('b')], zones, rects);
+        expect(stored).toEqual([post('a', 'Zone 2', 0)]);
     });
 });

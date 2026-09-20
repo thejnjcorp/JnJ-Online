@@ -10,7 +10,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { initializeTestEnvironment, assertSucceeds, assertFails } = require('@firebase/rules-unit-testing');
-const { collection, addDoc, doc, setDoc, getDoc, getDocs, query, where, or, updateDoc, deleteDoc, arrayUnion, writeBatch, runTransaction } = require('firebase/firestore');
+const { collection, addDoc, doc, setDoc, getDoc, getDocs, query, where, or, updateDoc, deleteDoc, deleteField, arrayUnion, writeBatch, runTransaction } = require('firebase/firestore');
 
 const PROJECT_ID = 'jnj-online';
 let failures = 0;
@@ -692,6 +692,60 @@ async function main() {
         await assertFails(
             addDoc(collection(anon.firestore(), 'characters'), { character_name: 'Should Fail' })
         );
+    });
+
+    console.log('\nCharacter archival and scheduled deletion (only its player and admins - see CharacterDangerZone.js):');
+
+    const seedCharacter = async (extra = {}) => {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'characters', 'char1'), {
+                character_name: 'Aria',
+                playerId: 'alice',
+                canRead: ['alice', 'bob'],
+                canWrite: ['alice', 'bob'],
+                admins: ['alice'],
+                ...extra,
+            });
+        });
+    };
+
+    await check('the character\'s player can archive it, schedule its deletion, cancel that, and unarchive it', async () => {
+        await seedCharacter();
+        const alice = testEnv.authenticatedContext('alice');
+        const ref = doc(alice.firestore(), 'characters', 'char1');
+        const future = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        await assertSucceeds(updateDoc(ref, { archived: true, archivedAt: new Date() }));
+        await assertSucceeds(updateDoc(ref, { scheduledDeletionAt: future }));
+        await assertSucceeds(updateDoc(ref, { scheduledDeletionAt: deleteField() }));
+        await assertSucceeds(updateDoc(ref, { archived: false, archivedAt: deleteField(), scheduledDeletionAt: deleteField() }));
+    });
+
+    await check('a doc admin who is not the player can archive it too', async () => {
+        await seedCharacter({ admins: ['alice', 'carol'], canWrite: ['alice', 'bob', 'carol'] });
+        const carol = testEnv.authenticatedContext('carol');
+        await assertSucceeds(updateDoc(doc(carol.firestore(), 'characters', 'char1'), { archived: true }));
+    });
+
+    await check('someone who can only write the sheet - a director, a co-writer - cannot archive it or schedule its deletion, but can still edit it', async () => {
+        await seedCharacter();
+        const bob = testEnv.authenticatedContext('bob');
+        const ref = doc(bob.firestore(), 'characters', 'char1');
+        await assertFails(updateDoc(ref, { archived: true }));
+        await assertFails(updateDoc(ref, { scheduledDeletionAt: new Date(Date.now() + 1000) }));
+        await assertSucceeds(updateDoc(ref, { character_name: 'Aria the Bold' }));
+    });
+
+    await check('nor can they undo an archive the player made', async () => {
+        await seedCharacter({ archived: true });
+        const bob = testEnv.authenticatedContext('bob');
+        await assertFails(updateDoc(doc(bob.firestore(), 'characters', 'char1'), { archived: false }));
+    });
+
+    await check('a stranger cannot archive it', async () => {
+        await seedCharacter();
+        const mallory = testEnv.authenticatedContext('mallory');
+        await assertFails(updateDoc(doc(mallory.firestore(), 'characters', 'char1'), { archived: true }));
     });
 
     console.log('\nMap and race creation (previously had no ownership check at all):');

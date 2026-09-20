@@ -147,6 +147,61 @@ describe('Characters', () => {
             expect(card.style.getPropertyValue('--character-accent')).toBe('#ff0000');
         });
 
+        describe('archived characters', () => {
+            const archived = { id: 'char-z', character_name: 'Zed', player_name: 'Sam', class: 'Monk', archived: true };
+            const doomed = { ...archived, id: 'char-d', character_name: 'Doomed', scheduledDeletionAt: { toDate: () => new Date(2026, 9, 21) } };
+
+            test('are kept off the list, with a way to show them', async () => {
+                signIn([aria, archived]);
+                renderWithRouter(<Characters />, { route: '/characters' });
+
+                expect(await screen.findByText('Aria')).toBeInTheDocument();
+                expect(screen.queryByText('Zed')).not.toBeInTheDocument();
+                expect(screen.getByRole('button', { name: 'Show Archived (1)' })).toBeInTheDocument();
+            });
+
+            test('show when asked, and hide again', async () => {
+                signIn([aria, archived]);
+                renderWithRouter(<Characters />, { route: '/characters' });
+                await screen.findByText('Aria');
+
+                fireEvent.click(screen.getByRole('button', { name: 'Show Archived (1)' }));
+                expect(screen.getByText('Zed')).toBeInTheDocument();
+
+                fireEvent.click(screen.getByRole('button', { name: 'Hide Archived (1)' }));
+                expect(screen.queryByText('Zed')).not.toBeInTheDocument();
+            });
+
+            test('open their sheet when clicked, so they can be restored', async () => {
+                signIn([archived]);
+                renderWithRouter(<Characters />, { route: '/characters' });
+                fireEvent.click(await screen.findByRole('button', { name: 'Show Archived (1)' }));
+                fireEvent.click(screen.getByRole('button', { name: /Zed/ }));
+                expect(mockNavigate).toHaveBeenCalledWith('/characters/char-z');
+            });
+
+            test('one scheduled for deletion says when', async () => {
+                signIn([doomed]);
+                renderWithRouter(<Characters />, { route: '/characters' });
+                fireEvent.click(await screen.findByRole('button', { name: 'Show Archived (1)' }));
+                expect(screen.getByText(/Deletes October 21, 2026/)).toBeInTheDocument();
+            });
+
+            test('there is no archive section when nothing is archived', async () => {
+                signIn([aria]);
+                renderWithRouter(<Characters />, { route: '/characters' });
+                await screen.findByText('Aria');
+                expect(screen.queryByRole('button', { name: /Archived/ })).not.toBeInTheDocument();
+            });
+
+            test('someone with only archived characters is told there are none yet, and can still show them', async () => {
+                signIn([archived]);
+                renderWithRouter(<Characters />, { route: '/characters' });
+                expect(await screen.findByText('No characters yet.')).toBeInTheDocument();
+                expect(screen.getByRole('button', { name: 'Show Archived (1)' })).toBeInTheDocument();
+            });
+        });
+
         test('clicking a character card navigates to /characters/<id>', async () => {
             signIn([{ ...aria, campaign: undefined }]);
             renderWithRouter(<Characters />, { route: '/characters' });

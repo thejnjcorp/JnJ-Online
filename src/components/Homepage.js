@@ -9,6 +9,7 @@ import strengthIcon from '../icons/strength.svg';
 import dexterityIcon from '../icons/dexterity.svg';
 import intelligenceIcon from '../icons/intelligence.svg';
 import charismaIcon from '../icons/charisma.svg';
+import { withoutArchived } from '../utils/characterArchive';
 
 // These icons are flat SVGs baked with a hardcoded fill/stroke of #000000
 // (see src/icons/*.svg), so an <img> render of them is invisible against a
@@ -72,7 +73,7 @@ export function Homepage() {
                 where("canWrite", "array-contains", user.uid)
             ));
             const [characterSnap, campaignSnap] = await Promise.all([getDocs(characters), getDocs(campaigns)]);
-            setCharacterList(characterSnap.docs.map(doc => ({id: doc.id, ...doc.data()})));
+            setCharacterList(withoutArchived(characterSnap.docs.map(doc => ({id: doc.id, ...doc.data()}))));
             setCampaignList(campaignSnap.docs.map(doc => ({id: doc.id, ...doc.data()})));
         } catch (error) {
             console.log(error);

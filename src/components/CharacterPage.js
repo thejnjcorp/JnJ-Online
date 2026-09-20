@@ -18,6 +18,8 @@ import { ReactComponent as ChevronDownIcon } from '../icons/chevron_down.svg';
 import { DocAdminManager } from './DocAdminManager';
 import { LevelUpPrompt } from './LevelUpPrompt';
 import { CharacterAdminButton } from './CharacterAdmin';
+import { ArchivedCharacterBanner, CharacterDangerZone } from './CharacterDangerZone';
+import { withoutArchived } from '../utils/characterArchive';
 import { useClassVersion, useRaceVersion } from '../utils/useClassVersion';
 import { resolveCharacter } from '../utils/characterClass';
 
@@ -83,7 +85,7 @@ export function CharacterPage() {
         if (!charactersQuery) return;
         const unsubscribe = onSnapshot(charactersQuery, (querySnapshot) => {
             if (querySnapshot.metadata.hasPendingWrites || characterList.length === 0) {
-                setCharacterList(querySnapshot.docs.map(doc => ({character_id: doc.id, ...doc.data()})));
+                setCharacterList(withoutArchived(querySnapshot.docs.map(doc => ({character_id: doc.id, ...doc.data()}))));
             }
         });
         return () => unsubscribe();
@@ -124,12 +126,14 @@ export function CharacterPage() {
                     <SkillsAndFlaws characterPage={character} userId={userId}/>
                 </div>}
             <div className='CharacterPage-right-content'>
+                <ArchivedCharacterBanner character={characterPage}/>
                 <CharacterPageNavigation characterPage={character} userId={userId} classInfo={classInfo} raceInfo={raceInfo}/>
                 <LevelUpPrompt character={character} userId={userId}/>
                 <CharacterAdminButton character={character} campaignInfo={campaignInfo} userId={userId}/>
                 <CharacterPageVitalsPanel characterPageLayoutLive={character} userId={userId}/>
                 <CharacterMainTab characterPage={character} userId={userId} characterList={characterList} campaignInfo={campaignInfo} />
                 <DocAdminManager docRef={docQuery} admins={characterPage.admins} userId={userId}/>
+                <CharacterDangerZone character={characterPage} userId={userId}/>
             </div>
             {/* Mobile only: Skills & Flaws content is unchanged, just moved into a
                 slide-up drawer instead of the persistent sidebar - see

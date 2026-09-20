@@ -1,5 +1,7 @@
 // Hard-deletes campaigns whose 30-day deletion grace period (set by a
-// director clicking "Schedule Deletion" in CampaignPage.js) has passed.
+// director clicking "Schedule Deletion" in CampaignPage.js) has passed - and
+// characters whose grace period (set by a player clicking "Schedule Deletion" in
+// CharacterDangerZone.js) has passed.
 //
 // Characters belonging to a purged campaign are NOT deleted - they're
 // unlinked (their `campaign` field is removed) so a player's character sheet
@@ -41,14 +43,33 @@ async function purgeCampaign(db, campaignDoc) {
     await batch.commit();
 }
 
+// A character due for deletion goes, with anything stored under it.
+async function purgeCharacter(db, characterDoc) {
+    console.log(`  character "${characterDoc.data().character_name || '(unnamed)'}" (${characterDoc.id})`);
+    await db.recursiveDelete(characterDoc.ref);
+}
+
 async function main() {
     const db = initDb();
     const now = Timestamp.now();
+
+    // Characters first, so a character due on the same day as its campaign is
+    // deleted rather than merely unlinked from it.
+    const dueCharacters = await db.collection('characters').where('scheduledDeletionAt', '<=', now).get();
+    if (dueCharacters.empty) {
+        console.log('No characters are due for deletion.');
+    } else {
+        console.log(`${dueCharacters.size} character(s) due for deletion:`);
+        for (const characterDoc of dueCharacters.docs) {
+            await purgeCharacter(db, characterDoc);
+        }
+    }
 
     const dueSnap = await db.collection('campaigns').where('scheduledDeletionAt', '<=', now).get();
 
     if (dueSnap.empty) {
         console.log('No campaigns are due for deletion.');
+        console.log('Done.');
         return;
     }
 

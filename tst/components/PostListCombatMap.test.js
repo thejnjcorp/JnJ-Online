@@ -485,3 +485,118 @@ describe('PostListContentCombatMap drawing', () => {
         expect(mockAbstractProps[mockAbstractProps.length - 1].zoneLayout).not.toBe(first);
     });
 });
+
+describe('PostListContentCombatMap image tokens', () => {
+    const fire = { id: 'fire', image: 'https://example.com/fire.png', label: 'Fire', x: 0.3, y: 0.1, size: 0.07 };
+    const tree = { id: 'tree', image: 'https://example.com/tree.png', label: 'Tree', x: 0.7, y: 0.2, size: 0.12 };
+    const withTokens = (...tokens) => activeMap({ image_tokens: tokens });
+    const imageLayer = () => document.querySelector('.MapImageTokens');
+    const mockLayerBox = () => { imageLayer().getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 500, right: 1000, bottom: 500, x: 0, y: 0 }); };
+    const pointer = (element, type, x, y, extra = {}) => fireEvent(element, Object.assign(new MouseEvent(type, { bubbles: true, clientX: x, clientY: y, ...extra }), { pointerId: 1, pointerType: 'mouse' }));
+    const savedTokens = () => mockUpdateDoc.mock.calls[mockUpdateDoc.mock.calls.length - 1][1].image_tokens;
+
+    beforeEach(() => {
+        mockUpdateDoc.mockResolvedValue(undefined);
+        withTracker([]);
+    });
+
+    test('everyone sees them as pictures, and they are tied to no zone', () => {
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={withTokens(fire, tree)} userId="player-1" />);
+        expect(screen.getByAltText('Fire')).toHaveAttribute('src', 'https://example.com/fire.png');
+        expect(screen.getByAltText('Tree')).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Fire' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('toolbar', { name: 'Map image tokens' })).not.toBeInTheDocument();
+    });
+
+    test('a map with none, or with junk in the field, shows none and is fine', () => {
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap({ image_tokens: [{ id: 'x', image: 'javascript:alert(1)', x: 0, y: 0, size: 0.1 }, 'junk'] })} userId="player-1" />);
+        expect(imageLayer()).toBeEmptyDOMElement();
+    });
+
+    test('a player cannot move them, whoever they are', () => {
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={withTokens(fire)} userId="player-1" canEdit />);
+        expect(screen.queryByRole('button', { name: 'Fire' })).not.toBeInTheDocument();
+    });
+
+    test('someone who can edit the map gets the toolbar, and each token can be pressed', () => {
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={withTokens(fire)} userId="director-1" />);
+        expect(screen.getByRole('toolbar', { name: 'Map image tokens' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Fire' })).toBeInTheDocument();
+    });
+
+    test('with no map there is no toolbar', () => {
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={undefined} userId="director-1" />);
+        expect(screen.queryByRole('toolbar', { name: 'Map image tokens' })).not.toBeInTheDocument();
+    });
+
+    test('adding one puts it in the middle of the map, as the map is shaped', () => {
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={withTokens()} userId="director-1" />);
+        fireEvent.click(screen.getByRole('button', { name: 'Add image token' }));
+        fireEvent.change(screen.getByLabelText('Picture link'), { target: { value: 'https://example.com/pillar.png' } });
+        fireEvent.change(screen.getByLabelText('Name (optional)'), { target: { value: 'Pillar' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Place on map' }));
+
+        expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['maps', 'map-1'] }, { image_tokens: { __arrayUnion: expect.objectContaining({ image: 'https://example.com/pillar.png', label: 'Pillar', x: 0.5, y: 0.25 }) } });
+    });
+
+    test('dragging one saves where it was let go, leaving the others', () => {
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={withTokens(fire, tree)} userId="director-1" />);
+        mockLayerBox();
+        const button = screen.getByRole('button', { name: 'Fire' });
+        pointer(button, 'pointerdown', 300, 100, { button: 0 });
+        pointer(button, 'pointermove', 800, 300);
+        pointer(button, 'pointerup', 800, 300);
+
+        expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['maps', 'map-1'] }, { image_tokens: [{ ...fire, x: 0.8, y: 0.3 }, tree] });
+    });
+
+    test('it is not tied to any zone: dropped outside every one it stays put', () => {
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={withTokens(fire)} userId="director-1" />);
+        mockLayerBox();
+        const button = screen.getByRole('button', { name: 'Fire' });
+        pointer(button, 'pointerdown', 300, 100, { button: 0 });
+        pointer(button, 'pointermove', 950, 480); // no zone there
+        pointer(button, 'pointerup', 950, 480);
+        expect(savedTokens()).toEqual([{ ...fire, x: 0.95, y: 0.48 }]);
+        expect(mockSaveTracker).not.toHaveBeenCalled();
+    });
+
+    test('selecting one lets it be resized, copied and removed from the toolbar', () => {
+        const view = (tokens) => <PostListContentCombatMap campaignId="camp-1" activeMap={withTokens(...tokens)} userId="director-1" />;
+        const { rerender } = render(view([fire, tree]));
+        mockLayerBox();
+        pointer(screen.getByRole('button', { name: 'Tree' }), 'pointerdown', 700, 200, { button: 0 });
+        pointer(screen.getByRole('button', { name: 'Tree' }), 'pointerup', 700, 200);
+        const group = () => screen.getByRole('group', { name: 'Selected image token' });
+
+        fireEvent.click(within(group()).getByRole('button', { name: 'Small' }));
+        expect(savedTokens()).toEqual([fire, { ...tree, size: 0.04 }]);
+        rerender(view(savedTokens())); // the map doc as the save leaves it
+
+        fireEvent.click(within(group()).getByRole('button', { name: 'Copy' }));
+        expect(savedTokens()).toHaveLength(3);
+        expect(savedTokens()[2]).toMatchObject({ image: tree.image, label: 'Tree', size: 0.04, x: 0.73, y: 0.23 });
+        rerender(view(savedTokens()));
+
+        // the copy is the one selected now
+        fireEvent.click(within(group()).getByRole('button', { name: 'Remove' }));
+        expect(savedTokens()).toEqual([fire, { ...tree, size: 0.04 }]);
+    });
+
+    test('while drawing, they are pictures only, so the pen is not interrupted', () => {
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={withTokens(fire)} userId="director-1" />);
+        fireEvent.click(screen.getByRole('button', { name: 'Draw on map' }));
+        expect(screen.queryByRole('button', { name: 'Fire' })).not.toBeInTheDocument();
+        expect(screen.getByAltText('Fire')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Stop drawing' }));
+        expect(screen.getByRole('button', { name: 'Fire' })).toBeInTheDocument();
+    });
+
+    test('a token another director removed is no longer selected', () => {
+        const { rerender } = render(<PostListContentCombatMap campaignId="camp-1" activeMap={withTokens(fire, tree)} userId="director-1" />);
+        pointer(screen.getByRole('button', { name: 'Tree' }), 'pointerdown', 700, 200, { button: 0 });
+        expect(screen.getByRole('group', { name: 'Selected image token' })).toBeInTheDocument();
+        rerender(<PostListContentCombatMap campaignId="camp-1" activeMap={withTokens(fire)} userId="director-1" />);
+        expect(screen.queryByRole('group', { name: 'Selected image token' })).not.toBeInTheDocument();
+    });
+});

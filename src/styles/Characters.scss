@@ -109,3 +109,38 @@
     margin-top: var(--jnj-space-6);
     animation: App-logo-spin infinite 1.4s linear;
 }
+
+.Characters-archived-section {
+    margin-top: var(--jnj-space-6);
+    padding-top: var(--jnj-space-5);
+    border-top: 1px solid var(--jnj-color-border);
+}
+
+.Characters-archived-toggle {
+    padding: var(--jnj-space-2) var(--jnj-space-4);
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-pill);
+    background-color: transparent;
+    color: var(--jnj-color-text-muted);
+    font-size: var(--jnj-text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color var(--jnj-transition), color var(--jnj-transition);
+
+    &:hover {
+        border-color: var(--jnj-color-accent);
+        color: var(--jnj-color-text);
+    }
+}
+
+.Characters-archived-grid {
+    margin-top: var(--jnj-space-4);
+}
+
+.CharacterCard-archived {
+    opacity: 0.7;
+
+    &:hover {
+        opacity: 1;
+    }
+}

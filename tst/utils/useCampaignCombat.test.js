@@ -32,6 +32,16 @@ beforeEach(() => {
 });
 
 describe('useCombatEntities', () => {
+    test('an archived character is not in the fight, so it is neither on the tracker nor on the map', () => {
+        const characters = [
+            { character_id: 'a', character_name: 'Aria', userId: 'u1' },
+            { character_id: 'z', character_name: 'Zed', userId: 'u2', archived: true },
+            { character_id: 'b', character_name: 'Bo', userId: 'u3', archived: false },
+        ];
+        const { result } = renderHook(() => useCombatEntities(characters, {}));
+        expect(result.current.map(entity => entity.id)).toEqual(['character:a', 'character:b']);
+    });
+
     test('returns an empty list when there are no characters or NPCs', () => {
         const { result } = renderHook(() => useCombatEntities([], {}));
         expect(result.current).toEqual([]);

@@ -50,6 +50,35 @@ async function main() {
         scheduledDeletionAt: future,
     });
 
+    // characters archived by their player: one past its grace period (with a
+    // sub-collection, to be sure nothing is left behind), one still inside it, one
+    // archived but with no deletion scheduled, and one belonging to the due campaign
+    const dueCharacter = await db.collection('characters').add({
+        character_name: 'Retired For Good',
+        playerId: 'alice',
+        archived: true,
+        scheduledDeletionAt: past,
+    });
+    await dueCharacter.collection('notes').add({ text: 'left behind?' });
+    const waitingCharacter = await db.collection('characters').add({
+        character_name: 'Still In The Grace Period',
+        playerId: 'alice',
+        archived: true,
+        scheduledDeletionAt: future,
+    });
+    const archivedCharacter = await db.collection('characters').add({
+        character_name: 'Just Archived',
+        playerId: 'alice',
+        archived: true,
+    });
+    const dueInDueCampaign = await db.collection('characters').add({
+        character_name: 'Due In A Due Campaign',
+        playerId: 'alice',
+        campaign: dueCampaign.id,
+        archived: true,
+        scheduledDeletionAt: past,
+    });
+
     execFileSync('node', [path.join(__dirname, '..', 'scripts', 'purge-campaigns.js')], {
         env: process.env,
         stdio: 'inherit',
@@ -71,6 +100,27 @@ async function main() {
         const snap = await survivingCampaign.get();
         assert.equal(snap.exists, true);
         assert.equal(snap.data().campaign_name, 'Not Due Yet');
+    });
+
+    await check('a character past its grace period is deleted, with what was stored under it', async () => {
+        assert.equal((await dueCharacter.get()).exists, false);
+        assert.equal((await dueCharacter.collection('notes').get()).size, 0);
+    });
+
+    await check('a character due on the same day as its campaign is deleted, not just unlinked', async () => {
+        assert.equal((await dueInDueCampaign.get()).exists, false);
+    });
+
+    await check('a character still inside its grace period is untouched', async () => {
+        const snap = await waitingCharacter.get();
+        assert.equal(snap.exists, true);
+        assert.equal(snap.data().archived, true);
+    });
+
+    await check('an archived character with no deletion scheduled is untouched', async () => {
+        const snap = await archivedCharacter.get();
+        assert.equal(snap.exists, true);
+        assert.equal(snap.data().scheduledDeletionAt, undefined);
     });
 
     if (failures > 0) {

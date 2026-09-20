@@ -1,10 +1,13 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { subscribeParty, updateCombatTracker } from "../party";
 import { useMapDrawing } from "../useMapDrawing";
+import { useMapImageTokens } from "../useMapImageTokens";
 import { NO_MAP_ZONE, syncCombatTracker } from "../combatTracker";
 import { moveToken, round, settlePending, withPending, zoneRects } from "../mapTokens";
 import { MapDrawingLayer } from "../../components/MapDrawingLayer";
 import { MapDrawingToolbar } from "../../components/MapDrawingToolbar";
+import { MapImageTokens } from "../../components/MapImageTokens";
+import { MapImageTokenToolbar } from "../../components/MapImageTokenToolbar";
 import { MapTokens } from "../../components/MapTokens";
 import { Post, PostListContentAbstract } from "./Post.ts";
 import "../../styles/CombatMap.scss";
@@ -54,6 +57,10 @@ export function PostListContentCombatMap({ campaignId, activeMap, entities = [],
     const syncZones = useMemo(() => (activeMap ? zoneNames : (noMap ? [NO_MAP_ZONE] : [])), [activeMap, zoneNames, noMap]);
     // What the director has drawn on the map (shown to everyone), and their tools for adding to it.
     const drawing = useMapDrawing(activeMap, userId);
+    // The director's pictures of obstacles and items, shown to everyone and tied to no zone.
+    const imageTokens = useMapImageTokens(activeMap, userId);
+    // where a new one goes depends on the map's shape, which is only known once it has been drawn
+    const aspectRef = useRef(0.5);
 
     // Every change to the tracker is applied, whoever made it, so a token moved by
     // anyone moves on everyone's map.
@@ -142,6 +149,11 @@ export function PostListContentCombatMap({ campaignId, activeMap, entities = [],
 
     return <>
         {drawing.canDraw && <MapDrawingToolbar drawing={drawing}/>}
+        {imageTokens.canEdit && <MapImageTokenToolbar imageTokens={{
+            ...imageTokens,
+            add: (fields: { image: string; label: string; size: number }) => imageTokens.add(fields, aspectRef.current),
+            copy: (id: string) => imageTokens.copy(id, aspectRef.current),
+        }}/>}
         <PostListContentAbstract
             inputStatuses={zoneNames}
             usePosts={usePosts}
@@ -149,19 +161,32 @@ export function PostListContentCombatMap({ campaignId, activeMap, entities = [],
             backgroundImage={activeMap.link}
             zoneLayout={zones}
             className={combatMapClassName}
-            overlay={({ width, height }) => <>
-                <MapDrawingLayer
-                    strokes={drawing.strokes}
-                    aspect={height / width}
-                    tool={drawing.drawing ? drawing.tool : null}
-                    color={drawing.color}
-                    size={drawing.size}
-                    blocked={drawing.full}
-                    onStroke={drawing.addStroke}
-                    onErase={drawing.eraseStrokes}
-                />
-                <MapTokens tokens={tokens} rects={rects} aspect={height / width} onMove={handleMove}/>
-            </>}
+            overlay={({ width, height }) => {
+                const aspect = height / width;
+                aspectRef.current = aspect;
+                return <>
+                    <MapImageTokens
+                        tokens={imageTokens.tokens}
+                        aspect={aspect}
+                        canEdit={imageTokens.canEdit && !drawing.drawing}
+                        selected={imageTokens.selected}
+                        onSelect={imageTokens.select}
+                        onMove={(id: string, point: Spot) => imageTokens.move(id, point, aspect)}
+                        onRemove={imageTokens.remove}
+                    />
+                    <MapDrawingLayer
+                        strokes={drawing.strokes}
+                        aspect={aspect}
+                        tool={drawing.drawing ? drawing.tool : null}
+                        color={drawing.color}
+                        size={drawing.size}
+                        blocked={drawing.full}
+                        onStroke={drawing.addStroke}
+                        onErase={drawing.eraseStrokes}
+                    />
+                    <MapTokens tokens={tokens} rects={rects} aspect={aspect} onMove={handleMove}/>
+                </>;
+            }}
         />
     </>;
 }

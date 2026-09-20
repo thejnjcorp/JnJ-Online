@@ -44,3 +44,26 @@ export function syncCombatTracker(storedPosts, entities, zoneNames, rects = null
     if (additions.length === 0 && !moved && !positioned.changed && survivors.length === posts.length && Array.isArray(storedPosts)) return null;
     return positioned.posts;
 }
+
+// The tracker with `entities` put in it and given a place, and everyone else left
+// exactly as stored - or null when they are all there already. This is what a
+// player's own client does for their own characters: unlike syncCombatTracker it
+// never takes anyone out or moves anyone else, so it is safe for someone who only
+// knows part of the fight (a player's copy of the campaign can be behind the
+// director's, and would wrongly see freshly staged enemies as gone).
+export function addToTracker(storedPosts, entities, zoneNames, rects = null) {
+    if (zoneNames.length === 0 || entities.length === 0) return null;
+    const posts = Array.isArray(storedPosts) ? storedPosts : [];
+    const mine = new Set(entities.map(entity => entity.id));
+    const existing = new Set(posts.map(post => post.id));
+
+    const additions = entities
+        .filter(entity => !existing.has(entity.id))
+        .map((entity, offset) => ({ id: entity.id, title: entity.title ?? '', content: '', status: zoneNames[0], index: posts.length + offset }));
+    const all = [...posts, ...additions];
+
+    const placed = rects ? placeTokens(all, rects).posts : all;
+    const next = placed.map((post, i) => (mine.has(post.id) ? post : all[i]));
+    const changed = next.some((post, i) => post !== all[i]) || additions.length > 0 || !Array.isArray(storedPosts);
+    return changed ? next : null;
+}

@@ -15,6 +15,7 @@ import { PostListContentInventoryPocket } from "../utils/DraggableElements/PostL
 import { PostListContentCombat } from "../utils/DraggableElements/PostListCombat.tsx";
 import { PostListContentCombatMap } from "../utils/DraggableElements/PostListCombatMap.tsx";
 import { useCampaignMaps, useCombatEntities } from "../utils/useCampaignCombat";
+import { useOwnCombatTokens } from "../utils/useOwnCombatTokens";
 import { ReactComponent as ScrollIcon } from '../icons/scroll.svg';
 import { ReactComponent as SwordsIcon } from '../icons/swords.svg';
 import { ReactComponent as BagIcon } from '../icons/bag.svg';
@@ -73,6 +74,8 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
     const hasCampaign = Boolean(characterPage.campaign);
     const { activeMap } = useCampaignMaps(campaignInfo);
     const combatEntities = useCombatEntities(characterList, campaignInfo);
+    // A player's own characters put themselves on the tracker; nobody else's are touched.
+    useOwnCombatTokens({ campaignId: hasCampaign ? characterPage.campaign : '', activeMap, entities: combatEntities, userId });
     // Only someone who can write the campaign (its director) moves the map's tokens.
     const canEditCampaign = Boolean(userId) && (campaignInfo.director_uid === userId || Boolean(campaignInfo.canWrite?.includes(userId)) || Boolean(campaignInfo.admins?.includes(userId)));
     // The actual map render felt cramped embedded at tab-content size, so it
