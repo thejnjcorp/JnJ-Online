@@ -6,6 +6,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "../utils/firebase";
 import { subscribeClassToCampaign } from "../utils/campaignSubscriptions";
 import '../styles/ClassListPage.scss';
+import { withoutArchivedCampaigns } from '../utils/campaignArchive';
 
 const TYPE_FILTERS = ['all', 'Attrionist', 'Crit Hunter', 'Manipulator', 'Snowballer'];
 // Cycles the same four accent tokens the rest of the app already uses
@@ -62,7 +63,7 @@ export function ClassListPage() {
             // StatusPage.js uses - needed for the per-card "Add to Campaign"
             // popover below.
             getDocs(query(collection(db, 'campaigns'), or(where('canRead', 'array-contains', user.uid), where('canWrite', 'array-contains', user.uid))))
-                .then(snap => setMyCampaigns(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+                .then(snap => setMyCampaigns(withoutArchivedCampaigns(snap.docs.map(d => ({ id: d.id, ...d.data() })))))
                 .catch(error => console.log(error));
         });
         return () => unsubscribe();

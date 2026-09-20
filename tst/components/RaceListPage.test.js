@@ -188,6 +188,15 @@ describe('RaceListPage', () => {
             expect(screen.queryByText('ReadOnly')).not.toBeInTheDocument();
         });
 
+        test('an archived campaign is not offered', async () => {
+            signIn({ uid: 'user-1' }, { races: [poolRace], campaigns: [directedCampaign, { ...directedCampaign, id: 'camp-old', campaign_name: 'Archived Vale', archived: true }] });
+            renderWithRouter(<RaceListPage />);
+            await screen.findByText('Elf');
+            fireEvent.click(screen.getByRole('button', { name: 'Add to Campaign' }));
+            expect(screen.getByRole('button', { name: 'The Iron Vale' })).toBeInTheDocument();
+            expect(screen.queryByText('Archived Vale')).not.toBeInTheDocument();
+        });
+
         test('subscribing calls subscribeRaceToCampaign and marks the chip selected', async () => {
             signIn({ uid: 'user-1' }, { races: [poolRace], campaigns: [directedCampaign] });
             renderWithRouter(<RaceListPage />);

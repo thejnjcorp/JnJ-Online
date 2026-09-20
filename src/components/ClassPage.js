@@ -22,6 +22,7 @@ import { ClassPublishDialog } from './ClassPublishDialog';
 import { listClassVersions, publishClassVersion, resolveClassVersion, versionOf } from '../utils/classVersions';
 import ClassLayout from '../ClassLayout.json';
 import '../styles/ClassPage.scss';
+import { withoutArchivedCampaigns } from '../utils/campaignArchive';
 
 const CATEGORY_SECTIONS = [
     { key: 'feat', label: 'Feats' },
@@ -134,7 +135,7 @@ export function ClassPage() {
             // for its own subscribe section.
             getDocs(query(collection(db, 'campaigns'), or(where('canRead', 'array-contains', user.uid), where('canWrite', 'array-contains', user.uid))))
                 .then(querySnapshot => {
-                    setMyCampaigns(querySnapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+                    setMyCampaigns(withoutArchivedCampaigns(querySnapshot.docs.map(d => ({ id: d.id, ...d.data() }))));
                 }).catch(error => console.log(error));
             unsubscribe();
         });

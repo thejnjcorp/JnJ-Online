@@ -225,6 +225,17 @@ describe('ClassListPage', () => {
             expect(screen.queryByText('ReadOnly')).not.toBeInTheDocument();
         });
 
+        test('an archived campaign is not offered', async () => {
+            signIn({ uid: 'user-1' }, { classes: [defaultClass], campaigns: [directedCampaign, { ...directedCampaign, id: 'camp-old', campaign_name: 'Archived Vale', archived: true }] });
+            renderWithRouter(<ClassListPage />);
+            await screen.findByText('Warrior');
+
+            fireEvent.click(screen.getByRole('button', { name: 'Add to Campaign' }));
+
+            expect(screen.getByText('The Iron Vale')).toBeInTheDocument();
+            expect(screen.queryByText('Archived Vale')).not.toBeInTheDocument();
+        });
+
         test('clicking Done closes the popover', async () => {
             signIn({ uid: 'user-1' }, { classes: [defaultClass], campaigns: [directedCampaign] });
             renderWithRouter(<ClassListPage />);

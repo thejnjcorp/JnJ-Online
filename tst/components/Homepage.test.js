@@ -127,6 +127,34 @@ describe('Homepage', () => {
             expect(screen.getByText('Director: Sam')).toBeInTheDocument();
         });
 
+        test('archived characters and campaigns - including ones scheduled for deletion - are not on it', async () => {
+            const scheduled = { toDate: () => new Date(2026, 9, 21) };
+            signIn({ uid: 'user-1' }, {
+                characters: [character, { ...character, id: 'char-z', character_name: 'Zed', archived: true }, { ...character, id: 'char-d', character_name: 'Doomed', archived: true, scheduledDeletionAt: scheduled }],
+                campaigns: [campaign, { ...campaign, id: 'camp-z', campaign_name: 'Old Campaign', archived: true }, { ...campaign, id: 'camp-d', campaign_name: 'Doomed Campaign', archived: true, scheduledDeletionAt: scheduled }],
+            });
+            renderWithRouter(<Homepage />);
+
+            expect(await screen.findByText('Aria')).toBeInTheDocument();
+            expect(screen.getByText('The Iron Vale')).toBeInTheDocument();
+            ['Zed', 'Doomed', 'Old Campaign', 'Doomed Campaign'].forEach(name => expect(screen.queryByText(name)).not.toBeInTheDocument());
+        });
+
+        test('the four shown are the first four that are not archived, not the first four fetched', async () => {
+            const archived = index => ({ ...campaign, id: `old-${index}`, campaign_name: `Old ${index}`, archived: true });
+            const live = index => ({ ...campaign, id: `live-${index}`, campaign_name: `Live ${index}` });
+            signIn({ uid: 'user-1' }, { campaigns: [archived(1), archived(2), archived(3), archived(4), live(1), live(2)] });
+            renderWithRouter(<Homepage />);
+            expect(await screen.findByText('Live 1')).toBeInTheDocument();
+            expect(screen.getByText('Live 2')).toBeInTheDocument();
+        });
+
+        test('someone whose campaigns are all archived is told they have none', async () => {
+            signIn({ uid: 'user-1' }, { campaigns: [{ ...campaign, archived: true }] });
+            renderWithRouter(<Homepage />);
+            expect(await screen.findByText('No campaigns yet.')).toBeInTheDocument();
+        });
+
         test('shows empty-state text when there are no characters or campaigns', async () => {
             signIn({ uid: 'user-1' });
             renderWithRouter(<Homepage />);

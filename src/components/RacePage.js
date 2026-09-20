@@ -19,6 +19,7 @@ import { DocAdminManager } from './DocAdminManager';
 import { ClassPublishDialog } from './ClassPublishDialog';
 import { listRaceVersions, publishRaceVersion, resolveRaceVersion, versionOf } from '../utils/raceVersions';
 import '../styles/ClassPage.scss';
+import { withoutArchivedCampaigns } from '../utils/campaignArchive';
 
 // A race is a name, some Markdown lore, and a list of racial actions/feats
 // (authored with the same action editor classes use). Everything else - the
@@ -113,7 +114,7 @@ export function RacePage() {
             setUserId(user.uid);
             getDocs(query(collection(db, 'campaigns'), or(where('canRead', 'array-contains', user.uid), where('canWrite', 'array-contains', user.uid))))
                 .then(querySnapshot => {
-                    setMyCampaigns(querySnapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+                    setMyCampaigns(withoutArchivedCampaigns(querySnapshot.docs.map(d => ({ id: d.id, ...d.data() }))));
                 }).catch(error => console.log(error));
             unsubscribe();
         });

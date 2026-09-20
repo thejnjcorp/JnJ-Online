@@ -160,6 +160,20 @@ describe('AccountPage', () => {
             expect(screen.getByRole('link', { name: /Director: Sam/ })).toHaveAttribute('href', '/campaigns/camp-a');
         });
 
+        test('archived characters and campaigns - including ones scheduled for deletion - are not listed', async () => {
+            const scheduled = { toDate: () => new Date(2026, 9, 21) };
+            signIn(authUser, {
+                characters: [character, { ...character, id: 'char-z', character_name: 'Zed', archived: true }, { ...character, id: 'char-d', character_name: 'Doomed', archived: true, scheduledDeletionAt: scheduled }],
+                campaigns: [campaign, { ...campaign, id: 'camp-z', campaign_name: 'Old Campaign', director_name: 'Old Director', archived: true }, { ...campaign, id: 'camp-d', director_name: 'Doomed Director', archived: true, scheduledDeletionAt: scheduled }],
+            });
+            renderWithRouter(<AccountPage setUserInfo={jest.fn()} />);
+
+            expect(await screen.findByRole('link', { name: /Aria/ })).toBeInTheDocument();
+            expect(screen.getByRole('link', { name: /Director: Sam/ })).toBeInTheDocument();
+            ['Zed', 'Doomed'].forEach(name => expect(screen.queryByText(name)).not.toBeInTheDocument());
+            ['Old Director', 'Doomed Director'].forEach(name => expect(screen.queryByText(new RegExp(name))).not.toBeInTheDocument());
+        });
+
         test('a failed campaign lookup falls back to an empty campaign list instead of crashing', async () => {
             signIn(authUser, { characters: [character] });
             mockGetDocs.mockImplementation((q) => q?.__collection === 'campaigns'

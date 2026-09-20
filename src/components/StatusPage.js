@@ -9,6 +9,7 @@ import { STATUS_TYPES, isHexColor, isToken, statusColorClass, statusColorStyle }
 import { DocAdminManager } from './DocAdminManager';
 import '../styles/StatusPage.scss';
 import MarkdownEditor from './MarkdownEditor';
+import { withoutArchivedCampaigns } from '../utils/campaignArchive';
 
 const formReducer = statusFormReducer;
 
@@ -115,7 +116,7 @@ export function StatusPage() {
             // needed here to populate the campaign-lock picker.
             getDocs(query(collection(db, 'campaigns'), or(where('canRead', 'array-contains', user.uid), where('canWrite', 'array-contains', user.uid))))
                 .then(querySnapshot => {
-                    setMyCampaigns(querySnapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+                    setMyCampaigns(withoutArchivedCampaigns(querySnapshot.docs.map(d => ({ id: d.id, ...d.data() }))));
                 }).catch(error => console.log(error));
             unsubscribe();
         });

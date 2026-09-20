@@ -7,12 +7,13 @@ import defaultProfileIcon from '../icons/default_profile.svg';
 import { AccessibilitySettings } from './AccessibilitySettings';
 import '../styles/AccountPage.scss';
 import { withoutArchived } from '../utils/characterArchive';
+import { withoutArchivedCampaigns } from '../utils/campaignArchive';
 
 async function getCampaigns(user) {
     try {
         const campaigns = query(collection(db, "campaigns"), or(where("canRead", "array-contains", user.uid), where("canWrite", "array-contains", user.uid)));
         const querySnapshot = await getDocs(campaigns);
-        return querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+        return withoutArchivedCampaigns(querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
     } catch (e) {
         console.log("Failed to get campaign info: " + e)
         return [];
