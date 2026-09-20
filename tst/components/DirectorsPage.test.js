@@ -24,6 +24,14 @@ jest.mock('firebase/firestore', () => ({
     where: (...args) => mockWhere(...args),
 }));
 
+// The combat tracker is on the party doc; taking enemies off it is a change worked
+// out against it (utils/party.js).
+const mockUpdateCombatTracker = jest.fn();
+jest.mock('../../src/utils/party', () => ({
+    ...jest.requireActual('../../src/utils/party'),
+    updateCombatTracker: (...args) => mockUpdateCombatTracker(...args),
+}));
+
 const mockUploadImageToImgur = jest.fn();
 jest.mock('../../src/utils/imgurUploader', () => ({
     uploadImageToImgur: (...args) => mockUploadImageToImgur(...args),
@@ -64,10 +72,10 @@ jest.mock('../../src/components/DocAdminManager', () => ({
     DocAdminManager: ({ admins, userId }) => <div>DocAdminManager-stub:{JSON.stringify(admins)}:{userId}</div>,
 }));
 jest.mock('../../src/utils/DraggableElements/PostListCombat.tsx', () => ({
-    PostListContentCombat: ({ campaignId, inputStatuses }) => <div>Combat-stub:{campaignId}:{inputStatuses.length}</div>,
+    PostListContentCombat: ({ campaignId, inputStatuses, readOnly }) => <div data-readonly={String(Boolean(readOnly))}>Combat-stub:{campaignId}:{inputStatuses.length}</div>,
 }));
 jest.mock('../../src/utils/DraggableElements/PostListCombatMap.tsx', () => ({
-    PostListContentCombatMap: ({ campaignId, activeMap, entities, noMap }) => <div data-nomap={String(Boolean(noMap))}>CombatMap-stub:{campaignId}:{activeMap?.map_id}:{entities.length}</div>,
+    PostListContentCombatMap: ({ campaignId, activeMap, entities, noMap, canEdit }) => <div data-nomap={String(Boolean(noMap))} data-canedit={String(Boolean(canEdit))}>CombatMap-stub:{campaignId}:{activeMap?.map_id}:{entities.length}</div>,
 }));
 
 // eslint-disable-next-line import/first
@@ -95,7 +103,7 @@ const enemy = {
 const baseCampaignInfo = {
     campaign_name: 'The Iron Vale', director_name: 'Sam',
     enemy_list: [], ally_combat_npc_list: [], neutral_combat_npc_list: [],
-    combat_tracker: [], active_map: null, maps: [],
+    active_map: null, maps: [],
 };
 
 // Installs a router that dispatches each onSnapshot(target, opts, cb) call
@@ -142,6 +150,8 @@ beforeEach(() => {
     mockOnSnapshot.mockImplementation(() => jest.fn());
     mockOnAuthStateChanged.mockImplementation(() => jest.fn());
     mockUpdateDoc.mockResolvedValue(undefined);
+    mockUpdateCombatTracker.mockReset();
+    mockUpdateCombatTracker.mockResolvedValue(undefined);
     mockAddDoc.mockResolvedValue({ id: 'new-map-id' });
     mockDeleteDoc.mockResolvedValue(undefined);
     mockUploadImageToImgur.mockResolvedValue('https://imgur.example/map.png');
@@ -522,17 +532,17 @@ describe('DirectorsPage', () => {
 
             test('Remove from fight takes the enemy and its tracker card off the campaign, after asking', async () => {
                 const other = { ...enemy, id: 'enemy-2', enemy_name: 'Troll' };
-                await renderReady({ campaignInfo: { ...directing, enemy_list: [enemy, other], combat_tracker: [{ id: 'npc:enemy-1' }, { id: 'npc:enemy-2' }, { id: 'character:char-1' }] } });
+                await renderReady({ campaignInfo: { ...directing, enemy_list: [enemy, other] } });
                 goToTab('Combat');
                 const card = screen.getByText('Goblin').closest('.DirectorsPage-entity-card');
 
                 fireEvent.click(within(card).getByRole('button', { name: 'Remove from fight' }));
 
                 expect(window.confirm).toHaveBeenCalledWith('Remove Goblin from the fight?');
-                await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith(
-                    { __doc: ['campaigns', 'camp-1'] },
-                    { enemy_list: [other], combat_tracker: [{ id: 'npc:enemy-2' }, { id: 'character:char-1' }] },
-                ));
+                await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['campaigns', 'camp-1'] }, { enemy_list: [other] }));
+                expect(mockUpdateCombatTracker).toHaveBeenCalledWith('camp-1', expect.any(Function));
+                const trackerChange = mockUpdateCombatTracker.mock.calls[0][1];
+                expect(trackerChange([{ id: 'npc:enemy-1' }, { id: 'npc:enemy-2' }, { id: 'character:char-1' }])).toEqual([{ id: 'npc:enemy-2' }, { id: 'character:char-1' }]);
             });
 
             test('declining removes nothing', async () => {
@@ -545,16 +555,15 @@ describe('DirectorsPage', () => {
 
             test('Clear all removes every enemy and their tracker cards, but not the players\'', async () => {
                 const other = { ...enemy, id: 'enemy-2', enemy_name: 'Troll' };
-                await renderReady({ campaignInfo: { ...directing, enemy_list: [enemy, other], combat_tracker: [{ id: 'npc:enemy-1' }, { id: 'npc:enemy-2' }, { id: 'character:char-1' }] } });
+                await renderReady({ campaignInfo: { ...directing, enemy_list: [enemy, other] } });
                 goToTab('Combat');
 
                 fireEvent.click(screen.getByRole('button', { name: 'Clear all' }));
 
                 expect(window.confirm).toHaveBeenCalledWith('Remove every enemy from the fight?');
-                await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith(
-                    { __doc: ['campaigns', 'camp-1'] },
-                    { enemy_list: [], combat_tracker: [{ id: 'character:char-1' }] },
-                ));
+                await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['campaigns', 'camp-1'] }, { enemy_list: [] }));
+                const trackerChange = mockUpdateCombatTracker.mock.calls[0][1];
+                expect(trackerChange([{ id: 'npc:enemy-1' }, { id: 'npc:enemy-2' }, { id: 'character:char-1' }])).toEqual([{ id: 'character:char-1' }]);
             });
 
             test('a failed write is alerted', async () => {
@@ -596,6 +605,30 @@ describe('DirectorsPage', () => {
             await renderReady();
             goToTab('Combat');
             screen.getAllByText(/CombatMap-stub/).forEach(stub => expect(stub).toHaveAttribute('data-nomap', 'true'));
+        });
+
+        test('a director can move the map\'s tokens; anyone else only watches', async () => {
+            await renderReady({ campaignInfo: { ...baseCampaignInfo, director_uid: 'owner-1' } });
+            goToTab('Combat');
+            screen.getAllByText(/CombatMap-stub/).forEach(stub => expect(stub).toHaveAttribute('data-canedit', 'true'));
+        });
+
+        test('the line view can be dragged by a director, and only looked at by anyone else', async () => {
+            await renderReady({ campaignInfo: { ...baseCampaignInfo, director_uid: 'owner-1' } });
+            goToTab('Combat');
+            expect(screen.getByText(/Combat-stub/)).toHaveAttribute('data-readonly', 'false');
+        });
+
+        test('for someone who is not a director the line view is read-only', async () => {
+            await renderReady();
+            goToTab('Combat');
+            expect(screen.getByText(/Combat-stub/)).toHaveAttribute('data-readonly', 'true');
+        });
+
+        test('someone who is not a director cannot', async () => {
+            await renderReady();
+            goToTab('Combat');
+            screen.getAllByText(/CombatMap-stub/).forEach(stub => expect(stub).toHaveAttribute('data-canedit', 'false'));
         });
 
         test('a campaign that has not loaded yet is not taken for one with no map', async () => {

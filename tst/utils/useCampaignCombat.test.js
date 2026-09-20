@@ -40,7 +40,18 @@ describe('useCombatEntities', () => {
     test('prefixes player characters with "character:" using character_id, titled by character_name', () => {
         const characterList = [{ character_id: 'c1', character_name: 'Aria' }];
         const { result } = renderHook(() => useCombatEntities(characterList, {}));
-        expect(result.current).toEqual([{ id: 'character:c1', title: 'Aria' }]);
+        expect(result.current).toEqual([{ id: 'character:c1', title: 'Aria', kind: 'player', image: undefined, ownerIds: [] }]);
+    });
+
+    test('says who may move a character\'s token: its owner, and anyone who can write the character', () => {
+        const { result } = renderHook(() => useCombatEntities([{ character_id: 'c1', character_name: 'Aria', userId: 'owner', canWrite: ['co-writer'] }, { character_id: 'c2', character_name: 'Bram', userId: 'other' }], {}));
+        expect(result.current[0].ownerIds).toEqual(['owner', 'co-writer']);
+        expect(result.current[1].ownerIds).toEqual(['other']);
+    });
+
+    test('carries a character\'s portrait, for its token on the map', () => {
+        const { result } = renderHook(() => useCombatEntities([{ character_id: 'c1', character_name: 'Aria', portrait_url: 'aria.png' }], {}));
+        expect(result.current[0]).toMatchObject({ kind: 'player', image: 'aria.png' });
     });
 
     test('merges ally, enemy, and neutral NPC lists, each prefixed with "npc:" using id, titled by enemy_name', () => {
@@ -51,9 +62,9 @@ describe('useCombatEntities', () => {
         };
         const { result } = renderHook(() => useCombatEntities([], campaignInfo));
         expect(result.current).toEqual([
-            { id: 'npc:a1', title: 'Ally One' },
-            { id: 'npc:e1', title: 'Enemy One' },
-            { id: 'npc:n1', title: 'Neutral One' },
+            { id: 'npc:a1', title: 'Ally One', kind: 'ally', image: undefined },
+            { id: 'npc:e1', title: 'Enemy One', kind: 'enemy', image: undefined },
+            { id: 'npc:n1', title: 'Neutral One', kind: 'neutral', image: undefined },
         ]);
     });
 

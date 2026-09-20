@@ -6,10 +6,11 @@
 // which wraps this in `firebase emulators:exec` so the emulator is started
 // fresh, this script runs against it, and it's torn down afterward - nothing
 // here touches the real project.
+const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { initializeTestEnvironment, assertSucceeds, assertFails } = require('@firebase/rules-unit-testing');
-const { collection, addDoc, doc, setDoc, getDoc, getDocs, query, where, or, updateDoc, deleteDoc, arrayUnion, writeBatch } = require('firebase/firestore');
+const { collection, addDoc, doc, setDoc, getDoc, getDocs, query, where, or, updateDoc, deleteDoc, arrayUnion, writeBatch, runTransaction } = require('firebase/firestore');
 
 const PROJECT_ID = 'jnj-online';
 let failures = 0;
@@ -1217,6 +1218,138 @@ async function main() {
             await assertFails(updateDoc(doc(db, 'campaigns', 'camp1', 'encounters', 'e1'), { name: 'x' }));
             await assertFails(addDoc(collection(db, 'campaigns', 'camp1', 'encounters'), { name: 'x' }));
         }
+    });
+
+    console.log('\nThe party doc (campaigns/{id}/party/main), shared by everyone in the campaign:');
+
+    const seedParty = () => testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+        await testEnv.clearFirestore();
+        await setDoc(doc(adminCtx.firestore(), 'campaigns', 'camp1'), { campaign_name: 'C', director_uid: 'dir', canWrite: ['dir', 'codir'], canRead: ['dir', 'codir', 'player', 'player2'], admins: ['dir'] });
+        await setDoc(doc(adminCtx.firestore(), 'campaigns', 'camp1', 'party', 'main'), { combat_tracker: [{ id: 'character:a', title: 'Aria', status: 'Gate', index: 0, x: 0.1, y: 0.1 }] });
+    });
+    const partyRef = db => doc(db, 'campaigns', 'camp1', 'party', 'main');
+
+    await check('players can read the party doc and move a token in it', async () => {
+        await seedParty();
+        for (const uid of ['player', 'player2']) {
+            const db = testEnv.authenticatedContext(uid).firestore();
+            await assertSucceeds(getDoc(partyRef(db)));
+            await assertSucceeds(updateDoc(partyRef(db), { combat_tracker: [{ id: 'character:a', title: 'Aria', status: 'Courtyard', index: 0, x: 0.4, y: 0.2 }] }));
+        }
+    });
+
+    await check('the director and a co-director can read and write it too', async () => {
+        await seedParty();
+        for (const uid of ['dir', 'codir']) {
+            const db = testEnv.authenticatedContext(uid).firestore();
+            await assertSucceeds(getDoc(partyRef(db)));
+            await assertSucceeds(updateDoc(partyRef(db), { combat_tracker: [] }));
+        }
+    });
+
+    await check('the party doc is created on the first write, by anyone in the campaign', async () => {
+        await seedParty();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => { await deleteDoc(doc(adminCtx.firestore(), 'campaigns', 'camp1', 'party', 'main')); });
+        await assertSucceeds(setDoc(partyRef(testEnv.authenticatedContext('player').firestore()), { combat_tracker: [] }, { merge: true }));
+    });
+
+    const readPartyAsAdmin = async () => {
+        let data;
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => { data = (await getDoc(partyRef(adminCtx.firestore()))).data(); });
+        return data;
+    };
+
+    // The app changes the party doc the way updateParty (src/utils/party.js) does: read it and
+    // write the change back inside a transaction, merging into the doc (which creates it the first time).
+    const changeInTransaction = (db, change) => runTransaction(db, async (transaction) => {
+        const snapshot = await transaction.get(partyRef(db));
+        transaction.set(partyRef(db), change(snapshot.exists() ? snapshot.data() : {}), { merge: true });
+    });
+
+    await check('a player moves their token the way the app does: a transaction that reads the party doc and merges the change', async () => {
+        await seedParty();
+        const db = testEnv.authenticatedContext('player').firestore();
+        await assertSucceeds(changeInTransaction(db, party => ({ combat_tracker: party.combat_tracker.map(post => ({ ...post, status: 'Courtyard', x: 0.5 })) })));
+        const saved = await readPartyAsAdmin();
+        assert.equal(saved.combat_tracker[0].status, 'Courtyard');
+    });
+
+    await check('the first transaction creates the party doc, and merging leaves other fields (inventory, notes) alone', async () => {
+        await seedParty();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => { await setDoc(partyRef(adminCtx.firestore()), { inventory: ['rope'], notes: 'camp at dusk' }); });
+        await assertSucceeds(changeInTransaction(testEnv.authenticatedContext('dir').firestore(), () => ({ combat_tracker: [] })));
+        const kept = await readPartyAsAdmin();
+        assert.deepEqual(kept, { inventory: ['rope'], notes: 'camp at dusk', combat_tracker: [] });
+
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => { await deleteDoc(partyRef(adminCtx.firestore())); });
+        await assertSucceeds(changeInTransaction(testEnv.authenticatedContext('player').firestore(), () => ({ combat_tracker: [] })));
+    });
+
+    await check('a new campaign\'s creator can make its party doc straight after making the campaign (as NewCampaignPage does)', async () => {
+        await testEnv.clearFirestore();
+        const alice = testEnv.authenticatedContext('alice').firestore();
+        const created = await addDoc(collection(alice, 'campaigns'), { campaign_name: 'New', director_name: 'Alice', director_uid: 'alice', canWrite: ['alice'], admins: ['alice'] });
+        const ref = doc(alice, 'campaigns', created.id, 'party', 'main');
+        await assertSucceeds(runTransaction(alice, async (transaction) => {
+            const snapshot = await transaction.get(ref);
+            if (!snapshot.exists()) transaction.set(ref, { combat_tracker: [] });
+        }));
+        await assertSucceeds(getDoc(ref));
+    });
+
+    await check('a player opening an older campaign can make its missing party doc, and a second person making it does not overwrite the first', async () => {
+        await seedParty();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => { await deleteDoc(partyRef(adminCtx.firestore())); });
+        const ensure = (db) => runTransaction(db, async (transaction) => {
+            const snapshot = await transaction.get(partyRef(db));
+            if (!snapshot.exists()) transaction.set(partyRef(db), { combat_tracker: [] });
+        });
+        await assertSucceeds(ensure(testEnv.authenticatedContext('player').firestore()));
+        await assertSucceeds(updateDoc(partyRef(testEnv.authenticatedContext('player').firestore()), { inventory: ['rope'] }));
+        await assertSucceeds(ensure(testEnv.authenticatedContext('player2').firestore()));
+        assert.deepEqual(await readPartyAsAdmin(), { combat_tracker: [], inventory: ['rope'] });
+    });
+
+    await check('a transaction by a stranger is refused', async () => {
+        await seedParty();
+        await assertFails(changeInTransaction(testEnv.authenticatedContext('stranger').firestore(), () => ({ combat_tracker: [] })));
+    });
+
+    await check('a campaign admin who is not otherwise listed can use it', async () => {
+        await seedParty();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => { await updateDoc(doc(adminCtx.firestore(), 'campaigns', 'camp1'), { admins: ['dir', 'boss'] }); });
+        await assertSucceeds(updateDoc(partyRef(testEnv.authenticatedContext('boss').firestore()), { combat_tracker: [] }));
+    });
+
+    await check('strangers and signed-out visitors cannot read or write the party doc', async () => {
+        await seedParty();
+        for (const ctx of [testEnv.authenticatedContext('stranger'), testEnv.unauthenticatedContext()]) {
+            const db = ctx.firestore();
+            await assertFails(getDoc(partyRef(db)));
+            await assertFails(updateDoc(partyRef(db), { combat_tracker: [] }));
+            await assertFails(setDoc(partyRef(db), { combat_tracker: [] }));
+            await assertFails(deleteDoc(partyRef(db)));
+        }
+    });
+
+    await check('someone in another campaign cannot use this one\'s party doc', async () => {
+        await seedParty();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await setDoc(doc(adminCtx.firestore(), 'campaigns', 'camp2'), { campaign_name: 'Other', director_uid: 'dir2', canWrite: ['dir2'], canRead: ['dir2', 'other-player'], admins: ['dir2'] });
+        });
+        await assertFails(getDoc(partyRef(testEnv.authenticatedContext('other-player').firestore())));
+        await assertFails(updateDoc(partyRef(testEnv.authenticatedContext('dir2').firestore()), { combat_tracker: [] }));
+    });
+
+    await check('a party doc under a campaign that does not exist cannot be reached', async () => {
+        await seedParty();
+        await assertFails(getDoc(doc(testEnv.authenticatedContext('player').firestore(), 'campaigns', 'no-such-campaign', 'party', 'main')));
+    });
+
+    await check('the party doc does not open up the campaign doc itself: a player still cannot write that', async () => {
+        await seedParty();
+        const db = testEnv.authenticatedContext('player').firestore();
+        await assertFails(updateDoc(doc(db, 'campaigns', 'camp1'), { active_map: 'x' }));
     });
 
     await testEnv.cleanup();

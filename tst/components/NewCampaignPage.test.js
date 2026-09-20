@@ -16,6 +16,9 @@ jest.mock('firebase/firestore', () => ({
     doc: (...args) => mockDoc(...args),
 }));
 
+const mockEnsureParty = jest.fn();
+jest.mock('../../src/utils/party', () => ({ ensureParty: (...args) => mockEnsureParty(...args) }));
+
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
     ...jest.requireActual('react-router-dom'),
@@ -47,6 +50,8 @@ beforeEach(() => {
     mockDoc.mockImplementation((_db, ...path) => ({ __doc: path }));
     mockOnAuthStateChanged.mockImplementation(() => jest.fn());
     mockAddDoc.mockResolvedValue({ id: 'new-campaign-id' });
+    mockEnsureParty.mockReset();
+    mockEnsureParty.mockResolvedValue(undefined);
     window.alert = jest.fn();
 });
 
@@ -113,6 +118,47 @@ describe('NewCampaignPage', () => {
             admins: ['user-1'],
         });
         expect(mockNavigate).toHaveBeenCalledWith('/campaigns/new-campaign-id');
+    });
+
+    describe('the campaign\'s party doc', () => {
+        const submit = async () => {
+            signIn({ name: 'Sam' });
+            render(<NewCampaignPage />);
+            await screen.findByText('Sam');
+            fireEvent.change(screen.getByLabelText('Campaign Name'), { target: { value: 'The Sunken Archive' } });
+            fireEvent.click(screen.getByRole('button', { name: 'Create Campaign' }));
+            await new Promise((resolve) => setTimeout(resolve, 0));
+        };
+
+        test('is made with the campaign, for the new campaign\'s id, whatever the map or inventory later do', async () => {
+            await submit();
+            expect(mockEnsureParty).toHaveBeenCalledTimes(1);
+            expect(mockEnsureParty).toHaveBeenCalledWith('new-campaign-id');
+        });
+
+        test('is made before going to the new campaign', async () => {
+            const order = [];
+            mockEnsureParty.mockImplementation(async () => { order.push('party'); });
+            mockNavigate.mockImplementation(() => { order.push('navigate'); });
+            await submit();
+            expect(order).toEqual(['party', 'navigate']);
+        });
+
+        test('if it can\'t be made the campaign is still created and opened (the doc is made when the campaign is first opened)', async () => {
+            const log = jest.spyOn(console, 'log').mockImplementation(() => {});
+            mockEnsureParty.mockRejectedValue(new Error('permission-denied'));
+            await submit();
+            expect(mockNavigate).toHaveBeenCalledWith('/campaigns/new-campaign-id');
+            expect(window.alert).not.toHaveBeenCalled();
+            expect(log).toHaveBeenCalledWith("Couldn't create the party doc: Error: permission-denied");
+            log.mockRestore();
+        });
+
+        test('is not made when the campaign itself could not be', async () => {
+            mockAddDoc.mockRejectedValue(new Error('offline'));
+            await submit();
+            expect(mockEnsureParty).not.toHaveBeenCalled();
+        });
     });
 
     test('shows "Creating…" while the submit is in flight, and stays that way after success (relies on the parent unmounting it via navigate(), not on local state)', async () => {

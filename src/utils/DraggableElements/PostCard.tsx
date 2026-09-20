@@ -2,10 +2,10 @@ import { Draggable } from "@hello-pangea/dnd";
 
 import type { Post } from "./Post";
 
-export const PostCard = ({ post, index, titleClassName, contentClassName, boxClassName, extraClassNames}: 
-  { post: Post; index: number, titleClassName: string, contentClassName: string, boxClassName: string, extraClassNames: string[] }) => {
+export const PostCard = ({ post, index, titleClassName, contentClassName, boxClassName, extraClassNames, readOnly = false}: 
+  { post: Post; index: number, titleClassName: string, contentClassName: string, boxClassName: string, extraClassNames: string[], readOnly?: boolean }) => {
   return (
-    <Draggable draggableId={String(post.id)} index={index}>
+    <Draggable draggableId={String(post.id)} index={index} isDragDisabled={readOnly}>
       {(provided, snapshot) => (
         <div
           style={{ marginBottom: "1px" }}

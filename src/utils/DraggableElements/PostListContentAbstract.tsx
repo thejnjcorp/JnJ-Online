@@ -12,7 +12,7 @@ const MAP_REFERENCE_WIDTH = 500;
 // data arrives, not on every render while a usePosts hook is still loading.
 const EMPTY_POSTS: Post[] = [];
 
-export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, grid=false, columnFormat=true, swappableMode=false, className={}, PostCardComponent, backgroundImage, zoneLayout, overlay }: {
+export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, grid=false, columnFormat=true, swappableMode=false, className={}, PostCardComponent, backgroundImage, zoneLayout, overlay, readOnly = false }: {
   inputStatuses,
   usePosts,
   updatePosts,
@@ -23,6 +23,8 @@ export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, 
   PostCardComponent?: PostCardComponentType,
   backgroundImage?: string,
   zoneLayout?: { name: string; x: number; y: number; width: number; height: number }[],
+  // nothing can be dragged between the lists
+  readOnly?: boolean,
   // drawn over the map image and its zones, at exactly the image's rendered size
   overlay?: (size: { width: number; height: number }) => React.ReactNode
 }) => {
@@ -155,6 +157,7 @@ export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, 
 
   const onDragEnd: OnDragEndResponder = (result) => {
     const { destination, source } = result;
+    if (readOnly) return;
 
     if (!destination) {
       return;
@@ -243,6 +246,7 @@ export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, 
               }}
               className={className || {}}
               PostCardComponent={PostCardComponent}
+              readOnly={readOnly}
               overlayHeader
             />
           ))}
@@ -265,6 +269,7 @@ export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, 
             width={"calc(100% / " + statuses.length + ")"}
             className={className || {}}
             PostCardComponent={PostCardComponent}
+              readOnly={readOnly}
           />
         ))}
 
@@ -278,6 +283,7 @@ export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, 
                 width={"calc(100% / " + statusRow.length + ")"}
                 className={className || {}}
                 PostCardComponent={PostCardComponent}
+              readOnly={readOnly}
                 swappableMode={swappableMode}
                 draggableId={draggingId}
               />

@@ -148,6 +148,19 @@ describe('CombatMapPeek', () => {
         expect(screen.queryByRole('button', { name: 'Close the combat map' })).not.toBeInTheDocument();
     });
 
+    test('is told whether the map\'s tokens can be moved', () => {
+        const { wrapper } = setup();
+        hover(wrapper);
+        settle(150);
+        expect(mockMapProps.at(-1).canEdit).toBe(false);
+    });
+
+    test('and passes on permission to move them', () => {
+        render(<CombatMapPeek campaignId="camp-1" activeMap={activeMap} entities={[]} userId="dm" canEdit />);
+        fireEvent.click(screen.getByRole('button', { name: 'Combat map' }));
+        expect(mockMapProps.at(-1).canEdit).toBe(true);
+    });
+
     test('with no active map it says so, instead of a map', () => {
         render(<CombatMapPeek campaignId="camp-1" activeMap={undefined} entities={[]} userId="player-1" />);
         fireEvent.click(screen.getAllByRole('button', { name: 'Combat map' })[0]);

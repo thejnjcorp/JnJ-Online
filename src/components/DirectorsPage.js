@@ -39,6 +39,7 @@ import { CharacterStatCalculator } from './CharacterStatCalculator';
 import { AddEnemyDialog } from './AddEnemyDialog';
 import { EnemyTierBadge } from './EnemyTierBadge';
 import { removeEnemies } from '../utils/enemies';
+import { removeFromTracker, updateCombatTracker } from '../utils/party';
 import { isCombatAction, isReactionAction } from '../utils/classActions';
 import { NO_MAP_ZONE } from '../utils/combatTracker';
 
@@ -235,7 +236,6 @@ export function DirectorsPage() {
         "enemy_list":[],
         "ally_combat_npc_list":[],
         "neutral_combat_npc_list":[],
-        "combat_tracker": [],
         "active_map": null,
         "maps": [],
     });
@@ -385,8 +385,8 @@ export function DirectorsPage() {
         });
     }
 
-    // Enemies come and go on the campaign doc. Taking one out also takes its card
-    // off the combat tracker (the tracker only tidies itself while a map is active).
+    // Enemies come and go on the campaign doc. Taking one out also takes its token
+    // off the combat tracker (on the party doc), straight away.
     function addEnemyToFight(enemy) {
         return updateDoc(campaignDoc, { enemy_list: [...campaignInfo.enemy_list, enemy] }).catch(e => alert(e));
     }
@@ -394,11 +394,14 @@ export function DirectorsPage() {
     function removeEnemyFromFight(enemy) {
         if (!window.confirm(`Remove ${enemy.enemy_name} from the fight?`)) return;
         updateDoc(campaignDoc, removeEnemies(campaignInfo, [enemy.id])).catch(e => alert(e));
+        updateCombatTracker(campaignId, removeFromTracker([enemy.id])).catch(e => console.log(e));
     }
 
     function clearEnemies() {
         if (!window.confirm('Remove every enemy from the fight?')) return;
-        updateDoc(campaignDoc, removeEnemies(campaignInfo, campaignInfo.enemy_list.map(enemy => enemy.id))).catch(e => alert(e));
+        const ids = campaignInfo.enemy_list.map(enemy => enemy.id);
+        updateDoc(campaignDoc, removeEnemies(campaignInfo, ids)).catch(e => alert(e));
+        updateCombatTracker(campaignId, removeFromTracker(ids)).catch(e => console.log(e));
     }
 
     // The notebook is for directors only (the Firestore rule enforces it; this
@@ -575,6 +578,7 @@ export function DirectorsPage() {
                                 inputStatuses={zoneNames.length > 0 ? zoneNames : (noMap ? [NO_MAP_ZONE] : [])}
                                 className={lineViewClassName}
                                 PostCardComponent={lineViewCard}
+                                readOnly={!isDirector}
                             />
                             {activeMap && zoneNames.length === 0 && <div className="DirectorsPage-tracker-empty">This map has no zones yet. Add some from the Maps tab.</div>}
                             {/* One shared Tooltip, matched by data-tooltip-id on every
@@ -590,6 +594,7 @@ export function DirectorsPage() {
                                 activeMap={activeMap}
                                 entities={combatEntities}
                                 userId={userId}
+                                canEdit={isDirector}
                                 noMap={noMap}
                             />
                         </div>
@@ -729,6 +734,7 @@ export function DirectorsPage() {
                     activeMap={activeMap}
                     entities={combatEntities}
                     userId={userId}
+                    canEdit={isDirector}
                     noMap={noMap}
                 />
             </div>

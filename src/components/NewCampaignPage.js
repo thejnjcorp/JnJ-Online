@@ -1,6 +1,7 @@
 import { useReducer, useState, useEffect, useRef } from 'react';
 import { auth, db } from '../utils/firebase';
 import { collection, addDoc, getDoc, doc } from 'firebase/firestore';
+import { ensureParty } from '../utils/party';
 import '../styles/NewCampaignPage.scss';
 import { useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -68,6 +69,10 @@ export function NewCampaignPage() {
                 canWrite: [auth.currentUser.uid],
                 admins: [auth.currentUser.uid]
             });
+            // The campaign's party doc (shared by everyone in it) is made with it. If that
+            // fails the campaign is still there, and the doc is made the first time anyone
+            // opens the campaign.
+            await ensureParty(docRef.id).catch(error => console.log("Couldn't create the party doc: " + error));
             // Must be absolute: Campaigns.js renders NewCampaignPage from a
             // manual location.pathname check rather than a nested <Route>, so
             // a bare relative segment resolves against the current

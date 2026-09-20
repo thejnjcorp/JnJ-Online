@@ -42,6 +42,9 @@ jest.mock('react-router-dom', () => ({
     useNavigate: () => mockNavigate,
 }));
 
+const mockEnsureParty = jest.fn();
+jest.mock('../../src/utils/party', () => ({ ensureParty: (...args) => mockEnsureParty(...args) }));
+
 jest.mock('../../src/components/DocAdminManager', () => ({
     DocAdminManager: ({ admins, userId }) => <div>DocAdminManager-stub:{JSON.stringify(admins)}:{userId}</div>,
 }));
@@ -91,6 +94,8 @@ beforeEach(() => {
     mockGetDocs.mockResolvedValue(docsFrom([]));
     mockGetCountFromServer.mockResolvedValue({ data: () => ({ count: 1 }) });
     mockUpdateDoc.mockResolvedValue(undefined);
+    mockEnsureParty.mockReset();
+    mockEnsureParty.mockResolvedValue(undefined);
     window.alert = jest.fn();
 });
 
@@ -116,6 +121,41 @@ describe('CampaignPage', () => {
 
         expect(await screen.findByText("This campaign doesn't exist, or you don't have access to it.")).toBeInTheDocument();
         expect(document.title).toBe('Campaign Not Found');
+    });
+
+    describe('the campaign\'s party doc', () => {
+        test('is made the first time someone opens a campaign that has none (a campaign from before it existed)', async () => {
+            signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale' });
+            renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
+            await waitFor(() => expect(mockEnsureParty).toHaveBeenCalledWith('camp-1'));
+            expect(mockEnsureParty).toHaveBeenCalledTimes(1);
+        });
+
+        test('is not touched for a campaign that isn\'t there (or that the person can\'t open)', async () => {
+            signIn({ uid: 'user-1' }, null);
+            renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
+            expect(await screen.findByText("This campaign doesn't exist, or you don't have access to it.")).toBeInTheDocument();
+            expect(mockEnsureParty).not.toHaveBeenCalled();
+        });
+
+        test('is not touched when nobody is signed in', async () => {
+            mockOnAuthStateChanged.mockImplementation((_auth, callback) => { Promise.resolve().then(() => callback(null)); return jest.fn(); });
+            renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
+            await screen.findByText('Sign in to see this campaign.');
+            expect(mockEnsureParty).not.toHaveBeenCalled();
+        });
+
+        test('a failure to make it is logged and does not get in the way of the page', async () => {
+            const log = jest.spyOn(console, 'log').mockImplementation(() => {});
+            mockEnsureParty.mockRejectedValue(new Error('permission-denied'));
+            signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale' }, [character]);
+            renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
+
+            expect(await screen.findByText('Aria')).toBeInTheDocument();
+            await waitFor(() => expect(log).toHaveBeenCalledWith("Couldn't create the party doc: Error: permission-denied"));
+            expect(window.alert).not.toHaveBeenCalled();
+            log.mockRestore();
+        });
     });
 
     describe('once loaded', () => {

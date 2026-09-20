@@ -34,11 +34,13 @@ export function useCampaignMaps(campaignInfo) {
 // zones sync against. Both DirectorsPage and CharacterMainTab need this same
 // full list - a partial list here would make the map view delete other
 // entities' combat_tracker entries as "no longer present".
+// `kind` (player, ally, enemy, neutral), `image` and - for a player - `ownerIds` (who
+// may move that character's token) are for the map's tokens.
 export function useCombatEntities(characterList, campaignInfo) {
     return useMemo(() => [
-        ...characterList.map((character) => ({ id: "character:" + character.character_id, title: character.character_name })),
-        ...(campaignInfo.ally_combat_npc_list ?? []).map((npc) => ({ id: "npc:" + npc.id, title: npc.enemy_name })),
-        ...(campaignInfo.enemy_list ?? []).map((npc) => ({ id: "npc:" + npc.id, title: npc.enemy_name })),
-        ...(campaignInfo.neutral_combat_npc_list ?? []).map((npc) => ({ id: "npc:" + npc.id, title: npc.enemy_name })),
+        ...characterList.map((character) => ({ id: "character:" + character.character_id, title: character.character_name, kind: 'player', image: character.portrait_url, ownerIds: [character.userId, ...(character.canWrite ?? [])].filter(Boolean) })),
+        ...(campaignInfo.ally_combat_npc_list ?? []).map((npc) => ({ id: "npc:" + npc.id, title: npc.enemy_name, kind: 'ally', image: npc.portrait_url })),
+        ...(campaignInfo.enemy_list ?? []).map((npc) => ({ id: "npc:" + npc.id, title: npc.enemy_name, kind: 'enemy', image: npc.portrait_url })),
+        ...(campaignInfo.neutral_combat_npc_list ?? []).map((npc) => ({ id: "npc:" + npc.id, title: npc.enemy_name, kind: 'neutral', image: npc.portrait_url })),
     ], [characterList, campaignInfo.ally_combat_npc_list, campaignInfo.enemy_list, campaignInfo.neutral_combat_npc_list]);
 }

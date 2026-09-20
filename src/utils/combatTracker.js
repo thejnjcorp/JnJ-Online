@@ -1,5 +1,8 @@
-// Keeping the campaign's combat_tracker (who is in the fight, and which zone each
-// is in) in step with who is actually in the fight.
+// Keeping the campaign's combat_tracker (who is in the fight, which zone each is
+// in, and - on a map - where each one's token sits) in step with who is actually in
+// the fight.
+
+import { placeTokens } from './mapTokens';
 
 // With no map selected there are no zones, so everyone shares this one column.
 export const NO_MAP_ZONE = 'Combatants';
@@ -9,8 +12,10 @@ export const NO_MAP_ZONE = 'Combatants';
 //   - anyone no longer in the fight is taken out,
 //   - anyone new goes in the first zone,
 //   - anyone whose zone isn't among `zoneNames` any more (another map was chosen,
-//     or none) moves to the first zone; everyone else keeps their place.
-export function syncCombatTracker(storedPosts, entities, zoneNames) {
+//     or none) moves to the first zone; everyone else keeps their place,
+//   - and, given the map's zone rectangles (`rects`), every token has a position
+//     inside its zone (see placeTokens).
+export function syncCombatTracker(storedPosts, entities, zoneNames, rects = null) {
     if (zoneNames.length === 0) return null;
     // an old campaign can hold something that isn't a list here; that is no one placed yet
     const posts = Array.isArray(storedPosts) ? storedPosts : [];
@@ -35,6 +40,7 @@ export function syncCombatTracker(storedPosts, entities, zoneNames) {
             index: survivors.length + offset,
         }));
 
-    if (additions.length === 0 && !moved && survivors.length === posts.length && Array.isArray(storedPosts)) return null;
-    return [...homed, ...additions];
+    const positioned = rects ? placeTokens([...homed, ...additions], rects) : { posts: [...homed, ...additions], changed: false };
+    if (additions.length === 0 && !moved && !positioned.changed && survivors.length === posts.length && Array.isArray(storedPosts)) return null;
+    return positioned.posts;
 }

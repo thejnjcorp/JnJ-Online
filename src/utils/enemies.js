@@ -148,15 +148,16 @@ export function enemyInstance(stats, name) {
     };
 }
 
-// What staging an encounter changes on the campaign. `campaign` is its current
-// enemy_list and combat_tracker; `zoneNames` those of the active map. An
-// enemy goes in the zone its entry asks for, else the first zone; with no map
-// there are no zones, so nothing is placed (the tracker adds them once there is).
-export function stageEncounter(encounter, campaign, zoneNames = []) {
+// What staging an encounter changes: the campaign's enemy_list, and the posts to
+// add to the combat tracker (which lives on the party doc, see utils/party.js).
+// `campaign` is the campaign's current enemy_list, `tracker` the party's current
+// combat tracker, `zoneNames` those of the active map. An enemy goes in the zone
+// its entry asks for, else the first zone; with no map there are no zones, so
+// nothing is placed (the tracker adds them once there is).
+export function stageEncounter(encounter, campaign, zoneNames = [], tracker = []) {
     const enemies = [];
     const posts = [];
     const nextIndex = {};
-    const tracker = campaign.combat_tracker || [];
     zoneNames.forEach(zone => { nextIndex[zone] = tracker.filter(post => post.status === zone).length; });
 
     (encounter.roster || []).forEach(entry => {
@@ -170,19 +171,16 @@ export function stageEncounter(encounter, campaign, zoneNames = []) {
 
     return {
         enemy_list: [...(campaign.enemy_list || []), ...enemies],
-        combat_tracker: [...tracker, ...posts],
+        trackerPosts: posts,
         stagedIds: enemies.map(enemy => enemy.id),
     };
 }
 
-// The campaign's enemies and tracker with these enemies taken out.
+// The campaign's enemies with these enemies taken out. (Taking them off the combat
+// tracker, on the party doc, is removeFromTracker in utils/party.js.)
 export function removeEnemies(campaign, ids) {
     const gone = new Set(ids);
-    const trackerIds = new Set(ids.map(id => `npc:${id}`));
-    return {
-        enemy_list: (campaign.enemy_list || []).filter(enemy => !gone.has(enemy.id)),
-        combat_tracker: (campaign.combat_tracker || []).filter(post => !trackerIds.has(post.id)),
-    };
+    return { enemy_list: (campaign.enemy_list || []).filter(enemy => !gone.has(enemy.id)) };
 }
 
 // The size of a fight at a glance: how many of each tier, and totals. Counts

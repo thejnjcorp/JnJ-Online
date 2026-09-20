@@ -73,6 +73,8 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
     const hasCampaign = Boolean(characterPage.campaign);
     const { activeMap } = useCampaignMaps(campaignInfo);
     const combatEntities = useCombatEntities(characterList, campaignInfo);
+    // Only someone who can write the campaign (its director) moves the map's tokens.
+    const canEditCampaign = Boolean(userId) && (campaignInfo.director_uid === userId || Boolean(campaignInfo.canWrite?.includes(userId)) || Boolean(campaignInfo.admins?.includes(userId)));
     // The actual map render felt cramped embedded at tab-content size, so it
     // now opens full-screen on demand instead of living inline - see the
     // overlay rendered after the TabContainer below.
@@ -275,7 +277,7 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                                 <img src={reactionUsed ? circleIcon : circleFilledIcon} alt="" className="CharacterMainTab-circle" width={30}/>
                             </button>
                         </span>
-                        {hasCampaign && <CombatMapPeek campaignId={characterPage.campaign} activeMap={activeMap} entities={combatEntities} userId={userId}/>}
+                        {hasCampaign && <CombatMapPeek campaignId={characterPage.campaign} activeMap={activeMap} entities={combatEntities} userId={userId} canEdit={canEditCampaign}/>}
                     </div>
                     {/* Riding along with the action points, so the statuses in play stay in
                         view while the actions scroll (their details are on the vitals card). */}
@@ -442,6 +444,7 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                 <PostListContentCombat
                     inputStatuses={["Zone 0", "Zone 1", "Zone 2", "Zone 3", "Zone 4"]}
                     campaignId={characterPage.campaign}
+                    readOnly={!canEditCampaign}
                 />
             </div>
         }
@@ -463,6 +466,7 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                     activeMap={activeMap}
                     entities={combatEntities}
                     userId={userId}
+                    canEdit={canEditCampaign}
                     noActiveMapMessage="The director hasn't set an active combat map yet."
                 />
             </div>

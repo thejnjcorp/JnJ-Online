@@ -24,10 +24,10 @@ jest.mock('../../src/utils/DraggableElements/PostListInventoryPocket.tsx', () =>
     PostListContentInventoryPocket: ({ characterId }) => <div>Pocket-stub:{characterId}</div>,
 }));
 jest.mock('../../src/utils/DraggableElements/PostListCombat.tsx', () => ({
-    PostListContentCombat: ({ campaignId }) => <div>Combat-stub:{campaignId}</div>,
+    PostListContentCombat: ({ campaignId, readOnly }) => <div data-readonly={String(Boolean(readOnly))}>Combat-stub:{campaignId}</div>,
 }));
 jest.mock('../../src/utils/DraggableElements/PostListCombatMap.tsx', () => ({
-    PostListContentCombatMap: ({ campaignId, activeMap, entities }) => <div>CombatMap-stub:{campaignId}:{activeMap?.map_id}:{entities.length}</div>,
+    PostListContentCombatMap: ({ campaignId, activeMap, entities, canEdit }) => <div data-canedit={String(Boolean(canEdit))}>CombatMap-stub:{campaignId}:{activeMap?.map_id}:{entities.length}</div>,
 }));
 
 // eslint-disable-next-line import/first
@@ -650,6 +650,24 @@ describe('CharacterMainTab', () => {
                 expect(screen.getByText('Passives')).toBeInTheDocument(); // still on the Combat tab
             });
 
+            test('a player only watches: they cannot move the tokens', () => {
+                render(<CharacterMainTab characterPage={characterPage} userId="owner-1" campaignInfo={{ director_uid: 'someone-else', canWrite: ['co-director'] }} />);
+                goToTab('Combat');
+                fireEvent.click(screen.getByRole('button', { name: 'Combat map' }));
+                expect(screen.getByText(/CombatMap-stub:camp-1/)).toHaveAttribute('data-canedit', 'false');
+            });
+
+            test.each([
+                ['the campaign\'s director', { director_uid: 'owner-1' }],
+                ['a co-director', { director_uid: 'x', canWrite: ['owner-1'] }],
+                ['a campaign admin', { director_uid: 'x', admins: ['owner-1'] }],
+            ])('%s can move them', (_who, campaignInfo) => {
+                render(<CharacterMainTab characterPage={characterPage} userId="owner-1" campaignInfo={campaignInfo} />);
+                goToTab('Combat');
+                fireEvent.click(screen.getByRole('button', { name: 'Combat map' }));
+                expect(screen.getByText(/CombatMap-stub:camp-1/)).toHaveAttribute('data-canedit', 'true');
+            });
+
             test('a character in no campaign has no map to peek at', () => {
                 render(<CharacterMainTab characterPage={{ ...characterPage, campaign: '' }} userId="owner-1" />);
                 goToTab('Combat');
@@ -748,6 +766,18 @@ describe('CharacterMainTab', () => {
             render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
             goToTab('Combat Map');
             expect(screen.getByText('Combat-stub:camp-1')).toBeInTheDocument();
+        });
+
+        test('the list is only for looking at: a player cannot drag people between zones in it', () => {
+            render(<CharacterMainTab characterPage={characterPage} userId="owner-1" campaignInfo={{ director_uid: 'someone-else' }} />);
+            goToTab('Combat Map');
+            expect(screen.getByText('Combat-stub:camp-1')).toHaveAttribute('data-readonly', 'true');
+        });
+
+        test('a director can drag them', () => {
+            render(<CharacterMainTab characterPage={characterPage} userId="owner-1" campaignInfo={{ director_uid: 'owner-1' }} />);
+            goToTab('Combat Map');
+            expect(screen.getByText('Combat-stub:camp-1')).toHaveAttribute('data-readonly', 'false');
         });
 
         test('Open Combat Map opens a full-screen overlay with the active map and combat entities', () => {

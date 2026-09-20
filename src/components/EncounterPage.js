@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { doc, onSnapshot, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { db } from '../utils/firebase';
+import { removeFromTracker, updateCombatTracker } from '../utils/party';
+import { useParty } from '../utils/useParty';
 import { useCampaignMaps } from '../utils/useCampaignCombat';
 import { ENEMY_TIERS, removeEnemies, rosterEntry, rosterSummary, stageEncounter, summaryText, tierOf } from '../utils/enemies';
 import { benchmarkSummary, checkEnemy, rangeText } from '../utils/encounterGuide';
@@ -77,6 +79,7 @@ export function EncounterPage() {
     const [creating, setCreating] = useState(false);
     const [busy, setBusy] = useState(false);
     const draftLoaded = useRef(false);
+    const { party } = useParty(campaignId);
     const { activeMap } = useCampaignMaps(campaign || {});
     const zoneNames = useMemo(() => (activeMap?.zones || []).map(zone => zone.name), [activeMap]);
 
@@ -128,8 +131,9 @@ export function EncounterPage() {
         setBusy(true);
         try {
             if (dirty && !(await save())) return;
-            const staged = stageEncounter(draft, campaign, zoneNames);
-            await updateDoc(campaignDoc, { enemy_list: staged.enemy_list, combat_tracker: staged.combat_tracker });
+            const staged = stageEncounter(draft, campaign, zoneNames, party.combat_tracker || []);
+            await updateDoc(campaignDoc, { enemy_list: staged.enemy_list });
+            if (staged.trackerPosts.length > 0) await updateCombatTracker(campaignId, posts => [...posts, ...staged.trackerPosts]);
             await updateDoc(encounterDoc, { stagedIds: [...stagedIds, ...staged.stagedIds], stagedAt: serverTimestamp() });
         } catch (error) {
             alert("Couldn't stage the encounter: " + error.message);
@@ -143,6 +147,7 @@ export function EncounterPage() {
         setBusy(true);
         try {
             await updateDoc(campaignDoc, removeEnemies(campaign, stagedIds));
+            await updateCombatTracker(campaignId, removeFromTracker(stagedIds));
             await updateDoc(encounterDoc, { stagedIds: [] });
         } catch (error) {
             alert("Couldn't clear the staged enemies: " + error.message);

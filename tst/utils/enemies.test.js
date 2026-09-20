@@ -189,7 +189,9 @@ describe('stageEncounter', () => {
             { ...rosterEntry(captain, 'Nowhere'), count: 1 },
         ],
     };
-    const campaign = { enemy_list: [{ id: 'old', enemy_name: 'Old' }], combat_tracker: [{ id: 'npc:old', status: 'Zone A', index: 0 }, { id: 'character:x', status: 'Zone B', index: 0 }] };
+    const campaign = { enemy_list: [{ id: 'old', enemy_name: 'Old' }] };
+    // the party doc's tracker, who is already in the fight
+    const tracker = [{ id: 'npc:old', status: 'Zone A', index: 0 }, { id: 'character:x', status: 'Zone B', index: 0 }];
 
     test('adds one live enemy per count, after the ones already there, numbered', () => {
         const staged = stageEncounter(encounter, campaign, ['Zone A', 'Zone B']);
@@ -199,53 +201,51 @@ describe('stageEncounter', () => {
     });
 
     test('puts each on the tracker in its zone, after whoever is already there, keeping the tracker\'s ids in step with the enemies', () => {
-        const staged = stageEncounter(encounter, campaign, ['Zone A', 'Zone B']);
-        const added = staged.combat_tracker.slice(2);
+        const staged = stageEncounter(encounter, campaign, ['Zone A', 'Zone B'], tracker);
+        const added = staged.trackerPosts;
         expect(added.map(post => [post.title, post.status, post.index])).toEqual([
             ['Rust Bandit 1', 'Zone B', 1], ['Rust Bandit 2', 'Zone B', 2], ['Rust Bandit 3', 'Zone B', 3],
             ['Iron Captain', 'Zone A', 1], // "Nowhere" isn't a zone, so the first one
         ]);
         expect(added.map(post => post.id)).toEqual(staged.stagedIds.map(id => `npc:${id}`));
-        expect(staged.combat_tracker.slice(0, 2)).toEqual(campaign.combat_tracker);
+        expect(staged).not.toHaveProperty('combat_tracker'); // only the posts to add: the tracker is on the party doc
     });
 
     test('with no map there are no zones, so nothing goes on the tracker (the tracker adds them once there is one)', () => {
-        const staged = stageEncounter(encounter, campaign, []);
+        const staged = stageEncounter(encounter, campaign, [], tracker);
         expect(staged.enemy_list).toHaveLength(5);
-        expect(staged.combat_tracker).toEqual(campaign.combat_tracker);
+        expect(staged.trackerPosts).toEqual([]);
     });
 
     test('works on a campaign with no enemies or tracker yet, and an encounter with no roster', () => {
         expect(stageEncounter(encounter, {}, ['Zone A']).enemy_list).toHaveLength(4);
-        expect(stageEncounter({}, campaign, ['Zone A'])).toMatchObject({ stagedIds: [], enemy_list: campaign.enemy_list });
+        expect(stageEncounter(encounter, {}, ['Zone A']).trackerPosts.map(post => post.index)).toEqual([0, 1, 2, 3]);
+        expect(stageEncounter({}, campaign, ['Zone A'], tracker)).toMatchObject({ stagedIds: [], trackerPosts: [], enemy_list: campaign.enemy_list });
     });
 
     test('does not change the campaign it was given', () => {
-        const before = JSON.stringify(campaign);
-        stageEncounter(encounter, campaign, ['Zone A']);
-        expect(JSON.stringify(campaign)).toBe(before);
+        const before = JSON.stringify([campaign, tracker]);
+        stageEncounter(encounter, campaign, ['Zone A'], tracker);
+        expect(JSON.stringify([campaign, tracker])).toBe(before);
     });
 
     test('staging twice adds a second, separate set', () => {
         const once = stageEncounter(encounter, campaign, ['Zone A']);
-        const twice = stageEncounter(encounter, { enemy_list: once.enemy_list, combat_tracker: once.combat_tracker }, ['Zone A']);
+        const twice = stageEncounter(encounter, { enemy_list: once.enemy_list }, ['Zone A'], [...tracker, ...once.trackerPosts]);
         expect(twice.enemy_list).toHaveLength(1 + 4 + 4);
         expect(new Set(twice.enemy_list.map(enemy => enemy.id)).size).toBe(9);
     });
 });
 
 describe('removeEnemies', () => {
-    test('takes the enemies and their tracker cards out, leaving everything else', () => {
-        const campaign = {
-            enemy_list: [{ id: 'a' }, { id: 'b' }],
-            combat_tracker: [{ id: 'npc:a' }, { id: 'npc:b' }, { id: 'character:c' }],
-        };
-        expect(removeEnemies(campaign, ['a'])).toEqual({ enemy_list: [{ id: 'b' }], combat_tracker: [{ id: 'npc:b' }, { id: 'character:c' }] });
+    test('takes the enemies out of the campaign\'s enemy list, leaving the rest (the tracker is on the party doc)', () => {
+        const campaign = { enemy_list: [{ id: 'a' }, { id: 'b' }], combat_tracker: [{ id: 'npc:a' }] };
+        expect(removeEnemies(campaign, ['a'])).toEqual({ enemy_list: [{ id: 'b' }] });
     });
 
     test('ids that are not there, and a campaign with nothing, are fine', () => {
-        expect(removeEnemies({ enemy_list: [{ id: 'a' }] }, ['zzz'])).toEqual({ enemy_list: [{ id: 'a' }], combat_tracker: [] });
-        expect(removeEnemies({}, ['a'])).toEqual({ enemy_list: [], combat_tracker: [] });
+        expect(removeEnemies({ enemy_list: [{ id: 'a' }] }, ['zzz'])).toEqual({ enemy_list: [{ id: 'a' }] });
+        expect(removeEnemies({}, ['a'])).toEqual({ enemy_list: [] });
     });
 });
 

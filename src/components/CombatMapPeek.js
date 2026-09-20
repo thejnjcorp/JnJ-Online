@@ -11,7 +11,7 @@ import '../styles/CombatMapPeek.scss';
 const OPEN_DELAY_MS = 120;
 const CLOSE_DELAY_MS = 250;
 
-export function CombatMapPeek({ campaignId, activeMap, entities, userId }) {
+export function CombatMapPeek({ campaignId, activeMap, entities, userId, canEdit = false }) {
     const [hovering, setHovering] = useState(false);
     const [pinned, setPinned] = useState(false);
     const timer = useRef(null);
@@ -60,6 +60,7 @@ export function CombatMapPeek({ campaignId, activeMap, entities, userId }) {
                     activeMap={activeMap}
                     entities={entities}
                     userId={userId}
+                    canEdit={canEdit}
                     noActiveMapMessage="The director hasn't set an active combat map yet."
                 />
             </div>

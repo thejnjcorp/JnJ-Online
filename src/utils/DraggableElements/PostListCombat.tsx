@@ -1,34 +1,26 @@
-import { useState, useEffect, useMemo } from "react";
-import { doc, onSnapshot, updateDoc } from "firebase/firestore";
-import { db } from "../firebase";
+import { useState, useEffect } from "react";
+import { subscribeParty, updateCombatTracker } from "../party";
 import { Post, PostListContentAbstract } from "./Post.ts";
 
-export function PostListContentCombat({ inputStatuses, campaignId, className, PostCardComponent }) {
+// The combat tracker lives on the campaign's party doc (utils/party.js). `readOnly`
+// lists it without letting anyone drag people between zones.
+export function PostListContentCombat({ inputStatuses, campaignId, className, PostCardComponent, readOnly = false }) {
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const docQuery = useMemo(() => doc(db, "campaigns", campaignId), [campaignId]);
-
-    useEffect(() => {
-        const unsubscribe = onSnapshot(docQuery, (docSnap) => {
-            if (docSnap.metadata.hasPendingWrites || loading) {
-                setPosts((docSnap.data()?.combat_tracker as unknown as Post[]) ?? []);
-                setLoading(false);
-            }
-        });
-
-        return () => unsubscribe();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [docQuery]);
+    // Every change is applied, whoever made it: a token dragged to another zone on
+    // the map moves that combatant in this list too.
+    useEffect(() => subscribeParty(campaignId, ({ party }) => {
+        setPosts((party.combat_tracker as unknown as Post[]) ?? []);
+        setLoading(false);
+    }), [campaignId]);
 
     const useCombatTrackerPosts = () => {
         return { posts, loading };
     }
 
     const updateCombatTrackerPosts = (updatedPosts: Post[]) => {
-        updateDoc(docQuery, {
-            combat_tracker: updatedPosts
-        });
+        updateCombatTracker(campaignId, () => updatedPosts).catch((error) => alert("Couldn't move them: " + error));
     }
 
     return <PostListContentAbstract
@@ -37,5 +29,6 @@ export function PostListContentCombat({ inputStatuses, campaignId, className, Po
         updatePosts={updateCombatTrackerPosts}
         className={className}
         PostCardComponent={PostCardComponent}
+        readOnly={readOnly}
     />
 }

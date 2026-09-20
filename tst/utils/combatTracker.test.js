@@ -1,4 +1,5 @@
 import { NO_MAP_ZONE, syncCombatTracker } from '../../src/utils/combatTracker';
+import { slotPosition, zoneAt, zoneRects } from '../../src/utils/mapTokens';
 
 const post = (id, status, index) => ({ id, title: id, content: '', status, index });
 const entity = id => ({ id, title: id });
@@ -67,6 +68,39 @@ describe('syncCombatTracker', () => {
 
         test('is already right once everyone is there', () => {
             expect(syncCombatTracker([post('a', 'Combatants', 0)], [entity('a')], [NO_MAP_ZONE])).toBeNull();
+        });
+    });
+
+    describe('placing tokens on a map (given the zones\' rectangles)', () => {
+        const rects = zoneRects([{ name: 'Zone 1', x: 50, y: 50, width: 100, height: 100 }, { name: 'Zone 2', x: 250, y: 100, width: 200, height: 100 }]);
+
+        test('a new combatant gets a position in the first zone', () => {
+            const next = syncCombatTracker([], [entity('a')], zones, rects);
+            expect(next[0]).toMatchObject({ id: 'a', status: 'Zone 1', ...slotPosition(rects[0], 0) });
+        });
+
+        test('someone already in a zone but with no position (a tracker from before tokens) is given one', () => {
+            const next = syncCombatTracker([post('a', 'Zone 2', 0)], [entity('a')], zones, rects);
+            expect(zoneAt(next[0], rects)).toBe('Zone 2');
+        });
+
+        test('someone moved to another zone from the line view has their token brought along', () => {
+            const next = syncCombatTracker([{ ...post('a', 'Zone 2', 0), x: 0.2, y: 0.2 }], [entity('a')], zones, rects);
+            expect(zoneAt(next[0], rects)).toBe('Zone 2');
+        });
+
+        test('a token already in its zone stays exactly where it is: nothing to write', () => {
+            expect(syncCombatTracker([{ ...post('a', 'Zone 1', 0), x: 0.25, y: 0.25 }], [entity('a')], zones, rects)).toBeNull();
+        });
+
+        test('once placed, syncing again changes nothing', () => {
+            const first = syncCombatTracker([], [entity('a'), entity('b')], zones, rects);
+            expect(syncCombatTracker(first, [entity('a'), entity('b')], zones, rects)).toBeNull();
+        });
+
+        test('without rectangles (no map geometry) no positions are added', () => {
+            const next = syncCombatTracker([], [entity('a')], zones);
+            expect(next[0]).not.toHaveProperty('x');
         });
     });
 

@@ -39,6 +39,17 @@ service cloud.firestore {
       match /encounters/{encounterId} {
         allow read, write: if isSignedIn() && isCampaignDirector(campaignId);
       }
+
+      // The party doc: what the whole party shares and changes together - the
+      // combat tracker (who is in the fight and where each token sits on the
+      // map), and the party's inventory and notes. Unlike the campaign doc, every
+      // member of the campaign can write it, players included, so a player can move
+      // their own token; anyone outside the campaign can't even read it. One
+      // document per campaign, so like the notes above the check only needs the
+      // path and the parent campaign doc.
+      match /party/{partyId} {
+        allow read, write: if isSignedIn() && isCampaignMember(campaignId);
+      }
     }
 
     match /characters/{characterId} {
@@ -302,6 +313,13 @@ service cloud.firestore {
       return uid() == parentDoc('campaigns', campaignId).get('director_uid', '')
         || uid() in parentDoc('campaigns', campaignId).get('canWrite', [])
         || uid() in parentDoc('campaigns', campaignId).get('admins', []);
+    }
+
+    // Anyone in the campaign: a player (canRead), or one of its directors - the
+    // director, co-directors (canWrite) and doc admins.
+    function isCampaignMember(campaignId) {
+      return uid() in parentDoc('campaigns', campaignId).get('canRead', [])
+        || isCampaignDirector(campaignId);
     }
 
     function documentExists(docName, documentId) {

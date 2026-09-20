@@ -1,0 +1,113 @@
+// The combatants' tokens on the combat map (MapTokens.js). The layer covers the
+// map exactly and lets clicks through; only the tokens themselves take the pointer.
+.MapTokens {
+    position: absolute;
+    inset: 0;
+    z-index: 7;
+    pointer-events: none;
+}
+
+.MapTokens-zone-highlight {
+    position: absolute;
+    box-sizing: border-box;
+    border: 2px solid var(--jnj-color-accent);
+    background: rgba(200, 162, 74, 0.22);
+    pointer-events: none;
+}
+
+.MapToken {
+    --token-color: var(--jnj-color-text-muted);
+    position: absolute;
+    box-sizing: border-box;
+    aspect-ratio: 1;
+    padding: 0;
+    border: 2px solid var(--token-color);
+    border-radius: 50%;
+    background: var(--jnj-color-bg-raised);
+    color: var(--jnj-color-text);
+    transform: translate(-50%, -50%);
+    pointer-events: auto;
+    touch-action: none;
+    cursor: default;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.55);
+
+    &:focus-visible {
+        outline: 2px solid var(--jnj-color-text);
+        outline-offset: 2px;
+    }
+}
+
+.MapToken-player { --token-color: var(--jnj-color-accent); }
+.MapToken-ally { --token-color: var(--jnj-color-success); }
+.MapToken-enemy { --token-color: var(--jnj-color-danger); }
+.MapToken-neutral { --token-color: var(--jnj-color-text-muted); }
+
+.MapToken-movable {
+    cursor: grab;
+}
+
+.MapToken-dragging {
+    z-index: 2;
+    cursor: grabbing;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.6);
+    transition: none;
+}
+
+// let go here and it goes back
+.MapToken-outside {
+    opacity: 0.55;
+}
+
+.MapToken-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    pointer-events: none;
+}
+
+.MapToken-initials {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    font-size: calc(10px * var(--map-scale, 1) * var(--jnj-text-scale, 1));
+    font-weight: 700;
+    color: var(--jnj-color-text);
+    user-select: none;
+}
+
+// The name shows for the token you point at, focus or drag, so a crowded zone
+// isn't a tangle of labels.
+.MapToken-name {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 7em;
+    margin-top: 1px;
+    padding: 0 3px;
+    overflow: hidden;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    font-size: calc(9px * var(--map-scale, 1) * var(--jnj-text-scale, 1));
+    line-height: 1.3;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
+}
+
+.MapToken:hover,
+.MapToken:focus-visible,
+.MapToken-dragging {
+    z-index: 3;
+
+    .MapToken-name {
+        display: block;
+    }
+}

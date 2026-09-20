@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { collection, getDocs, getDoc, doc, where, query, getCountFromServer, documentId, updateDoc, arrayUnion, arrayRemove, deleteField, serverTimestamp, Timestamp } from "firebase/firestore";
 import { auth, db } from "../utils/firebase";
+import { ensureParty } from "../utils/party";
 import '../styles/CampaignPage.scss';
 import { onAuthStateChanged } from "firebase/auth";
 import loadingIcon from '../icons/loading.svg';
@@ -57,6 +58,9 @@ export function CampaignPage() {
         }
         setCampaignInfo(docSnap.data());
         document.title = docSnap.data().campaign_name;
+        // A campaign made before the party doc existed gets its one the first time
+        // anyone in it opens the campaign (see ensureParty).
+        ensureParty(campaignId).catch(error => console.log("Couldn't create the party doc: " + error));
         const characters = query(collection(db, "characters"), where("campaign", "==", campaignId));
         const querySnapshot = await getDocs(characters);
         setCharacterList(querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));

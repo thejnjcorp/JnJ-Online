@@ -2,6 +2,18 @@ jest.mock('../../src/utils/firebase', () => ({ db: {} }));
 
 const mockOnSnapshot = jest.fn();
 const mockUpdateDoc = jest.fn();
+// What the party doc's tracker is right now, and what gets saved to it (the party
+// module runs each change against it, as its transaction does).
+let mockTracker = [];
+const mockSaveTracker = jest.fn();
+const mockSubscribeParty = jest.fn();
+jest.mock('../../src/utils/party', () => ({
+    subscribeParty: (...args) => mockSubscribeParty(...args),
+    updateCombatTracker: async (campaignId, change) => {
+        const next = change(mockTracker);
+        if (next) await mockSaveTracker(campaignId, next);
+    },
+}));
 jest.mock('firebase/firestore', () => ({
     doc: (...args) => ({ __doc: args.slice(1) }),
     onSnapshot: (...args) => mockOnSnapshot(...args),
@@ -21,9 +33,11 @@ jest.mock('../../src/utils/DraggableElements/Post.ts', () => ({
 }));
 
 // eslint-disable-next-line import/first
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within, act } from '@testing-library/react';
 // eslint-disable-next-line import/first
 import { PostListContentCombatMap } from '../../src/utils/DraggableElements/PostListCombatMap.tsx';
+// eslint-disable-next-line import/first
+import { slotPosition, zoneRects } from '../../src/utils/mapTokens';
 
 const stroke = id => ({ id, color: '#e53935', size: 0.006, points: [0.1, 0.1, 0.4, 0.2] });
 const zone = (name, x) => ({ id: name, name, x, y: 10, width: 100, height: 80 });
@@ -32,74 +46,390 @@ const activeMap = (extra = {}) => ({ map_id: 'map-1', link: 'map.png', zones: [z
 beforeEach(() => {
     mockAbstractProps.length = 0;
     mockUpdateDoc.mockReset();
+    mockSaveTracker.mockReset();
+    mockTracker = [];
     mockOnSnapshot.mockImplementation(() => jest.fn());
+    mockSubscribeParty.mockReset();
+    mockSubscribeParty.mockImplementation(() => jest.fn());
 });
 
-// The campaign's combat_tracker arrives from the campaign snapshot.
-const withTracker = tracker => mockOnSnapshot.mockImplementation((_ref, next) => {
-    next({ metadata: { hasPendingWrites: false }, data: () => ({ combat_tracker: tracker }) });
-    return jest.fn();
-});
+// The combat_tracker arrives from the party doc's snapshot.
+const withTracker = tracker => {
+    mockTracker = tracker;
+    mockSubscribeParty.mockImplementation((_campaignId, listener) => {
+        listener({ party: { combat_tracker: tracker }, loaded: true, error: null });
+        return jest.fn();
+    });
+};
 const post = (id, status, index) => ({ id, title: id, content: '', status, index });
 
 describe('PostListContentCombatMap keeping the tracker in step with the fight', () => {
-    const entities = [{ id: 'a', title: 'Aria' }, { id: 'b', title: 'Bram' }];
+    const entities = [{ id: 'a', title: 'Aria', kind: 'player' }, { id: 'b', title: 'Bram', kind: 'enemy' }];
+    const rects = zoneRects([zone('Zone 1', 10), zone('Zone 2', 200)]);
+    const placed = (id, title, status, index, n) => ({ id, title, content: '', status, index, ...slotPosition(rects[status === 'Zone 1' ? 0 : 1], n) });
 
-    test('with a map, new combatants go in its first zone', () => {
+    test('with a map, new combatants go in its first zone, each with a spot to stand in', () => {
         withTracker([]);
-        render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={entities} userId="player-1" />);
-        expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['campaigns', 'camp-1'] }, { combat_tracker: [
-            { id: 'a', title: 'Aria', content: '', status: 'Zone 1', index: 0 },
-            { id: 'b', title: 'Bram', content: '', status: 'Zone 1', index: 1 },
-        ] });
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={entities} userId="director-1" canEdit />);
+        expect(mockSaveTracker).toHaveBeenCalledWith('camp-1', [
+            { id: 'a', title: 'Aria', content: '', status: 'Zone 1', index: 0, ...slotPosition(rects[0], 0) },
+            { id: 'b', title: 'Bram', content: '', status: 'Zone 1', index: 1, ...slotPosition(rects[0], 1) },
+        ]);
     });
 
-    test('with no map chosen by the director, they share one Combatants column', () => {
+    test('with no map chosen by the director, they share one Combatants column (no spots: there is no map)', () => {
         withTracker([]);
-        render(<PostListContentCombatMap campaignId="camp-1" activeMap={undefined} entities={entities} userId="director-1" noMap />);
-        expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['campaigns', 'camp-1'] }, { combat_tracker: [
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={undefined} entities={entities} userId="director-1" canEdit noMap />);
+        expect(mockSaveTracker).toHaveBeenCalledWith('camp-1', [
             { id: 'a', title: 'Aria', content: '', status: 'Combatants', index: 0 },
             { id: 'b', title: 'Bram', content: '', status: 'Combatants', index: 1 },
-        ] });
+        ]);
     });
 
     test('unselecting the map brings everyone out of the zones into that column', () => {
         withTracker([post('a', 'Zone 2', 0), post('b', 'Zone 1', 0)]);
-        render(<PostListContentCombatMap campaignId="camp-1" activeMap={undefined} entities={entities} userId="director-1" noMap />);
-        expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['campaigns', 'camp-1'] }, { combat_tracker: [post('a', 'Combatants', 0), post('b', 'Combatants', 1)] });
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={undefined} entities={entities} userId="director-1" canEdit noMap />);
+        expect(mockSaveTracker).toHaveBeenCalledWith('camp-1', [post('a', 'Combatants', 0), post('b', 'Combatants', 1)]);
     });
 
-    test('choosing a map again puts everyone in its first zone', () => {
+    test('choosing a map again puts everyone in its first zone, on spots', () => {
         withTracker([post('a', 'Combatants', 0), post('b', 'Combatants', 1)]);
-        render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={entities} userId="director-1" />);
-        expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['campaigns', 'camp-1'] }, { combat_tracker: [post('a', 'Zone 1', 0), post('b', 'Zone 1', 1)] });
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={entities} userId="director-1" canEdit />);
+        expect(mockSaveTracker).toHaveBeenCalledWith('camp-1', [placed('a', 'a', 'Zone 1', 0, 0), placed('b', 'b', 'Zone 1', 1, 1)]);
+    });
+
+    test('someone who cannot write the campaign only watches: nothing is written', () => {
+        withTracker([]);
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={entities} userId="player-1" />);
+        expect(mockSaveTracker).not.toHaveBeenCalled();
     });
 
     test('a map that is still loading is not the same as no map: nothing is moved', () => {
         withTracker([post('a', 'Zone 2', 0)]);
-        render(<PostListContentCombatMap campaignId="camp-1" activeMap={undefined} entities={entities} userId="player-1" />);
-        expect(mockUpdateDoc).not.toHaveBeenCalled();
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={undefined} entities={entities} userId="director-1" canEdit />);
+        expect(mockSaveTracker).not.toHaveBeenCalled();
     });
 
     test('nothing is written when the tracker is already right', () => {
-        withTracker([post('a', 'Zone 2', 0), post('b', 'Zone 1', 0)]);
-        render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={entities} userId="player-1" />);
-        expect(mockUpdateDoc).not.toHaveBeenCalled();
+        withTracker([placed('a', 'a', 'Zone 2', 0, 0), placed('b', 'b', 'Zone 1', 0, 0)]);
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={entities} userId="director-1" canEdit />);
+        expect(mockSaveTracker).not.toHaveBeenCalled();
     });
 
     test('a failed write is logged, not thrown', async () => {
         const log = jest.spyOn(console, 'log').mockImplementation(() => {});
-        mockUpdateDoc.mockRejectedValue(new Error('permission-denied'));
+        mockSaveTracker.mockRejectedValue(new Error('permission-denied'));
         withTracker([]);
-        render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={entities} userId="player-1" />);
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={entities} userId="director-1" canEdit />);
         await waitFor(() => expect(log).toHaveBeenCalledWith("Couldn't update the combat tracker: Error: permission-denied"));
         log.mockRestore();
     });
 
     test('with no map the message says there is none', () => {
         withTracker([]);
-        render(<PostListContentCombatMap campaignId="camp-1" activeMap={undefined} entities={[]} userId="director-1" noMap />);
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={undefined} entities={[]} userId="director-1" canEdit noMap />);
         expect(screen.getByText(/No active map selected/)).toBeInTheDocument();
+    });
+});
+
+describe('PostListContentCombatMap tokens', () => {
+    const entities = [{ id: 'a', title: 'Aria Vale', kind: 'player', image: 'aria.png' }, { id: 'b', title: 'Rust Bandit', kind: 'enemy' }];
+    // Zone 1 is at (10, 10) 100 x 80 on the 500px map: 0.02..0.22 across, 0.02..0.18 down; Zone 2 at 0.4..0.8
+    const tracker = () => [{ ...post('a', 'Zone 1', 0), x: 0.1, y: 0.1 }, { ...post('b', 'Zone 2', 0), x: 0.5, y: 0.1 }];
+    const layer = () => document.querySelector('.MapTokens');
+    // the stand-in map is 1000 wide and 500 tall: 1 map width = 1000px
+    const mockLayerBox = () => { layer().getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 500, right: 1000, bottom: 500, x: 0, y: 0 }); };
+    const tokenOf = name => screen.getByRole('button', { name: new RegExp(`^${name}`) });
+    const pointer = (element, type, x, y, extra = {}) => fireEvent(element, Object.assign(new MouseEvent(type, { bubbles: true, clientX: x, clientY: y, ...extra }), { pointerId: 1, pointerType: 'mouse' }));
+
+    test('each combatant with a place is a token on the map, named for them and the zone they are in', () => {
+        withTracker(tracker());
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={entities} userId="player-1" />);
+        expect(screen.getAllByRole('button').map(button => button.getAttribute('aria-label'))).toEqual(['Aria Vale, Zone 1', 'Rust Bandit, Zone 2']);
+    });
+
+    test('a portrait shows if there is one, and initials if not', () => {
+        withTracker(tracker());
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={entities} userId="player-1" />);
+        expect(tokenOf('Aria Vale').querySelector('img')).toHaveAttribute('src', 'aria.png');
+        expect(within(tokenOf('Rust Bandit')).getByText('RB')).toBeInTheDocument();
+    });
+
+    test('they are coloured by side', () => {
+        withTracker(tracker());
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={entities} userId="player-1" />);
+        expect(tokenOf('Aria Vale')).toHaveClass('MapToken-player');
+        expect(tokenOf('Rust Bandit')).toHaveClass('MapToken-enemy');
+    });
+
+    test('someone who has not been given a place yet is not shown', () => {
+        withTracker([...tracker(), post('c', 'Zone 1', 1)]);
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={[...entities, { id: 'c', title: 'Cass', kind: 'ally' }]} userId="player-1" />);
+        expect(screen.getAllByRole('button')).toHaveLength(2);
+    });
+
+    test('someone in the tracker who is not in the fight is not shown, and there are no cards in the zones', () => {
+        withTracker([...tracker(), { ...post('gone', 'Zone 1', 2), x: 0.1, y: 0.1 }]);
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={entities} userId="player-1" />);
+        expect(screen.getAllByRole('button')).toHaveLength(2);
+        expect(mockAbstractProps.at(-1).usePosts().posts).toEqual([]);
+    });
+
+    test('a director can move anyone\'s token', () => {
+        withTracker(tracker());
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={entities} userId="director-1" canEdit />);
+        expect(tokenOf('Aria Vale')).toHaveClass('MapToken-movable');
+        expect(tokenOf('Rust Bandit')).toHaveClass('MapToken-movable');
+    });
+
+    describe('a player moving their own token', () => {
+        const owned = [{ ...entities[0], ownerIds: ['player-1'] }, { id: 'c', title: 'Bram Holt', kind: 'player', ownerIds: ['player-2'] }, entities[1]];
+        const trackerWithBram = () => [...tracker(), { ...post('c', 'Zone 1', 1), x: 0.15, y: 0.1 }];
+        const show = (userId = 'player-1') => render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={owned} userId={userId} />);
+
+        test('can move their character\'s token, and only theirs', () => {
+            withTracker(trackerWithBram());
+            show();
+            expect(tokenOf('Aria Vale')).toHaveClass('MapToken-movable');
+            expect(tokenOf('Bram Holt')).not.toHaveClass('MapToken-movable'); // another player's
+            expect(tokenOf('Rust Bandit')).not.toHaveClass('MapToken-movable'); // an enemy
+        });
+
+        test('someone who can write the character (a co-owner) moves it too', () => {
+            withTracker(trackerWithBram());
+            show('player-2');
+            expect(tokenOf('Bram Holt')).toHaveClass('MapToken-movable');
+            expect(tokenOf('Aria Vale')).not.toHaveClass('MapToken-movable');
+        });
+
+        test('writes the move to the party doc, only changing their own token', () => {
+            withTracker(trackerWithBram());
+            show();
+            mockLayerBox();
+            const token = tokenOf('Aria Vale');
+
+            pointer(token, 'pointerdown', 100, 100, { button: 0 });
+            pointer(token, 'pointermove', 550, 100);
+            pointer(token, 'pointerup', 550, 100);
+
+            expect(mockSaveTracker).toHaveBeenCalledTimes(1);
+            const [campaignId, saved] = mockSaveTracker.mock.calls[0];
+            expect(campaignId).toBe('camp-1');
+            expect(saved.find(p => p.id === 'a')).toMatchObject({ status: 'Zone 2', x: 0.55 });
+            expect(saved.find(p => p.id === 'b')).toEqual(trackerWithBram().find(p => p.id === 'b'));
+            expect(saved.find(p => p.id === 'c')).toEqual(trackerWithBram().find(p => p.id === 'c'));
+        });
+
+        test('does not touch who is in the fight: a player never syncs the tracker', () => {
+            withTracker([]);
+            show();
+            expect(mockSaveTracker).not.toHaveBeenCalled();
+        });
+
+        test('someone who is not a player in the party, and not the owner, cannot', () => {
+            withTracker(trackerWithBram());
+            show('stranger');
+            expect(document.querySelectorAll('.MapToken-movable')).toHaveLength(0);
+        });
+
+        test('nobody is movable with no signed-in user', () => {
+            withTracker(trackerWithBram());
+            render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={owned} />);
+            expect(document.querySelectorAll('.MapToken-movable')).toHaveLength(0);
+        });
+    });
+
+    test('dragging one to another zone writes its new spot and zone', () => {
+        withTracker(tracker());
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={entities} userId="director-1" canEdit />);
+        mockLayerBox();
+        const token = tokenOf('Aria Vale');
+        expect(token).toHaveClass('MapToken-movable');
+
+        pointer(token, 'pointerdown', 100, 100, { button: 0 });
+        pointer(token, 'pointermove', 550, 100);
+        pointer(token, 'pointerup', 550, 100);
+
+        expect(mockSaveTracker).toHaveBeenCalledTimes(1);
+        const [, saved] = mockSaveTracker.mock.calls[0];
+        expect(saved.find(p => p.id === 'a')).toMatchObject({ status: 'Zone 2', x: 0.55, y: 0.1, index: 1 });
+        expect(saved.find(p => p.id === 'b')).toMatchObject({ status: 'Zone 2', x: 0.5, y: 0.1 }); // the others are as they were
+    });
+
+    test('dropping one outside every zone leaves it where it was', () => {
+        withTracker(tracker());
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={entities} userId="director-1" canEdit />);
+        mockLayerBox();
+        const token = tokenOf('Aria Vale');
+
+        pointer(token, 'pointerdown', 100, 100, { button: 0 });
+        pointer(token, 'pointermove', 330, 300);
+        pointer(token, 'pointerup', 330, 300);
+
+        expect(mockSaveTracker).not.toHaveBeenCalled();
+    });
+
+    test('a move that goes on the map\'s edge is kept inside it', () => {
+        withTracker([{ ...post('a', 'Zone 1', 0), x: 0.1, y: 0.1 }]);
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap({ zones: [{ id: 'z', name: 'Whole map', x: 0, y: 0, width: 500, height: 250 }] })} entities={entities} userId="director-1" canEdit />);
+        mockLayerBox();
+        const token = tokenOf('Aria Vale');
+
+        pointer(token, 'pointerdown', 100, 100, { button: 0 });
+        pointer(token, 'pointermove', 5000, -500);
+        pointer(token, 'pointerup', 5000, -500);
+
+        const moved = mockSaveTracker.mock.calls.at(-1)[1].find(p => p.id === 'a');
+        expect(moved.x).toBe(1);
+        expect(moved.y).toBe(0);
+    });
+
+    test('a token moved by someone else is moved on this map too', () => {
+        let push;
+        mockSubscribeParty.mockImplementation((_campaignId, listener) => {
+            push = tracker => listener({ party: { combat_tracker: tracker }, loaded: true, error: null });
+            push(tracker());
+            return jest.fn();
+        });
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={entities} userId="player-1" />);
+        expect(tokenOf('Aria Vale').style.left).toBe('10%');
+
+        act(() => push([{ ...post('a', 'Zone 2', 0), x: 0.6, y: 0.1 }, { ...post('b', 'Zone 2', 0), x: 0.5, y: 0.1 }]));
+
+        expect(tokenOf('Aria Vale').style.left).toBe('60%');
+        expect(tokenOf('Aria Vale')).toHaveAccessibleName('Aria Vale, Zone 2');
+    });
+
+    describe('a token dropped somewhere stays there while the move is saved', () => {
+        // the tracker as the party doc's listener delivers it, pushed by hand
+        let push;
+        const listen = initial => {
+            mockTracker = initial;
+            mockSubscribeParty.mockImplementation((_campaignId, listener) => {
+                push = tracker => listener({ party: { combat_tracker: tracker }, loaded: true, error: null });
+                push(initial);
+                return jest.fn();
+            });
+        };
+        const dropAria = () => {
+            mockLayerBox();
+            const token = tokenOf('Aria Vale');
+            pointer(token, 'pointerdown', 100, 100, { button: 0 });
+            pointer(token, 'pointermove', 550, 100);
+            pointer(token, 'pointerup', 550, 100);
+        };
+        const aria = () => tokenOf('Aria Vale');
+        const leftOf = element => parseFloat(element.style.left);
+        const draw = () => render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={entities} userId="director-1" canEdit />);
+
+        test('from the moment it is dropped, even though the tracker still has the old spot (a transaction is not reflected until the server confirms it)', () => {
+            listen(tracker());
+            draw();
+            expect(leftOf(aria())).toBeCloseTo(10);
+
+            dropAria();
+
+            expect(leftOf(aria())).toBeCloseTo(55); // not back at 10%
+            expect(aria()).toHaveAccessibleName('Aria Vale, Zone 2');
+        });
+
+        test('and stays there when the tracker then shows it there: no jump', () => {
+            listen(tracker());
+            draw();
+            dropAria();
+
+            act(() => push(tracker().map(p => (p.id === 'a' ? { ...p, status: 'Zone 2', x: 0.55, y: 0.1 } : p))));
+
+            expect(leftOf(aria())).toBeCloseTo(55);
+        });
+
+        test('an update to some other token while it is waiting does not send it back', () => {
+            listen(tracker());
+            draw();
+            dropAria();
+
+            act(() => push(tracker().map(p => (p.id === 'b' ? { ...p, x: 0.6, y: 0.15 } : p)))); // Rust Bandit moved; Aria not yet
+
+            expect(leftOf(aria())).toBeCloseTo(55);
+            expect(leftOf(tokenOf('Rust Bandit'))).toBeCloseTo(60);
+        });
+
+        test('once the tracker has caught up, later moves of it (by someone else) are followed', () => {
+            listen(tracker());
+            draw();
+            dropAria();
+            act(() => push(tracker().map(p => (p.id === 'a' ? { ...p, status: 'Zone 2', x: 0.55, y: 0.1 } : p))));
+
+            act(() => push(tracker().map(p => (p.id === 'a' ? { ...p, status: 'Zone 2', x: 0.7, y: 0.1 } : p))));
+
+            expect(leftOf(aria())).toBeCloseTo(70);
+        });
+
+        test('if someone else moved it in the meantime, that is where it is', () => {
+            listen(tracker());
+            draw();
+            dropAria();
+
+            act(() => push(tracker().map(p => (p.id === 'a' ? { ...p, status: 'Zone 2', x: 0.75, y: 0.15 } : p))));
+
+            expect(leftOf(aria())).toBeCloseTo(75);
+        });
+
+        test('if the move cannot be saved, it goes back, and says so', async () => {
+            const alert = jest.spyOn(window, 'alert').mockImplementation(() => {});
+            mockSaveTracker.mockRejectedValue(new Error('offline'));
+            listen(tracker());
+            draw();
+
+            dropAria();
+            expect(leftOf(aria())).toBeCloseTo(55);
+
+            await waitFor(() => expect(leftOf(aria())).toBeCloseTo(10));
+            expect(alert).toHaveBeenCalledWith("Couldn't move the token: Error: offline");
+            alert.mockRestore();
+        });
+
+        test('if the tracker never shows it, it is let go after a while rather than held there forever', () => {
+            jest.useFakeTimers();
+            listen(tracker());
+            draw();
+            dropAria();
+            expect(leftOf(aria())).toBeCloseTo(55);
+
+            act(() => { jest.advanceTimersByTime(9000); });
+
+            expect(leftOf(aria())).toBeCloseTo(10);
+            jest.useRealTimers();
+        });
+
+        test('dropping it again straight away holds it at the new spot, not the first', () => {
+            listen(tracker());
+            draw();
+            dropAria();
+
+            const token = aria();
+            pointer(token, 'pointerdown', 550, 100, { button: 0 });
+            pointer(token, 'pointermove', 580, 100);
+            pointer(token, 'pointerup', 580, 100);
+
+            expect(leftOf(aria())).toBeCloseTo(58);
+            act(() => push(tracker().map(p => (p.id === 'a' ? { ...p, status: 'Zone 2', x: 0.55, y: 0.1 } : p)))); // the first drop's echo arrives
+            expect(leftOf(aria())).toBeCloseTo(58);
+        });
+
+        test('nothing is held for a token nobody has moved', () => {
+            listen(tracker());
+            draw();
+            expect(leftOf(aria())).toBeCloseTo(10);
+            act(() => push(tracker().map(p => (p.id === 'a' ? { ...p, x: 0.15 } : p))));
+            expect(leftOf(aria())).toBeCloseTo(15);
+        });
+    });
+
+    test('no tokens without a map', () => {
+        withTracker(tracker());
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={undefined} entities={entities} userId="director-1" canEdit noMap />);
+        expect(document.querySelector('.MapTokens')).not.toBeInTheDocument();
     });
 });
 

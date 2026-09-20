@@ -14,6 +14,14 @@ jest.mock('firebase/firestore', () => ({
     updateDoc: (...args) => mockUpdateDoc(...args),
 }));
 
+// The party doc holds the combat tracker; its changes are worked out against this.
+let mockParty = {};
+const mockUpdateCombatTracker = jest.fn();
+jest.mock('../../src/utils/useParty', () => ({ useParty: () => ({ party: mockParty, loaded: true }) }));
+jest.mock('../../src/utils/party', () => ({
+    ...jest.requireActual('../../src/utils/party'),
+    updateCombatTracker: (...args) => mockUpdateCombatTracker(...args),
+}));
 let mockBestiary;
 jest.mock('../../src/utils/useBestiary', () => ({ useBestiary: () => mockBestiary }));
 let mockMaps;
@@ -38,7 +46,7 @@ const captain = { id: 'b2', ...newEnemy('Captain'), enemy_name: 'Iron Captain', 
 
 const snap = data => ({ exists: () => data !== null, data: () => data });
 
-function renderPage({ encounter, campaign = { enemy_list: [], combat_tracker: [] }, zones = ['Zone A', 'Zone B'], enemies = [bandit, captain] } = {}) {
+function renderPage({ encounter, campaign = { enemy_list: [] }, zones = ['Zone A', 'Zone B'], enemies = [bandit, captain] } = {}) {
     mockBestiary = { enemies, status: 'ready' };
     mockMaps = { activeMap: zones ? { zones: zones.map(name => ({ name })) } : undefined };
     renderWithRouter(<EncounterPage />, { route: '/campaigns/camp-1/encounters/enc-1' });
@@ -54,6 +62,9 @@ beforeEach(() => {
     Object.keys(mockListeners).forEach(key => delete mockListeners[key]);
     mockUpdateDoc.mockResolvedValue(undefined);
     mockAddDoc.mockResolvedValue({ id: 'new-enemy' });
+    mockParty = {};
+    mockUpdateCombatTracker.mockReset();
+    mockUpdateCombatTracker.mockResolvedValue(undefined);
     mockAuth.currentUser = { uid: 'dm' };
     window.alert = jest.fn();
     window.confirm = jest.fn(() => true);
@@ -617,7 +628,7 @@ describe('EncounterPage', () => {
         const encounter = () => ({ name: 'Ambush', roster: [{ ...twoBandits(), zone: 'Zone B' }, rosterEntry(captain)], stagedIds: [] });
 
         test('adds the enemies to the campaign and the tracker, then records which they were', async () => {
-            renderPage({ encounter: encounter(), campaign: { enemy_list: [{ id: 'old', enemy_name: 'Old' }], combat_tracker: [] } });
+            renderPage({ encounter: encounter(), campaign: { enemy_list: [{ id: 'old', enemy_name: 'Old' }] } });
 
             fireEvent.click(screen.getByRole('button', { name: 'Stage encounter' }));
 
@@ -625,11 +636,35 @@ describe('EncounterPage', () => {
             const [campaignTarget, campaignData] = mockUpdateDoc.mock.calls[0];
             expect(campaignTarget).toEqual({ __doc: CAMPAIGN });
             expect(campaignData.enemy_list.map(enemy => enemy.enemy_name)).toEqual(['Old', 'Rust Bandit 1', 'Rust Bandit 2', 'Iron Captain']);
-            expect(campaignData.combat_tracker.map(post => [post.title, post.status])).toEqual([['Rust Bandit 1', 'Zone B'], ['Rust Bandit 2', 'Zone B'], ['Iron Captain', 'Zone A']]);
+            expect(campaignData).not.toHaveProperty('combat_tracker'); // the tracker is on the party doc
+
+            // ...where they are added to whoever is already on it, in a transaction
+            expect(mockUpdateCombatTracker).toHaveBeenCalledWith('camp-1', expect.any(Function));
+            const added = mockUpdateCombatTracker.mock.calls[0][1]([{ id: 'character:x', status: 'Zone A', index: 0 }]);
+            expect(added[0]).toEqual({ id: 'character:x', status: 'Zone A', index: 0 });
+            expect(added.slice(1).map(post => [post.title, post.status])).toEqual([['Rust Bandit 1', 'Zone B'], ['Rust Bandit 2', 'Zone B'], ['Iron Captain', 'Zone A']]);
 
             const [encounterTarget, encounterData] = mockUpdateDoc.mock.calls[1];
             expect(encounterTarget).toEqual({ __doc: ENCOUNTER });
             expect(encounterData.stagedIds).toEqual(campaignData.enemy_list.slice(1).map(enemy => enemy.id));
+        });
+
+        test('they line up after whoever is already in the zone on the party doc\'s tracker', async () => {
+            mockParty = { combat_tracker: [{ id: 'character:a', status: 'Zone B', index: 0 }, { id: 'character:b', status: 'Zone B', index: 1 }] };
+            renderPage({ encounter: encounter() });
+
+            fireEvent.click(screen.getByRole('button', { name: 'Stage encounter' }));
+
+            await waitFor(() => expect(mockUpdateCombatTracker).toHaveBeenCalled());
+            const added = mockUpdateCombatTracker.mock.calls[0][1]([]);
+            expect(added.filter(post => post.status === 'Zone B').map(post => post.index)).toEqual([2, 3]);
+        });
+
+        test('with no map, only the enemies are added: there is nothing to put on the tracker', async () => {
+            renderPage({ encounter: encounter(), zones: null });
+            fireEvent.click(screen.getByRole('button', { name: 'Stage encounter' }));
+            await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledTimes(2));
+            expect(mockUpdateCombatTracker).not.toHaveBeenCalled();
         });
 
         test('unsaved changes are saved first, so what is staged is what is on the page', async () => {
@@ -693,7 +728,6 @@ describe('EncounterPage', () => {
         const staged = { name: 'Ambush', roster: [twoBandits()], stagedIds: ['s1', 's2'] };
         const campaign = {
             enemy_list: [{ id: 's1', enemy_name: 'Rust Bandit 1' }, { id: 'keep', enemy_name: 'Other' }],
-            combat_tracker: [{ id: 'npc:s1' }, { id: 'npc:keep' }],
         };
 
         test('is offered only once staged, and says how many are still there', () => {
@@ -711,8 +745,11 @@ describe('EncounterPage', () => {
             fireEvent.click(screen.getByRole('button', { name: 'Clear staged enemies' }));
 
             await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledTimes(2));
-            expect(mockUpdateDoc.mock.calls[0]).toEqual([{ __doc: CAMPAIGN }, { enemy_list: [{ id: 'keep', enemy_name: 'Other' }], combat_tracker: [{ id: 'npc:keep' }] }]);
+            expect(mockUpdateDoc.mock.calls[0]).toEqual([{ __doc: CAMPAIGN }, { enemy_list: [{ id: 'keep', enemy_name: 'Other' }] }]);
             expect(mockUpdateDoc.mock.calls[1]).toEqual([{ __doc: ENCOUNTER }, { stagedIds: [] }]);
+            // and off the party doc's tracker, leaving everyone else on it
+            expect(mockUpdateCombatTracker).toHaveBeenCalledWith('camp-1', expect.any(Function));
+            expect(mockUpdateCombatTracker.mock.calls[0][1]([{ id: 'npc:s1' }, { id: 'npc:keep' }, { id: 'character:a' }])).toEqual([{ id: 'npc:keep' }, { id: 'character:a' }]);
         });
 
         test('declining removes nothing', () => {

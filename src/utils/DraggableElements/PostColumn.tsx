@@ -10,6 +10,7 @@ export type PostCardComponentType = React.ComponentType<{
   contentClassName: string;
   boxClassName: string;
   extraClassNames: string[];
+  readOnly?: boolean;
 }>;
 
 export const PostColumn = ({
@@ -22,6 +23,7 @@ export const PostColumn = ({
   PostCardComponent = PostCard,
   swappableMode = false,
   draggableId,
+  readOnly = false,
 }: {
   status: Post["status"];
   posts: Post[];
@@ -43,6 +45,8 @@ export const PostColumn = ({
   PostCardComponent?: PostCardComponentType;
   swappableMode?: boolean;
   draggableId?: string | null;
+  // the cards can be looked at but not dragged
+  readOnly?: boolean;
 }) => {
   const {
     postColumn = "PostColumn-default",
@@ -82,6 +86,7 @@ export const PostColumn = ({
               contentClassName={postCardContent}
               boxClassName={postCardBox}
               extraClassNames={extraClassNames}
+              readOnly={readOnly}
             />
           ))}
           {droppableProvided.placeholder}
