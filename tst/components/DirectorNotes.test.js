@@ -428,3 +428,50 @@ describe('delete page', () => {
         log.mockRestore();
     });
 });
+
+describe('DirectorNotes serving as the party\'s notebook', () => {
+    const partyPages = [{ id: 'p1', title: 'Session 1', body: 'We began.', updatedAt: { toDate: () => new Date(2026, 8, 20, 14, 5) }, updated_by_name: 'Sam' }];
+    const makeHook = (pages = partyPages, status = 'ready') => jest.fn(() => ({ pages, status, createPage: jest.fn().mockResolvedValue('p2'), savePage: jest.fn().mockResolvedValue(undefined), deletePage: jest.fn() }));
+    const text = { heading: 'Party notes', intro: 'A notebook the whole party shares.', errorText: "Couldn't load the party notes.", storagePrefix: 'jnj-party-notes-page' };
+
+    test('loads its pages with the hook it is given, for the campaign it is given, not the director\'s', () => {
+        setHook({ pages: [{ id: 'dir', title: 'Secret villain', body: '', order: 1 }] }); // what the director's own hook would give
+        const useNotes = makeHook();
+        render(<DirectorNotes campaignId="camp-9" useNotes={useNotes} {...text}/>);
+        expect(useNotes).toHaveBeenCalledWith('camp-9');
+        expect(screen.getByRole('button', { name: 'Session 1' })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Secret villain' })).not.toBeInTheDocument();
+    });
+
+    test('an empty notebook is worded for the party', () => {
+        render(<DirectorNotes campaignId="camp-9" useNotes={makeHook([])} {...text}/>);
+        expect(screen.getByRole('heading', { name: 'Party notes' })).toBeInTheDocument();
+        expect(screen.getByText('A notebook the whole party shares.')).toBeInTheDocument();
+        expect(screen.queryByText(/only directors can see it/)).not.toBeInTheDocument();
+    });
+
+    test('a notebook that cannot load says so in the party\'s words', () => {
+        render(<DirectorNotes campaignId="camp-9" useNotes={makeHook([], 'error')} {...text}/>);
+        expect(screen.getByRole('alert')).toHaveTextContent("Couldn't load the party notes.");
+    });
+
+    test('says who last changed the page, when the pages say', () => {
+        render(<DirectorNotes campaignId="camp-9" useNotes={makeHook()} {...text}/>);
+        expect(screen.getByRole('status')).toHaveTextContent(/Last edited .* by Sam/);
+    });
+
+    test('remembers the open page separately from the director\'s notebook', () => {
+        window.localStorage.clear();
+        render(<DirectorNotes campaignId="camp-9" useNotes={makeHook([...partyPages, { id: 'p2', title: 'Session 2', body: '', order: 2 }])} {...text}/>);
+        fireEvent.click(screen.getByRole('button', { name: 'Session 2' }));
+        expect(window.localStorage.getItem('jnj-party-notes-page:camp-9')).toBe('p2');
+        expect(window.localStorage.getItem('jnj-director-notes-page:camp-9')).toBeNull();
+    });
+
+    test('without those props it is the director\'s notebook, as before', () => {
+        setHook({ pages: [] });
+        render(<DirectorNotes campaignId="camp-1"/>);
+        expect(screen.getByRole('heading', { name: "Director's notes" })).toBeInTheDocument();
+        expect(screen.getByText(/only directors can see it/)).toBeInTheDocument();
+    });
+});

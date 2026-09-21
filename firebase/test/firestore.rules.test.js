@@ -1448,6 +1448,147 @@ async function main() {
         await assertFails(updateDoc(doc(db, 'campaigns', 'camp1'), { active_map: 'x' }));
     });
 
+    console.log('\nThe party notebook and calendar (campaigns/{id}/party_notes, party_events):');
+
+    for (const collectionName of ['party_notes', 'party_events']) {
+        const ref = (db, id = 'n1') => doc(db, 'campaigns', 'camp1', collectionName, id);
+        const seed = () => testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await seedParty();
+            await setDoc(ref(adminCtx.firestore()), { title: 'Found the gate', body: 'x' });
+        });
+
+        await check(`${collectionName}: every member of the campaign - players and directors - can read, add, change and delete`, async () => {
+            await seed();
+            for (const uid of ['player', 'player2', 'dir', 'codir']) {
+                const db = testEnv.authenticatedContext(uid).firestore();
+                await assertSucceeds(getDoc(ref(db)));
+                await assertSucceeds(getDocs(collection(db, 'campaigns', 'camp1', collectionName)));
+                await assertSucceeds(setDoc(ref(db, 'by-' + uid), { title: 'mine' }));
+                await assertSucceeds(updateDoc(ref(db, 'by-' + uid), { title: 'changed' }));
+                await assertSucceeds(deleteDoc(ref(db, 'by-' + uid)));
+            }
+        });
+
+        await check(`${collectionName}: nobody outside the campaign can read or write them, nor a signed-out visitor`, async () => {
+            await seed();
+            const outsider = testEnv.authenticatedContext('other-player').firestore();
+            await assertFails(getDoc(ref(outsider)));
+            await assertFails(getDocs(collection(outsider, 'campaigns', 'camp1', collectionName)));
+            await assertFails(setDoc(ref(outsider, 'x'), { title: 'nope' }));
+            await assertFails(updateDoc(ref(outsider), { title: 'nope' }));
+            await assertFails(deleteDoc(ref(outsider)));
+            await assertFails(getDoc(ref(testEnv.unauthenticatedContext().firestore())));
+        });
+    }
+
+    console.log('\nThe item database (items - public ones for everyone, the rest for whoever is listed):');
+
+    const itemRef = (db, id = 'torch') => doc(db, 'items', id);
+    const seedItems = () => testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+        await testEnv.clearFirestore();
+        const db = adminCtx.firestore();
+        await setDoc(itemRef(db, 'torch'), { item_name: 'Torch', item_description: '', item_image: '', tags: ['light'], isPublic: true, canRead: [], canWrite: ['author'], admins: ['author'] });
+        await setDoc(itemRef(db, 'secret'), { item_name: 'Secret Map', item_description: '', item_image: '', tags: [], isPublic: false, canRead: ['reader'], canWrite: ['author', 'coauthor'], admins: ['author'] });
+    });
+
+    await check('anyone signed in can read a public item, and nobody signed out can', async () => {
+        await seedItems();
+        await assertSucceeds(getDoc(itemRef(testEnv.authenticatedContext('stranger').firestore())));
+        await assertFails(getDoc(itemRef(testEnv.unauthenticatedContext().firestore())));
+    });
+
+    await check('a private item is read by whoever is listed to read or write it, and no one else', async () => {
+        await seedItems();
+        for (const uid of ['reader', 'author', 'coauthor']) {
+            await assertSucceeds(getDoc(itemRef(testEnv.authenticatedContext(uid).firestore(), 'secret')));
+        }
+        await assertFails(getDoc(itemRef(testEnv.authenticatedContext('stranger').firestore(), 'secret')));
+    });
+
+    await check('the catalog query - public, or readable, or writable by me - is allowed', async () => {
+        await seedItems();
+        const db = testEnv.authenticatedContext('reader').firestore();
+        const snapshot = await assertSucceeds(getDocs(query(collection(db, 'items'), or(where('isPublic', '==', true), where('canRead', 'array-contains', 'reader'), where('canWrite', 'array-contains', 'reader')))));
+        assert.deepEqual(snapshot.docs.map(d => d.id).sort(), ['secret', 'torch']);
+    });
+
+    await check('a bare scan of every item is refused', async () => {
+        await seedItems();
+        await assertFails(getDocs(collection(testEnv.authenticatedContext('stranger').firestore(), 'items')));
+    });
+
+    await check('anyone signed in can add an item, as long as they are listed as its admin', async () => {
+        await seedItems();
+        const db = testEnv.authenticatedContext('newcomer').firestore();
+        await assertSucceeds(setDoc(itemRef(db, 'rope'), { item_name: 'Rope', isPublic: false, canRead: [], canWrite: ['newcomer'], admins: ['newcomer'], tags: [] }));
+        await assertFails(setDoc(itemRef(db, 'unowned'), { item_name: 'No Admin', isPublic: true, canWrite: ['newcomer'], tags: [] }));
+        await assertFails(setDoc(itemRef(testEnv.unauthenticatedContext().firestore(), 'anon'), { item_name: 'Anon', admins: ['x'] }));
+    });
+
+    await check('the author and a co-author can edit an item; a stranger and a mere reader cannot', async () => {
+        await seedItems();
+        await assertSucceeds(updateDoc(itemRef(testEnv.authenticatedContext('author').firestore(), 'secret'), { item_name: 'Secret Map v2' }));
+        await assertSucceeds(updateDoc(itemRef(testEnv.authenticatedContext('coauthor').firestore(), 'secret'), { item_description: 'Marked in red.' }));
+        await assertFails(updateDoc(itemRef(testEnv.authenticatedContext('reader').firestore(), 'secret'), { item_name: 'Hijacked' }));
+        await assertFails(updateDoc(itemRef(testEnv.authenticatedContext('stranger').firestore(), 'torch'), { item_name: 'Hijacked' }));
+        await assertFails(deleteDoc(itemRef(testEnv.authenticatedContext('stranger').firestore(), 'torch')));
+    });
+
+    await check('a co-author cannot change who can read, write or administer an item; its admin can', async () => {
+        await seedItems();
+        await assertFails(updateDoc(itemRef(testEnv.authenticatedContext('coauthor').firestore(), 'secret'), { canRead: ['reader', 'coauthor', 'friend'] }));
+        await assertFails(updateDoc(itemRef(testEnv.authenticatedContext('coauthor').firestore(), 'secret'), { admins: ['author', 'coauthor'] }));
+        await assertSucceeds(updateDoc(itemRef(testEnv.authenticatedContext('author').firestore(), 'secret'), { canRead: ['reader', 'friend'] }));
+    });
+
+    console.log('\nInventories (characters - anyone in the campaign can change what a character carries, and only that):');
+
+    const seedInventoryCharacter = async () => {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            const db = adminCtx.firestore();
+            await setDoc(doc(db, 'campaigns', 'camp1'), { campaign_name: 'C', director_uid: 'dir', canWrite: ['dir'], canRead: ['dir', 'player', 'player2'], admins: ['dir'] });
+            await setDoc(doc(db, 'characters', 'aria'), { character_name: 'Aria', playerId: 'player', campaign: 'camp1', canRead: ['player', 'player2'], canWrite: ['player', 'dir'], admins: ['player'], inventory: [], inventory_pocket: [], current_health: 10 });
+        });
+    };
+    const ariaRef = db => doc(db, 'characters', 'aria');
+    const entry = { id: 'e1', item_id: 'torch', title: 'Torch', quantity: 2, status: '1', index: 0 };
+
+    await check('another player in the campaign can change the inventory of a character they do not own - which is what a trade does', async () => {
+        await seedInventoryCharacter();
+        const db = testEnv.authenticatedContext('player2').firestore();
+        await assertSucceeds(updateDoc(ariaRef(db), { inventory: [entry] }));
+        await assertSucceeds(updateDoc(ariaRef(db), { inventory_pocket: [{ ...entry, id: 'e2', status: 'Pocket' }] }));
+        await assertSucceeds(updateDoc(ariaRef(db), { inventory: [], inventory_pocket: [] }));
+    });
+
+    await check('the director, and the owner, can as before', async () => {
+        await seedInventoryCharacter();
+        await assertSucceeds(updateDoc(ariaRef(testEnv.authenticatedContext('dir').firestore()), { inventory: [entry] }));
+        await assertSucceeds(updateDoc(ariaRef(testEnv.authenticatedContext('player').firestore()), { inventory: [] }));
+    });
+
+    await check('but nothing else about the character: not its health, its name, or who can write it', async () => {
+        await seedInventoryCharacter();
+        const db = testEnv.authenticatedContext('player2').firestore();
+        await assertFails(updateDoc(ariaRef(db), { current_health: 0 }));
+        await assertFails(updateDoc(ariaRef(db), { character_name: 'Renamed' }));
+        await assertFails(updateDoc(ariaRef(db), { canWrite: ['player', 'dir', 'player2'] }));
+        await assertFails(updateDoc(ariaRef(db), { inventory: [entry], current_health: 0 }));
+        await assertFails(updateDoc(ariaRef(db), { archived: true }));
+    });
+
+    await check('and not someone outside the campaign, or signed out', async () => {
+        await seedInventoryCharacter();
+        await assertFails(updateDoc(ariaRef(testEnv.authenticatedContext('outsider').firestore()), { inventory: [entry] }));
+        await assertFails(updateDoc(ariaRef(testEnv.unauthenticatedContext().firestore()), { inventory: [entry] }));
+    });
+
+    await check('it does not let them delete the character', async () => {
+        await seedInventoryCharacter();
+        await assertFails(deleteDoc(ariaRef(testEnv.authenticatedContext('player2').firestore())));
+    });
+
     await testEnv.cleanup();
 
     if (failures > 0) {

@@ -1,7 +1,4 @@
 import { useState } from 'react';
-import { uploadImageToImgur } from '../utils/imgurUploader';
-import { imageRef, imageSrc } from '../utils/imageRefs';
-import { tokenInitials } from '../utils/mapTokens';
 import { ENEMY_TIERS, formatModifier, parseModifier } from '../utils/enemies';
 import { benchmarkDefaults, benchmarkFor, benchmarkSummary } from '../utils/encounterGuide';
 import { newActionDefaults } from '../utils/classValidation';
@@ -9,6 +6,7 @@ import { getActionCategory } from '../utils/classActions';
 import { newCustomTag } from '../utils/tags';
 import { ClassActionEditor } from './ClassActionEditor';
 import { FieldError, invalidClass, invalidProps } from './FormErrors';
+import { PictureField } from './PictureField';
 import MarkdownEditor from './MarkdownEditor';
 import '../styles/ClassPage.scss';
 import '../styles/EnemyPage.scss';
@@ -70,66 +68,6 @@ function ModifierList({ title, initial, readOnly, onChange, error, problemId }) 
         </div>)}
         <FieldError message={error}/>
         {!readOnly && <button type="button" className="ClassPage-add-tag-button" onClick={() => update([...rows, { type: '', amount: '' }])}>+ Add</button>}
-    </div>;
-}
-
-// An enemy's picture, which is what its token on the combat map shows (with no
-// picture the token shows the enemy's initials). A link can be pasted in, or a file
-// uploaded (through Imgur, like the other pictures in the app); an Imgur link is
-// stored as just its hash (see imageRefs.js).
-function EnemyPicture({ name, value, readOnly, error, onChange }) {
-    const [uploading, setUploading] = useState(false);
-    const ref = imageRef(value);
-    const [broken, setBroken] = useState(false);
-
-    async function handleFile(event) {
-        const [file] = event.target.files;
-        event.target.value = '';
-        if (!file) return;
-        setUploading(true);
-        try {
-            const uploaded = await uploadImageToImgur(file);
-            if (uploaded) {
-                setBroken(false);
-                onChange(uploaded);
-            }
-        } catch (uploadError) {
-            alert("Couldn't upload the picture: " + uploadError.message);
-        } finally {
-            setUploading(false);
-        }
-    }
-
-    return <div className="EnemyPage-picture">
-        <div className="EnemyPage-picture-token" aria-hidden="true">
-            {ref && !broken
-                ? <img className="EnemyPage-picture-image" src={imageSrc(ref)} alt="" onError={() => setBroken(true)}/>
-                : <span className="EnemyPage-picture-initials">{tokenInitials(name)}</span>}
-        </div>
-        <div className="EnemyPage-picture-fields">
-            <label className="EnemyPage-picture-field">
-                <span className="ClassPage-field-label">Picture link</span>
-                <input
-                    className={invalidClass('ClassPage-field-input', error)}
-                    {...invalidProps('field-portrait_url', error)}
-                    type="url"
-                    placeholder="https://..."
-                    value={value ? imageSrc(value) : ''}
-                    disabled={readOnly}
-                    onChange={event => { setBroken(false); onChange(event.target.value); }}
-                />
-            </label>
-            {!readOnly && <div className="EnemyPage-picture-actions">
-                <label className="EnemyPage-picture-upload">
-                    <span className="ClassPage-field-label">Or upload one</span>
-                    <input type="file" accept="image/*" disabled={uploading} onChange={handleFile}/>
-                </label>
-                {value && <button type="button" className="EnemyPage-modifier-remove" onClick={() => { setBroken(false); onChange(''); }}>Remove picture</button>}
-            </div>}
-            {uploading && <div className="ClassPage-hint" role="status">Uploading...</div>}
-            {broken && <div className="ClassPage-hint" role="alert">That picture didn't load - check the link.</div>}
-            <FieldError message={error}/>
-        </div>
     </div>;
 }
 
@@ -199,7 +137,7 @@ export function EnemyStatBlockForm({ formData, setFormData, errors, readOnly = f
     return <>
         <div className="ClassPage-card">
             <div className="ClassPage-section-title">Picture</div>
-            <EnemyPicture name={formData.enemy_name} value={formData.portrait_url || ''} readOnly={readOnly} error={errors.fields.portrait_url} onChange={value => set('portrait_url', value)}/>
+            <PictureField name={formData.enemy_name} value={formData.portrait_url || ''} readOnly={readOnly} error={errors.fields.portrait_url} onChange={value => set('portrait_url', value)}/>
             <div className="ClassPage-hint">Shown on this enemy's token on the combat map, instead of its initials.</div>
         </div>
 

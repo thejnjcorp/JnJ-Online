@@ -115,3 +115,9 @@
     align-items: flex-end;
     gap: var(--jnj-space-3);
 }
+
+// An item's picture is a square tile rather than a round token.
+.EnemyPage-picture-token-square {
+    border-color: var(--jnj-color-border-strong);
+    border-radius: 8px;
+}

@@ -230,6 +230,7 @@ describe('CampaignPage', () => {
         });
 
         test.each([
+            ['Party', '/party/camp-1'],
             ['Director Mode', '/directors/camp-1'],
             ['Manage Classes', '/campaigns/camp-1/classes'],
             ['Manage Races', '/campaigns/camp-1/races'],

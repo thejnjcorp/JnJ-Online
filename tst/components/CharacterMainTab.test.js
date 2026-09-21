@@ -19,11 +19,21 @@ jest.mock('../../src/utils/useCampaignCombat', () => ({
     useCombatEntities: (...args) => mockUseCombatEntities(...args),
 }));
 
+const mockInventoryProps = [];
 jest.mock('../../src/utils/DraggableElements/PostListInventory.tsx', () => ({
-    PostListContentInventory: ({ characterId, campaignCharacterList }) => <div>Inventory-stub:{characterId}:{campaignCharacterList.length}</div>,
+    PostListContentInventory: props => {
+        mockInventoryProps.push(['backpack', props]);
+        return <div>Inventory-stub:{props.characterId}</div>;
+    },
 }));
 jest.mock('../../src/utils/DraggableElements/PostListInventoryPocket.tsx', () => ({
-    PostListContentInventoryPocket: ({ characterId }) => <div>Pocket-stub:{characterId}</div>,
+    PostListContentInventoryPocket: props => {
+        mockInventoryProps.push(['pocket', props]);
+        return <div>Pocket-stub:{props.characterId}</div>;
+    },
+}));
+jest.mock('../../src/components/InventoryToolbar', () => ({
+    InventoryToolbar: ({ characterId, campaignId, userId, members }) => <div>InventoryToolbar-stub:{characterId}:{campaignId}:{userId}:{members.join(',')}</div>,
 }));
 const mockLineProps = [];
 jest.mock('../../src/utils/DraggableElements/PostListCombat.tsx', () => ({
@@ -744,9 +754,34 @@ describe('CharacterMainTab', () => {
             mockUseIsMobile.mockReturnValue(false);
             render(<CharacterMainTab characterPage={characterPage} userId="owner-1" characterList={[{ character_id: 'char-2' }]} />);
             goToTab('Inventory');
-            expect(screen.getByText('Inventory-stub:char-1:1')).toBeInTheDocument();
+            expect(screen.getByText('Inventory-stub:char-1')).toBeInTheDocument();
             expect(screen.getByText('Pocket-stub:char-1')).toBeInTheDocument();
             expect(screen.queryByText('Relics')).not.toBeInTheDocument();
+        });
+
+        test('someone who can change the character gets the add-item toolbar and can drag things about; everyone else only looks', () => {
+            mockInventoryProps.length = 0;
+            mockUseIsMobile.mockReturnValue(false);
+            const { unmount } = render(<CharacterMainTab characterPage={characterPage} userId="owner-1" campaignInfo={{ director_uid: 'dm', canRead: ['owner-1'], canWrite: ['dm'] }} />);
+            goToTab('Inventory');
+            expect(screen.getByText('InventoryToolbar-stub:char-1:camp-1:owner-1:dm,owner-1')).toBeInTheDocument();
+            mockInventoryProps.forEach(([, props]) => expect(props).toMatchObject({ canEdit: true, campaignId: 'camp-1', userId: 'owner-1' }));
+            unmount();
+
+            mockInventoryProps.length = 0;
+            render(<CharacterMainTab characterPage={characterPage} userId="stranger-1" />);
+            goToTab('Inventory');
+            expect(screen.queryByText(/InventoryToolbar-stub/)).not.toBeInTheDocument();
+            mockInventoryProps.forEach(([, props]) => expect(props.canEdit).toBe(false));
+        });
+
+        test('the backpack, the relics and the pocket are all given the campaign, for the party inventory', () => {
+            mockInventoryProps.length = 0;
+            mockUseIsMobile.mockReturnValue(true);
+            render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
+            goToTab('Inventory');
+            expect(mockInventoryProps.length).toBeGreaterThanOrEqual(3);
+            mockInventoryProps.forEach(([, props]) => expect(props.campaignId).toBe('camp-1'));
         });
 
         test('mobile shows separate Relics, Backpack, and Pocket sections', () => {

@@ -56,6 +56,18 @@ service cloud.firestore {
       match /party/{partyId} {
         allow read, write: if isSignedIn() && isCampaignMember(campaignId);
       }
+
+      // The party's shared notebook and its calendar of events (see PartyPage.js): one
+      // document per note, one per event, for the whole campaign to read and write like
+      // the party doc - players included, unlike the director's notes above. Kept out
+      // of the party doc so each saves on its own and the doc stays small.
+      match /party_notes/{noteId} {
+        allow read, write: if isSignedIn() && isCampaignMember(campaignId);
+      }
+
+      match /party_events/{eventId} {
+        allow read, write: if isSignedIn() && isCampaignMember(campaignId);
+      }
     }
 
     match /characters/{characterId} {
@@ -69,6 +81,13 @@ service cloud.firestore {
       // archive it or schedule its deletion; only its player and its admins can
       // (see CharacterDangerZone.js).
       allow read, write: if isSignedIn() && uid() in canWriteField() && permissionFieldsUnchanged() && archiveFieldsUnchanged();
+
+      // Anyone in the character's campaign can change what it is carrying, and nothing
+      // else about it: that is what lets a trade between two players (or the party
+      // inventory) move items in both characters' inventories in one step, without
+      // either player being able to edit the other's sheet.
+      allow update: if isSignedIn() && inCampaign()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['inventory', 'inventory_pocket']);
 
       allow read, write: if isSignedIn() && isDocAdmin();
 
@@ -216,6 +235,22 @@ service cloud.firestore {
       allow write: if isSignedIn() && isDocAdmin();
 
       allow create: if isSignedIn() && !documentExists("enemies", enemyId) && isCreatorDocAdmin();
+    }
+
+    // The item database: what things are (a torch, a rope, a magic dagger), shared so
+    // common gear is written once and inventories only refer to it. `isPublic` items
+    // are readable by any signed-in user - the everyday catalog - and the rest by
+    // whoever is in canRead / canWrite (an author's own items, or ones shared with a
+    // campaign by adding its members). Same shape as the bestiary above: three plain
+    // branches, no cross-document lookup, so a list query over the catalog is provable.
+    match /items/{itemId} {
+      allow read: if isSignedIn() && (resource.data.isPublic == true || uid() in canWriteField() || uid() in canReadField());
+
+      allow write: if isSignedIn() && uid() in canWriteField() && permissionFieldsUnchanged();
+
+      allow write: if isSignedIn() && isDocAdmin();
+
+      allow create: if isSignedIn() && !documentExists("items", itemId) && isCreatorDocAdmin();
     }
 
     // The tag catalog: the labels an author puts on a class's actions (Fire,

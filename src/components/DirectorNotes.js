@@ -13,21 +13,23 @@ const STATUS_TEXT = {
     error: "Couldn't save - will keep trying",
 };
 
-function storageKey(campaignId) {
-    return `jnj-director-notes-page:${campaignId}`;
+const DEFAULT_STORAGE_PREFIX = 'jnj-director-notes-page';
+
+function storageKey(campaignId, prefix) {
+    return `${prefix}:${campaignId}`;
 }
 
-function readStoredPage(campaignId) {
+function readStoredPage(campaignId, prefix) {
     try {
-        return window.localStorage.getItem(storageKey(campaignId));
+        return window.localStorage.getItem(storageKey(campaignId, prefix));
     } catch {
         return null;
     }
 }
 
-function storePage(campaignId, pageId) {
+function storePage(campaignId, pageId, prefix) {
     try {
-        window.localStorage.setItem(storageKey(campaignId), pageId);
+        window.localStorage.setItem(storageKey(campaignId, prefix), pageId);
     } catch {
         // remembering the last page is a nicety, not something to fail over
     }
@@ -47,8 +49,19 @@ function formatEdited(timestamp) {
 // what makes the rest safe: switching pages or leaving flushes it, a failed
 // save is retried, and an update arriving from another device is applied only
 // to a page you aren't part-way through editing.
-export function DirectorNotes({ campaignId }) {
-    const { pages, status, createPage, savePage, deletePage } = useDirectorNotes(campaignId);
+//
+// The same notebook serves the party's shared notes (PartyNotes below): `useNotes`
+// is the hook that loads and saves the pages, and the rest are the wording and the
+// place the last-open page is remembered.
+export function DirectorNotes({
+    campaignId,
+    useNotes = useDirectorNotes,
+    heading = "Director's notes",
+    intro = 'A private notebook for this campaign - only directors can see it. Make a page for each thing you want to keep track of, like a session, a villain or a location.',
+    errorText = "Couldn't load your notes. Check your connection and that you're a director of this campaign.",
+    storagePrefix = DEFAULT_STORAGE_PREFIX,
+}) {
+    const { pages, status, createPage, savePage, deletePage } = useNotes(campaignId);
     const [selectedId, setSelectedId] = useState(null);
     const [draft, setDraft] = useState(null);
     const [saveState, setSaveState] = useState('idle');
@@ -67,8 +80,8 @@ export function DirectorNotes({ campaignId }) {
 
     const selectPage = useCallback((pageId) => {
         setSelectedId(pageId);
-        storePage(campaignId, pageId);
-    }, [campaignId]);
+        storePage(campaignId, pageId, storagePrefix);
+    }, [campaignId, storagePrefix]);
 
     // Choose a page once they've loaded (the one you had open last time, else
     // the first) and recover if the open page disappears.
@@ -82,9 +95,9 @@ export function DirectorNotes({ campaignId }) {
             return;
         }
         if (selectedId && selectedId === newPageId.current) return;
-        const remembered = readStoredPage(campaignId);
+        const remembered = readStoredPage(campaignId, storagePrefix);
         setSelectedId(pages.some(page => page.id === remembered) ? remembered : pages[0].id);
-    }, [status, pages, selectedId, campaignId]);
+    }, [status, pages, selectedId, campaignId, storagePrefix]);
 
     const save = useCallback(async (pageId) => {
         const attempt = pending.current[pageId];
@@ -186,17 +199,18 @@ export function DirectorNotes({ campaignId }) {
     }
 
     if (status === 'loading') return <div className="DirectorNotes DirectorNotes-message">Loading notes…</div>;
-    if (status === 'error') return <div className="DirectorNotes DirectorNotes-message" role="alert">Couldn't load your notes. Check your connection and that you're a director of this campaign.</div>;
+    if (status === 'error') return <div className="DirectorNotes DirectorNotes-message" role="alert">{errorText}</div>;
 
     if (pages.length === 0) {
         return <div className="DirectorNotes DirectorNotes-empty">
-            <h2>Director's notes</h2>
-            <p>A private notebook for this campaign - only directors can see it. Make a page for each thing you want to keep track of, like a session, a villain or a location.</p>
+            <h2>{heading}</h2>
+            <p>{intro}</p>
             <button type="button" className="DirectorNotes-primary-button" onClick={addPage}>Create your first page</button>
         </div>;
     }
 
     const edited = formatEdited(page?.updatedAt);
+    const editedBy = page?.updated_by_name ? ` by ${page.updated_by_name}` : '';
 
     return <div className="DirectorNotes">
         <nav className="DirectorNotes-pages" aria-label="Note pages">
@@ -237,7 +251,7 @@ export function DirectorNotes({ campaignId }) {
                 onChange={body => edit({ body })}
             />
             <div className="DirectorNotes-status" role="status" aria-live="polite">
-                {STATUS_TEXT[saveState] || (edited ? `Last edited ${edited}` : '')}
+                {STATUS_TEXT[saveState] || (edited ? `Last edited ${edited}${editedBy}` : '')}
             </div>
         </section>}
     </div>;

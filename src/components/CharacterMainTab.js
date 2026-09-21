@@ -11,6 +11,8 @@ import { useRef, useState, useEffect } from "react";
 import { TabContainer } from "./TabContainer.js";
 // import { PostListContentLocal } from "../utils/DraggableElements/PostListLocal.tsx";
 import { PostListContentInventory } from "../utils/DraggableElements/PostListInventory.tsx";
+import { InventoryToolbar } from "./InventoryToolbar";
+import { membersOf } from "../utils/itemAccess";
 import { PostListContentInventoryPocket } from "../utils/DraggableElements/PostListInventoryPocket.tsx";
 import { PostListContentCombat } from "../utils/DraggableElements/PostListCombat.tsx";
 import { PostListContentCombatMap } from "../utils/DraggableElements/PostListCombatMap.tsx";
@@ -358,6 +360,7 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
             // descriptions stay a desktop-only affordance for now).
             content: isMobile
                 ? <div className="CharacterMainTab-inventory-mobile">
+                    {hasWritePermissions && <InventoryToolbar characterId={characterPage.character_id} campaignId={characterPage.campaign} userId={userId} members={membersOf(campaignInfo)}/>}
                     <span className="CharacterMainTab-caps-label CharacterMainTab-section-label">Relics</span>
                     <PostListContentInventory
                         inputStatuses={[["Relic 1", "Relic 2"], ["Relic 3", "Relic 4"]]}
@@ -370,7 +373,9 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                             postCardContent: "CharacterMainTab-PostCardContent-inventory-mobile",
                             postCardBox: "CharacterMainTab-PostCardBox-inventory-mobile"
                         }}
-                        campaignCharacterList={characterList || []}
+                        campaignId={characterPage.campaign}
+                        canEdit={Boolean(hasWritePermissions)}
+                        userId={userId}
                     />
                     <span className="CharacterMainTab-caps-label CharacterMainTab-section-label">Backpack</span>
                     <PostListContentInventory
@@ -384,12 +389,17 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                             postCardContent: "CharacterMainTab-PostCardContent-inventory-mobile",
                             postCardBox: "CharacterMainTab-PostCardBox-inventory-mobile"
                         }}
-                        campaignCharacterList={characterList || []}
+                        campaignId={characterPage.campaign}
+                        canEdit={Boolean(hasWritePermissions)}
+                        userId={userId}
                     />
                     <span className="CharacterMainTab-caps-label CharacterMainTab-section-label">Pocket</span>
                     <PostListContentInventoryPocket
                         inputStatuses={["Pocket"]}
                         characterId={characterPage.character_id}
+                        campaignId={characterPage.campaign}
+                        canEdit={Boolean(hasWritePermissions)}
+                        userId={userId}
                         className={{
                             postColumn: "CharacterMainTab-PostColumn-inventory-pocket-mobile",
                             postColumnHeader: "CharacterMainTab-PostColumn-header-inventory-mobile",
@@ -400,7 +410,9 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                         }}
                     />
                 </div>
-                : <div className="CharacterMainTab-inventory">
+                : <div className="CharacterMainTab-inventory-wrap">
+                {hasWritePermissions && <InventoryToolbar characterId={characterPage.character_id} campaignId={characterPage.campaign} userId={userId} members={membersOf(campaignInfo)}/>}
+                <div className="CharacterMainTab-inventory">
                 <div style={{ width: "50%" }}>
                     <PostListContentInventory
                         inputStatuses={[["Relic 1", "Relic 2", "Relic 3", "Relic 4"],
@@ -415,13 +427,18 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                             postCardContent: "CharacterMainTab-PostCardContent-inventory",
                             postCardBox: "CharacterMainTab-PostCardBox-inventory"
                         }}
-                        campaignCharacterList={characterList || []}
+                        campaignId={characterPage.campaign}
+                        canEdit={Boolean(hasWritePermissions)}
+                        userId={userId}
                     />
                 </div>
                 <div style={{ width: "50%" }}>
                     <PostListContentInventoryPocket
                         inputStatuses={["Pocket"]}
                         characterId={characterPage.character_id}
+                        campaignId={characterPage.campaign}
+                        canEdit={Boolean(hasWritePermissions)}
+                        userId={userId}
                         className={{
                             postColumn: "CharacterMainTab-PostColumn-inventory-pocket",
                             postColumnHeader: "CharacterMainTab-PostColumn-header-inventory-pocket",
@@ -431,6 +448,7 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                             postCardBox: "CharacterMainTab-PostCardBox-inventory-pocket"
                         }}
                     />
+                </div>
                 </div>
             </div>
         },

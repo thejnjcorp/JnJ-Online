@@ -1,0 +1,90 @@
+// The item editor (ItemPage.js) and the item database (ItemListPage.js).
+.ItemPage-tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--jnj-space-2);
+    margin-bottom: var(--jnj-space-2);
+}
+
+.ItemPage-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--jnj-space-1);
+    padding: 2px var(--jnj-space-3);
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-pill);
+    background: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text);
+    font-size: var(--jnj-text-xs);
+}
+
+.ItemPage-tag-remove {
+    padding: 0 2px;
+    border: 0;
+    background: none;
+    color: var(--jnj-color-text-muted);
+    font-size: 0.875rem;
+    line-height: 1;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+        color: var(--jnj-color-danger);
+    }
+}
+
+.ItemPage-tag-add {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--jnj-space-2);
+
+    .ClassPage-field-input {
+        width: 14rem;
+        max-width: 100%;
+    }
+}
+
+.ItemPage-share {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--jnj-space-2);
+    margin-top: var(--jnj-space-2);
+}
+
+.ItemList-thumb {
+    flex: none;
+    width: 2rem;
+    height: 2rem;
+    object-fit: contain;
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: 6px;
+    background: var(--jnj-color-bg-sunken);
+}
+
+.ItemList-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: var(--jnj-space-1);
+}
+
+.ItemList-tag {
+    padding: 0 var(--jnj-space-2);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-pill);
+    color: var(--jnj-color-text-muted);
+    font-size: 0.6875rem;
+}
+
+.ItemList-description {
+    margin: var(--jnj-space-1) 0 0;
+    color: var(--jnj-color-text-muted);
+    font-size: var(--jnj-text-xs);
+    // one short line of it is enough to recognize an item by
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}

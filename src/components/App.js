@@ -22,6 +22,9 @@ import { EnemyPage } from './EnemyPage.js';
 import { BestiaryPage } from './BestiaryPage.js';
 import { auth } from '../utils/firebase.js';
 import { AccessibilityProvider } from '../utils/AccessibilityContext.js';
+import { ItemPage } from './ItemPage';
+import { ItemListPage } from './ItemListPage';
+import { PartyPage } from './PartyPage';
 
 // The site shell (nav + home) reads its palette from a theme class - see
 // styles/themes/BaseTheme.scss for the token contract and DarkArcane.scss for
@@ -86,6 +89,9 @@ function App() {
             <Route path='/tag-list' element={<TagListPage/>} />
             <Route path='/enemies/*' element={<EnemyPage/>} />
             <Route path='/bestiary' element={<BestiaryPage/>} />
+            <Route path='/items/*' element={<ItemPage/>} />
+            <Route path='/item-list' element={<ItemListPage/>} />
+            <Route path='/party/*' element={<PartyPage/>} />
             {routeMarkdownFiles}
           </Routes>
         </div>
