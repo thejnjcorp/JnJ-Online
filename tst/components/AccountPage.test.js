@@ -42,7 +42,7 @@ import { AccountPage } from '../../src/components/AccountPage';
 import { renderWithRouter } from '../testUtils/renderWithRouter';
 
 const authUser = { uid: 'user-1', email: 'sam@example.com', displayName: 'Sam Google', photoURL: null };
-const character = { id: 'char-a', character_name: 'Aria', class: 'Fighter', campaign: 'The Iron Vale' };
+const character = { id: 'char-a', character_name: 'Aria', class: 'Fighter', campaign: 'camp-a' };
 const campaign = { id: 'camp-a', campaign_name: 'The Iron Vale', director_name: 'Sam' };
 
 function docsFrom(items) {
@@ -158,6 +158,28 @@ describe('AccountPage', () => {
 
             expect(await screen.findByRole('link', { name: /Aria/ })).toHaveAttribute('href', '/characters/char-a');
             expect(screen.getByRole('link', { name: /Director: Sam/ })).toHaveAttribute('href', '/campaigns/camp-a');
+        });
+
+        test('a character\'s card names its class from the class_name it was made with, not only the older class field', async () => {
+            signIn(authUser, { characters: [{ id: 'char-m', character_name: 'Kira', class_id: 'magus', class_name: 'Magus', player_name: 'Sam', campaign: 'camp-a' }], campaigns: [campaign] });
+            renderWithRouter(<AccountPage setUserInfo={jest.fn()} />);
+            expect(await screen.findByRole('link', { name: /Kira/ })).toHaveTextContent('Magus · The Iron Vale');
+        });
+
+        test('a character\'s card names its campaign, not the campaign\'s id - even an archived one', async () => {
+            signIn(authUser, { characters: [character], campaigns: [{ ...campaign, archived: true }] });
+            renderWithRouter(<AccountPage setUserInfo={jest.fn()} />);
+            const card = await screen.findByRole('link', { name: /Aria/ });
+            expect(card).toHaveTextContent('Fighter · The Iron Vale');
+            expect(card).not.toHaveTextContent('camp-a');
+        });
+
+        test('a campaign the viewer cannot see is left off the card rather than shown as an id', async () => {
+            signIn(authUser, { characters: [{ ...character, campaign: 'S4t04LhkYrN3wAzPvYgq' }] });
+            renderWithRouter(<AccountPage setUserInfo={jest.fn()} />);
+            const card = await screen.findByRole('link', { name: /Aria/ });
+            expect(card).not.toHaveTextContent('S4t04Lhk');
+            expect(card).not.toHaveTextContent('·');
         });
 
         test('archived characters and campaigns - including ones scheduled for deletion - are not listed', async () => {

@@ -8,6 +8,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import loadingIcon from '../icons/loading.svg';
 import { DocAdminManager } from "./DocAdminManager";
 import { withoutArchived } from "../utils/characterArchive";
+import { characterClassName } from '../utils/characterClass';
 
 // campaigns.players holds three different shapes across live data: the
 // current { name, uid } map (e.g. PentGuard), a bare uid string, or a
@@ -213,7 +214,7 @@ export function CampaignPage() {
                 <button type="button" className='CharacterCard' key={character.id} onClick={() => navigate("/characters/" + character.id)}>
                     <div className="CharacterCard-name">{character.character_name}</div>
                     <div className="CharacterCard-small-text">
-                        {character.class}<br/>
+                        {characterClassName(character)}<br/>
                         Player: {character.player_name}
                     </div>
                 </button>

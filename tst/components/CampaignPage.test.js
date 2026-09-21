@@ -169,6 +169,13 @@ describe('CampaignPage', () => {
             expect(screen.getByText(/Player: Sam/)).toBeInTheDocument();
         });
 
+        test('a character made since classes were reworked shows its class_name', async () => {
+            signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale' }, [{ id: 'char-m', character_name: 'Kira', class_id: 'magus', class_name: 'Magus', player_name: 'Sam' }]);
+            renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
+            await screen.findByText('Kira');
+            expect(screen.getByText(/Magus/)).toBeInTheDocument();
+        });
+
         test('passes the campaign\'s admins list and the signed-in user down to DocAdminManager', async () => {
             signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale', admins: ['director-1'] }, [character]);
             renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });

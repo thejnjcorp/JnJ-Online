@@ -8,12 +8,14 @@ import { AccessibilitySettings } from './AccessibilitySettings';
 import '../styles/AccountPage.scss';
 import { withoutArchived } from '../utils/characterArchive';
 import { withoutArchivedCampaigns } from '../utils/campaignArchive';
+import { campaignNameMap, campaignSuffix } from '../utils/campaignNames';
+import { characterClassName } from '../utils/characterClass';
 
 async function getCampaigns(user) {
     try {
         const campaigns = query(collection(db, "campaigns"), or(where("canRead", "array-contains", user.uid), where("canWrite", "array-contains", user.uid)));
         const querySnapshot = await getDocs(campaigns);
-        return withoutArchivedCampaigns(querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
+        return querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
     } catch (e) {
         console.log("Failed to get campaign info: " + e)
         return [];
@@ -61,7 +63,9 @@ export function AccountPage({setUserInfo}) {
             const [campaigns, characters] = await Promise.all([getCampaigns(user), getCharacters(user)]);
             const docAccountInfo = {
                 ...docSnapPlayer.data(),
-                campaigns,
+                campaigns: withoutArchivedCampaigns(campaigns),
+                // every campaign, archived too: a character's card names the campaign it is in
+                campaignNames: campaignNameMap(campaigns),
                 characters
             }
             setAccountInfo(docAccountInfo);
@@ -167,7 +171,7 @@ export function AccountPage({setUserInfo}) {
                 <Link to={`/characters/${character.id}`} className="AccountPage-entity-card" key={character.id}>
                     <div className="AccountPage-entity-card-title">{character.character_name}</div>
                     <div className="AccountPage-entity-card-meta">
-                        {character.class}{character.campaign ? ` · ${character.campaign}` : ""}
+                        {characterClassName(character)}{campaignSuffix(accountInfo?.campaignNames ?? {}, character.campaign)}
                     </div>
                 </Link>
             )}

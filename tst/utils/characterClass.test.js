@@ -1,4 +1,4 @@
-import { applyClassToCharacter, canAdministerCharacter, classToCharacterFields, isLinkedToClass, isLinkedToRace, raceActionsOf, raceToCharacterFields, resolveCharacter, savedActions, savedRaceActions } from '../../src/utils/characterClass';
+import { applyClassToCharacter, canAdministerCharacter, characterClassName, classToCharacterFields, isLinkedToClass, isLinkedToRace, raceActionsOf, raceToCharacterFields, resolveCharacter, savedActions, savedRaceActions } from '../../src/utils/characterClass';
 
 const raceFeat = { actionName: 'Mild Fire', category: 'feat' };
 const classData = {
@@ -276,5 +276,24 @@ describe('canAdministerCharacter', () => {
         expect(canAdministerCharacter(character, undefined, 'stranger')).toBe(false);
         expect(canAdministerCharacter(character, undefined, 'player')).toBe(true);
         expect(canAdministerCharacter({ userId: 'old-owner' }, {}, 'old-owner')).toBe(true);
+    });
+});
+
+describe('characterClassName', () => {
+    test('is the class\'s name saved on a character made since classes were reworked, which has no older `class` field', () => {
+        expect(characterClassName({ class_id: 'magus', class_name: 'Magus' })).toBe('Magus');
+    });
+
+    test('is the older `class` text on a character from before that', () => {
+        expect(characterClassName({ class: 'Chef' })).toBe('Chef');
+    });
+
+    test('prefers the class\'s name when a character has both', () => {
+        expect(characterClassName({ class: 'Old Name', class_name: 'Magus' })).toBe('Magus');
+    });
+
+    test('is empty, not "undefined", for a character with neither', () => {
+        expect(characterClassName({})).toBe('');
+        expect(characterClassName(undefined)).toBe('');
     });
 });

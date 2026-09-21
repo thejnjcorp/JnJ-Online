@@ -25,7 +25,7 @@ import { Homepage } from '../../src/components/Homepage';
 // eslint-disable-next-line import/first
 import { renderWithRouter } from '../testUtils/renderWithRouter';
 
-const character = { id: 'char-a', character_name: 'Aria', class: 'Fighter', campaign: 'The Iron Vale' };
+const character = { id: 'char-a', character_name: 'Aria', class: 'Fighter', campaign: 'camp-a' };
 const campaign = { id: 'camp-a', campaign_name: 'The Iron Vale', director_name: 'Sam' };
 
 function docsFrom(items) {
@@ -138,6 +138,42 @@ describe('Homepage', () => {
             expect(await screen.findByText('Aria')).toBeInTheDocument();
             expect(screen.getByText('The Iron Vale')).toBeInTheDocument();
             ['Zed', 'Doomed', 'Old Campaign', 'Doomed Campaign'].forEach(name => expect(screen.queryByText(name)).not.toBeInTheDocument());
+        });
+
+        test('a character\'s card names its class from the class_name it was made with, not only the older class field', async () => {
+            signIn({ uid: 'user-1' }, { characters: [{ id: 'char-m', character_name: 'Kira', class_id: 'magus', class_name: 'Magus', player_name: 'Sam', campaign: 'camp-a' }], campaigns: [campaign] });
+            renderWithRouter(<Homepage />);
+            expect(await screen.findByRole('link', { name: /Kira/ })).toHaveTextContent('Magus · The Iron Vale');
+        });
+
+        test('a character\'s card names its campaign, not the campaign\'s id', async () => {
+            signIn({ uid: 'user-1' }, { characters: [character], campaigns: [campaign] });
+            renderWithRouter(<Homepage />);
+            const card = await screen.findByRole('link', { name: /Aria/ });
+            expect(card).toHaveTextContent('Fighter · The Iron Vale');
+            expect(card).not.toHaveTextContent('camp-a');
+        });
+
+        test('even when that campaign is archived, and so is not listed itself', async () => {
+            signIn({ uid: 'user-1' }, { characters: [character], campaigns: [{ ...campaign, archived: true }] });
+            renderWithRouter(<Homepage />);
+            expect(await screen.findByRole('link', { name: /Aria/ })).toHaveTextContent('Fighter · The Iron Vale');
+            expect(screen.getByText('No campaigns yet.')).toBeInTheDocument();
+        });
+
+        test('a campaign the viewer cannot see is left off the card rather than shown as an id', async () => {
+            signIn({ uid: 'user-1' }, { characters: [{ ...character, campaign: 'S4t04LhkYrN3wAzPvYgq' }] });
+            renderWithRouter(<Homepage />);
+            const card = await screen.findByRole('link', { name: /Aria/ });
+            expect(card).toHaveTextContent('Fighter');
+            expect(card).not.toHaveTextContent('S4t04Lhk');
+            expect(card).not.toHaveTextContent('·');
+        });
+
+        test('a character in no campaign says only its class', async () => {
+            signIn({ uid: 'user-1' }, { characters: [{ ...character, campaign: undefined }], campaigns: [campaign] });
+            renderWithRouter(<Homepage />);
+            expect(await screen.findByRole('link', { name: /Aria/ })).not.toHaveTextContent('·');
         });
 
         test('the four shown are the first four that are not archived, not the first four fetched', async () => {

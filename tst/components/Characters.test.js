@@ -147,6 +147,13 @@ describe('Characters', () => {
             expect(card.style.getPropertyValue('--character-accent')).toBe('#ff0000');
         });
 
+        test('a character made since classes were reworked shows its class_name', async () => {
+            signIn([{ id: 'char-m', character_name: 'Kira', player_name: 'Sam', class_id: 'magus', class_name: 'Magus' }]);
+            renderWithRouter(<Characters />, { route: '/characters' });
+            await screen.findByText('Kira');
+            expect(screen.getByText(/Magus/)).toBeInTheDocument();
+        });
+
         describe('archived characters', () => {
             const archived = { id: 'char-z', character_name: 'Zed', player_name: 'Sam', class: 'Monk', archived: true };
             const doomed = { ...archived, id: 'char-d', character_name: 'Doomed', scheduledDeletionAt: { toDate: () => new Date(2026, 9, 21) } };

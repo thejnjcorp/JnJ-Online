@@ -27,6 +27,11 @@ export function raceActionsOf(race) {
     return race?.actions ?? (race?.feat ? [race.feat] : []);
 }
 
+// The class a character's card names. A character made since classes were reworked
+// keeps its class's name as `class_name` (with its `class_id`); one from before that
+// has the older `class` text instead.
+export const characterClassName = character => character?.class_name || character?.class || '';
+
 // The race's actions as saved on the character. Legacy characters have them
 // merged into `actions` already (and older ones a single race_feat).
 export function savedRaceActions(character) {

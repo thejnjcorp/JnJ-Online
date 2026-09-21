@@ -11,6 +11,8 @@ import intelligenceIcon from '../icons/intelligence.svg';
 import charismaIcon from '../icons/charisma.svg';
 import { withoutArchived } from '../utils/characterArchive';
 import { withoutArchivedCampaigns } from '../utils/campaignArchive';
+import { campaignNameMap, campaignSuffix } from '../utils/campaignNames';
+import { characterClassName } from '../utils/characterClass';
 
 // These icons are flat SVGs baked with a hardcoded fill/stroke of #000000
 // (see src/icons/*.svg), so an <img> render of them is invisible against a
@@ -52,6 +54,7 @@ export function Homepage() {
     const [userInfo, setUserInfo] = useState(undefined);
     const [characterList, setCharacterList] = useState([]);
     const [campaignList, setCampaignList] = useState([]);
+    const [campaignNames, setCampaignNames] = useState({});
     document.title = "JnJ Online";
 
     useEffect(() => {
@@ -75,7 +78,9 @@ export function Homepage() {
             ));
             const [characterSnap, campaignSnap] = await Promise.all([getDocs(characters), getDocs(campaigns)]);
             setCharacterList(withoutArchived(characterSnap.docs.map(doc => ({id: doc.id, ...doc.data()}))));
-            setCampaignList(withoutArchivedCampaigns(campaignSnap.docs.map(doc => ({id: doc.id, ...doc.data()}))));
+            const allCampaigns = campaignSnap.docs.map(doc => ({id: doc.id, ...doc.data()}));
+            setCampaignList(withoutArchivedCampaigns(allCampaigns));
+            setCampaignNames(campaignNameMap(allCampaigns));
         } catch (error) {
             console.log(error);
         }
@@ -86,7 +91,7 @@ export function Homepage() {
     if (userInfo === undefined) return <div className="Homepage"/>;
 
     return <div className="Homepage">
-        {userInfo ? <SignedInHome userInfo={userInfo} characterList={characterList} campaignList={campaignList}/>
+        {userInfo ? <SignedInHome userInfo={userInfo} characterList={characterList} campaignList={campaignList} campaignNames={campaignNames}/>
             : <SignedOutHome/>}
     </div>
 }
@@ -127,7 +132,7 @@ function SignedOutHome() {
     </>
 }
 
-function SignedInHome({userInfo, characterList, campaignList}) {
+function SignedInHome({userInfo, characterList, campaignList, campaignNames = {}}) {
     return <>
         <section className="Homepage-dashboard-header">
             <h1>Welcome back{userInfo.displayName ? `, ${userInfo.displayName.split(" ")[0]}` : ""}</h1>
@@ -146,7 +151,7 @@ function SignedInHome({userInfo, characterList, campaignList}) {
                     <Link to={`/characters/${character.id}`} className="Homepage-entity-card" key={character.id}>
                         <div className="Homepage-entity-card-title">{character.character_name}</div>
                         <div className="Homepage-entity-card-meta">
-                            {character.class}{character.campaign ? ` · ${character.campaign}` : ""}
+                            {characterClassName(character)}{campaignSuffix(campaignNames, character.campaign)}
                         </div>
                     </Link>
                 )}

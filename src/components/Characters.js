@@ -7,6 +7,7 @@ import { auth, db } from "../utils/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import loadingIcon from '../icons/loading.svg';
 import { deletionDate, formatDeletionDate, isArchived } from '../utils/characterArchive';
+import { characterClassName } from '../utils/characterClass';
 
 // Firestore 'in' queries cap at 30 values per query.
 const FIRESTORE_IN_LIMIT = 30;
@@ -43,7 +44,7 @@ export function Characters() {
             id: doc.id,
             character_name: doc.data().character_name,
             player_name: doc.data().player_name,
-            class: doc.data().class,
+            class: characterClassName(doc.data()),
             campaign: doc.data().campaign,
             navigation_color: doc.data().navigation_color,
             archived: doc.data().archived,
