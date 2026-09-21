@@ -1,7 +1,7 @@
 {
   "files": {
     "main.css": "/JnJ-Online/static/css/main.174be19b.css",
-    "main.js": "/JnJ-Online/static/js/main.7f2eb11c.js",
+    "main.js": "/JnJ-Online/static/js/main.95c8c42b.js",
     "static/js/540.5d774e05.chunk.js": "/JnJ-Online/static/js/540.5d774e05.chunk.js",
     "static/js/531.b01b577e.chunk.js": "/JnJ-Online/static/js/531.b01b577e.chunk.js",
     "static/js/453.e1c165ac.chunk.js": "/JnJ-Online/static/js/453.e1c165ac.chunk.js",
@@ -37,7 +37,7 @@
     "static/media/circle_filled.svg": "/JnJ-Online/static/media/circle_filled.7a9cf4bfa5d0574978939f15556bb38e.svg",
     "static/media/circle.svg": "/JnJ-Online/static/media/circle.e7eb2b803d30d626f271a1aba0c8d9fe.svg",
     "main.174be19b.css.map": "/JnJ-Online/static/css/main.174be19b.css.map",
-    "main.7f2eb11c.js.map": "/JnJ-Online/static/js/main.7f2eb11c.js.map",
+    "main.95c8c42b.js.map": "/JnJ-Online/static/js/main.95c8c42b.js.map",
     "531.b01b577e.chunk.js.map": "/JnJ-Online/static/js/531.b01b577e.chunk.js.map",
     "453.e1c165ac.chunk.js.map": "/JnJ-Online/static/js/453.e1c165ac.chunk.js.map",
     "554.67b429be.chunk.css.map": "/JnJ-Online/static/css/554.67b429be.chunk.css.map",
@@ -45,6 +45,6 @@
   },
   "entrypoints": [
     "static/css/main.174be19b.css",
-    "static/js/main.7f2eb11c.js"
+    "static/js/main.95c8c42b.js"
   ]
 }
