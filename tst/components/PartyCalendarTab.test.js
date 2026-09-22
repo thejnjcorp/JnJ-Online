@@ -391,5 +391,81 @@ describe('PartyCalendarTab', () => {
             expect(screen.getByLabelText('Month 12 name')).toHaveValue('December');
             expect(defaultCalendar().months).toHaveLength(12);
         });
+
+        describe('tags', () => {
+            test('a director can add a colour-coded tag and save it', async () => {
+                draw({ isDirector: true });
+                openSetup();
+                fireEvent.click(screen.getByRole('button', { name: '+ Add a tag' }));
+                expect(screen.getByLabelText('Tag 1 name')).toHaveValue('Holiday');
+                fireEvent.change(screen.getByLabelText('Tag 1 colour'), { target: { value: '#123456' } });
+                fireEvent.click(screen.getByRole('button', { name: 'Save calendar' }));
+                await waitFor(() => expect(mockUpdateParty).toHaveBeenCalled());
+                expect(mockUpdateParty.mock.calls[0][1]({}).calendar.tags).toEqual([{ name: 'Holiday', color: '#123456' }]);
+            });
+
+            test('tags can be removed, and each added one gets its own name', () => {
+                draw({ isDirector: true });
+                openSetup();
+                fireEvent.click(screen.getByRole('button', { name: '+ Add a tag' }));
+                fireEvent.click(screen.getByRole('button', { name: '+ Add a tag' }));
+                expect(screen.getByLabelText('Tag 1 name')).toHaveValue('Holiday');
+                expect(screen.getByLabelText('Tag 2 name')).toHaveValue('Tag 2');
+                fireEvent.click(screen.getByRole('button', { name: 'Remove tag 1' }));
+                expect(screen.queryByLabelText('Tag 2 name')).not.toBeInTheDocument();
+                expect(screen.getByLabelText('Tag 1 name')).toHaveValue('Tag 2');
+            });
+
+            test('two tags cannot share a name', () => {
+                draw({ isDirector: true });
+                openSetup();
+                fireEvent.click(screen.getByRole('button', { name: '+ Add a tag' }));
+                fireEvent.click(screen.getByRole('button', { name: '+ Add a tag' }));
+                fireEvent.change(screen.getByLabelText('Tag 2 name'), { target: { value: 'Holiday' } });
+                fireEvent.click(screen.getByRole('button', { name: 'Save calendar' }));
+                expect(screen.getByRole('alert')).toHaveTextContent('same name');
+                expect(mockUpdateParty).not.toHaveBeenCalled();
+            });
+        });
+    });
+
+    describe('tagged events', () => {
+        const withTags = { ...small, tags: [{ name: 'Holiday', color: '#e0b34d' }] };
+
+        test('a tagged event\'s pill is coloured, and a plain one is not', () => {
+            draw({
+                party: { calendar: withTags },
+                events: [event('a', 'Founding day', 3, 1, 4, { category: 'Holiday' }), event('b', 'Bought rope', 3, 1, 4, { category: 'Shopping' })],
+            });
+            const panel = within(screen.getByRole('region', { name: 'Events on 4 Bloom, year 3' }));
+            expect(panel.getByText('Holiday')).toHaveStyle({ '--calendar-tag-color': '#e0b34d' });
+            expect(panel.getByText('Shopping')).not.toHaveStyle({ '--calendar-tag-color': '#e0b34d' });
+        });
+
+        test('a day with a tagged event is marked on the grid', () => {
+            draw({ party: { calendar: withTags }, events: [event('a', 'Founding day', 3, 1, 6, { category: 'Holiday' })] });
+            expect(day('6 Bloom, year 3')).toHaveClass('Calendar-day-tagged');
+            expect(day('4 Bloom, year 3')).not.toHaveClass('Calendar-day-tagged');
+        });
+
+        test('adding an event offers the calendar\'s tags to pick from, instead of free text', () => {
+            draw({ party: { calendar: withTags } });
+            fireEvent.click(screen.getByRole('button', { name: 'Add an event' }));
+            const select = screen.getByLabelText('Event category');
+            expect(select.tagName).toBe('SELECT');
+            fireEvent.change(screen.getByLabelText('Event title'), { target: { value: 'Founding day' } });
+            fireEvent.change(select, { target: { value: 'Holiday' } });
+            fireEvent.click(screen.getByRole('button', { name: 'Add event' }));
+            expect(mockEvents.addEvent).toHaveBeenCalledWith(expect.objectContaining({ category: 'Holiday' }));
+        });
+
+        test('a category left over from before it was tagged still appears in its own form', () => {
+            draw({
+                party: { calendar: withTags },
+                events: [event('a', 'Bought rope', 3, 1, 4, { category: 'Shopping' })],
+            });
+            fireEvent.click(screen.getByRole('button', { name: 'Change Bought rope' }));
+            expect(screen.getByLabelText('Event category')).toHaveValue('Shopping');
+        });
     });
 });

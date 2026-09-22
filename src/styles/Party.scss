@@ -578,6 +578,14 @@
     border-color: var(--jnj-color-accent);
 }
 
+// A stripe in its tag's colour, so a day with a tagged event (a Holiday, say) stands
+// out even before it is opened. Only the top border changes, so it layers over
+// -today and -selected rather than fighting them for the rest of the border.
+.Calendar-day-tagged {
+    border-top-width: 3px;
+    border-top-color: var(--calendar-tag-color);
+}
+
 .Calendar-day-number {
     font-size: var(--jnj-text-xs);
     font-weight: 700;
@@ -591,6 +599,16 @@
     font-size: 0.625rem;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.Calendar-day-event-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 3px;
+    border-radius: 50%;
+    background: var(--calendar-tag-color);
+    vertical-align: middle;
 }
 
 .Calendar-day-more {
@@ -611,6 +629,23 @@
     flex-wrap: wrap;
     align-items: center;
     gap: var(--jnj-space-2);
+}
+
+// A tagged event's pill, in its tag's own colour instead of the plain default.
+.ItemList-tag.Calendar-tag-custom {
+    border-color: var(--calendar-tag-color);
+    background: var(--calendar-tag-color);
+    color: var(--calendar-tag-on-color);
+}
+
+.Calendar-tag-color {
+    width: 2rem;
+    height: 2rem;
+    padding: 2px;
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-sm);
+    background: none;
+    cursor: pointer;
 }
 
 .Calendar-event-description {

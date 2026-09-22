@@ -1,3 +1,5 @@
+import { isHexColor, readableOn } from './statusStyle';
+
 // The party's calendar: an in-game calendar for keeping track of what happened when.
 //
 // A calendar is set up per campaign (kept on the party doc as `calendar`) - the names
@@ -9,12 +11,18 @@
 // everyone at the table).
 //
 // The events kept on it (`party_events`) are { title, description, category, year,
-// month, day }.
+// month, day }. A director can also define a set of tags (name + colour, e.g.
+// "Holiday") on the calendar itself; an event whose `category` matches a tag's name
+// is coloured with it, so tagged events stand out from the plain ones players add.
 
 export const MAX_MONTHS = 30;
 export const MAX_WEEKDAYS = 14;
 export const MAX_MONTH_DAYS = 100;
 export const MAX_NAME_LENGTH = 24;
+export const MAX_TAGS = 20;
+
+// Offered to a new tag in turn, so several added at once are not all the same colour.
+export const TAG_COLOR_PALETTE = ['#e0b34d', '#4d9de0', '#e15554', '#3bb273', '#9b5de5', '#f4a259', '#5c80bc', '#d65db1'];
 
 export const defaultCalendar = () => ({
     weekdays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
@@ -24,6 +32,7 @@ export const defaultCalendar = () => ({
         { name: 'September', days: 30 }, { name: 'October', days: 31 }, { name: 'November', days: 30 }, { name: 'December', days: 31 },
     ],
     today: { year: 1, month: 0, day: 1 },
+    tags: [],
 });
 
 const isWhole = value => Number.isInteger(value);
@@ -45,6 +54,14 @@ export function validateCalendar(calendar) {
     else {
         if (months.some(month => typeof month?.name !== 'string' || month.name.trim() === '' || month.name.length > MAX_NAME_LENGTH)) problems.push(`Each month needs a name of up to ${MAX_NAME_LENGTH} characters.`);
         if (months.some(month => !isWhole(month?.days) || month.days < 1 || month.days > MAX_MONTH_DAYS)) problems.push(`Each month needs from 1 to ${MAX_MONTH_DAYS} days.`);
+    }
+    const tags = calendar.tags ?? [];
+    if (!Array.isArray(tags) || tags.length > MAX_TAGS) problems.push(`There can be at most ${MAX_TAGS} tags.`);
+    else {
+        if (tags.some(tag => typeof tag?.name !== 'string' || tag.name.trim() === '' || tag.name.length > MAX_NAME_LENGTH)) problems.push(`Each tag needs a name of up to ${MAX_NAME_LENGTH} characters.`);
+        if (tags.some(tag => !isHexColor(tag?.color))) problems.push('Each tag needs a colour.');
+        const names = tags.map(tag => (tag.name || '').trim().toLowerCase());
+        if (new Set(names).size !== names.length) problems.push('Two tags cannot have the same name.');
     }
     if (problems.length === 0 && !isValidDate(calendar, today)) problems.push('Today is not a date in this calendar.');
     return { valid: problems.length === 0, problems };
@@ -113,6 +130,30 @@ export function shiftMonth(calendar, { year, month }, by) {
 export const formatDate = (calendar, date) => `${date.day} ${calendar.months[date.month]?.name ?? '?'}, year ${date.year}`;
 
 export const formatMonth = (calendar, { year, month }) => `${calendar.months[month]?.name ?? '?'}, year ${year}`;
+
+// --- Tags ----------------------------------------------------------------------------
+
+export const tagsOf = calendar => calendar.tags ?? [];
+
+// The tag a name matches (case-insensitively), or null - for a category that is not
+// tagged, or no longer matches a tag that was renamed or removed.
+export function findTag(calendar, name) {
+    const needle = (name || '').trim().toLowerCase();
+    if (!needle) return null;
+    return tagsOf(calendar).find(tag => tag.name.trim().toLowerCase() === needle) ?? null;
+}
+
+// A colour a new tag can start with, cycling the palette so tags added one after
+// another are not all the same colour.
+export const nextTagColor = tags => TAG_COLOR_PALETTE[tags.length % TAG_COLOR_PALETTE.length];
+
+// The inline style that gives an event's tag its own colour, or nothing when it is
+// not tagged. Pair with a `Calendar-tag-custom` class, the same way a status chip does.
+export function tagStyle(calendar, category) {
+    const tag = findTag(calendar, category);
+    if (!tag) return undefined;
+    return { '--calendar-tag-color': tag.color, '--calendar-tag-on-color': readableOn(tag.color) };
+}
 
 // --- Events ------------------------------------------------------------------------
 

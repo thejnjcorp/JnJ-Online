@@ -2,13 +2,21 @@ import { useMemo, useState } from 'react';
 import { updateParty } from '../utils/party';
 import { usePartyEvents } from '../utils/usePartyEvents';
 import {
-    MAX_EVENT_DESCRIPTION, MAX_EVENT_TITLE, MAX_MONTHS, MAX_MONTH_DAYS, MAX_NAME_LENGTH, MAX_WEEKDAYS,
-    addDays, calendarOf, daysInMonth, eventDate, eventDocFields, eventsOnDate, formatDate, formatMonth, isValidDate, monthGrid, sameDate, shiftMonth,
-    validateCalendar, validateEvent,
+    MAX_EVENT_DESCRIPTION, MAX_EVENT_TITLE, MAX_MONTHS, MAX_MONTH_DAYS, MAX_NAME_LENGTH, MAX_TAGS, MAX_WEEKDAYS,
+    addDays, calendarOf, daysInMonth, eventDate, eventDocFields, eventsOnDate, findTag, formatDate, formatMonth, isValidDate, monthGrid, nextTagColor, sameDate, shiftMonth,
+    tagStyle, tagsOf, validateCalendar, validateEvent,
 } from '../utils/calendar';
 import '../styles/Party.scss';
 
 const emptyEvent = date => ({ id: null, title: '', category: '', description: '', ...date });
+
+// An event's category, as a pill - in its tag's colour when it has one, otherwise
+// plain, exactly as before tags existed.
+function EventTag({ calendar, category }) {
+    if (!category) return null;
+    const tag = findTag(calendar, category);
+    return <span className={['ItemList-tag', tag && 'Calendar-tag-custom'].filter(Boolean).join(' ')} style={tagStyle(calendar, category)}>{category}</span>;
+}
 
 // Add or change one event: its title, what kind of thing it was, what happened, and
 // the day it happened on.
@@ -33,7 +41,13 @@ function EventForm({ calendar, initial, onSave, onCancel }) {
 
     return <form className="Calendar-event-form" noValidate onSubmit={event => { event.preventDefault(); save(); }} aria-label={form.id ? 'Change event' : 'Add an event'}>
         <input className="Party-input" aria-label="Event title" placeholder="What happened?" maxLength={MAX_EVENT_TITLE + 20} value={form.title} onChange={event => set({ title: event.target.value })}/>
-        <input className="Party-input" aria-label="Event category" placeholder="Kind of event (optional): travel, battle, purchase…" value={form.category} onChange={event => set({ category: event.target.value })}/>
+        {tagsOf(calendar).length > 0
+            ? <select className="Party-input" aria-label="Event category" value={form.category} onChange={event => set({ category: event.target.value })}>
+                <option value="">No tag</option>
+                {tagsOf(calendar).map(tag => <option key={tag.name} value={tag.name}>{tag.name}</option>)}
+                {form.category && !findTag(calendar, form.category) && <option value={form.category}>{form.category} (not a tag)</option>}
+            </select>
+            : <input className="Party-input" aria-label="Event category" placeholder="Kind of event (optional): travel, battle, purchase…" value={form.category} onChange={event => set({ category: event.target.value })}/>}
         <textarea className="Party-input Calendar-textarea" aria-label="Event details" placeholder="Details, so the party can look back on it" maxLength={MAX_EVENT_DESCRIPTION} rows={3} value={form.description} onChange={event => set({ description: event.target.value })}/>
         <div className="Calendar-date-fields">
             <label>Day
@@ -59,13 +73,14 @@ function EventForm({ calendar, initial, onSave, onCancel }) {
 // The director's setup of the calendar: the weekdays, the months and their lengths, and
 // what day it is. Nothing is saved until it is valid.
 function CalendarSettings({ calendar, onSave, onClose }) {
-    const [draft, setDraft] = useState(() => structuredClone(calendar));
+    const [draft, setDraft] = useState(() => ({ ...structuredClone(calendar), tags: structuredClone(tagsOf(calendar)) }));
     const [problems, setProblems] = useState([]);
     const [saving, setSaving] = useState(false);
 
     const changeMonth = (index, changes) => setDraft(current => ({ ...current, months: current.months.map((month, i) => (i === index ? { ...month, ...changes } : month)) }));
     const changeWeekday = (index, name) => setDraft(current => ({ ...current, weekdays: current.weekdays.map((day, i) => (i === index ? name : day)) }));
     const changeToday = changes => setDraft(current => ({ ...current, today: { ...current.today, ...changes } }));
+    const changeTag = (index, changes) => setDraft(current => ({ ...current, tags: current.tags.map((tag, i) => (i === index ? { ...tag, ...changes } : tag)) }));
 
     async function save() {
         const result = validateCalendar(draft);
@@ -100,6 +115,15 @@ function CalendarSettings({ calendar, onSave, onClose }) {
             <button type="button" className="Party-button" aria-label={`Remove month ${index + 1}`} disabled={draft.months.length <= 1} onClick={() => setDraft(current => ({ ...current, months: current.months.filter((_, i) => i !== index) }))}>Remove</button>
         </div>)}
         <button type="button" className="Party-button" disabled={draft.months.length >= MAX_MONTHS} onClick={() => setDraft(current => ({ ...current, months: [...current.months, { name: `Month ${current.months.length + 1}`, days: 30 }] }))}>+ Add a month</button>
+
+        <h4 className="Calendar-settings-heading">Tags</h4>
+        <div className="Party-hint">Colour-code kinds of event - a Holiday, say - so they stand out from the plain ones players add. Pick a tag when adding or changing an event.</div>
+        {draft.tags.map((tag, index) => <div className="Calendar-settings-row" key={index}>
+            <input className="Party-input" aria-label={`Tag ${index + 1} name`} maxLength={MAX_NAME_LENGTH + 5} value={tag.name} onChange={event => changeTag(index, { name: event.target.value })}/>
+            <input className="Calendar-tag-color" type="color" aria-label={`Tag ${index + 1} colour`} value={tag.color} onChange={event => changeTag(index, { color: event.target.value })}/>
+            <button type="button" className="Party-button" aria-label={`Remove tag ${index + 1}`} onClick={() => setDraft(current => ({ ...current, tags: current.tags.filter((_, i) => i !== index) }))}>Remove</button>
+        </div>)}
+        <button type="button" className="Party-button" disabled={draft.tags.length >= MAX_TAGS} onClick={() => setDraft(current => ({ ...current, tags: [...current.tags, { name: current.tags.length === 0 ? 'Holiday' : `Tag ${current.tags.length + 1}`, color: nextTagColor(current.tags) }] }))}>+ Add a tag</button>
 
         <h4 className="Calendar-settings-heading">Today</h4>
         <div className="Calendar-date-fields">
@@ -185,11 +209,15 @@ export function PartyCalendarTab({ campaignId, party, isDirector }) {
                         if (day === null) return <td key={column} className="Calendar-blank"/>;
                         const date = { year: view.year, month: view.month, day };
                         const here = eventsOnDate(events, date);
-                        const classes = ['Calendar-day', sameDate(date, today) && 'Calendar-day-today', sameDate(date, selected) && 'Calendar-day-selected'].filter(Boolean).join(' ');
+                        const dayTagColor = here.map(event => findTag(calendar, event.category)?.color).find(Boolean);
+                        const classes = ['Calendar-day', sameDate(date, today) && 'Calendar-day-today', sameDate(date, selected) && 'Calendar-day-selected', dayTagColor && 'Calendar-day-tagged'].filter(Boolean).join(' ');
                         return <td key={column}>
-                            <button type="button" className={classes} aria-pressed={sameDate(date, selected)} aria-label={`${formatDate(calendar, date)}${here.length ? `, ${here.length} ${here.length === 1 ? 'event' : 'events'}` : ''}${sameDate(date, today) ? ', today' : ''}`} onClick={() => pick(date)}>
+                            <button type="button" className={classes} style={dayTagColor ? { '--calendar-tag-color': dayTagColor } : undefined} aria-pressed={sameDate(date, selected)} aria-label={`${formatDate(calendar, date)}${here.length ? `, ${here.length} ${here.length === 1 ? 'event' : 'events'}` : ''}${sameDate(date, today) ? ', today' : ''}`} onClick={() => pick(date)}>
                                 <span className="Calendar-day-number">{day}</span>
-                                {here.slice(0, 2).map(event => <span className="Calendar-day-event" key={event.id}>{event.title}</span>)}
+                                {here.slice(0, 2).map(event => {
+                                    const tag = findTag(calendar, event.category);
+                                    return <span className="Calendar-day-event" key={event.id} style={tag ? { '--calendar-tag-color': tag.color } : undefined}>{tag && <span className="Calendar-day-event-dot" aria-hidden="true"/>}{event.title}</span>;
+                                })}
                                 {here.length > 2 && <span className="Calendar-day-more">+{here.length - 2} more</span>}
                             </button>
                         </td>;
@@ -213,7 +241,7 @@ export function PartyCalendarTab({ campaignId, party, isDirector }) {
                         : <>
                             <div className="Calendar-event-head">
                                 <strong>{event.title}</strong>
-                                {event.category && <span className="ItemList-tag">{event.category}</span>}
+                                <EventTag calendar={calendar} category={event.category}/>
                             </div>
                             {event.description && <p className="Calendar-event-description">{event.description}</p>}
                             <div className="Party-hint">{event.created_by_name ? `Added by ${event.created_by_name}` : ''}</div>
@@ -236,7 +264,7 @@ export function PartyCalendarTab({ campaignId, party, isDirector }) {
                         {isValidDate(calendar, eventDate(event)) ? formatDate(calendar, eventDate(event)) : 'A date that is no longer in the calendar'}
                     </button>
                     <span>{event.title}</span>
-                    {event.category && <span className="ItemList-tag">{event.category}</span>}
+                    <EventTag calendar={calendar} category={event.category}/>
                 </li>)}
             </ul>
         </section>

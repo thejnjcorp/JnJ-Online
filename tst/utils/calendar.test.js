@@ -1,7 +1,7 @@
 import {
     addDays, calendarOf, compareDates, dateFromDayNumber, dayNumber, daysBetween, defaultCalendar, eventDate, eventDocFields, eventsOnDate,
-    formatDate, formatMonth, isValidDate, monthGrid, sameDate, shiftMonth, sortEvents, validateCalendar, validateEvent, weekdayOf, yearLength,
-    MAX_EVENT_TITLE, MAX_MONTHS, MAX_MONTH_DAYS, MAX_NAME_LENGTH, MAX_WEEKDAYS,
+    findTag, formatDate, formatMonth, isValidDate, monthGrid, nextTagColor, sameDate, shiftMonth, sortEvents, tagStyle, tagsOf, validateCalendar, validateEvent, weekdayOf, yearLength,
+    MAX_EVENT_TITLE, MAX_MONTHS, MAX_MONTH_DAYS, MAX_NAME_LENGTH, MAX_TAGS, MAX_WEEKDAYS,
 } from '../../src/utils/calendar';
 
 const standard = defaultCalendar();
@@ -70,6 +70,19 @@ describe('validateCalendar', () => {
     test('nothing at all is not a calendar', () => {
         expect(validateCalendar(undefined).valid).toBe(false);
         expect(validateCalendar(null).valid).toBe(false);
+    });
+
+    test('a calendar with no tags at all is still valid - they are optional', () => {
+        const { tags, ...untagged } = small; // eslint-disable-line no-unused-vars
+        expect(validateCalendar(untagged)).toEqual({ valid: true, problems: [] });
+    });
+
+    test('each tag needs a name and a colour, and no two share a name', () => {
+        expect(problems({ ...small, tags: Array(MAX_TAGS + 1).fill({ name: 'x', color: '#e0b34d' }) })[0]).toMatch(/at most/);
+        expect(problems({ ...small, tags: [{ name: '', color: '#e0b34d' }] })[0]).toMatch(/tag needs a name/);
+        expect(problems({ ...small, tags: [{ name: 'Holiday', color: 'red' }] })[0]).toMatch(/tag needs a colour/);
+        expect(problems({ ...small, tags: [{ name: 'Holiday', color: '#e0b34d' }, { name: ' holiday ', color: '#4d9de0' }] })[0]).toMatch(/same name/);
+        expect(problems({ ...small, tags: [{ name: 'Holiday', color: '#e0b34d' }] })).toEqual([]);
     });
 });
 
@@ -187,6 +200,38 @@ describe('shiftMonth', () => {
         expect(shiftMonth(standard, { year: 1, month: 0 }, -1)).toEqual({ year: 0, month: 11 });
         expect(shiftMonth(standard, { year: 0, month: 0 }, -1)).toEqual({ year: -1, month: 11 });
         expect(shiftMonth(standard, { year: 1, month: 0 }, 25)).toEqual({ year: 3, month: 1 });
+    });
+});
+
+describe('tags', () => {
+    const tagged = { ...small, tags: [{ name: 'Holiday', color: '#e0b34d' }, { name: 'Battle', color: '#e15554' }] };
+
+    test('tagsOf is the calendar\'s tags, or none for a calendar that predates them', () => {
+        expect(tagsOf(tagged)).toEqual(tagged.tags);
+        expect(tagsOf(small)).toEqual([]);
+    });
+
+    test('findTag matches a category to its tag, ignoring case and spacing', () => {
+        expect(findTag(tagged, 'Holiday')).toEqual({ name: 'Holiday', color: '#e0b34d' });
+        expect(findTag(tagged, ' holiday ')).toEqual({ name: 'Holiday', color: '#e0b34d' });
+    });
+
+    test('findTag is null for an untagged, unknown, or missing category', () => {
+        expect(findTag(tagged, 'Purchase')).toBeNull();
+        expect(findTag(tagged, '')).toBeNull();
+        expect(findTag(tagged, undefined)).toBeNull();
+        expect(findTag(small, 'Holiday')).toBeNull();
+    });
+
+    test('nextTagColor cycles the palette so tags added in a row differ', () => {
+        const first = nextTagColor([]);
+        const second = nextTagColor([{ name: 'a', color: first }]);
+        expect(second).not.toBe(first);
+    });
+
+    test('tagStyle gives the tag\'s colour as CSS variables, or nothing when untagged', () => {
+        expect(tagStyle(tagged, 'Holiday')).toEqual({ '--calendar-tag-color': '#e0b34d', '--calendar-tag-on-color': expect.stringMatching(/^#/) });
+        expect(tagStyle(tagged, 'Purchase')).toBeUndefined();
     });
 });
 
