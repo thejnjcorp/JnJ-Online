@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { uploadImageToImgur } from '../utils/imgurUploader';
@@ -82,9 +83,10 @@ export function CharacterPageNavigation({characterPage, userId, classInfo, raceI
             <div className="CharacterPage-masthead-text">
                 <div className="CharacterPage-masthead-name">{characterPage.character_name || "Unnamed Character"}</div>
                 {subline && <div className="CharacterPage-masthead-subline">{subline}</div>}
-                {(classInfo || raceInfo) && <div className="CharacterPage-masthead-versions">
+                {(classInfo || raceInfo || characterPage.campaign) && <div className="CharacterPage-masthead-versions">
                     {classInfo && <ClassVersionControl characterPage={characterPage} userId={userId} status={classInfo.status} latestVersion={classInfo.latestVersion}/>}
                     {raceInfo && <RaceVersionControl characterPage={characterPage} userId={userId} status={raceInfo.status} latestVersion={raceInfo.latestVersion}/>}
+                    {characterPage.campaign && <Link className="ClassVersionControl-button" to={`/party/${characterPage.campaign}`}>Party</Link>}
                 </div>}
             </div>
             <CharacterPageNavigationColorPickerButton characterPageLayoutLive={characterPage}/>

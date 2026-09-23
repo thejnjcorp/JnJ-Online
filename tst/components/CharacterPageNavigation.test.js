@@ -20,6 +20,8 @@ jest.mock('../../src/utils/imgurUploader', () => ({
 // eslint-disable-next-line import/first
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 // eslint-disable-next-line import/first
+import { MemoryRouter } from 'react-router-dom';
+// eslint-disable-next-line import/first
 import { CharacterPageNavigation } from '../../src/components/CharacterPageNavigation';
 
 const characterPage = { character_id: 'char-1', userId: 'owner-1', character_name: 'Aria', navigation_color: '#ff0000' };
@@ -127,5 +129,17 @@ describe('CharacterPageNavigation', () => {
     test('renders the navigation color picker button', () => {
         render(<CharacterPageNavigation characterPage={characterPage} userId="owner-1" />);
         expect(screen.getByRole('button', { name: 'palette.svg' })).toBeInTheDocument();
+    });
+
+    describe('the party link', () => {
+        test('links to the character\'s campaign when it has one', () => {
+            render(<CharacterPageNavigation characterPage={{ ...characterPage, campaign: 'camp-1' }} userId="owner-1"/>, { wrapper: MemoryRouter });
+            expect(screen.getByRole('link', { name: 'Party' })).toHaveAttribute('href', '/party/camp-1');
+        });
+
+        test('is not shown for a character with no campaign', () => {
+            render(<CharacterPageNavigation characterPage={characterPage} userId="owner-1"/>, { wrapper: MemoryRouter });
+            expect(screen.queryByRole('link', { name: 'Party' })).not.toBeInTheDocument();
+        });
     });
 });
