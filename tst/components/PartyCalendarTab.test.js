@@ -187,7 +187,7 @@ describe('PartyCalendarTab', () => {
                 fireEvent.change(screen.getByLabelText('Event category'), { target: { value: ' travel ' } });
                 fireEvent.change(screen.getByLabelText('Event details'), { target: { value: 'It was locked.' } });
                 fireEvent.click(screen.getByRole('button', { name: 'Add event' }));
-                await waitFor(() => expect(mockEvents.addEvent).toHaveBeenCalledWith({ title: 'Reached the gate', description: 'It was locked.', category: 'travel', year: 3, month: 1, day: 4 }));
+                await waitFor(() => expect(mockEvents.addEvent).toHaveBeenCalledWith({ title: 'Reached the gate', description: 'It was locked.', category: 'travel', year: 3, month: 1, day: 4, recurrence: 'none' }));
                 await waitFor(() => expect(screen.queryByRole('form', { name: 'Add an event' })).not.toBeInTheDocument());
             });
 
@@ -243,7 +243,7 @@ describe('PartyCalendarTab', () => {
                 expect(screen.getByLabelText('Event details')).toHaveValue('Locked.');
                 fireEvent.change(screen.getByLabelText('Event title'), { target: { value: 'Broke the gate' } });
                 fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
-                await waitFor(() => expect(mockEvents.saveEvent).toHaveBeenCalledWith('a', { title: 'Broke the gate', description: 'Locked.', category: 'travel', year: 3, month: 1, day: 4 }));
+                await waitFor(() => expect(mockEvents.saveEvent).toHaveBeenCalledWith('a', { title: 'Broke the gate', description: 'Locked.', category: 'travel', year: 3, month: 1, day: 4, recurrence: 'none' }));
             });
 
             test('changing can be cancelled', () => {
@@ -392,40 +392,86 @@ describe('PartyCalendarTab', () => {
             expect(defaultCalendar().months).toHaveLength(12);
         });
 
-        describe('tags', () => {
-            test('a director can add a colour-coded tag and save it', async () => {
-                draw({ isDirector: true });
-                openSetup();
-                fireEvent.click(screen.getByRole('button', { name: '+ Add a tag' }));
-                expect(screen.getByLabelText('Tag 1 name')).toHaveValue('Holiday');
-                fireEvent.change(screen.getByLabelText('Tag 1 colour'), { target: { value: '#123456' } });
-                fireEvent.click(screen.getByRole('button', { name: 'Save calendar' }));
-                await waitFor(() => expect(mockUpdateParty).toHaveBeenCalled());
-                expect(mockUpdateParty.mock.calls[0][1]({}).calendar.tags).toEqual([{ name: 'Holiday', color: '#123456' }]);
-            });
+        test('leaves tags as they were - it never touches them', async () => {
+            draw({ party: { calendar: { ...small, tags: [{ name: 'Holiday', color: '#e0b34d' }] } }, isDirector: true });
+            openSetup();
+            fireEvent.change(screen.getByLabelText('Month 1 name'), { target: { value: 'Deepfrost' } });
+            fireEvent.click(screen.getByRole('button', { name: 'Save calendar' }));
+            await waitFor(() => expect(mockUpdateParty).toHaveBeenCalled());
+            // reads tags from whatever the party doc holds right now, not from a stale copy taken when the panel opened
+            const live = { calendar: { ...small, tags: [{ name: 'Holiday', color: '#e0b34d' }, { name: 'Newer', color: '#4d9de0' }] } };
+            expect(mockUpdateParty.mock.calls[0][1](live).calendar.tags).toEqual(live.calendar.tags);
+        });
+    });
 
-            test('tags can be removed, and each added one gets its own name', () => {
-                draw({ isDirector: true });
-                openSetup();
-                fireEvent.click(screen.getByRole('button', { name: '+ Add a tag' }));
-                fireEvent.click(screen.getByRole('button', { name: '+ Add a tag' }));
-                expect(screen.getByLabelText('Tag 1 name')).toHaveValue('Holiday');
-                expect(screen.getByLabelText('Tag 2 name')).toHaveValue('Tag 2');
-                fireEvent.click(screen.getByRole('button', { name: 'Remove tag 1' }));
-                expect(screen.queryByLabelText('Tag 2 name')).not.toBeInTheDocument();
-                expect(screen.getByLabelText('Tag 1 name')).toHaveValue('Tag 2');
-            });
+    describe('managing tags', () => {
+        const openTags = () => fireEvent.click(screen.getByRole('button', { name: 'Manage tags' }));
 
-            test('two tags cannot share a name', () => {
-                draw({ isDirector: true });
-                openSetup();
-                fireEvent.click(screen.getByRole('button', { name: '+ Add a tag' }));
-                fireEvent.click(screen.getByRole('button', { name: '+ Add a tag' }));
-                fireEvent.change(screen.getByLabelText('Tag 2 name'), { target: { value: 'Holiday' } });
-                fireEvent.click(screen.getByRole('button', { name: 'Save calendar' }));
-                expect(screen.getByRole('alert')).toHaveTextContent('same name');
-                expect(mockUpdateParty).not.toHaveBeenCalled();
-            });
+        test('is offered to every party member, not only a director', () => {
+            draw();
+            expect(screen.getByRole('button', { name: 'Manage tags' })).toBeInTheDocument();
+        });
+
+        test('a party member can add a colour-coded tag, saved right away', async () => {
+            draw();
+            openTags();
+            fireEvent.click(screen.getByRole('button', { name: '+ Add a tag' }));
+            expect(screen.getByLabelText('New tag name')).toHaveValue('Holiday');
+            fireEvent.change(screen.getByLabelText('New tag colour'), { target: { value: '#123456' } });
+            fireEvent.click(screen.getByRole('button', { name: 'Add tag' }));
+            await waitFor(() => expect(mockUpdateParty).toHaveBeenCalled());
+            expect(mockUpdateParty.mock.calls[0][1]({}).calendar.tags).toEqual([{ name: 'Holiday', color: '#123456' }]);
+        });
+
+        test('a tag needs a name, and no two can share one', async () => {
+            draw({ party: { calendar: { ...small, tags: [{ name: 'Holiday', color: '#e0b34d' }] } } });
+            openTags();
+            fireEvent.click(screen.getByRole('button', { name: '+ Add a tag' }));
+            fireEvent.change(screen.getByLabelText('New tag name'), { target: { value: '  ' } });
+            fireEvent.click(screen.getByRole('button', { name: 'Add tag' }));
+            expect(screen.getByRole('alert')).toHaveTextContent('Give the tag a name.');
+            fireEvent.change(screen.getByLabelText('New tag name'), { target: { value: ' holiday ' } });
+            fireEvent.click(screen.getByRole('button', { name: 'Add tag' }));
+            expect(screen.getByRole('alert')).toHaveTextContent('already a tag with that name');
+            expect(mockUpdateParty).not.toHaveBeenCalled();
+        });
+
+        test('an existing tag can be renamed and recoloured', async () => {
+            draw({ party: { calendar: { ...small, tags: [{ name: 'Holiday', color: '#e0b34d' }] } } });
+            openTags();
+            fireEvent.click(screen.getByRole('button', { name: 'Edit Holiday' }));
+            fireEvent.change(screen.getByLabelText('Tag 1 name'), { target: { value: 'Festival' } });
+            fireEvent.change(screen.getByLabelText('Tag 1 colour'), { target: { value: '#654321' } });
+            fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+            await waitFor(() => expect(mockUpdateParty).toHaveBeenCalled());
+            expect(mockUpdateParty.mock.calls[0][1]({}).calendar.tags).toEqual([{ name: 'Festival', color: '#654321' }]);
+        });
+
+        test('a tag can be removed, leaving the others', async () => {
+            draw({ party: { calendar: { ...small, tags: [{ name: 'Holiday', color: '#e0b34d' }, { name: 'Battle', color: '#e15554' }] } } });
+            window.confirm = jest.fn(() => true);
+            openTags();
+            fireEvent.click(screen.getByRole('button', { name: 'Remove Holiday' }));
+            expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('Holiday'));
+            await waitFor(() => expect(mockUpdateParty).toHaveBeenCalled());
+            expect(mockUpdateParty.mock.calls[0][1]({}).calendar.tags).toEqual([{ name: 'Battle', color: '#e15554' }]);
+        });
+
+        test('declining the removal keeps the tag', () => {
+            draw({ party: { calendar: { ...small, tags: [{ name: 'Holiday', color: '#e0b34d' }] } } });
+            window.confirm = jest.fn(() => false);
+            openTags();
+            fireEvent.click(screen.getByRole('button', { name: 'Remove Holiday' }));
+            expect(mockUpdateParty).not.toHaveBeenCalled();
+        });
+
+        test('a write that fails is shown', async () => {
+            mockUpdateParty.mockRejectedValue(new Error('permission-denied'));
+            draw();
+            openTags();
+            fireEvent.click(screen.getByRole('button', { name: '+ Add a tag' }));
+            fireEvent.click(screen.getByRole('button', { name: 'Add tag' }));
+            expect(await screen.findByRole('alert')).toHaveTextContent('permission-denied');
         });
     });
 
@@ -466,6 +512,49 @@ describe('PartyCalendarTab', () => {
             });
             fireEvent.click(screen.getByRole('button', { name: 'Change Bought rope' }));
             expect(screen.getByLabelText('Event category')).toHaveValue('Shopping');
+        });
+    });
+
+    describe('recurring events', () => {
+        const openForm = () => fireEvent.click(screen.getByRole('button', { name: 'Add an event' }));
+
+        test('does not repeat by default', async () => {
+            draw();
+            openForm();
+            expect(screen.getByLabelText('Repeats')).toHaveValue('none');
+            fireEvent.change(screen.getByLabelText('Event title'), { target: { value: 'Left home' } });
+            fireEvent.click(screen.getByRole('button', { name: 'Add event' }));
+            await waitFor(() => expect(mockEvents.addEvent).toHaveBeenCalledWith(expect.objectContaining({ recurrence: 'none' })));
+        });
+
+        test('can be set to repeat every year, month or week, and is saved that way', async () => {
+            draw();
+            openForm();
+            fireEvent.change(screen.getByLabelText('Event title'), { target: { value: 'Founding day' } });
+            fireEvent.change(screen.getByLabelText('Repeats'), { target: { value: 'yearly' } });
+            fireEvent.click(screen.getByRole('button', { name: 'Add event' }));
+            await waitFor(() => expect(mockEvents.addEvent).toHaveBeenCalledWith(expect.objectContaining({ recurrence: 'yearly' })));
+        });
+
+        test('a yearly event shows on the grid in a later year, marked as repeating', () => {
+            draw({ events: [event('a', 'Founding day', 1, 1, 6, { recurrence: 'yearly' })] }); // today is year 3
+            expect(day('6 Bloom, year 3')).toHaveAttribute('aria-label', '6 Bloom, year 3, 1 event');
+            fireEvent.click(day('6 Bloom, year 3'));
+            const panel = within(screen.getByRole('region', { name: 'Events on 6 Bloom, year 3' }));
+            expect(panel.getByText('Founding day')).toBeInTheDocument();
+            expect(panel.getByText('↻ Every year')).toBeInTheDocument();
+        });
+
+        test('a weekly event recurs on the matching weekday of another month', () => {
+            draw({ events: [event('a', 'Market day', 3, 0, 1, { recurrence: 'weekly' })] }); // weekday 0 of a 5-day week
+            fireEvent.click(screen.getByRole('button', { name: 'Next month' })); // into Harvest, year 3
+            expect(day('6 Harvest, year 3')).toHaveAttribute('aria-label', '6 Harvest, year 3, 1 event'); // also weekday 0
+        });
+
+        test('changing a recurring event keeps its recurrence selected', () => {
+            draw({ events: [event('a', 'Founding day', 3, 1, 4, { recurrence: 'yearly' })] });
+            fireEvent.click(screen.getByRole('button', { name: 'Change Founding day' }));
+            expect(screen.getByLabelText('Repeats')).toHaveValue('yearly');
         });
     });
 });

@@ -655,7 +655,8 @@
 }
 
 .Calendar-event-form,
-.Calendar-settings {
+.Calendar-settings,
+.Calendar-tags {
     display: flex;
     flex-direction: column;
     gap: var(--jnj-space-2);
@@ -664,6 +665,19 @@
     border: 1px solid var(--jnj-color-border-strong);
     border-radius: var(--jnj-radius-md);
     background: var(--jnj-color-bg-sunken);
+}
+
+.Calendar-tags-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-2);
+}
+
+.Calendar-tags-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--jnj-space-2);
 }
 
 .Calendar-textarea {

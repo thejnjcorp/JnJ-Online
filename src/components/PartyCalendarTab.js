@@ -2,13 +2,13 @@ import { useMemo, useState } from 'react';
 import { updateParty } from '../utils/party';
 import { usePartyEvents } from '../utils/usePartyEvents';
 import {
-    MAX_EVENT_DESCRIPTION, MAX_EVENT_TITLE, MAX_MONTHS, MAX_MONTH_DAYS, MAX_NAME_LENGTH, MAX_TAGS, MAX_WEEKDAYS,
-    addDays, calendarOf, daysInMonth, eventDate, eventDocFields, eventsOnDate, findTag, formatDate, formatMonth, isValidDate, monthGrid, nextTagColor, sameDate, shiftMonth,
+    MAX_EVENT_DESCRIPTION, MAX_EVENT_TITLE, MAX_MONTHS, MAX_MONTH_DAYS, MAX_NAME_LENGTH, MAX_TAGS, MAX_WEEKDAYS, RECURRENCES,
+    addDays, calendarOf, daysInMonth, eventDate, eventDocFields, eventsOnDate, findTag, formatDate, formatMonth, isValidDate, monthGrid, nextTagColor, recurrenceLabel, sameDate, shiftMonth,
     tagStyle, tagsOf, validateCalendar, validateEvent,
 } from '../utils/calendar';
 import '../styles/Party.scss';
 
-const emptyEvent = date => ({ id: null, title: '', category: '', description: '', ...date });
+const emptyEvent = date => ({ id: null, title: '', category: '', description: '', recurrence: 'none', ...date });
 
 // An event's category, as a pill - in its tag's colour when it has one, otherwise
 // plain, exactly as before tags existed.
@@ -48,6 +48,7 @@ function EventForm({ calendar, initial, onSave, onCancel }) {
                 {form.category && !findTag(calendar, form.category) && <option value={form.category}>{form.category} (not a tag)</option>}
             </select>
             : <input className="Party-input" aria-label="Event category" placeholder="Kind of event (optional): travel, battle, purchase…" value={form.category} onChange={event => set({ category: event.target.value })}/>}
+        <div className="Party-hint">Use "Manage tags" above to colour-code a kind of event, like a Holiday.</div>
         <textarea className="Party-input Calendar-textarea" aria-label="Event details" placeholder="Details, so the party can look back on it" maxLength={MAX_EVENT_DESCRIPTION} rows={3} value={form.description} onChange={event => set({ description: event.target.value })}/>
         <div className="Calendar-date-fields">
             <label>Day
@@ -61,6 +62,11 @@ function EventForm({ calendar, initial, onSave, onCancel }) {
             <label>Year
                 <input className="Party-input Party-input-narrow" type="number" aria-label="Event year" value={form.year} onChange={event => set({ year: Number(event.target.value) })}/>
             </label>
+            <label>Repeats
+                <select className="Party-input" aria-label="Repeats" value={form.recurrence || 'none'} onChange={event => set({ recurrence: event.target.value })}>
+                    {RECURRENCES.map(option => <option key={option.key} value={option.key}>{option.label}</option>)}
+                </select>
+            </label>
         </div>
         {error && <div className="Party-error" role="alert">{error}</div>}
         <div className="Calendar-form-actions">
@@ -73,14 +79,13 @@ function EventForm({ calendar, initial, onSave, onCancel }) {
 // The director's setup of the calendar: the weekdays, the months and their lengths, and
 // what day it is. Nothing is saved until it is valid.
 function CalendarSettings({ calendar, onSave, onClose }) {
-    const [draft, setDraft] = useState(() => ({ ...structuredClone(calendar), tags: structuredClone(tagsOf(calendar)) }));
+    const [draft, setDraft] = useState(() => structuredClone(calendar));
     const [problems, setProblems] = useState([]);
     const [saving, setSaving] = useState(false);
 
     const changeMonth = (index, changes) => setDraft(current => ({ ...current, months: current.months.map((month, i) => (i === index ? { ...month, ...changes } : month)) }));
     const changeWeekday = (index, name) => setDraft(current => ({ ...current, weekdays: current.weekdays.map((day, i) => (i === index ? name : day)) }));
     const changeToday = changes => setDraft(current => ({ ...current, today: { ...current.today, ...changes } }));
-    const changeTag = (index, changes) => setDraft(current => ({ ...current, tags: current.tags.map((tag, i) => (i === index ? { ...tag, ...changes } : tag)) }));
 
     async function save() {
         const result = validateCalendar(draft);
@@ -116,15 +121,6 @@ function CalendarSettings({ calendar, onSave, onClose }) {
         </div>)}
         <button type="button" className="Party-button" disabled={draft.months.length >= MAX_MONTHS} onClick={() => setDraft(current => ({ ...current, months: [...current.months, { name: `Month ${current.months.length + 1}`, days: 30 }] }))}>+ Add a month</button>
 
-        <h4 className="Calendar-settings-heading">Tags</h4>
-        <div className="Party-hint">Colour-code kinds of event - a Holiday, say - so they stand out from the plain ones players add. Pick a tag when adding or changing an event.</div>
-        {draft.tags.map((tag, index) => <div className="Calendar-settings-row" key={index}>
-            <input className="Party-input" aria-label={`Tag ${index + 1} name`} maxLength={MAX_NAME_LENGTH + 5} value={tag.name} onChange={event => changeTag(index, { name: event.target.value })}/>
-            <input className="Calendar-tag-color" type="color" aria-label={`Tag ${index + 1} colour`} value={tag.color} onChange={event => changeTag(index, { color: event.target.value })}/>
-            <button type="button" className="Party-button" aria-label={`Remove tag ${index + 1}`} onClick={() => setDraft(current => ({ ...current, tags: current.tags.filter((_, i) => i !== index) }))}>Remove</button>
-        </div>)}
-        <button type="button" className="Party-button" disabled={draft.tags.length >= MAX_TAGS} onClick={() => setDraft(current => ({ ...current, tags: [...current.tags, { name: current.tags.length === 0 ? 'Holiday' : `Tag ${current.tags.length + 1}`, color: nextTagColor(current.tags) }] }))}>+ Add a tag</button>
-
         <h4 className="Calendar-settings-heading">Today</h4>
         <div className="Calendar-date-fields">
             <label>Day <input className="Party-input Party-input-narrow" type="number" aria-label="Today's day" value={draft.today.day} onChange={event => changeToday({ day: Number(event.target.value) })}/></label>
@@ -144,6 +140,91 @@ function CalendarSettings({ calendar, onSave, onClose }) {
     </section>;
 }
 
+// Anyone in the party can define tags (a Holiday, say) and give each its own colour -
+// not only the director, and not tucked away inside the calendar's structural setup,
+// since it is whoever is adding an event who needs to reach for one. Each change is
+// saved straight away. Removing a tag leaves the events that used it with a plain,
+// uncoloured pill - their category text is untouched.
+function TagManager({ campaignId, calendar }) {
+    const tags = tagsOf(calendar);
+    const [adding, setAdding] = useState(null); // { name, color } while a new tag is being made
+    const [editingIndex, setEditingIndex] = useState(null);
+    const [editDraft, setEditDraft] = useState(null);
+    const [message, setMessage] = useState('');
+    const [busy, setBusy] = useState(false);
+
+    async function commit(nextTags) {
+        setMessage('');
+        setBusy(true);
+        try {
+            // reads the live calendar at write time, so a tag someone else just added a
+            // moment ago is not clobbered by a change that started before it arrived
+            await updateParty(campaignId, party => ({ calendar: { ...calendarOf(party), tags: nextTags } }));
+            return true;
+        } catch (error) {
+            setMessage(error.message);
+            return false;
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    function nameProblem(name, ignoreIndex) {
+        const trimmed = name.trim();
+        if (!trimmed) return 'Give the tag a name.';
+        if (trimmed.length > MAX_NAME_LENGTH) return `Keep the name to ${MAX_NAME_LENGTH} characters.`;
+        if (tags.some((tag, i) => i !== ignoreIndex && tag.name.trim().toLowerCase() === trimmed.toLowerCase())) return 'There is already a tag with that name.';
+        return null;
+    }
+
+    async function addTag() {
+        const problem = nameProblem(adding.name, -1);
+        if (problem) { setMessage(problem); return; }
+        if (await commit([...tags, { name: adding.name.trim(), color: adding.color }])) setAdding(null);
+    }
+
+    async function saveEdit(index) {
+        const problem = nameProblem(editDraft.name, index);
+        if (problem) { setMessage(problem); return; }
+        if (await commit(tags.map((tag, i) => (i === index ? { name: editDraft.name.trim(), color: editDraft.color } : tag)))) setEditingIndex(null);
+    }
+
+    async function removeTag(index) {
+        if (!window.confirm(`Remove the "${tags[index].name}" tag? Events that used it keep their name, just without the colour.`)) return;
+        await commit(tags.filter((_, i) => i !== index));
+    }
+
+    const startAdding = () => { setAdding({ name: tags.length === 0 ? 'Holiday' : '', color: nextTagColor(tags) }); setEditingIndex(null); setMessage(''); };
+    const startEditing = index => { setEditingIndex(index); setEditDraft(tags[index]); setAdding(null); setMessage(''); };
+
+    return <section className="Calendar-tags" aria-label="Tags">
+        <div className="Party-hint">Colour-code kinds of event - a Holiday, say - so they stand out from the plain ones anyone adds. Pick a tag when adding or changing an event, below.</div>
+        {message && <div className="Party-error" role="alert">{message}</div>}
+        {tags.length > 0 && <div className="Calendar-tags-list">
+            {tags.map((tag, index) => editingIndex === index
+                ? <div className="Calendar-settings-row" key={tag.name}>
+                    <input className="Party-input" aria-label={`Tag ${index + 1} name`} maxLength={MAX_NAME_LENGTH + 5} value={editDraft.name} onChange={event => setEditDraft(current => ({ ...current, name: event.target.value }))}/>
+                    <input className="Calendar-tag-color" type="color" aria-label={`Tag ${index + 1} colour`} value={editDraft.color} onChange={event => setEditDraft(current => ({ ...current, color: event.target.value }))}/>
+                    <button type="button" className="Party-button Party-button-primary" disabled={busy} onClick={() => saveEdit(index)}>Save</button>
+                    <button type="button" className="Party-button" onClick={() => setEditingIndex(null)}>Cancel</button>
+                </div>
+                : <div className="Calendar-tags-row" key={tag.name}>
+                    <span className="ItemList-tag Calendar-tag-custom" style={tagStyle(calendar, tag.name)}>{tag.name}</span>
+                    <button type="button" className="Party-button" aria-label={`Edit ${tag.name}`} onClick={() => startEditing(index)}>Edit</button>
+                    <button type="button" className="Party-button Party-button-danger" aria-label={`Remove ${tag.name}`} disabled={busy} onClick={() => removeTag(index)}>Remove</button>
+                </div>)}
+        </div>}
+        {adding
+            ? <div className="Calendar-settings-row">
+                <input className="Party-input" aria-label="New tag name" maxLength={MAX_NAME_LENGTH + 5} autoFocus value={adding.name} onChange={event => setAdding(current => ({ ...current, name: event.target.value }))}/>
+                <input className="Calendar-tag-color" type="color" aria-label="New tag colour" value={adding.color} onChange={event => setAdding(current => ({ ...current, color: event.target.value }))}/>
+                <button type="button" className="Party-button Party-button-primary" disabled={busy} onClick={addTag}>Add tag</button>
+                <button type="button" className="Party-button" onClick={() => setAdding(null)}>Cancel</button>
+            </div>
+            : <button type="button" className="Party-button" disabled={tags.length >= MAX_TAGS} onClick={startAdding}>+ Add a tag</button>}
+    </section>;
+}
+
 // The party's calendar: a month at a time, with what the party has done on each day, and
 // today's date as the game has it (anyone can move that on as the story does). For
 // bookkeeping - when did we reach the gate, how long ago did we buy the horses. The
@@ -156,12 +237,13 @@ export function PartyCalendarTab({ campaignId, party, isDirector }) {
     const [picked, setPicked] = useState(null);
     const [editing, setEditing] = useState(null); // an event form's starting values, or null
     const [settingUp, setSettingUp] = useState(false);
+    const [managingTags, setManagingTags] = useState(false);
     const [message, setMessage] = useState('');
 
     const view = viewed ?? { year: today.year, month: today.month };
     const selected = picked ?? today;
     const grid = monthGrid(calendar, view.year, view.month);
-    const dayEvents = eventsOnDate(events, selected);
+    const dayEvents = eventsOnDate(calendar, events, selected);
 
     async function run(action) {
         setMessage('');
@@ -172,7 +254,10 @@ export function PartyCalendarTab({ campaignId, party, isDirector }) {
         }
     }
 
-    const saveCalendar = next => updateParty(campaignId, () => ({ calendar: next }));
+    // Structural changes (weekdays, months, today) never touch tags, so this always
+    // keeps whatever tags are live at the moment it saves, even if someone else added
+    // one after this was opened.
+    const saveCalendar = next => updateParty(campaignId, party => ({ calendar: { ...next, tags: tagsOf(calendarOf(party)) } }));
     const setToday = date => run(() => saveCalendar({ ...calendar, today: date }));
 
     function pick(date) {
@@ -187,8 +272,11 @@ export function PartyCalendarTab({ campaignId, party, isDirector }) {
             <span>Today: <strong>{formatDate(calendar, today)}</strong></span>
             <button type="button" className="Party-button" onClick={() => setToday(addDays(calendar, today, 1))}>Next day</button>
             <button type="button" className="Party-button" disabled={sameDate(selected, today)} onClick={() => setToday(selected)}>Make {formatDate(calendar, selected)} today</button>
+            <button type="button" className="Party-button" aria-pressed={managingTags} onClick={() => setManagingTags(!managingTags)}>Manage tags</button>
             {isDirector && <button type="button" className="Party-button" aria-pressed={settingUp} onClick={() => setSettingUp(!settingUp)}>Set up the calendar</button>}
         </div>
+
+        {managingTags && <TagManager campaignId={campaignId} calendar={calendar}/>}
 
         {settingUp && <CalendarSettings calendar={calendar} onSave={saveCalendar} onClose={() => setSettingUp(false)}/>}
 
@@ -208,7 +296,7 @@ export function PartyCalendarTab({ campaignId, party, isDirector }) {
                     {week.map((day, column) => {
                         if (day === null) return <td key={column} className="Calendar-blank"/>;
                         const date = { year: view.year, month: view.month, day };
-                        const here = eventsOnDate(events, date);
+                        const here = eventsOnDate(calendar, events, date);
                         const dayTagColor = here.map(event => findTag(calendar, event.category)?.color).find(Boolean);
                         const classes = ['Calendar-day', sameDate(date, today) && 'Calendar-day-today', sameDate(date, selected) && 'Calendar-day-selected', dayTagColor && 'Calendar-day-tagged'].filter(Boolean).join(' ');
                         return <td key={column}>
@@ -242,11 +330,12 @@ export function PartyCalendarTab({ campaignId, party, isDirector }) {
                             <div className="Calendar-event-head">
                                 <strong>{event.title}</strong>
                                 <EventTag calendar={calendar} category={event.category}/>
+                                {event.recurrence && event.recurrence !== 'none' && <span className="Party-hint">↻ {recurrenceLabel(event.recurrence)}</span>}
                             </div>
                             {event.description && <p className="Calendar-event-description">{event.description}</p>}
                             <div className="Party-hint">{event.created_by_name ? `Added by ${event.created_by_name}` : ''}</div>
                             <div className="Calendar-form-actions">
-                                <button type="button" className="Party-button" aria-label={`Change ${event.title}`} onClick={() => setEditing({ id: event.id, title: event.title, category: event.category || '', description: event.description || '', ...eventDate(event) })}>Change</button>
+                                <button type="button" className="Party-button" aria-label={`Change ${event.title}`} onClick={() => setEditing({ id: event.id, title: event.title, category: event.category || '', description: event.description || '', recurrence: event.recurrence || 'none', ...eventDate(event) })}>Change</button>
                                 <button type="button" className="Party-button Party-button-danger" aria-label={`Delete ${event.title}`} onClick={() => { if (window.confirm(`Delete "${event.title}"?`)) run(() => deleteEvent(event.id)); }}>Delete</button>
                             </div>
                         </>}
@@ -265,6 +354,7 @@ export function PartyCalendarTab({ campaignId, party, isDirector }) {
                     </button>
                     <span>{event.title}</span>
                     <EventTag calendar={calendar} category={event.category}/>
+                    {event.recurrence && event.recurrence !== 'none' && <span className="Party-hint">↻ {recurrenceLabel(event.recurrence)}</span>}
                 </li>)}
             </ul>
         </section>

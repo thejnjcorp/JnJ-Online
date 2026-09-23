@@ -1,5 +1,5 @@
 import {
-    addDays, calendarOf, compareDates, dateFromDayNumber, dayNumber, daysBetween, defaultCalendar, eventDate, eventDocFields, eventsOnDate,
+    addDays, calendarOf, compareDates, dateFromDayNumber, dayNumber, daysBetween, defaultCalendar, eventDate, eventDocFields, eventsOnDate, occursOn,
     findTag, formatDate, formatMonth, isValidDate, monthGrid, nextTagColor, sameDate, shiftMonth, sortEvents, tagStyle, tagsOf, validateCalendar, validateEvent, weekdayOf, yearLength,
     MAX_EVENT_TITLE, MAX_MONTHS, MAX_MONTH_DAYS, MAX_NAME_LENGTH, MAX_TAGS, MAX_WEEKDAYS,
 } from '../../src/utils/calendar';
@@ -244,8 +244,54 @@ describe('events', () => {
 
     test('eventsOnDate finds those on a day', () => {
         const events = [event('a', 1, 0, 5), event('b', 1, 0, 6), event('c', 1, 0, 5)];
-        expect(eventsOnDate(events, { year: 1, month: 0, day: 5 }).map(e => e.id)).toEqual(['a', 'c']);
-        expect(eventsOnDate(events, { year: 2, month: 0, day: 5 })).toEqual([]);
+        expect(eventsOnDate(standard, events, { year: 1, month: 0, day: 5 }).map(e => e.id)).toEqual(['a', 'c']);
+        expect(eventsOnDate(standard, events, { year: 2, month: 0, day: 5 })).toEqual([]);
+    });
+
+    describe('occursOn and recurring events', () => {
+        test('an event that does not repeat is only on its own day', () => {
+            const e = event('a', 1, 0, 5, { recurrence: 'none' });
+            expect(occursOn(small, e, { year: 1, month: 0, day: 5 })).toBe(true);
+            expect(occursOn(small, e, { year: 2, month: 0, day: 5 })).toBe(false);
+            expect(occursOn(small, e, { year: 1, month: 1, day: 5 })).toBe(false);
+        });
+
+        test('an event with no recurrence field at all behaves the same as \'none\'', () => {
+            const e = event('a', 1, 0, 5);
+            expect(occursOn(small, e, { year: 1, month: 0, day: 5 })).toBe(true);
+            expect(occursOn(small, e, { year: 2, month: 0, day: 5 })).toBe(false);
+        });
+
+        test('a yearly event is on the same month and day, any year', () => {
+            const e = event('a', 3, 1, 4, { recurrence: 'yearly' });
+            expect(occursOn(small, e, { year: 3, month: 1, day: 4 })).toBe(true);
+            expect(occursOn(small, e, { year: 7, month: 1, day: 4 })).toBe(true);
+            expect(occursOn(small, e, { year: 1, month: 1, day: 4 })).toBe(true); // before it was first recorded, too
+            expect(occursOn(small, e, { year: 3, month: 2, day: 4 })).toBe(false);
+        });
+
+        test('a monthly event is on the same day of the month, any month', () => {
+            const e = event('a', 3, 1, 4, { recurrence: 'monthly' });
+            expect(occursOn(small, e, { year: 3, month: 1, day: 4 })).toBe(true);
+            expect(occursOn(small, e, { year: 4, month: 2, day: 4 })).toBe(true);
+            expect(occursOn(small, e, { year: 3, month: 1, day: 5 })).toBe(false);
+        });
+
+        test('a weekly event is on the same weekday, every week, forwards and back', () => {
+            const e = event('a', 0, 0, 3, { recurrence: 'weekly' }); // weekday 2 of a 5-day week
+            expect(weekdayOf(small, { year: 0, month: 0, day: 3 })).toBe(2);
+            expect(occursOn(small, e, { year: 0, month: 0, day: 3 })).toBe(true);
+            expect(occursOn(small, e, { year: 0, month: 0, day: 8 })).toBe(true); // a week later
+            expect(occursOn(small, e, { year: 0, month: 2, day: 3 })).toBe(true); // weeks later still, wrapping months
+            expect(occursOn(small, e, { year: -1, month: 2, day: 8 })).toBe(true); // before it was recorded
+            expect(occursOn(small, e, { year: 0, month: 0, day: 4 })).toBe(false);
+        });
+
+        test('eventsOnDate expands a recurring event onto every date it falls on', () => {
+            const events = [event('holiday', 3, 1, 4, { recurrence: 'yearly' }), event('once', 3, 1, 4, { recurrence: 'none' })];
+            expect(eventsOnDate(small, events, { year: 3, month: 1, day: 4 }).map(e => e.id)).toEqual(['holiday', 'once']);
+            expect(eventsOnDate(small, events, { year: 9, month: 1, day: 4 }).map(e => e.id)).toEqual(['holiday']);
+        });
     });
 
     test('sortEvents puts them in the order they happened, and those on one day by when they were added', () => {
@@ -285,6 +331,12 @@ describe('events', () => {
     });
 
     test('eventDocFields saves a trimmed title and category, and never undefined', () => {
-        expect(eventDocFields({ title: '  Gate ', category: ' Travel ', year: 1, month: 0, day: 5 })).toEqual({ title: 'Gate', description: '', category: 'Travel', year: 1, month: 0, day: 5 });
+        expect(eventDocFields({ title: '  Gate ', category: ' Travel ', year: 1, month: 0, day: 5 })).toEqual({ title: 'Gate', description: '', category: 'Travel', year: 1, month: 0, day: 5, recurrence: 'none' });
+    });
+
+    test('eventDocFields keeps a real recurrence, and falls back to none for anything else', () => {
+        expect(eventDocFields({ title: 'Founding day', year: 1, month: 0, day: 5, recurrence: 'yearly' }).recurrence).toBe('yearly');
+        expect(eventDocFields({ title: 'x', year: 1, month: 0, day: 5, recurrence: 'nonsense' }).recurrence).toBe('none');
+        expect(eventDocFields({ title: 'x', year: 1, month: 0, day: 5 }).recurrence).toBe('none');
     });
 });

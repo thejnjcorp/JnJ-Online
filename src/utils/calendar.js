@@ -161,9 +161,34 @@ export const MAX_EVENT_TITLE = 80;
 export const MAX_EVENT_DESCRIPTION = 4000;
 export const MAX_EVENT_CATEGORY = 24;
 
+// An event's `recurrence` (default 'none'): it keeps happening on the day it was
+// given, every week, month or year from now on - both before and after the date it
+// was first recorded on, the same as a real holiday or a standing market day would.
+export const RECURRENCES = [
+    { key: 'none', label: 'Does not repeat' },
+    { key: 'weekly', label: 'Every week' },
+    { key: 'monthly', label: 'Every month' },
+    { key: 'yearly', label: 'Every year' },
+];
+
+export const recurrenceLabel = key => RECURRENCES.find(option => option.key === key)?.label ?? RECURRENCES[0].label;
+
 export const eventDate = event => ({ year: event.year, month: event.month, day: event.day });
 
-export const eventsOnDate = (events, date) => events.filter(event => sameDate(eventDate(event), date));
+// Whether an event falls on a date: on its own day for one that does not repeat, or
+// on every day since that shares what its recurrence cares about - the weekday, the
+// day of the month, or the month and day.
+export function occursOn(calendar, event, date) {
+    const anchor = eventDate(event);
+    switch (event.recurrence) {
+        case 'weekly': return weekdayOf(calendar, date) === weekdayOf(calendar, anchor);
+        case 'monthly': return date.day === anchor.day;
+        case 'yearly': return date.month === anchor.month && date.day === anchor.day;
+        default: return sameDate(date, anchor);
+    }
+}
+
+export const eventsOnDate = (calendar, events, date) => events.filter(event => occursOn(calendar, event, date));
 
 // Events in the order they happened; ones on the same day by when they were added.
 export function sortEvents(calendar, events) {
@@ -192,4 +217,5 @@ export const eventDocFields = event => ({
     year: event.year,
     month: event.month,
     day: event.day,
+    recurrence: RECURRENCES.some(option => option.key === event.recurrence) ? event.recurrence : 'none',
 });
