@@ -80,6 +80,19 @@ describe('validateAction', () => {
         expect(validateAction(validAction({ category: 'bonus' }))).toHaveProperty('category');
     });
 
+    test('a feat\'s tier is optional (one saved before tiers existed has none) but must be 1-3 when present', () => {
+        expect(validateAction(validAction({ category: 'feat', tier: undefined }))).toEqual({});
+        expect(validateAction(validAction({ category: 'feat', tier: 1 }))).toEqual({});
+        expect(validateAction(validAction({ category: 'feat', tier: 3 }))).toEqual({});
+        expect(validateAction(validAction({ category: 'feat', tier: 0 }))).toHaveProperty('tier');
+        expect(validateAction(validAction({ category: 'feat', tier: 4 }))).toHaveProperty('tier');
+        expect(validateAction(validAction({ category: 'feat', tier: 1.5 }))).toHaveProperty('tier');
+    });
+
+    test('tier is not validated for a non-feat action, even if garbage', () => {
+        expect(validateAction(validAction({ category: 'action', tier: 99 }))).toEqual({});
+    });
+
     test('reports every problem at once, not just the first', () => {
         const errors = validateAction({ toHitBool: false });
         expect(Object.keys(errors).sort()).toEqual(['actionCost', 'actionLevel', 'actionName', 'actionType', 'difficultyClass']);
@@ -158,6 +171,13 @@ describe('newActionDefaults', () => {
         expect(action.id).toBeTruthy();
         expect(Object.keys(validateAction(action))).toEqual(['actionName']);
         expect(validateAction({ ...action, actionName: 'Named' })).toEqual({});
+    });
+
+    test('a new feat starts at tier 1; nothing else gets a tier at all', () => {
+        expect(newActionDefaults('feat').tier).toBe(1);
+        expect(newActionDefaults('action')).not.toHaveProperty('tier');
+        expect(newActionDefaults('passive')).not.toHaveProperty('tier');
+        expect(newActionDefaults('reaction')).not.toHaveProperty('tier');
     });
 });
 

@@ -7,17 +7,27 @@ import '../styles/SkillsAndFlaws.scss';
 import { newCharacterFormReducer as formReducer } from '../utils/newCharacterFormReducer';
 import { arrayRemove, arrayUnion, doc, updateDoc } from 'firebase/firestore';
 import trashCanIcon from '../icons/trash_can.svg';
-import { getActionCategory } from '../utils/classActions';
+import { featTierOf, getActionCategory } from '../utils/classActions';
+import { levelOf, levelsFor, modifierOf } from '../utils/skillsAndFlaws';
 import MarkdownEditor from './MarkdownEditor';
 
 // One feat in the sidebar list. Exported so the class editor's action preview
-// can show a feat exactly as a character's sheet does.
+// can show a feat exactly as a character's sheet does. Its tier (1-3, see
+// featTierOf) is granted with the feat itself, the same for every character
+// who has it - shown as filled circles, the same way skills/flaws used to
+// show their degree before that became a roleplay modifier instead.
 export function FeatEntry({ feat, id, open = false }) {
+    const tier = featTierOf(feat);
     return <Collapsible
         id={id}
         trigger={<>
             <span className="SkillsAndFlaws-chevron">›</span>
             <span className="SkillsAndFlaws-name">{feat.actionName}</span>
+            <span className="SkillsAndFlaws-circles">
+                {Array.from({ length: tier }, (_, index) => (
+                    <img key={index} src={circleIcon} alt='circle' className='SkillsAndFlaws-circle' width={18}/>
+                ))}
+            </span>
         </>}
         className="SkillsAndFlaws SkillsAndFlaws-feat FeatsOverride"
         openedClassName="SkillsAndFlaws SkillsAndFlaws-feat SkillsAndFlaws-open FeatsOverride"
@@ -55,10 +65,10 @@ export function SkillsAndFlaws({characterPage, userId}) {
     const handleBooleanChange = event => {
         const value = event.target.value === 'true';
 
-        setFormData({
-            name: event.target.name,
-            value: value
-        });
+        // Skills and flaws have their own level names (General/Trained/... vs
+        // Minor/Flaw/...), so a level chosen for one is not a real option for
+        // the other - switching clears it rather than leaving a stale value.
+        setFormData({ type: 'SET_FORM_DATA', payload: { [event.target.name]: value, level: '' } });
     }
 
     function closeAddForm() {
@@ -69,12 +79,12 @@ export function SkillsAndFlaws({characterPage, userId}) {
         // time - so clearing has to explicitly overwrite every field rather
         // than rely on a {reset: true} shape (that's a different reducer's
         // convention, in NewCampaignPage.js).
-        setFormData({ type: 'SET_FORM_DATA', payload: { name: '', degree: '', isSkill: undefined, description: '' } });
+        setFormData({ type: 'SET_FORM_DATA', payload: { name: '', level: '', isSkill: undefined, description: '' } });
     }
 
     async function handleAdd() {
         if (formData.name === undefined ||
-            formData.degree === undefined ||
+            !formData.level ||
             formData.isSkill === undefined ||
             formData.description === undefined) {
             return alert("Invalid Skill/Flaw");
@@ -113,10 +123,9 @@ export function SkillsAndFlaws({characterPage, userId}) {
             trigger={<>
                 <span className="SkillsAndFlaws-chevron">›</span>
                 <span className="SkillsAndFlaws-name">{skill_or_flaw.name}</span>
-                <span className="SkillsAndFlaws-circles">
-                    {Array.from({ length: skill_or_flaw.degree }, (_, index) => (
-                        <img key={index} src={circleIcon} alt='circle' className='SkillsAndFlaws-circle' width={18}/>
-                    ))}
+                <span className="SkillsAndFlaws-level">
+                    {levelOf(skill_or_flaw).label}
+                    <span className="SkillsAndFlaws-modifier">+{modifierOf(skill_or_flaw)}</span>
                 </span>
                 {removeSkillFlawVisible && <button type="button" className='SkillsAndFlaws-trash-button'
                     onClick={(e) => {
@@ -198,25 +207,29 @@ export function SkillsAndFlaws({characterPage, userId}) {
                         autoFocus
                     />
                     <div className="SkillsAndFlaws-dialog-row">
-                        <input
-                            className="SkillsAndFlaws-dialog-input SkillsAndFlaws-dialog-input-degree"
-                            name='degree'
-                            placeholder='Degree (1-3)'
-                            type='number'
-                            value={formData.degree || ""}
-                            onChange={handleChange}
-                            max={3}
-                            min={1}
-                        />
                         <select
                             className="SkillsAndFlaws-dialog-select"
                             name='isSkill'
+                            aria-label='Skill or Flaw'
                             value={formData.isSkill === undefined ? "" : String(formData.isSkill)}
                             onChange={handleBooleanChange}
                         >
                             <option hidden value=""></option>
                             <option value={true}>Skill</option>
                             <option value={false}>Flaw</option>
+                        </select>
+                        <select
+                            className="SkillsAndFlaws-dialog-select"
+                            name='level'
+                            aria-label='Level'
+                            value={formData.level || ""}
+                            onChange={handleChange}
+                            disabled={formData.isSkill === undefined}
+                        >
+                            <option hidden value="">Level</option>
+                            {levelsFor(formData.isSkill ?? true).map(level => (
+                                <option key={level.key} value={level.key}>{level.label} (+{level.modifier})</option>
+                            ))}
                         </select>
                     </div>
                     <MarkdownEditor

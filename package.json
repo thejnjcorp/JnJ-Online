@@ -56,6 +56,8 @@
     "firebase:backfill-class-links": "node firebase/scripts/backfill-class-links.js",
     "firebase:backfill-race-links:test": "firebase emulators:exec --only firestore --config firebase/firebase.json --project jnj-online \"node firebase/test/backfill-race-links.test.js\"",
     "firebase:backfill-race-links": "node firebase/scripts/backfill-race-links.js",
+    "firebase:backfill-skill-and-feat-levels:test": "firebase emulators:exec --only firestore --config firebase/firebase.json --project jnj-online \"node firebase/test/backfill-skill-and-feat-levels.test.js\"",
+    "firebase:backfill-skill-and-feat-levels": "node firebase/scripts/backfill-skill-and-feat-levels.js",
     "firebase:migrate-inventory:test": "firebase emulators:exec --only firestore --config firebase/firebase.json --project jnj-online \"node firebase/test/migrate-inventory.test.js\"",
     "firebase:migrate-inventory": "node firebase/scripts/migrate-inventory-to-items.js",
     "firebase:seed-items:test": "firebase emulators:exec --only firestore --config firebase/firebase.json --project jnj-online \"node firebase/test/seed-common-items.test.js\"",

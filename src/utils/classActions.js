@@ -34,3 +34,14 @@ export const usageBadge = action => ({ roleplay: 'Roleplay', both: 'Combat + Rol
 // Everyone gets one reaction per turn (`reaction_used` on a character or enemy says
 // whether it has been spent); using an action of this category spends it.
 export const isReactionAction = action => getActionCategory(action) === 'reaction';
+
+// A feat's tier (1-3), shown as filled circles on the sheet - see FeatEntry in
+// SkillsAndFlaws.js. Authored on the feat itself in the class/race editor, so
+// every character with it sees the same tier. One saved before tiers existed
+// defaults to 1 rather than showing no circles at all.
+export const FEAT_TIER_RANGE = { min: 1, max: 3 };
+
+export function featTierOf(action) {
+    const tier = Number(action?.tier);
+    return Number.isInteger(tier) && tier >= FEAT_TIER_RANGE.min && tier <= FEAT_TIER_RANGE.max ? tier : FEAT_TIER_RANGE.min;
+}

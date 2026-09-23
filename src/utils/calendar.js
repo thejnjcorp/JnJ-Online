@@ -190,6 +190,17 @@ export function occursOn(calendar, event, date) {
 
 export const eventsOnDate = (calendar, events, date) => events.filter(event => occursOn(calendar, event, date));
 
+// Whether an event belongs in the party's history: on or before today, the same as
+// any occurrence a recurring one has already had. One scheduled for the future (an
+// anchor date after today) has not happened yet, so it is left out of "Everything
+// that has happened" - though it still shows on its own day when browsing ahead. An
+// event whose date the calendar no longer has (see isValidDate) is kept rather than
+// guessed about either way.
+export function hasHappened(calendar, event) {
+    const date = eventDate(event);
+    return !isValidDate(calendar, date) || compareDates(calendar, date, calendar.today) <= 0;
+}
+
 // Events in the order they happened; ones on the same day by when they were added.
 export function sortEvents(calendar, events) {
     return [...events].sort((a, b) => {

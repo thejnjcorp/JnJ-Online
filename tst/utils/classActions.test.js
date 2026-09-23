@@ -1,4 +1,4 @@
-import { ACTION_USAGES, getActionCategory, getActionUsage, isCombatAction, isReactionAction, isRoleplayAction, usageBadge } from '../../src/utils/classActions';
+import { ACTION_USAGES, FEAT_TIER_RANGE, featTierOf, getActionCategory, getActionUsage, isCombatAction, isReactionAction, isRoleplayAction, usageBadge } from '../../src/utils/classActions';
 
 describe('getActionCategory', () => {
     test('prefers an explicit category field over any tag-based inference', () => {
@@ -65,6 +65,25 @@ describe('where an action is used', () => {
         expect(usageBadge({ usage: 'combat' })).toBeNull();
         expect(usageBadge({ usage: 'roleplay' })).toBe('Roleplay');
         expect(usageBadge({ usage: 'both' })).toBe('Combat + Roleplay');
+    });
+});
+
+describe('featTierOf', () => {
+    test('is a real, in-range tier as-is', () => {
+        expect(featTierOf({ tier: 1 })).toBe(1);
+        expect(featTierOf({ tier: 3 })).toBe(3);
+    });
+
+    test('a feat saved before tiers existed defaults to the lowest tier', () => {
+        expect(featTierOf({})).toBe(FEAT_TIER_RANGE.min);
+        expect(featTierOf(undefined)).toBe(FEAT_TIER_RANGE.min);
+    });
+
+    test('an out-of-range or non-numeric tier also falls back to the lowest tier', () => {
+        expect(featTierOf({ tier: 0 })).toBe(FEAT_TIER_RANGE.min);
+        expect(featTierOf({ tier: 4 })).toBe(FEAT_TIER_RANGE.min);
+        expect(featTierOf({ tier: 1.5 })).toBe(FEAT_TIER_RANGE.min);
+        expect(featTierOf({ tier: 'two' })).toBe(FEAT_TIER_RANGE.min);
     });
 });
 

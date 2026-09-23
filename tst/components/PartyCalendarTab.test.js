@@ -291,6 +291,20 @@ describe('PartyCalendarTab', () => {
             expect(screen.getByRole('button', { name: 'A date that is no longer in the calendar' })).toBeDisabled();
         });
 
+        test('an event scheduled in the future has not happened yet, so it is left off - but still shows on its own day', () => {
+            draw({ events: [event('a', 'Reached the gate', 2, 0, 3), event('b', 'Planned ambush', 3, 1, 8)] }); // today is 4 Bloom, year 3
+            const list = within(screen.getByRole('region', { name: 'Everything that has happened' }));
+            expect(list.getByText('Reached the gate')).toBeInTheDocument();
+            expect(list.queryByText('Planned ambush')).not.toBeInTheDocument();
+            fireEvent.click(day('8 Bloom, year 3'));
+            expect(within(screen.getByRole('region', { name: 'Events on 8 Bloom, year 3' })).getByText('Planned ambush')).toBeInTheDocument();
+        });
+
+        test('an event on today itself counts as having happened', () => {
+            draw({ events: [event('a', 'Arrived', 3, 1, 4)] }); // today
+            expect(within(screen.getByRole('region', { name: 'Everything that has happened' })).getByText('Arrived')).toBeInTheDocument();
+        });
+
         test('says when there are none', () => {
             draw();
             expect(screen.getByText('No events yet. Pick a day above and add the first.')).toBeInTheDocument();

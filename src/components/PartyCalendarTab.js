@@ -3,7 +3,7 @@ import { updateParty } from '../utils/party';
 import { usePartyEvents } from '../utils/usePartyEvents';
 import {
     MAX_EVENT_DESCRIPTION, MAX_EVENT_TITLE, MAX_MONTHS, MAX_MONTH_DAYS, MAX_NAME_LENGTH, MAX_TAGS, MAX_WEEKDAYS, RECURRENCES,
-    addDays, calendarOf, daysInMonth, eventDate, eventDocFields, eventsOnDate, findTag, formatDate, formatMonth, isValidDate, monthGrid, nextTagColor, recurrenceLabel, sameDate, shiftMonth,
+    addDays, calendarOf, daysInMonth, eventDate, eventDocFields, eventsOnDate, findTag, formatDate, formatMonth, hasHappened, isValidDate, monthGrid, nextTagColor, recurrenceLabel, sameDate, shiftMonth,
     tagStyle, tagsOf, validateCalendar, validateEvent,
 } from '../utils/calendar';
 import '../styles/Party.scss';
@@ -244,6 +244,7 @@ export function PartyCalendarTab({ campaignId, party, isDirector }) {
     const selected = picked ?? today;
     const grid = monthGrid(calendar, view.year, view.month);
     const dayEvents = eventsOnDate(calendar, events, selected);
+    const happened = events.filter(event => hasHappened(calendar, event));
 
     async function run(action) {
         setMessage('');
@@ -346,9 +347,9 @@ export function PartyCalendarTab({ campaignId, party, isDirector }) {
 
         <section className="Party-section" aria-label="Everything that has happened">
             <div className="Party-section-header"><h2 className="Party-section-title">Everything that has happened</h2></div>
-            {status === 'ready' && events.length === 0 && <div className="Party-hint">No events yet. Pick a day above and add the first.</div>}
+            {status === 'ready' && happened.length === 0 && <div className="Party-hint">No events yet. Pick a day above and add the first.</div>}
             <ul className="Party-list">
-                {events.map(event => <li key={event.id} className="Party-list-item Calendar-timeline-item">
+                {happened.map(event => <li key={event.id} className="Party-list-item Calendar-timeline-item">
                     <button type="button" className="Calendar-timeline-date" disabled={!isValidDate(calendar, eventDate(event))} onClick={() => { setViewed({ year: event.year, month: event.month }); pick(eventDate(event)); }}>
                         {isValidDate(calendar, eventDate(event)) ? formatDate(calendar, eventDate(event)) : 'A date that is no longer in the calendar'}
                     </button>

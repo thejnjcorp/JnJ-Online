@@ -43,6 +43,21 @@ describe('ClassActionEditor', () => {
             expect(screen.getByText('Lvl 1')).toBeInTheDocument();
         });
 
+        test('shows a Tier badge for a feat', () => {
+            render(<ClassActionEditor action={{ ...viewAction, category: 'feat', tier: 2 }} index={0} onChange={jest.fn()} onRemove={jest.fn()} onAddTag={jest.fn()} onRemoveTag={jest.fn()} isEditable={false} />);
+            expect(screen.getByText('Tier 2')).toBeInTheDocument();
+        });
+
+        test('a feat with no tier yet defaults the badge to Tier 1', () => {
+            render(<ClassActionEditor action={{ ...viewAction, category: 'feat' }} index={0} onChange={jest.fn()} onRemove={jest.fn()} onAddTag={jest.fn()} onRemoveTag={jest.fn()} isEditable={false} />);
+            expect(screen.getByText('Tier 1')).toBeInTheDocument();
+        });
+
+        test('no Tier badge for any other category', () => {
+            render(<ClassActionEditor action={viewAction} index={0} onChange={jest.fn()} onRemove={jest.fn()} onAddTag={jest.fn()} onRemoveTag={jest.fn()} isEditable={false} />);
+            expect(screen.queryByText(/^Tier /)).not.toBeInTheDocument();
+        });
+
         test('the body is collapsed until the header is clicked, then toggles closed again', () => {
             render(<ClassActionEditor action={viewAction} index={0} onChange={jest.fn()} onRemove={jest.fn()} onAddTag={jest.fn()} onRemoveTag={jest.fn()} isEditable={false} />);
             expect(screen.queryByText('Fire')).not.toBeInTheDocument();
@@ -226,6 +241,33 @@ describe('ClassActionEditor', () => {
         test('Requirement is hidden for a passive category action', () => {
             open({ isEditable: true, action: { ...viewAction, category: 'passive' } });
             expect(screen.queryByPlaceholderText('You are not Engaged')).not.toBeInTheDocument();
+        });
+
+        describe('a feat\'s tier', () => {
+            test('the Tier field is visible only for a feat', () => {
+                open({ isEditable: true, action: { ...viewAction, category: 'feat', tier: 2 } });
+                expect(within(screen.getByText('Tier').parentElement).getByRole('spinbutton')).toHaveValue(2);
+            });
+
+            test('is hidden for every other category', () => {
+                open({ isEditable: true, action: { ...viewAction, category: 'action' } });
+                expect(screen.queryByText('Tier')).not.toBeInTheDocument();
+            });
+
+            test('a feat with no tier yet (saved before tiers existed) defaults the field to 1', () => {
+                const { tier, ...untiered } = { ...viewAction, category: 'feat' }; // eslint-disable-line no-unused-vars
+                open({ isEditable: true, action: untiered });
+                expect(within(screen.getByText('Tier').parentElement).getByRole('spinbutton')).toHaveValue(1);
+            });
+
+            test('editing it reports the change', () => {
+                const onChange = jest.fn();
+                open({ isEditable: true, onChange, action: { ...viewAction, category: 'feat', tier: 1 } });
+
+                fireEvent.change(within(screen.getByText('Tier').parentElement).getByRole('spinbutton'), { target: { value: '3' } });
+
+                expect(onChange).toHaveBeenCalledWith({ name: 'actions[0].tier', value: 3 });
+            });
         });
 
         test('editing the description textarea reports the change', () => {

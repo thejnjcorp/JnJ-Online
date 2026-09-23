@@ -1,5 +1,5 @@
 import {
-    addDays, calendarOf, compareDates, dateFromDayNumber, dayNumber, daysBetween, defaultCalendar, eventDate, eventDocFields, eventsOnDate, occursOn,
+    addDays, calendarOf, compareDates, dateFromDayNumber, dayNumber, daysBetween, defaultCalendar, eventDate, eventDocFields, eventsOnDate, hasHappened, occursOn,
     findTag, formatDate, formatMonth, isValidDate, monthGrid, nextTagColor, sameDate, shiftMonth, sortEvents, tagStyle, tagsOf, validateCalendar, validateEvent, weekdayOf, yearLength,
     MAX_EVENT_TITLE, MAX_MONTHS, MAX_MONTH_DAYS, MAX_NAME_LENGTH, MAX_TAGS, MAX_WEEKDAYS,
 } from '../../src/utils/calendar';
@@ -291,6 +291,29 @@ describe('events', () => {
             const events = [event('holiday', 3, 1, 4, { recurrence: 'yearly' }), event('once', 3, 1, 4, { recurrence: 'none' })];
             expect(eventsOnDate(small, events, { year: 3, month: 1, day: 4 }).map(e => e.id)).toEqual(['holiday', 'once']);
             expect(eventsOnDate(small, events, { year: 9, month: 1, day: 4 }).map(e => e.id)).toEqual(['holiday']);
+        });
+    });
+
+    describe('hasHappened', () => {
+        const withToday = { ...small, today: { year: 3, month: 1, day: 4 } };
+
+        test('is true for an event on or before today', () => {
+            expect(hasHappened(withToday, event('a', 3, 1, 4))).toBe(true); // today itself
+            expect(hasHappened(withToday, event('a', 1, 0, 1))).toBe(true); // well before
+        });
+
+        test('is false for an event still in the future', () => {
+            expect(hasHappened(withToday, event('a', 3, 1, 5))).toBe(false);
+            expect(hasHappened(withToday, event('a', 9, 0, 1))).toBe(false);
+        });
+
+        test('a recurring event counts once its anchor date has passed, even if that was long ago', () => {
+            expect(hasHappened(withToday, event('a', 1, 0, 1, { recurrence: 'yearly' }))).toBe(true);
+            expect(hasHappened(withToday, event('a', 9, 0, 1, { recurrence: 'yearly' }))).toBe(false); // scheduled ahead of time
+        });
+
+        test('an event on a date the calendar no longer has is kept rather than guessed about', () => {
+            expect(hasHappened(withToday, event('a', 3, 99, 99))).toBe(true);
         });
     });
 

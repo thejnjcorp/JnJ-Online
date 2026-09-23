@@ -5,7 +5,7 @@ import { ClassTagEditDialog } from './ClassTagEditDialog';
 import { ActionPreview } from './ActionPreview';
 import { ActionTags } from './ActionTags';
 import { FieldError, invalidClass, invalidProps } from './FormErrors';
-import { ACTION_USAGES, getActionUsage, usageBadge } from '../utils/classActions';
+import { ACTION_USAGES, FEAT_TIER_RANGE, featTierOf, getActionUsage, usageBadge } from '../utils/classActions';
 
 const OUTCOME_ROWS = [
     { key: 'criticalSuccess', label: 'Critical Success' },
@@ -92,6 +92,7 @@ export function ClassActionEditor({ action, index, onChange, onRemove, onAddTag,
             {usage !== 'roleplay' && <span className={`ClassPage-cost-pip ClassPage-cost-pip-${Math.min(action.actionCost || 0, 3)}`}>{action.actionCost || 0}</span>}
             <span className="ClassPage-action-name">{action.actionName || 'Unnamed'}</span>
             <span className="ClassPage-level-badge">Lvl {action.actionLevel || 1}</span>
+            {category === 'feat' && <span className="ClassPage-level-badge">Tier {featTierOf(action)}</span>}
             {usageBadge(action) && <span className="ClassPage-usage-badge">{usageBadge(action)}</span>}
             <span className="ClassPage-frequency-badge">{frequencyLabel(action)}</span>
             {problemCount > 0 && <span className="ClassPage-action-error-pill">{problemCount === 1 ? '1 to fix' : `${problemCount} to fix`}</span>}
@@ -165,6 +166,11 @@ export function ClassActionEditor({ action, index, onChange, onRemove, onAddTag,
                         <PillGroup options={ACTION_USAGES} selected={usage} onPick={v => set('usage', v)} error={errors.usage} problemId={problemId('usage')}/>
                         <FieldError message={errors.usage}/>
                     </div>
+                    {category === 'feat' && <div>
+                        <span className="ClassPage-field-label">Tier</span>
+                        <input {...fieldProps('tier', 'ClassPage-field-input ClassPage-field-input-narrow')} name="tier" type="number" min={FEAT_TIER_RANGE.min} max={FEAT_TIER_RANGE.max} onChange={handleChange} defaultValue={action.tier ?? FEAT_TIER_RANGE.min}/>
+                        <FieldError message={errors.tier}/>
+                    </div>}
                     {category === 'reaction' && <div className="ClassPage-field-grow">
                         <span className="ClassPage-field-label">Trigger</span>
                         <input className="ClassPage-field-input" name="trigger" onChange={handleChange} defaultValue={action.trigger} placeholder="A Physical ranged attack targeting you"/>

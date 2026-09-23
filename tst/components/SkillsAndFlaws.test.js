@@ -16,9 +16,9 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 // eslint-disable-next-line import/first
 import { SkillsAndFlaws } from '../../src/components/SkillsAndFlaws';
 
-const skill = { name: 'Quick Reflexes', degree: 2, isSkill: true, description: 'Move first in combat.' };
-const flaw = { name: 'Clumsy', degree: 1, isSkill: false, description: 'Trips over flat ground.' };
-const feat = { actionName: 'Second Wind', category: 'feat', description: 'Heal **1d6**.' };
+const skill = { name: 'Quick Reflexes', level: 'trained', isSkill: true, description: 'Move first in combat.' };
+const flaw = { name: 'Clumsy', level: 'minor', isSkill: false, description: 'Trips over flat ground.' };
+const feat = { actionName: 'Second Wind', category: 'feat', tier: 2, description: 'Heal **1d6**.' };
 const nonFeatAction = { actionName: 'Stab', category: 'action' };
 
 const characterPage = {
@@ -54,9 +54,17 @@ describe('SkillsAndFlaws', () => {
         expect(screen.queryByText('Stab')).not.toBeInTheDocument();
     });
 
-    test('shows one circle pip per point of degree', () => {
+    test('shows each skill/flaw\'s level and roleplay modifier, not a degree', () => {
         render(<SkillsAndFlaws characterPage={characterPage} userId="owner-1" />);
-        expect(screen.getAllByAltText('circle')).toHaveLength(3); // 2 for the skill, 1 for the flaw
+        expect(screen.getByText('Trained')).toBeInTheDocument();
+        expect(screen.getByText('+3')).toBeInTheDocument(); // trained skill
+        expect(screen.getByText('Minor Flaw')).toBeInTheDocument();
+        expect(screen.getByText('+2')).toBeInTheDocument(); // minor flaw
+    });
+
+    test('shows one circle pip per point of a feat\'s tier, not the skills/flaws', () => {
+        render(<SkillsAndFlaws characterPage={characterPage} userId="owner-1" />);
+        expect(screen.getAllByAltText('circle')).toHaveLength(2); // the feat's tier (2), none for the skill or flaw
     });
 
     test('shows "None recorded yet" for a group with nothing in it', () => {
@@ -123,17 +131,38 @@ describe('SkillsAndFlaws', () => {
                 fireEvent.click(screen.getByText('+ Add'));
 
                 fireEvent.change(screen.getByPlaceholderText('Skill/Flaw Name'), { target: { value: 'Brave' } });
-                fireEvent.change(screen.getByPlaceholderText('Degree (1-3)'), { target: { value: '2' } });
+                fireEvent.change(screen.getByLabelText('Skill or Flaw'), { target: { value: 'true' } });
+                fireEvent.change(screen.getByLabelText('Level'), { target: { value: 'trained' } });
                 fireEvent.change(screen.getByPlaceholderText('Description'), { target: { value: 'Never backs down.' } });
-                fireEvent.change(screen.getByDisplayValue(''), { target: { value: 'true' } }); // the hidden placeholder option's select
 
                 fireEvent.click(screen.getByRole('button', { name: 'Add' }));
 
                 await waitFor(() => expect(screen.queryByText('Add Skill or Flaw')).not.toBeInTheDocument());
                 expect(mockUpdateDoc).toHaveBeenCalledWith(
                     { __doc: ['characters', 'char-1'] },
-                    { skills_and_flaws: { __arrayUnion: { name: 'Brave', degree: 2, isSkill: true, description: 'Never backs down.' } } },
+                    { skills_and_flaws: { __arrayUnion: { name: 'Brave', level: 'trained', isSkill: true, description: 'Never backs down.' } } },
                 );
+            });
+
+            test('choosing Skill or Flaw offers that side\'s levels, and switching sides clears the level', () => {
+                render(<SkillsAndFlaws characterPage={characterPage} userId="owner-1" />);
+                fireEvent.click(screen.getByText('+ Add'));
+
+                fireEvent.change(screen.getByLabelText('Skill or Flaw'), { target: { value: 'true' } });
+                fireEvent.change(screen.getByLabelText('Level'), { target: { value: 'ultimate' } });
+                expect(screen.getByLabelText('Level')).toHaveValue('ultimate');
+                expect(screen.queryByText('PTSD (+5)')).not.toBeInTheDocument();
+
+                fireEvent.change(screen.getByLabelText('Skill or Flaw'), { target: { value: 'false' } });
+                expect(screen.getByLabelText('Level')).toHaveValue('');
+                expect(screen.getByText('PTSD (+5)')).toBeInTheDocument();
+                expect(screen.queryByText('Ultimate (+5)')).not.toBeInTheDocument();
+            });
+
+            test('the level select is disabled until Skill or Flaw is chosen', () => {
+                render(<SkillsAndFlaws characterPage={characterPage} userId="owner-1" />);
+                fireEvent.click(screen.getByText('+ Add'));
+                expect(screen.getByLabelText('Level')).toBeDisabled();
             });
 
             test('a write error is alerted and the dialog stays open for retry', async () => {
@@ -141,9 +170,9 @@ describe('SkillsAndFlaws', () => {
                 render(<SkillsAndFlaws characterPage={characterPage} userId="owner-1" />);
                 fireEvent.click(screen.getByText('+ Add'));
                 fireEvent.change(screen.getByPlaceholderText('Skill/Flaw Name'), { target: { value: 'Brave' } });
-                fireEvent.change(screen.getByPlaceholderText('Degree (1-3)'), { target: { value: '2' } });
+                fireEvent.change(screen.getByLabelText('Skill or Flaw'), { target: { value: 'true' } });
+                fireEvent.change(screen.getByLabelText('Level'), { target: { value: 'trained' } });
                 fireEvent.change(screen.getByPlaceholderText('Description'), { target: { value: 'Never backs down.' } });
-                fireEvent.change(screen.getByDisplayValue(''), { target: { value: 'true' } });
 
                 fireEvent.click(screen.getByRole('button', { name: 'Add' }));
 

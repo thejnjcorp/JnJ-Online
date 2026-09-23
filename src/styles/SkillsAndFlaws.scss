@@ -172,6 +172,28 @@
     filter: invert(1);
 }
 
+.SkillsAndFlaws-level {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.6875rem;
+    color: var(--jnj-color-text-muted);
+    white-space: nowrap;
+}
+
+.SkillsAndFlaws-modifier {
+    font-weight: 700;
+}
+
+.SkillsAndFlaws-skill .SkillsAndFlaws-modifier {
+    color: var(--jnj-color-accent);
+}
+
+.SkillsAndFlaws-flaw .SkillsAndFlaws-modifier {
+    color: var(--jnj-color-danger);
+}
+
 .SkillsAndFlaws-inner-div {
     padding-top: var(--jnj-space-2);
 }
