@@ -172,7 +172,16 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
             alert(e);
         }
     }
-    
+
+    // Hero points (see JnJ_Ruleset.md's "Hero Points" section): spent to reroll
+    // a die, or all at once to stabilize from dying - both purely narrative at
+    // the table, so this just tracks the count, the same way AP/reaction track
+    // a resource without enforcing what it's spent on. No upper cap - the
+    // director can grant more than the session's starting one for good
+    // roleplay, so this only guards against going negative.
+    const heroPoints = characterPage.hero_points ?? 1;
+    const setHeroPoints = next => updateDoc(doc(db, "characters", characterPage.character_id), { hero_points: Math.max(0, next) }).catch(e => alert(e));
+
     const tabs = [
         {
             tabName: "Roleplay",
@@ -289,6 +298,15 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                             >
                                 <img src={reactionUsed ? circleIcon : circleFilledIcon} alt="" className="CharacterMainTab-circle" width={30}/>
                             </button>
+                        </span>
+                        <span className="CharacterMainTab-hero-points" role="group" aria-label="Hero points">
+                            <span className="CharacterMainTab-caps-label">
+                                <span className="CharacterMainTab-ap-full">Hero Points</span>
+                                <span className="CharacterMainTab-ap-short" aria-hidden="true">Hero</span>
+                            </span>
+                            <button type="button" className="CharacterMainTab-hero-points-step" aria-label="Spend a hero point" disabled={!hasWritePermissions || heroPoints <= 0} onClick={() => setHeroPoints(heroPoints - 1)}>−</button>
+                            <span className="CharacterMainTab-hero-points-value">{heroPoints}</span>
+                            <button type="button" className="CharacterMainTab-hero-points-step" aria-label="Add a hero point" disabled={!hasWritePermissions} onClick={() => setHeroPoints(heroPoints + 1)}>+</button>
                         </span>
                         {hasCampaign && <CombatMapPeek campaignId={characterPage.campaign} activeMap={activeMap} entities={combatEntities} userId={userId} canEdit={canEditCampaign}/>}
                     </div>

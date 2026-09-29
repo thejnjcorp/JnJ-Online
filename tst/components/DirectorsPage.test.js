@@ -319,6 +319,30 @@ describe('DirectorsPage', () => {
             expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { temporary_health: 4 });
         });
 
+        test('a director can grant (or take back) a player\'s hero points', async () => {
+            await renderReady({ characters: [{ ...character, hero_points: 2 }] });
+            goToTab('Combat');
+            const card = screen.getByText('20/25 HP').closest('.DirectorsPage-entity-card');
+            const heroPoints = within(card).getByRole('group', { name: 'Hero points' });
+            expect(within(heroPoints).getByText('2')).toBeInTheDocument();
+
+            fireEvent.click(within(heroPoints).getByRole('button', { name: 'Grant a hero point' }));
+            expect(mockUpdateDoc).toHaveBeenLastCalledWith({ __doc: ['characters', 'char-1'] }, { hero_points: 3 });
+
+            fireEvent.click(within(heroPoints).getByRole('button', { name: 'Remove a hero point' }));
+            expect(mockUpdateDoc).toHaveBeenLastCalledWith({ __doc: ['characters', 'char-1'] }, { hero_points: 1 });
+        });
+
+        test('a player with no hero_points field yet defaults to 1, and an enemy has no hero points at all', async () => {
+            await renderReady({ campaignInfo: { ...baseCampaignInfo, enemy_list: [enemy] } });
+            goToTab('Combat');
+            const playerCard = screen.getByText('20/25 HP').closest('.DirectorsPage-entity-card');
+            expect(within(within(playerCard).getByRole('group', { name: 'Hero points' })).getByText('1')).toBeInTheDocument();
+
+            const enemyCard = screen.getByText('Goblin').closest('.DirectorsPage-entity-card');
+            expect(within(enemyCard).queryByRole('group', { name: 'Hero points' })).not.toBeInTheDocument();
+        });
+
         test('the director can still spend action points and advance the turn on a character they neither own nor co-write', async () => {
             await renderReady({ characters: [{ ...character, userId: 'someone-else', canWrite: [] }] });
             goToTab('Combat');

@@ -167,6 +167,47 @@
     color: var(--jnj-color-text-muted);
 }
 
+// See JnJ_Ruleset.md's "Hero Points" - a simple +/- count, not a fixed set
+// of circles like AP, since there's no upper cap on how many a director can
+// grant.
+.CharacterMainTab-hero-points {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: var(--jnj-space-5);
+}
+
+.CharacterMainTab-hero-points-step {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: 50%;
+    background: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text);
+    font-weight: 700;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+        border-color: var(--jnj-color-accent);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: default;
+    }
+}
+
+.CharacterMainTab-hero-points-value {
+    min-width: 1.2em;
+    text-align: center;
+    font-weight: 700;
+    color: var(--jnj-color-accent);
+}
+
 .CharacterMainTab-action-body {
     // .TabContainer-content (the outer wrapper) is already the scroll
     // container for this tab's content - a second overflow:auto here nested
@@ -626,6 +667,11 @@
     // the "3 / 4 available" text, which the circles already say, stays for screen
     // readers only
     .CharacterMainTab-reaction {
+        gap: 4px;
+        margin-left: 6px;
+    }
+
+    .CharacterMainTab-hero-points {
         gap: 4px;
         margin-left: 6px;
     }

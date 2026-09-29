@@ -1604,7 +1604,7 @@ async function main() {
     };
     const status = { id: 's1', name: 'Prone', stacks: 1 };
 
-    await check('the director, a co-director, and a doc admin can give, remove, or change statuses, AP, the reaction, and HP, on a player\'s character', async () => {
+    await check('the director, a co-director, and a doc admin can give, remove, or change statuses, AP, the reaction, HP, and hero points, on a player\'s character', async () => {
         await seedCombatCharacter();
         for (const uid of ['dir', 'codir', 'docadmin']) {
             const db = testEnv.authenticatedContext(uid).firestore();
@@ -1613,7 +1613,8 @@ async function main() {
             await assertSucceeds(updateDoc(ariaRef(db), { reaction_used: true }));
             await assertSucceeds(updateDoc(ariaRef(db), { current_health: 6 }));
             await assertSucceeds(updateDoc(ariaRef(db), { temporary_health: 3 }));
-            await assertSucceeds(updateDoc(ariaRef(db), { statuses: [], action_points: 2, reaction_used: false, current_health: 10, temporary_health: 0 }));
+            await assertSucceeds(updateDoc(ariaRef(db), { hero_points: 2 }));
+            await assertSucceeds(updateDoc(ariaRef(db), { statuses: [], action_points: 2, reaction_used: false, current_health: 10, temporary_health: 0, hero_points: 1 }));
         }
     });
 

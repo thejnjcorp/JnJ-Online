@@ -140,7 +140,7 @@ const ABILITY_SCORES = [
 // need to know whether it's looking at a real `characters` doc or an NPC
 // object embedded in the campaign doc.
 function DirectorsEntityCard({
-    kind, name, tier, subtitle, hpNow, hpMax, tempHp, onSetHp, onSetTempHp, ac, abilityScores, ap, onSetAp, reactionUsed, onToggleReaction, onRemove, defeated = false, onSetDefeated,
+    kind, name, tier, subtitle, hpNow, hpMax, tempHp, onSetHp, onSetTempHp, ac, abilityScores, ap, onSetAp, heroPoints, onSetHeroPoints, reactionUsed, onToggleReaction, onRemove, defeated = false, onSetDefeated,
     canAdvanceTurn, onNextTurn, weaknesses, resistances, immunities, notes,
     statusEntity, onUpdateStatuses, hasStatusWrite, userId,
     actions, experiencePoints, baseHitModifier, baseDamageModifier,
@@ -219,6 +219,16 @@ function DirectorsEntityCard({
                         <img src={reactionUsed ? circleIcon : circleFilledIcon} alt="" width={15}/>
                     </button>
                 </div>
+                {/* Only a player has these (JnJ_Ruleset.md's "Hero Points" -
+                    "everyone is a hero", i.e. every player, not an enemy) -
+                    the director's own way to grant one for good roleplay or
+                    the hourly one, without the player having to do it
+                    themselves. */}
+                {kind === 'player' && <div className="DirectorsPage-hero-points" role="group" aria-label="Hero points">
+                    <button type="button" aria-label="Remove a hero point" disabled={!onSetHeroPoints || heroPoints <= 0} onClick={() => onSetHeroPoints?.(heroPoints - 1)}>−</button>
+                    <span className="DirectorsPage-hero-points-value">{heroPoints}</span>
+                    <button type="button" aria-label="Grant a hero point" disabled={!onSetHeroPoints} onClick={() => onSetHeroPoints?.(heroPoints + 1)}>+</button>
+                </div>}
                 {canAdvanceTurn && <button type="button" className={`DirectorsPage-next-turn-button DirectorsPage-next-turn-button-${kind}`} onClick={onNextTurn}>Next Turn</button>}
             </div>
 
@@ -576,6 +586,13 @@ export function DirectorsPage() {
                                     alert(e);
                                 }
                             }
+                            function setHeroPoints(hero_points) {
+                                try {
+                                    updateDoc(doc(db, "characters", actualCharacter.character_id), { hero_points: Math.max(0, hero_points) });
+                                } catch (e) {
+                                    alert(e);
+                                }
+                            }
                             function toggleReaction() {
                                 try {
                                     updateDoc(doc(db, "characters", actualCharacter.character_id), {
@@ -630,6 +647,8 @@ export function DirectorsPage() {
                                 }}
                                 ap={actualCharacter.action_points}
                                 onSetAp={hasWritePermissions ? setActionPoints : undefined}
+                                heroPoints={actualCharacter.hero_points ?? 1}
+                                onSetHeroPoints={hasWritePermissions ? setHeroPoints : undefined}
                                 reactionUsed={Boolean(actualCharacter.reaction_used)}
                                 onToggleReaction={hasWritePermissions ? toggleReaction : undefined}
                                 canAdvanceTurn={hasWritePermissions}

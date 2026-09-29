@@ -91,12 +91,14 @@ service cloud.firestore {
 
       // The campaign's director (a co-director, or a doc admin) runs combat from
       // Director's Page - giving and removing statuses, spending AP, toggling the
-      // reaction, advancing a turn, and (like an enemy's own HP, which the director
-      // already fully controls) adjusting HP as a fight actually plays out - on
-      // every player's character, not just their own. Nothing else about the
-      // sheet; see the inventory rule above for the same pattern.
+      // reaction, advancing a turn, (like an enemy's own HP, which the director
+      // already fully controls) adjusting HP as a fight actually plays out, and
+      // granting hero points (JnJ_Ruleset.md's "Hero Points" - for good
+      // roleplay, or one an hour) - on every player's character, not just their
+      // own. Nothing else about the sheet; see the inventory rule above for the
+      // same pattern.
       allow update: if isSignedIn() && isCharacterCampaignDirector()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statuses', 'action_points', 'reaction_used', 'current_health', 'temporary_health']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statuses', 'action_points', 'reaction_used', 'current_health', 'temporary_health', 'hero_points']);
 
       allow read, write: if isSignedIn() && isDocAdmin();
 

@@ -672,6 +672,46 @@ describe('CharacterMainTab', () => {
             });
         });
 
+        describe('hero points', () => {
+            const heroPoints = () => screen.getByRole('group', { name: 'Hero points' });
+
+            test('starts at 1 when never set, same as the ruleset\'s "everyone starts each session with one"', () => {
+                render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
+                goToTab('Combat');
+                expect(within(heroPoints()).getByText('1')).toBeInTheDocument();
+            });
+
+            test('shows whatever is saved', () => {
+                render(<CharacterMainTab characterPage={{ ...characterPage, hero_points: 3 }} userId="owner-1" />);
+                goToTab('Combat');
+                expect(within(heroPoints()).getByText('3')).toBeInTheDocument();
+            });
+
+            test('the owner can spend one (down) or add one (up)', () => {
+                render(<CharacterMainTab characterPage={{ ...characterPage, hero_points: 2 }} userId="owner-1" />);
+                goToTab('Combat');
+
+                fireEvent.click(within(heroPoints()).getByRole('button', { name: 'Spend a hero point' }));
+                expect(mockUpdateDoc).toHaveBeenLastCalledWith({ __doc: ['characters', 'char-1'] }, { hero_points: 1 });
+
+                fireEvent.click(within(heroPoints()).getByRole('button', { name: 'Add a hero point' }));
+                expect(mockUpdateDoc).toHaveBeenLastCalledWith({ __doc: ['characters', 'char-1'] }, { hero_points: 3 });
+            });
+
+            test('cannot go negative - spending at 0 is disabled', () => {
+                render(<CharacterMainTab characterPage={{ ...characterPage, hero_points: 0 }} userId="owner-1" />);
+                goToTab('Combat');
+                expect(within(heroPoints()).getByRole('button', { name: 'Spend a hero point' })).toBeDisabled();
+            });
+
+            test('someone who cannot edit the sheet sees it but cannot change it', () => {
+                render(<CharacterMainTab characterPage={characterPage} userId="stranger-1" />);
+                goToTab('Combat');
+                expect(within(heroPoints()).getByRole('button', { name: 'Spend a hero point' })).toBeDisabled();
+                expect(within(heroPoints()).getByRole('button', { name: 'Add a hero point' })).toBeDisabled();
+            });
+        });
+
         describe('the combat map peek', () => {
             test('is a map icon in the sticky bar for a character in a campaign', () => {
                 const { container } = render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);

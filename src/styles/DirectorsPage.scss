@@ -455,6 +455,50 @@
     }
 }
 
+.DirectorsPage-hero-points {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    margin-left: 4px;
+    padding-left: 6px;
+    border-left: 1px solid var(--jnj-color-border-strong);
+
+    button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+        padding: 0;
+        border: 1px solid var(--jnj-color-border-strong);
+        border-radius: 50%;
+        background: none;
+        color: var(--jnj-color-text);
+        font-size: 0.625rem;
+        font-weight: 700;
+        line-height: 1;
+        cursor: pointer;
+
+        &:hover:not(:disabled) {
+            border-color: var(--jnj-color-accent);
+        }
+
+        &:disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+    }
+}
+
+.DirectorsPage-hero-points-value {
+    min-width: 1em;
+    text-align: center;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: var(--jnj-color-accent);
+}
+
 .DirectorsPage-ability-row {
     display: flex;
     flex-wrap: wrap;
