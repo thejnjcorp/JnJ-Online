@@ -127,7 +127,7 @@ function makeLineViewCard(playerInfoById, defeatedIds = []) {
 // need to know whether it's looking at a real `characters` doc or an NPC
 // object embedded in the campaign doc.
 function DirectorsEntityCard({
-    kind, name, tier, subtitle, hpNow, hpMax, tempHp, ac, ap, onSetAp, reactionUsed, onToggleReaction, onRemove, defeated = false, onSetDefeated,
+    kind, name, tier, subtitle, hpNow, hpMax, tempHp, onSetHp, onSetTempHp, ac, ap, onSetAp, reactionUsed, onToggleReaction, onRemove, defeated = false, onSetDefeated,
     canAdvanceTurn, onNextTurn, weaknesses, resistances, immunities,
     statusEntity, onUpdateStatuses, hasStatusWrite, userId,
     actions, experiencePoints, baseHitModifier, baseDamageModifier,
@@ -152,10 +152,30 @@ function DirectorsEntityCard({
         {open && <div className="DirectorsPage-entity-body">
             <div className="DirectorsPage-vitals-strip">
                 <div className="DirectorsPage-hp-track-wrap">
+                    <div className="DirectorsPage-hp-edit-row">
+                        <input
+                            type="number"
+                            className="DirectorsPage-hp-input"
+                            aria-label="Current HP"
+                            value={hpNow}
+                            disabled={!onSetHp}
+                            onChange={event => onSetHp?.(Number(event.target.value))}
+                        />
+                        <span className="DirectorsPage-hp-slash">/{hpMax}</span>
+                        {onSetTempHp && <span className="DirectorsPage-hp-temp-edit">
+                            +<input
+                                type="number"
+                                className="DirectorsPage-hp-input DirectorsPage-hp-temp-input"
+                                aria-label="Temporary HP"
+                                value={tempHp}
+                                onChange={event => onSetTempHp(Number(event.target.value))}
+                            /> temp
+                        </span>}
+                    </div>
                     <div className="DirectorsPage-hp-track">
                         <div className={`DirectorsPage-hp-fill DirectorsPage-hp-fill-${kind}`} style={{width: hpPercent + '%'}}/>
                     </div>
-                    {hasTempHp && <div className="DirectorsPage-temp-hp-label">+{tempHp} temp</div>}
+                    {hasTempHp && !onSetTempHp && <div className="DirectorsPage-temp-hp-label">+{tempHp} temp</div>}
                 </div>
                 <div className={`DirectorsPage-ac-shield DirectorsPage-ac-shield-${kind}`}>
                     <img src={shieldIcon} className="DirectorsPage-ac-shield-icon" alt=""/>
@@ -163,7 +183,11 @@ function DirectorsEntityCard({
                 </div>
                 <div className={`DirectorsPage-ap-circles DirectorsPage-ap-circles-${kind}`}>
                     {[1, 2, 3, 4].map(n =>
-                        <button type="button" key={n} disabled={!onSetAp} onClick={() => onSetAp?.(n)}>
+                        // Clicking the circle at the current AP again spends that
+                        // last point (drops to n - 1) - same as CharacterMainTab.js's
+                        // own circles - otherwise there was no way to reach 0 at all,
+                        // only ever up to whichever circle was clicked.
+                        <button type="button" key={n} disabled={!onSetAp} onClick={() => onSetAp?.(ap === n ? n - 1 : n)}>
                             <img src={ap >= n ? circleFilledIcon : circleIcon} alt="" width={15}/>
                         </button>
                     )}
@@ -485,16 +509,29 @@ export function DirectorsPage() {
                             // Reaching this code at all already means isDirector (the whole
                             // page refuses anyone else - see the guard above), and
                             // firestore.rules' isCharacterCampaignDirector() grants exactly
-                            // this - statuses, action_points, reaction_used - on every
-                            // player's character, not just one the director happens to
-                            // co-write. Doesn't cover current_health/temporary_health,
-                            // which nothing here offers to edit for a player anyway.
+                            // this - statuses, action_points, reaction_used, current_health,
+                            // temporary_health - on every player's character, not just one
+                            // the director happens to co-write.
                             const hasWritePermissions = true;
                             function setActionPoints(actionPoints) {
                                 try {
                                     updateDoc(doc(db, "characters", actualCharacter.character_id), {
                                         action_points: actionPoints
                                     });
+                                } catch (e) {
+                                    alert(e);
+                                }
+                            }
+                            function setHp(current_health) {
+                                try {
+                                    updateDoc(doc(db, "characters", actualCharacter.character_id), { current_health });
+                                } catch (e) {
+                                    alert(e);
+                                }
+                            }
+                            function setTempHp(temporary_health) {
+                                try {
+                                    updateDoc(doc(db, "characters", actualCharacter.character_id), { temporary_health });
                                 } catch (e) {
                                     alert(e);
                                 }
@@ -542,6 +579,8 @@ export function DirectorsPage() {
                                 hpNow={actualCharacter.current_health}
                                 hpMax={actualCharacter.maximum_health}
                                 tempHp={actualCharacter.temporary_health}
+                                onSetHp={hasWritePermissions ? setHp : undefined}
+                                onSetTempHp={hasWritePermissions ? setTempHp : undefined}
                                 ac={armorClass}
                                 ap={actualCharacter.action_points}
                                 onSetAp={hasWritePermissions ? setActionPoints : undefined}
@@ -652,6 +691,12 @@ export function DirectorsPage() {
                             function setActionPoints(actionPoints) {
                                 updateEnemy(actualEnemy.id, { action_points: actionPoints }).catch(e => alert(e));
                             }
+                            function setHp(current_health) {
+                                updateEnemy(actualEnemy.id, { current_health }).catch(e => alert(e));
+                            }
+                            function setTempHp(temporary_health) {
+                                updateEnemy(actualEnemy.id, { temporary_health }).catch(e => alert(e));
+                            }
                             function advanceTurn() {
                                 updateEnemy(actualEnemy.id, advanceTurnStatuses(actualEnemy)).catch(e => alert(e));
                             }
@@ -683,6 +728,8 @@ export function DirectorsPage() {
                                 hpNow={actualEnemy.current_health}
                                 hpMax={actualEnemy.maximum_health}
                                 tempHp={actualEnemy.temporary_health}
+                                onSetHp={isDirector ? setHp : undefined}
+                                onSetTempHp={isDirector ? setTempHp : undefined}
                                 ac={effectiveEnemy.base_armor_class}
                                 ap={actualEnemy.action_points}
                                 onSetAp={setActionPoints}

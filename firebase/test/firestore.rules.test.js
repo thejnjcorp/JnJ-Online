@@ -1604,24 +1604,26 @@ async function main() {
     };
     const status = { id: 's1', name: 'Prone', stacks: 1 };
 
-    await check('the director, a co-director, and a doc admin can give, remove, or change statuses, AP, and the reaction, on a player\'s character', async () => {
+    await check('the director, a co-director, and a doc admin can give, remove, or change statuses, AP, the reaction, and HP, on a player\'s character', async () => {
         await seedCombatCharacter();
         for (const uid of ['dir', 'codir', 'docadmin']) {
             const db = testEnv.authenticatedContext(uid).firestore();
             await assertSucceeds(updateDoc(ariaRef(db), { statuses: [status] }));
             await assertSucceeds(updateDoc(ariaRef(db), { action_points: 4 }));
             await assertSucceeds(updateDoc(ariaRef(db), { reaction_used: true }));
-            await assertSucceeds(updateDoc(ariaRef(db), { statuses: [], action_points: 2, reaction_used: false }));
+            await assertSucceeds(updateDoc(ariaRef(db), { current_health: 6 }));
+            await assertSucceeds(updateDoc(ariaRef(db), { temporary_health: 3 }));
+            await assertSucceeds(updateDoc(ariaRef(db), { statuses: [], action_points: 2, reaction_used: false, current_health: 10, temporary_health: 0 }));
         }
     });
 
-    await check('but nothing else about the character - not its health, name, or who can write it (its inventory is separately open to the whole campaign already, directors included)', async () => {
+    await check('but nothing else about the character - not its name, maximum health, or who can write it (its inventory is separately open to the whole campaign already, directors included)', async () => {
         await seedCombatCharacter();
         const db = testEnv.authenticatedContext('dir').firestore();
-        await assertFails(updateDoc(ariaRef(db), { current_health: 0 }));
+        await assertFails(updateDoc(ariaRef(db), { maximum_health: 1 }));
         await assertFails(updateDoc(ariaRef(db), { character_name: 'Renamed' }));
         await assertFails(updateDoc(ariaRef(db), { canWrite: ['player', 'dir'] }));
-        await assertFails(updateDoc(ariaRef(db), { statuses: [status], current_health: 0 }));
+        await assertFails(updateDoc(ariaRef(db), { statuses: [status], character_name: 'Renamed' }));
     });
 
     await check('and not a teammate in the same campaign who isn\'t directing, or the director of a different campaign', async () => {

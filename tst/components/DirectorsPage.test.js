@@ -296,6 +296,18 @@ describe('DirectorsPage', () => {
             expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { action_points: 3 });
         });
 
+        test('a director can edit a player\'s current and temporary HP, writing to the character doc', async () => {
+            await renderReady();
+            goToTab('Combat');
+            const card = screen.getByText('20/25 HP').closest('.DirectorsPage-entity-card');
+
+            fireEvent.change(within(card).getByLabelText('Current HP'), { target: { value: '15' } });
+            expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { current_health: 15 });
+
+            fireEvent.change(within(card).getByLabelText('Temporary HP'), { target: { value: '4' } });
+            expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { temporary_health: 4 });
+        });
+
         test('the director can still spend action points and advance the turn on a character they neither own nor co-write', async () => {
             await renderReady({ characters: [{ ...character, userId: 'someone-else', canWrite: [] }] });
             goToTab('Combat');
@@ -415,17 +427,49 @@ describe('DirectorsPage', () => {
             expect(screen.getByText('Poison')).toBeInTheDocument();
         });
 
-        test('spending an enemy action point writes the whole updated enemy_list', async () => {
+        test('a director can edit an enemy\'s current and temporary HP, writing the whole enemy_list', async () => {
+            await renderReady({ campaignInfo: { ...baseCampaignInfo, enemy_list: [enemy] } });
+            goToTab('Combat');
+            const card = screen.getByText('Goblin').closest('.DirectorsPage-entity-card');
+
+            fireEvent.change(within(card).getByLabelText('Current HP'), { target: { value: '6' } });
+            expect(mockUpdateDoc).toHaveBeenCalledWith(
+                { __doc: ['campaigns', 'camp-1'] },
+                { enemy_list: [{ ...enemy, current_health: 6 }] },
+            );
+
+            fireEvent.change(within(card).getByLabelText('Temporary HP'), { target: { value: '2' } });
+            expect(mockUpdateDoc).toHaveBeenCalledWith(
+                { __doc: ['campaigns', 'camp-1'] },
+                { enemy_list: [{ ...enemy, temporary_health: 2 }] },
+            );
+        });
+
+        test('clicking a higher circle spends up to that many action points, writing the whole enemy_list', async () => {
             await renderReady({ campaignInfo: { ...baseCampaignInfo, enemy_list: [enemy] } });
             goToTab('Combat');
             // eslint-disable-next-line testing-library/no-node-access -- icon-only AP buttons again have no accessible name
             const apButtons = screen.getByText('Goblin').closest('.DirectorsPage-entity-card').querySelectorAll('.DirectorsPage-ap-circles button');
 
-            fireEvent.click(apButtons[0]);
+            fireEvent.click(apButtons[2]);
 
             await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith(
                 { __doc: ['campaigns', 'camp-1'] },
-                { enemy_list: [{ ...enemy, action_points: 1 }] },
+                { enemy_list: [{ ...enemy, action_points: 3 }] },
+            ));
+        });
+
+        test('clicking the circle at the current action points again drops to one fewer, all the way to 0', async () => {
+            await renderReady({ campaignInfo: { ...baseCampaignInfo, enemy_list: [enemy] } });
+            goToTab('Combat');
+            // eslint-disable-next-line testing-library/no-node-access -- icon-only AP buttons again have no accessible name
+            const apButtons = screen.getByText('Goblin').closest('.DirectorsPage-entity-card').querySelectorAll('.DirectorsPage-ap-circles button');
+
+            fireEvent.click(apButtons[0]); // enemy starts at action_points: 1
+
+            await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith(
+                { __doc: ['campaigns', 'camp-1'] },
+                { enemy_list: [{ ...enemy, action_points: 0 }] },
             ));
         });
 
