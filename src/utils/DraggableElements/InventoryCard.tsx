@@ -5,7 +5,6 @@ import { useItem } from "../useItems";
 import { isItemEntry, quantityOf, MAX_QUANTITY } from "../inventory";
 import { putInParty, removeCharacterEntry, setCharacterQuantity } from "../partyInventory";
 import type { Post } from "./Post.ts";
-import { ReactComponent as ChevronDownIcon } from "../../icons/chevron_down.svg";
 import "../../styles/Party.scss";
 
 // What an inventory card needs to know about whose inventory it is in: the character,
@@ -17,15 +16,20 @@ export const InventoryContext = createContext<InventoryContextValue>({ character
 type EntryPost = Post & { item_id?: string; quantity?: number };
 
 // One entry of a character's inventory, in its slot: the item's picture, name and how
-// many, dragged from slot to slot. Bar its small details button in the corner, the
-// whole card is the drag handle - a card used to be one big button that opened its
-// details in place, which left only its thin outer padding free to actually grab and
-// drag. The details button opens the item's description and - for someone who may
-// change the inventory - the controls (more or fewer, put some in the party inventory,
-// or remove it) as a popup instead of inline: inline pushed the rest of the slot grid
-// around every time one was open, which didn't fit a small fixed-size slot well. An
-// entry from before items existed shows the text it was typed with, and can only be
-// removed.
+// many, dragged from slot to slot. Pressing it (a real click, not a drag) opens the
+// item's details and - for someone who may change the inventory - the controls (more
+// or fewer, put some in the party inventory, or remove it) as a popup, not inline:
+// inline pushed the rest of the slot grid around every time one was open, which didn't
+// fit a small fixed-size slot well. The card itself is a plain div (role="button"), not
+// a <button> - @hello-pangea/dnd refuses to start a drag from a native interactive
+// element (input/button/textarea/select/...; see isAnInteractiveElement in its source)
+// to preserve that element's own click behavior, which is exactly why a card used to
+// be so hard to drag: it was one giant <button>, so only its thin outer padding (not
+// covered by that button) was ever draggable. A plain div isn't on that list, so the
+// library's own mousedown-then-movement-threshold still tells a real drag apart from a
+// click perfectly well here - dragging still works from anywhere on the card, clicking
+// (without dragging) opens the popup. An entry from before items existed shows the
+// text it was typed with, and can only be removed.
 export const InventoryCard = ({ post, index, titleClassName, boxClassName }: { post: Post; index: number; titleClassName: string; contentClassName?: string; boxClassName: string; extraClassNames?: string[]; readOnly?: boolean }) => {
     const { characterId, canEdit, campaignId, userId } = useContext(InventoryContext);
     const entry = post as EntryPost;
@@ -53,14 +57,20 @@ export const InventoryCard = ({ post, index, titleClassName, boxClassName }: { p
             <Draggable draggableId={String(post.id)} index={index}>
                 {(provided, snapshot) => (
                     <div style={{ marginBottom: "1px" }} {...provided.dragHandleProps} {...provided.draggableProps} ref={provided.innerRef}>
-                        <div className={snapshot.isDragging ? `${boxClassName} isDragging` : boxClassName}>
+                        <div
+                            className={`${snapshot.isDragging ? `${boxClassName} isDragging` : boxClassName} InventoryCard-clickable`}
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`${name} details`}
+                            aria-haspopup="dialog"
+                            aria-expanded={open}
+                            onClick={() => setOpen(o => !o)}
+                            onKeyDown={event => { if (event.key === "Enter") { event.stopPropagation(); setOpen(o => !o); } }}
+                        >
                             <div className={`${titleClassName} InventoryCard-title`}>
                                 <ItemThumb item={state.item} className="InventoryCard-thumb"/>
                                 <span className="InventoryCard-name">{name}</span>
                                 {quantity > 1 && <span className="ItemLine-quantity" aria-label={`quantity ${quantity}`}>×{quantity}</span>}
-                                <button type="button" className="InventoryCard-details-button" aria-label={`${name} details`} aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(o => !o)}>
-                                    <ChevronDownIcon/>
-                                </button>
                             </div>
                         </div>
                     </div>

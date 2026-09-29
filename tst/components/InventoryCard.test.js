@@ -74,14 +74,15 @@ describe('InventoryCard', () => {
         expect(screen.getByText('something')).toBeInTheDocument();
     });
 
-    describe('the details button', () => {
-        test('is not the drag handle - the card around it is, so most of the card stays free to drag', () => {
+    describe('pressing the card', () => {
+        test('the clickable card is a plain div (role="button"), not a native button, nested inside the real drag handle', () => {
             const { container } = draw(entry());
-            const detailsButton = screen.getByRole('button', { name: 'Torch details' });
+            const card = screen.getByRole('button', { name: 'Torch details' });
             // eslint-disable-next-line testing-library/no-node-access -- checking the drag handle's own attributes, which have no accessible role
             const dragHandle = container.querySelector('[data-rfd-drag-handle-draggable-id]');
-            expect(dragHandle).toContainElement(detailsButton);
-            expect(detailsButton).not.toBe(dragHandle);
+            expect(dragHandle).toContainElement(card);
+            expect(card).not.toBe(dragHandle);
+            expect(card.tagName).toBe('DIV');
         });
 
         test('opens the details - the description - as a popup, and again closes it', () => {
