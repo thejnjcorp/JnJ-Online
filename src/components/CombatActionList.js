@@ -145,9 +145,11 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
                                 if (tracked) onActionUsesChange(spendUse(actionUses, action));
                             } else {
                                 updateDoc(doc(db, "characters", characterPage.character_id), {
-                                    action_points: characterPage.action_points - action.actionCost,
+                                    // A reaction spends the reaction, not an action point - it's
+                                    // usable on someone else's turn precisely because it doesn't
+                                    // touch this turn's action economy.
+                                    ...(reaction ? { reaction_used: true } : { action_points: characterPage.action_points - action.actionCost }),
                                     ...(tracked ? { action_uses: spendUse(actionUses, action) } : {}),
-                                    ...(reaction ? { reaction_used: true } : {}),
                                 })
                             }
                         } catch (e) {

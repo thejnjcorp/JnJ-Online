@@ -651,14 +651,24 @@ describe('CharacterMainTab', () => {
                 expect(useButton).toBeDisabled();
             });
 
-            test('using a reaction card spends the reaction', () => {
+            test('using a reaction card spends the reaction only, not an action point too', () => {
                 const reaction = { actionName: 'Parry', actionCost: 1, category: 'reaction', toHitBool: true, toHit: 1 };
                 render(<CharacterMainTab characterPage={{ ...characterPage, actions: [...characterPage.actions, reaction] }} userId="owner-1" />);
                 goToTab('Combat');
 
                 fireEvent.click(screen.getByRole('button', { name: 'Use Reaction' }));
 
-                expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { action_points: 1, reaction_used: true });
+                expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { reaction_used: true });
+            });
+
+            test('a reaction more expensive than the character\'s current AP is still usable - AP never gates a reaction', () => {
+                const reaction = { actionName: 'Parry', actionCost: 3, category: 'reaction', toHitBool: true, toHit: 1 };
+                render(<CharacterMainTab characterPage={{ ...characterPage, action_points: 0, actions: [...characterPage.actions, reaction] }} userId="owner-1" />);
+                goToTab('Combat');
+
+                expect(screen.getByRole('button', { name: 'Use Reaction' })).toBeEnabled();
+                fireEvent.click(screen.getByRole('button', { name: 'Use Reaction' }));
+                expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { reaction_used: true });
             });
         });
 

@@ -374,11 +374,11 @@ describe('CombatActionList', () => {
         const parry = { ...toHitAction, actionName: 'Parry', category: 'reaction', actionCost: 1 };
         const setup = (extra = {}, sheet = characterPage, action = parry) => render(<CombatActionList actions={[action]} {...STAT_PROPS} characterPage={sheet} userId="owner-1" canUseActions {...extra} />);
 
-        test('using a reaction spends it along with its action points, in one write', () => {
+        test('using a reaction spends the reaction only - it is a separate resource from action points, not another cost on top', () => {
             setup();
             fireEvent.click(screen.getByRole('button', { name: 'Use Reaction' }));
             expect(mockUpdateDoc).toHaveBeenCalledTimes(1);
-            expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { action_points: 2, reaction_used: true });
+            expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { reaction_used: true });
         });
 
         test('using an ordinary action leaves the reaction alone', () => {

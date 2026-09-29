@@ -470,7 +470,7 @@ describe('DirectorsPage', () => {
                 expect(pip()).toHaveAccessibleName('Reaction used');
             });
 
-            test('using a reaction action spends the reaction as well as the action points', async () => {
+            test('using a reaction action spends the reaction only, leaving action points untouched', async () => {
                 await renderReady(withEnemy());
                 goToTab('Combat');
                 fireEvent.click(screen.getByRole('button', { name: /Actions$/ }));
@@ -479,7 +479,7 @@ describe('DirectorsPage', () => {
 
                 await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith(
                     { __doc: ['campaigns', 'camp-1'] },
-                    { enemy_list: [expect.objectContaining({ action_points: 0, reaction_used: true })] },
+                    { enemy_list: [expect.objectContaining({ action_points: 1, reaction_used: true })] },
                 ));
             });
 

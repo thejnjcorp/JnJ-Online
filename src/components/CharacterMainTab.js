@@ -28,7 +28,7 @@ import { ReactComponent as MapIcon } from '../icons/map.svg';
 import { ReactComponent as PersonIcon } from '../icons/person.svg';
 import { useIsMobile } from "../utils/useIsMobile";
 import { getEffectiveCharacterStats, getGrantedActions } from "../utils/statusEffects";
-import { getActionCategory, isCombatAction, isRoleplayAction } from "../utils/classActions";
+import { getActionCategory, isCombatAction, isReactionAction, isRoleplayAction } from "../utils/classActions";
 import { filterActions, filterOptions, isFilterActive, sortActions } from "../utils/tags";
 import { ActionViewControls } from "./ActionViewControls";
 import { StatusChip } from "./StatusChip";
@@ -68,8 +68,12 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
     };
     const inView = list => sortActions(filterActions(list, activeFilter), combatSort);
     const passiveActions = inView(combatActions.filter(action => isPassive(action)));
-    const availableActions = inView(combatActions.filter(action => action.actionCost <= characterPage.action_points).filter(action => !isPassive(action)));
-    const unavailableActions = inView(combatActions.filter(action => action.actionCost > characterPage.action_points));
+    // A reaction spends the reaction (see CombatActionList.js), not an action
+    // point, so it's never "unavailable" for lack of AP - being locked out of
+    // its own Use button for that would be the same bug the write path had.
+    const affordable = action => isReactionAction(action) || action.actionCost <= characterPage.action_points;
+    const availableActions = inView(combatActions.filter(affordable).filter(action => !isPassive(action)));
+    const unavailableActions = inView(combatActions.filter(action => !affordable(action)));
     // An empty section says so - because of the filter, or because it just is empty.
     const emptyNote = (list, whenEmpty) => list.length === 0 && <p className="ActionViewControls-empty">{isFilterActive(activeFilter) ? 'No actions match.' : whenEmpty}</p>;
     // The Combat Map tab operates on the character's campaign (the combat

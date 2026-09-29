@@ -672,10 +672,12 @@ export function DirectorsPage() {
                                 updateEnemy(actualEnemy.id, { reaction_used: !actualEnemy.reaction_used }).catch(e => alert(e));
                             }
                             function useAction(action) {
-                                updateEnemy(actualEnemy.id, {
-                                    action_points: actualEnemy.action_points - action.actionCost,
-                                    ...(isReactionAction(action) ? { reaction_used: true } : {}),
-                                }).catch(e => alert(e));
+                                // A reaction spends the reaction, not an action point - same
+                                // reasoning as CombatActionList.js's own default write path.
+                                updateEnemy(actualEnemy.id, isReactionAction(action)
+                                    ? { reaction_used: true }
+                                    : { action_points: actualEnemy.action_points - action.actionCost }
+                                ).catch(e => alert(e));
                             }
                             const effectiveEnemy = getEffectiveCharacterStats(actualEnemy);
                             const grantedActions = getGrantedActions(actualEnemy);
