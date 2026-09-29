@@ -6,46 +6,44 @@
 }
 
 .PartyCombatRoster-list {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
     gap: var(--jnj-space-2);
 }
 
 .PartyCombatRoster-card {
-    padding: var(--jnj-space-2) var(--jnj-space-3);
+    padding: var(--jnj-space-1) var(--jnj-space-2);
     border: 1px solid var(--jnj-color-border);
-    border-radius: var(--jnj-radius-md);
+    border-radius: var(--jnj-radius-sm);
     background: var(--jnj-color-bg-sunken);
+    font-size: var(--jnj-text-xs);
+    min-width: 0;
 }
 
 .PartyCombatRoster-header {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    gap: var(--jnj-space-2);
+    gap: var(--jnj-space-1);
     font-weight: 600;
+    font-size: var(--jnj-text-sm);
+}
+
+.PartyCombatRoster-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .PartyCombatRoster-hp-label {
-    font-size: var(--jnj-text-sm);
     color: var(--jnj-color-text-muted);
     font-weight: 400;
     white-space: nowrap;
 }
 
-.PartyCombatRoster-vitals {
-    display: flex;
-    align-items: center;
-    gap: var(--jnj-space-2);
-    margin-top: var(--jnj-space-1);
-    font-size: var(--jnj-text-xs);
-    color: var(--jnj-color-text-muted);
-}
-
 .PartyCombatRoster-hp-track {
-    flex: 1;
-    min-width: 4rem;
-    height: 6px;
+    margin-top: 3px;
+    height: 4px;
     border-radius: var(--jnj-radius-pill);
     background: var(--jnj-color-bg);
     overflow: hidden;
@@ -56,7 +54,88 @@
     background: linear-gradient(90deg, var(--jnj-color-success), #7fc493);
 }
 
+.PartyCombatRoster-vitals {
+    display: flex;
+    align-items: center;
+    gap: var(--jnj-space-2);
+    margin-top: 3px;
+    color: var(--jnj-color-text-muted);
+}
+
 .PartyCombatRoster-temp,
 .PartyCombatRoster-hardness {
     white-space: nowrap;
+}
+
+// Action points and reaction, at a glance - who still has something left to
+// act with this round. Same pip language as CharacterMainTab's own action
+// points row and DirectorsPage's combat cards, just small enough to fit here.
+.PartyCombatRoster-round {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--jnj-space-2);
+    margin-top: 3px;
+    color: var(--jnj-color-text-muted);
+}
+
+.PartyCombatRoster-ap,
+.PartyCombatRoster-reaction {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+}
+
+.PartyCombatRoster-pips {
+    display: inline-flex;
+    gap: 2px;
+    margin-left: 2px;
+}
+
+.PartyCombatRoster-pip {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    border: 1px solid var(--jnj-color-text-faint);
+    background: transparent;
+}
+
+.PartyCombatRoster-pip-filled {
+    background: var(--jnj-color-accent);
+    border-color: var(--jnj-color-accent);
+}
+
+.PartyCombatRoster-reaction .PartyCombatRoster-pip-reaction {
+    border-color: var(--jnj-color-arcane);
+}
+
+.PartyCombatRoster-reaction:not(.PartyCombatRoster-reaction-used) .PartyCombatRoster-pip-reaction {
+    background: var(--jnj-color-arcane);
+}
+
+.PartyCombatRoster-reaction-used {
+    color: var(--jnj-color-text-faint);
+}
+
+// Each card is compact - the roster's own "Statuses" header/divider (sized
+// for the character's own vitals card) and the chips underneath both need to
+// shrink to match, rather than blowing the card back out to full size.
+.PartyCombatRoster-card .CharacterPage-vitals-statuses {
+    padding-top: 4px;
+    margin-top: 4px;
+    border-top: 1px solid var(--jnj-color-border);
+}
+
+.PartyCombatRoster-card .CharacterPage-vitals-statuses-header {
+    display: none;
+}
+
+.PartyCombatRoster-card .CharacterPage-status-list {
+    gap: 4px;
+}
+
+.PartyCombatRoster-card .CharacterPage-status-chip {
+    padding: 3px 7px;
+    font-size: 0.6875rem;
 }

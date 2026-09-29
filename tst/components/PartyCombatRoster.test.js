@@ -9,11 +9,11 @@ import { PartyCombatRoster } from '../../src/components/PartyCombatRoster';
 const status = { id: 's1', name: 'Prone', stacks: 1 };
 const aria = {
     character_id: 'char-1', character_name: 'Aria', current_health: 8, maximum_health: 20,
-    temporary_health: 0, hardness: 2, statuses: [],
+    temporary_health: 0, hardness: 2, statuses: [], action_points: 2, reaction_used: false,
 };
 const bram = {
     character_id: 'char-2', character_name: 'Bram', current_health: 15, maximum_health: 15,
-    temporary_health: 5, hardness: 0, statuses: [status],
+    temporary_health: 5, hardness: 0, statuses: [status], action_points: 0, reaction_used: true,
 };
 
 describe('PartyCombatRoster', () => {
@@ -63,5 +63,25 @@ describe('PartyCombatRoster', () => {
         const boosted = { ...aria, hardness: 2, statuses: [{ id: 's2', name: 'Iron Skin', stacks: 1, effects: [{ trigger: 'passive', stat: 'hardness', delta: 3 }] }] };
         render(<PartyCombatRoster characterList={[boosted]}/>);
         expect(within(screen.getByText('Aria').closest('.PartyCombatRoster-card')).getByText('Hardness 5')).toBeInTheDocument();
+    });
+
+    describe('action points and reaction, so a teammate can see the current round at a glance', () => {
+        test('shows each member\'s current action points', () => {
+            render(<PartyCombatRoster characterList={[aria, bram]}/>);
+            expect(screen.getByText('AP 2/4')).toBeInTheDocument();
+            expect(screen.getByText('AP 0/4')).toBeInTheDocument();
+        });
+
+        test('shows whether a member\'s reaction is still available or already used', () => {
+            render(<PartyCombatRoster characterList={[aria, bram]}/>);
+            expect(screen.getByText('Reaction ready')).toBeInTheDocument();
+            expect(screen.getByText('Reaction used')).toBeInTheDocument();
+        });
+
+        test('a member with no action_points field yet shows 0, not a crash', () => {
+            render(<PartyCombatRoster characterList={[{ character_id: 'char-3' }]}/>);
+            expect(screen.getByText('AP 0/4')).toBeInTheDocument();
+            expect(screen.getByText('Reaction ready')).toBeInTheDocument();
+        });
     });
 });
