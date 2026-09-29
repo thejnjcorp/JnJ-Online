@@ -455,6 +455,52 @@
     }
 }
 
+.DirectorsPage-ability-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--jnj-space-3);
+    font-size: 0.65625rem;
+    color: var(--jnj-color-text-muted);
+}
+
+.DirectorsPage-ability {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.DirectorsPage-ability-icon {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+}
+
+.DirectorsPage-ability-label {
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.DirectorsPage-ability-value {
+    font-weight: 700;
+    color: var(--jnj-color-text);
+}
+
+.DirectorsPage-notes {
+    margin-top: var(--jnj-space-2);
+    padding: var(--jnj-space-2) var(--jnj-space-3);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-md);
+    background: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text-muted);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    text-align: left;
+
+    p:last-child {
+        margin-bottom: 0;
+    }
+}
+
 .DirectorsPage-weakres-row {
     display: flex;
     flex-wrap: wrap;

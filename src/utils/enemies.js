@@ -34,6 +34,10 @@ export const ENEMY_STAT_FIELDS = [
     'Weaknesses', 'Resistances', 'Immunities', 'actions',
     // its picture, for its token on the combat map: an image ref (see imageRefs.js), or empty
     'portrait_url',
+    // tactics/personality/what it drops - for the director, not the players. Carried
+    // into a fight (and the encounter roster before that) so it's on hand right on the
+    // combat card, not just back on the bestiary entry.
+    'description',
 ];
 
 export function newEnemy(tier = 'Regular') {
@@ -107,8 +111,9 @@ export function validateEnemy(enemy) {
 // What an enemy's form saves: its stat block, notes and actions (with an outcome
 // table that was switched on and then left empty taken off), and its trimmed name.
 export function enemyDocFields(form) {
-    const payload = { description: form.description || '' };
+    const payload = {};
     ENEMY_STAT_FIELDS.forEach(field => { payload[field] = form[field]; });
+    payload.description = form.description || '';
     payload.actions = (form.actions || []).map(action => {
         if (action.outcomeTable && !Object.values(action.outcomeTable).some(Boolean)) {
             const { outcomeTable, ...rest } = action;

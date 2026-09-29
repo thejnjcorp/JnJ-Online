@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
 import { Tooltip } from 'react-tooltip';
 import 'react-tooltip/dist/react-tooltip.css';
+import Markdown from 'markdown-to-jsx';
 import '../styles/CharacterPageStyles/DefaultCharacterPage.scss';
 import '../styles/DirectorsPage.scss';
 import '../styles/CharacterMainTab.scss';
@@ -27,6 +28,10 @@ import { ReactComponent as ScrollIcon } from '../icons/scroll.svg';
 import { ReactComponent as SwordsIcon } from '../icons/swords.svg';
 import { ReactComponent as MapIcon } from '../icons/map.svg';
 import { ReactComponent as NoteIcon } from '../icons/note.svg';
+import { ReactComponent as StrengthIcon } from '../icons/strength_line.svg';
+import { ReactComponent as DexterityIcon } from '../icons/dexterity_line.svg';
+import { ReactComponent as IntelligenceIcon } from '../icons/intelligence_line.svg';
+import { ReactComponent as CharismaIcon } from '../icons/charisma_line.svg';
 import { DirectorNotes } from './DirectorNotes';
 import { ReactComponent as ChevronDownIcon } from '../icons/chevron_down.svg';
 import { PostListContentCombatMap } from '../utils/DraggableElements/PostListCombatMap.tsx';
@@ -119,6 +124,14 @@ function makeLineViewCard(playerInfoById, defeatedIds = []) {
     };
 }
 
+// Same fields/icons/order as CharacterPageVitalsPanel's own ABILITY_SCORES.
+const ABILITY_SCORES = [
+    { name: 'strength_stat', label: 'Str', Icon: StrengthIcon },
+    { name: 'dexterity_stat', label: 'Dex', Icon: DexterityIcon },
+    { name: 'intelligence_stat', label: 'Int', Icon: IntelligenceIcon },
+    { name: 'charisma_stat', label: 'Cha', Icon: CharismaIcon },
+];
+
 // The shared vitals/status/actions card for both a player and an enemy - see
 // design/directors-page/handoff/DIRECTORS_PAGE_HANDOFF.md point 2 (matching
 // CharacterPageVitalsPanel's visual language, scaled down) and point 3a
@@ -127,8 +140,8 @@ function makeLineViewCard(playerInfoById, defeatedIds = []) {
 // need to know whether it's looking at a real `characters` doc or an NPC
 // object embedded in the campaign doc.
 function DirectorsEntityCard({
-    kind, name, tier, subtitle, hpNow, hpMax, tempHp, onSetHp, onSetTempHp, ac, ap, onSetAp, reactionUsed, onToggleReaction, onRemove, defeated = false, onSetDefeated,
-    canAdvanceTurn, onNextTurn, weaknesses, resistances, immunities,
+    kind, name, tier, subtitle, hpNow, hpMax, tempHp, onSetHp, onSetTempHp, ac, abilityScores, ap, onSetAp, reactionUsed, onToggleReaction, onRemove, defeated = false, onSetDefeated,
+    canAdvanceTurn, onNextTurn, weaknesses, resistances, immunities, notes,
     statusEntity, onUpdateStatuses, hasStatusWrite, userId,
     actions, experiencePoints, baseHitModifier, baseDamageModifier,
     baseDamageDice, baseDamageDiceType, baseHealingDiceType,
@@ -136,6 +149,7 @@ function DirectorsEntityCard({
 }) {
     const [open, setOpen] = useState(true);
     const [actionsOpen, setActionsOpen] = useState(false);
+    const [notesOpen, setNotesOpen] = useState(false);
     const hpPercent = hpMax > 0 ? Math.max(0, Math.min(100, (hpNow / hpMax) * 100)) : 0;
     const hasTempHp = tempHp > 0;
     const hasWeakRes = kind === 'enemy' && ((weaknesses?.length || 0) + (resistances?.length || 0) + (immunities?.length || 0) > 0);
@@ -208,6 +222,16 @@ function DirectorsEntityCard({
                 {canAdvanceTurn && <button type="button" className={`DirectorsPage-next-turn-button DirectorsPage-next-turn-button-${kind}`} onClick={onNextTurn}>Next Turn</button>}
             </div>
 
+            {abilityScores && <div className="DirectorsPage-ability-row" role="group" aria-label="Ability scores">
+                {ABILITY_SCORES.map(({name: statName, label, Icon}) =>
+                    <span className="DirectorsPage-ability" key={statName}>
+                        <Icon className="DirectorsPage-ability-icon"/>
+                        <span className="DirectorsPage-ability-label">{label}</span>
+                        <span className="DirectorsPage-ability-value">{abilityScores[statName] ?? 0}</span>
+                    </span>
+                )}
+            </div>}
+
             {hasWeakRes && <div className="DirectorsPage-weakres-row">
                 {weaknesses.map((w, i) => <span className="DirectorsPage-weak-chip" key={"w" + i}>{w}</span>)}
                 {resistances.map((r, i) => <span className="DirectorsPage-res-chip" key={"r" + i}>{r}</span>)}
@@ -237,6 +261,17 @@ function DirectorsEntityCard({
                     hasWritePermissions={hasStatusWrite}
                 />}
             </div>
+
+            {notes && <div>
+                {/* Tactics/personality/what it drops, from the bestiary - so a
+                    director running a fight doesn't have to leave the combat
+                    tracker and go find this enemy's own page just to check it. */}
+                <button type="button" className="DirectorsPage-actions-toggle" onClick={() => setNotesOpen(n => !n)}>
+                    <ChevronDownIcon className={notesOpen ? "DirectorsPage-chevron-sm DirectorsPage-chevron-open" : "DirectorsPage-chevron-sm"}/>
+                    Notes
+                </button>
+                {notesOpen && <div className="DirectorsPage-notes"><Markdown options={{ disableParsingRawHTML: true }}>{notes}</Markdown></div>}
+            </div>}
 
             {(onSetDefeated || onRemove) && <div className="DirectorsPage-entity-footer">
                 {onSetDefeated && <button type="button" className="DirectorsPage-remove-enemy-button" onClick={() => onSetDefeated(!defeated)}>{defeated ? 'Revive' : 'Mark defeated'}</button>}
@@ -582,6 +617,12 @@ export function DirectorsPage() {
                                 onSetHp={hasWritePermissions ? setHp : undefined}
                                 onSetTempHp={hasWritePermissions ? setTempHp : undefined}
                                 ac={armorClass}
+                                abilityScores={{
+                                    strength_stat: effectiveCharacter.strength_stat,
+                                    dexterity_stat: effectiveCharacter.dexterity_stat,
+                                    intelligence_stat: effectiveCharacter.intelligence_stat,
+                                    charisma_stat: effectiveCharacter.charisma_stat,
+                                }}
                                 ap={actualCharacter.action_points}
                                 onSetAp={hasWritePermissions ? setActionPoints : undefined}
                                 reactionUsed={Boolean(actualCharacter.reaction_used)}
@@ -731,6 +772,13 @@ export function DirectorsPage() {
                                 onSetHp={isDirector ? setHp : undefined}
                                 onSetTempHp={isDirector ? setTempHp : undefined}
                                 ac={effectiveEnemy.base_armor_class}
+                                abilityScores={{
+                                    strength_stat: effectiveEnemy.strength_stat,
+                                    dexterity_stat: effectiveEnemy.dexterity_stat,
+                                    intelligence_stat: effectiveEnemy.intelligence_stat,
+                                    charisma_stat: effectiveEnemy.charisma_stat,
+                                }}
+                                notes={actualEnemy.description}
                                 ap={actualEnemy.action_points}
                                 onSetAp={setActionPoints}
                                 reactionUsed={Boolean(actualEnemy.reaction_used)}

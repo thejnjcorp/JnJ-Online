@@ -137,7 +137,11 @@ describe('rosterEntry', () => {
         const entry = rosterEntry(bandit, 'Zone A');
         expect(entry).toMatchObject({ templateId: 'bestiary-bandit', count: 1, zone: 'Zone A' });
         expect(entry.enemy.enemy_name).toBe('Rust Bandit');
-        ['canWrite', 'admins', 'description', 'id', 'public'].forEach(key => expect(entry.enemy).not.toHaveProperty(key));
+        // description (tactics/notes) rides along - it's on ENEMY_STAT_FIELDS
+        // precisely so it reaches the combat card - but not who administers
+        // the bestiary entry itself, or its doc id.
+        expect(entry.enemy.description).toBe('Notes');
+        ['canWrite', 'admins', 'id', 'public'].forEach(key => expect(entry.enemy).not.toHaveProperty(key));
         expect(Object.keys(entry.enemy).every(key => ENEMY_STAT_FIELDS.includes(key))).toBe(true);
     });
 
@@ -365,5 +369,27 @@ describe('an enemy\'s picture', () => {
             expect(enemyDocFields({ ...withPicture, portrait_url: undefined }).portrait_url).toBe('');
             expect(enemyDocFields({ ...withPicture, portrait_url: 'not a link' }).portrait_url).toBe('');
         });
+    });
+});
+
+describe('an enemy\'s notes (tactics, personality, what it drops)', () => {
+    test('a new enemy has none', () => {
+        expect(newEnemy().description).toBe('');
+    });
+
+    test('it is part of the stat block an enemy carries from the bestiary into a fight, all the way to the combat card', () => {
+        expect(ENEMY_STAT_FIELDS).toContain('description');
+        expect(rosterEntry({ ...bandit, description: 'Hates fire.' }).enemy.description).toBe('Hates fire.');
+        expect(enemyInstance({ ...bandit, description: 'Hates fire.' }, 'Rust Bandit 1').description).toBe('Hates fire.');
+    });
+
+    test('an enemy from before this existed is given none, not an empty one it never had', () => {
+        const { description, ...old } = bandit;
+        expect(rosterEntry(old).enemy).not.toHaveProperty('description');
+        expect(enemyInstance(old, 'Old')).not.toHaveProperty('description');
+    });
+
+    test('is kept as an empty string when unset, never undefined, which Firestore refuses', () => {
+        expect(enemyDocFields({ ...bandit, description: undefined }).description).toBe('');
     });
 });

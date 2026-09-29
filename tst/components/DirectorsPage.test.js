@@ -296,6 +296,17 @@ describe('DirectorsPage', () => {
             expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { action_points: 3 });
         });
 
+        test('shows the player\'s ability scores too', async () => {
+            await renderReady({ characters: [{ ...character, strength_stat: 1, dexterity_stat: 2, intelligence_stat: -1, charisma_stat: 0 }] });
+            goToTab('Combat');
+            const card = screen.getByText('20/25 HP').closest('.DirectorsPage-entity-card');
+            const abilities = within(card).getByRole('group', { name: 'Ability scores' });
+            expect(within(abilities).getByText('Str')).toBeInTheDocument();
+            expect(within(abilities).getByText('1')).toBeInTheDocument();
+            expect(within(abilities).getByText('Dex')).toBeInTheDocument();
+            expect(within(abilities).getByText('2')).toBeInTheDocument();
+        });
+
         test('a director can edit a player\'s current and temporary HP, writing to the character doc', async () => {
             await renderReady();
             goToTab('Combat');
@@ -425,6 +436,40 @@ describe('DirectorsPage', () => {
             expect(screen.getByText('Fire')).toBeInTheDocument();
             expect(screen.getByText('Cold')).toBeInTheDocument();
             expect(screen.getByText('Poison')).toBeInTheDocument();
+        });
+
+        test('shows the enemy\'s ability scores', async () => {
+            const withScores = { ...enemy, strength_stat: 3, dexterity_stat: -1, intelligence_stat: 0, charisma_stat: 2 };
+            await renderReady({ campaignInfo: { ...baseCampaignInfo, enemy_list: [withScores] } });
+            goToTab('Combat');
+            const card = screen.getByText('Goblin').closest('.DirectorsPage-entity-card');
+            const abilities = within(card).getByRole('group', { name: 'Ability scores' });
+            expect(within(abilities).getByText('Str')).toBeInTheDocument();
+            expect(within(abilities).getByText('3')).toBeInTheDocument();
+            expect(within(abilities).getByText('Dex')).toBeInTheDocument();
+            expect(within(abilities).getByText('-1')).toBeInTheDocument();
+            expect(within(abilities).getByText('Int')).toBeInTheDocument();
+            expect(within(abilities).getByText('Cha')).toBeInTheDocument();
+            expect(within(abilities).getByText('2')).toBeInTheDocument();
+        });
+
+        test('shows an enemy\'s notes (tactics, personality, what it drops) collapsed under their own toggle', async () => {
+            const withNotes = { ...enemy, description: 'Flees when alone.' };
+            await renderReady({ campaignInfo: { ...baseCampaignInfo, enemy_list: [withNotes] } });
+            goToTab('Combat');
+            const card = screen.getByText('Goblin').closest('.DirectorsPage-entity-card');
+            expect(within(card).queryByText('Flees when alone.')).not.toBeInTheDocument();
+
+            fireEvent.click(within(card).getByRole('button', { name: /Notes$/ }));
+
+            expect(within(card).getByText('Flees when alone.')).toBeInTheDocument();
+        });
+
+        test('an enemy with no notes gets no Notes toggle at all', async () => {
+            await renderReady({ campaignInfo: { ...baseCampaignInfo, enemy_list: [enemy] } });
+            goToTab('Combat');
+            const card = screen.getByText('Goblin').closest('.DirectorsPage-entity-card');
+            expect(within(card).queryByRole('button', { name: /Notes$/ })).not.toBeInTheDocument();
         });
 
         test('a director can edit an enemy\'s current and temporary HP, writing the whole enemy_list', async () => {
