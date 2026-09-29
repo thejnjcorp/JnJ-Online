@@ -17,7 +17,7 @@ import npcLayout from '../NPCLayout.json';
 import { TabContainer } from './TabContainer';
 import { CombatActionList } from './CombatActionList';
 import { Statuses } from './Statuses';
-import { uploadImageToImgur } from '../utils/imgurUploader';
+import { PictureField } from './PictureField';
 import { onAuthStateChanged } from 'firebase/auth';
 import circleIcon from '../icons/circle.svg';
 import circleFilledIcon from '../icons/circle_filled.svg';
@@ -286,27 +286,26 @@ export function DirectorsPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [charactersQuery]);
 
-    const uploadNewMapToCampaign = async (mapFile) => {
-        if (!mapFile) {
-            alert("Please select an image to upload.");
-            return;
-        }
-        if (!mapFile.type.startsWith("image/")) {
-            alert("Please select an image file.");
+    // `mapLink` is already whatever PictureField below resolved it to - a
+    // pasted web link, or (once its own upload finishes) an Imgur link - so
+    // there is nothing left to upload here, just a new map doc to create.
+    const addNewMapToCampaign = async () => {
+        if (!mapLink) {
+            alert("Please paste an image link, or upload a picture.");
             return;
         }
         try {
-            const imageLink = await uploadImageToImgur(mapFile);
             const docRef = await addDoc(collection(db, "maps"), {
                 canWrite: [userId],
                 admins: [userId],
-                link: imageLink,
+                link: mapLink,
                 zones: [],
             });
             console.log("Map uploaded successfully:", docRef.id);
             await updateDoc(campaignDoc, {
                 maps: [...campaignInfo.maps, docRef.id]
             });
+            setMapLink('');
             alert("Map added to campaign successfully!");
         } catch (error) {
             console.error("Error uploading map:", error);
@@ -314,17 +313,7 @@ export function DirectorsPage() {
         }
     }
 
-    const [mapFile, setMapFile] = useState();
-    const onMapFileChange = (event) => {
-        const file = event.target.files[0];
-        if (file && !file.type.startsWith("image/")) {
-            alert("Please select an image file.");
-            event.target.value = "";
-            setMapFile(undefined);
-            return;
-        }
-        setMapFile(file);
-    };
+    const [mapLink, setMapLink] = useState('');
 
     const deleteMap = async (map) => {
         if (!window.confirm("Delete this map? This cannot be undone.")) return;
@@ -728,16 +717,8 @@ export function DirectorsPage() {
                     tabName: "Maps",
                     icon: <MapIcon/>,
                     content: <div>
-                        <input
-                            name="file"
-                            type="file"
-                            onChange={onMapFileChange}
-                        />
-                        <button type="button" onClick={() => uploadNewMapToCampaign(mapFile)} disabled={mapFile === undefined}>Upload</button>
-                        {mapFile && <div>
-                            Preview:<br/>
-                            <img src={URL.createObjectURL(mapFile)} alt="Map Preview" className='DirectorsPage-map-preview'/>
-                        </div>}
+                        <PictureField name="New map" value={mapLink} onChange={setMapLink} square/>
+                        <button type="button" onClick={addNewMapToCampaign} disabled={!mapLink}>Add Map</button>
                         <div className='DirectorsPage-maps-list'>
                             {maps.map((map) => {
                                 const isActive = campaignInfo.active_map === map.map_id;

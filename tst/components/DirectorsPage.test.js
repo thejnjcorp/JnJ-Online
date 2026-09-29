@@ -915,63 +915,66 @@ describe('DirectorsPage', () => {
     });
 
     describe('Maps tab', () => {
-        function fileInput() {
-            // eslint-disable-next-line testing-library/no-node-access -- the file input has no accessible label/name in the markup
-            return document.querySelector('input[type="file"]');
-        }
-
-        test('Upload is disabled until a file is chosen', async () => {
+        test('Add Map is disabled until a link is pasted or a picture uploaded', async () => {
             await renderReady();
             goToTab('Maps');
-            expect(screen.getByRole('button', { name: 'Upload' })).toBeDisabled();
+            expect(screen.getByRole('button', { name: 'Add Map' })).toBeDisabled();
         });
 
-        test('choosing a file enables Upload and shows a preview', async () => {
+        test('pasting a link enables Add Map, with no upload needed', async () => {
+            await renderReady();
+            goToTab('Maps');
+
+            fireEvent.change(screen.getByLabelText('Picture link'), { target: { value: 'https://example.com/dungeon.png' } });
+
+            expect(screen.getByRole('button', { name: 'Add Map' })).toBeEnabled();
+            expect(mockUploadImageToImgur).not.toHaveBeenCalled();
+        });
+
+        test('uploading a picture enables Add Map once the upload resolves', async () => {
             await renderReady();
             goToTab('Maps');
             const file = new File(['(binary)'], 'map.png', { type: 'image/png' });
 
-            fireEvent.change(fileInput(), { target: { files: [file] } });
+            fireEvent.change(screen.getByLabelText('Or upload one'), { target: { files: [file] } });
 
-            expect(screen.getByRole('button', { name: 'Upload' })).toBeEnabled();
-            expect(screen.getByAltText('Map Preview')).toBeInTheDocument();
+            await waitFor(() => expect(screen.getByRole('button', { name: 'Add Map' })).toBeEnabled());
+            expect(mockUploadImageToImgur).toHaveBeenCalledWith(file);
         });
 
-        test('choosing a non-image file is rejected immediately, with no preview and Upload still disabled', async () => {
+        test('Add Map creates the map doc from a pasted link and links it into the campaign', async () => {
             await renderReady();
             goToTab('Maps');
-            const file = new File(['not an image'], 'notes.txt', { type: 'text/plain' });
+            fireEvent.change(screen.getByLabelText('Picture link'), { target: { value: 'https://example.com/dungeon.png' } });
 
-            fireEvent.change(fileInput(), { target: { files: [file] } });
-
-            expect(window.alert).toHaveBeenCalledWith('Please select an image file.');
-            expect(screen.queryByAltText('Map Preview')).not.toBeInTheDocument();
-            expect(screen.getByRole('button', { name: 'Upload' })).toBeDisabled();
-        });
-
-        test('Upload uploads the image, creates the map doc, and links it into the campaign', async () => {
-            await renderReady();
-            goToTab('Maps');
-            const file = new File(['(binary)'], 'map.png', { type: 'image/png' });
-            fireEvent.change(fileInput(), { target: { files: [file] } });
-
-            fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+            fireEvent.click(screen.getByRole('button', { name: 'Add Map' }));
 
             await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['campaigns', 'camp-1'] }, { maps: ['new-map-id'] }));
-            expect(mockUploadImageToImgur).toHaveBeenCalledWith(file);
-            expect(mockAddDoc).toHaveBeenCalledWith({ __collection: 'maps' }, { canWrite: ['owner-1'], admins: ['owner-1'], link: 'https://imgur.example/map.png', zones: [] });
+            expect(mockAddDoc).toHaveBeenCalledWith({ __collection: 'maps' }, { canWrite: ['owner-1'], admins: ['owner-1'], link: 'https://example.com/dungeon.png', zones: [] });
             expect(window.alert).toHaveBeenCalledWith('Map added to campaign successfully!');
         });
 
-        test('a failed upload is alerted', async () => {
-            mockUploadImageToImgur.mockRejectedValue(new Error('offline'));
-            const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        test('Add Map creates the map doc from an uploaded picture\'s resulting link', async () => {
             await renderReady();
             goToTab('Maps');
             const file = new File(['(binary)'], 'map.png', { type: 'image/png' });
-            fireEvent.change(fileInput(), { target: { files: [file] } });
+            fireEvent.change(screen.getByLabelText('Or upload one'), { target: { files: [file] } });
+            await waitFor(() => expect(screen.getByRole('button', { name: 'Add Map' })).toBeEnabled());
 
-            fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+            fireEvent.click(screen.getByRole('button', { name: 'Add Map' }));
+
+            await waitFor(() => expect(window.alert).toHaveBeenCalledWith('Map added to campaign successfully!'));
+            expect(mockAddDoc).toHaveBeenCalledWith({ __collection: 'maps' }, { canWrite: ['owner-1'], admins: ['owner-1'], link: 'https://imgur.example/map.png', zones: [] });
+        });
+
+        test('a failed save is alerted', async () => {
+            mockAddDoc.mockRejectedValue(new Error('offline'));
+            const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+            await renderReady();
+            goToTab('Maps');
+            fireEvent.change(screen.getByLabelText('Picture link'), { target: { value: 'https://example.com/dungeon.png' } });
+
+            fireEvent.click(screen.getByRole('button', { name: 'Add Map' }));
 
             await waitFor(() => expect(window.alert).toHaveBeenCalledWith('Failed to upload map. Please try again.'));
             consoleSpy.mockRestore();
