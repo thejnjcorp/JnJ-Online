@@ -320,5 +320,24 @@ describe('DiceTray', () => {
             await openAndWait();
             expect(screen.getByRole('button', { name: 'Clear' })).toBeDisabled();
         });
+
+        // .DiceTray-hint is `position: absolute; inset: 0`, correct for the
+        // stage's own loading/error text (which needs to cover its canvas -
+        // .DiceTray-stage is that positioned ancestor). The "click a die"
+        // hint below the stage used to share that same class with nothing
+        // positioned between it and the whole floating tray panel, so it
+        // escaped to cover THAT instead - an invisible layer sitting in front
+        // of every button below it (the die picker, modifier, Clear),
+        // silently eating every real click. This is what "none of the
+        // buttons on it work" was - a real click and jsdom's fireEvent.click
+        // can't be told apart here (dom-testing-library doesn't hit-test), so
+        // this just pins the class rename apart instead of reproducing the
+        // overlap itself; see DiceTray.scss's own comment for the layout fix.
+        test('the "click a die" hint is its own class, not the stage-only absolute-fill one', async () => {
+            await openAndWait();
+            const hint = screen.getByText('Click a die below to roll it.');
+            expect(hint).toHaveClass('DiceTray-result-hint');
+            expect(hint).not.toHaveClass('DiceTray-hint');
+        });
     });
 });

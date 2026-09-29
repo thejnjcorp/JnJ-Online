@@ -159,11 +159,6 @@
 
 .DiceTray-hint,
 .DiceTray-error {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     padding: var(--jnj-space-2);
     text-align: center;
     font-size: var(--jnj-text-xs);
@@ -172,6 +167,25 @@
 
 .DiceTray-error {
     color: var(--jnj-color-danger);
+}
+
+// Only inside the stage does this need to cover the whole box (centered over
+// the canvas, which has nothing visible to show through until status is
+// ready) - .DiceTray-error is reused as-is for the color picker's save error
+// (inside .DiceTray-color-panel, an ordinary flex child there), which must
+// NOT get this: absolute + inset: 0 escapes to the nearest positioned
+// ancestor, which without this scoping was the whole floating tray panel -
+// an invisible full-panel layer sitting in front of every button in it,
+// silently swallowing every click. (The stage's loading/error text had the
+// same bug latent in it whenever .DiceTray-result's sibling hint - now its
+// own .DiceTray-result-hint below - shared this class instead.)
+.DiceTray-stage .DiceTray-hint,
+.DiceTray-stage .DiceTray-error {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .DiceTray-picker {
@@ -246,6 +260,12 @@
     background: var(--jnj-color-bg-sunken);
     min-height: 3.5rem;
     justify-content: center;
+}
+
+.DiceTray-result-hint {
+    text-align: center;
+    font-size: var(--jnj-text-xs);
+    color: var(--jnj-color-text-muted);
 }
 
 .DiceTray-total {

@@ -227,7 +227,7 @@ export function DiceTray() {
                         <span className="DiceTray-total">{total}</span>
                         <span className="DiceTray-breakdown">{breakdownText(results, modifier)}</span>
                     </>
-                    : <span className="DiceTray-hint">Click a die below to roll it.</span>}
+                    : <span className="DiceTray-result-hint">Click a die below to roll it.</span>}
             </div>
 
             <button type="button" className="DiceTray-clear" onClick={clearTray} disabled={!hasDice}>Clear</button>
