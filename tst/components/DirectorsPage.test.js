@@ -296,13 +296,13 @@ describe('DirectorsPage', () => {
             expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { action_points: 3 });
         });
 
-        test('a non-owner, non-writer cannot spend action points or advance the turn', async () => {
+        test('the director can still spend action points and advance the turn on a character they neither own nor co-write', async () => {
             await renderReady({ characters: [{ ...character, userId: 'someone-else', canWrite: [] }] });
             goToTab('Combat');
-            expect(screen.queryByRole('button', { name: 'Next Turn' })).not.toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Next Turn' })).toBeInTheDocument();
             // eslint-disable-next-line testing-library/no-node-access -- same as above: no accessible name on these icon-only buttons
             const apButtons = screen.getByText('20/25 HP').closest('.DirectorsPage-entity-card').querySelectorAll('.DirectorsPage-ap-circles button');
-            apButtons.forEach(b => expect(b).toBeDisabled());
+            apButtons.forEach(b => expect(b).not.toBeDisabled());
         });
 
         describe('the reaction (one per turn)', () => {
@@ -337,10 +337,10 @@ describe('DirectorsPage', () => {
                 expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { reaction_used: false });
             });
 
-            test('someone who cannot edit the character sees it but cannot change it', async () => {
+            test('the director can still toggle it on a character they neither own nor co-write', async () => {
                 await renderReady({ characters: [{ ...character, userId: 'someone-else', canWrite: [] }] });
                 goToTab('Combat');
-                expect(pip()).toBeDisabled();
+                expect(pip()).not.toBeDisabled();
             });
 
             test('Next Turn gives the reaction back', async () => {
@@ -360,8 +360,14 @@ describe('DirectorsPage', () => {
             expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, expect.any(Object));
         });
 
-        test('Statuses receives write permission matching the owner check', async () => {
+        test('Statuses receives write permission - the director can always give/remove them', async () => {
             await renderReady();
+            goToTab('Combat');
+            expect(screen.getByText('Statuses-stub:char-1:write')).toBeInTheDocument();
+        });
+
+        test('...even on a character the director neither owns nor co-writes', async () => {
+            await renderReady({ characters: [{ ...character, userId: 'someone-else', canWrite: [] }] });
             goToTab('Combat');
             expect(screen.getByText('Statuses-stub:char-1:write')).toBeInTheDocument();
         });

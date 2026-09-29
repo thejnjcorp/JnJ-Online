@@ -492,15 +492,14 @@ export function DirectorsPage() {
                         </div>
                         {!playersCollapsed && resolvedCharacterList.map((character) => {
                             const actualCharacter = { ...characterPageLayout, ...character }
-                            // NOTE: gated the same way the pre-existing AP star buttons are
-                            // - firestore.rules only grants a character's owner/canWrite
-                            // list write access, not the campaign's director_uid, so a
-                            // director who isn't also on a player's canWrite list can't
-                            // spend their AP OR advance their turn yet (same limitation
-                            // both controls already had; not changed here since granting
-                            // directors write access to every player's character doc is a
-                            // real security-rules decision, not a UI one).
-                            const hasWritePermissions = userId ? (actualCharacter.userId === userId || actualCharacter.canWrite?.includes(userId)) : false;
+                            // Reaching this code at all already means isDirector (the whole
+                            // page refuses anyone else - see the guard above), and
+                            // firestore.rules' isCharacterCampaignDirector() grants exactly
+                            // this - statuses, action_points, reaction_used - on every
+                            // player's character, not just one the director happens to
+                            // co-write. Doesn't cover current_health/temporary_health,
+                            // which nothing here offers to edit for a player anyway.
+                            const hasWritePermissions = true;
                             function setActionPoints(actionPoints) {
                                 try {
                                     updateDoc(doc(db, "characters", actualCharacter.character_id), {

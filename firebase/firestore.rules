@@ -89,6 +89,14 @@ service cloud.firestore {
       allow update: if isSignedIn() && inCampaign()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['inventory', 'inventory_pocket']);
 
+      // The campaign's director (a co-director, or a doc admin) runs combat from
+      // Director's Page - giving and removing statuses, spending AP, toggling the
+      // reaction, advancing a turn - on every player's character, not just their
+      // own. Nothing else about the sheet; see the inventory rule above for the
+      // same pattern.
+      allow update: if isSignedIn() && isCharacterCampaignDirector()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statuses', 'action_points', 'reaction_used']);
+
       allow read, write: if isSignedIn() && isDocAdmin();
 
       allow create: if isSignedIn() && !documentExists("characters", characterId)
@@ -374,6 +382,16 @@ service cloud.firestore {
     function inCampaign() {
     	let campaign = get(/databases/$(database)/documents/campaigns/$(resource.data.campaign));
       return uid() in campaign.data.canRead || uid() in campaign.data.canWrite;
+    }
+
+    // Same directors isCampaignDirector(campaignId) covers, but for a document
+    // (a character) whose own campaign id has to be read off the resource
+    // instead of coming from the path.
+    function isCharacterCampaignDirector() {
+    	let campaign = get(/databases/$(database)/documents/campaigns/$(resource.data.campaign));
+      return uid() == campaign.data.get('director_uid', '')
+        || uid() in campaign.data.get('canWrite', [])
+        || uid() in campaign.data.get('admins', []);
     }
   }
 }

@@ -1589,6 +1589,47 @@ async function main() {
         await assertFails(deleteDoc(ariaRef(testEnv.authenticatedContext('player2').firestore())));
     });
 
+    console.log('\nCombat state (characters - the campaign\'s director can run a fight on any player\'s character):');
+
+    const seedCombatCharacter = async () => {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            const db = adminCtx.firestore();
+            await setDoc(doc(db, 'campaigns', 'camp1'), { campaign_name: 'C', director_uid: 'dir', canWrite: ['codir'], canRead: ['dir', 'codir', 'player', 'teammate', 'outsider_player'], admins: ['docadmin'] });
+            await setDoc(doc(db, 'campaigns', 'camp2'), { campaign_name: 'Other', director_uid: 'outsider_player', canWrite: [], canRead: ['outsider_player'], admins: [] });
+            // "dir", "codir" and "docadmin" are deliberately not on the character's
+            // own canWrite/admins - only their standing in campaign "camp1" grants them anything here.
+            await setDoc(doc(db, 'characters', 'aria'), { character_name: 'Aria', playerId: 'player', campaign: 'camp1', canRead: ['player'], canWrite: ['player'], admins: ['player'], statuses: [], action_points: 2, reaction_used: false, current_health: 10 });
+        });
+    };
+    const status = { id: 's1', name: 'Prone', stacks: 1 };
+
+    await check('the director, a co-director, and a doc admin can give, remove, or change statuses, AP, and the reaction, on a player\'s character', async () => {
+        await seedCombatCharacter();
+        for (const uid of ['dir', 'codir', 'docadmin']) {
+            const db = testEnv.authenticatedContext(uid).firestore();
+            await assertSucceeds(updateDoc(ariaRef(db), { statuses: [status] }));
+            await assertSucceeds(updateDoc(ariaRef(db), { action_points: 4 }));
+            await assertSucceeds(updateDoc(ariaRef(db), { reaction_used: true }));
+            await assertSucceeds(updateDoc(ariaRef(db), { statuses: [], action_points: 2, reaction_used: false }));
+        }
+    });
+
+    await check('but nothing else about the character - not its health, name, or who can write it (its inventory is separately open to the whole campaign already, directors included)', async () => {
+        await seedCombatCharacter();
+        const db = testEnv.authenticatedContext('dir').firestore();
+        await assertFails(updateDoc(ariaRef(db), { current_health: 0 }));
+        await assertFails(updateDoc(ariaRef(db), { character_name: 'Renamed' }));
+        await assertFails(updateDoc(ariaRef(db), { canWrite: ['player', 'dir'] }));
+        await assertFails(updateDoc(ariaRef(db), { statuses: [status], current_health: 0 }));
+    });
+
+    await check('and not a teammate in the same campaign who isn\'t directing, or the director of a different campaign', async () => {
+        await seedCombatCharacter();
+        await assertFails(updateDoc(ariaRef(testEnv.authenticatedContext('teammate').firestore()), { statuses: [status] }));
+        await assertFails(updateDoc(ariaRef(testEnv.authenticatedContext('outsider_player').firestore()), { statuses: [status] }));
+    });
+
     await testEnv.cleanup();
 
     if (failures > 0) {
