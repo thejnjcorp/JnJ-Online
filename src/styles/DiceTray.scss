@@ -1,0 +1,281 @@
+// The floating dice tray - a toggle button always in the corner, and the
+// tray panel itself when open. See components/DiceTray.js.
+
+.DiceTray-toggle {
+    position: fixed;
+    right: var(--jnj-space-4);
+    bottom: var(--jnj-space-4);
+    z-index: 60;
+    width: 3rem;
+    height: 3rem;
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: 50%;
+    background: var(--jnj-color-bg-raised);
+    color: var(--jnj-color-text);
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+
+    &:hover,
+    &[aria-expanded="true"] {
+        border-color: var(--jnj-color-accent);
+    }
+}
+
+.DiceTray {
+    position: fixed;
+    right: var(--jnj-space-4);
+    bottom: calc(3rem + var(--jnj-space-4) * 2);
+    z-index: 61;
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-2);
+    width: min(20rem, calc(100vw - var(--jnj-space-4) * 2));
+    padding: var(--jnj-space-3);
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-md);
+    background: var(--jnj-color-bg-raised);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+}
+
+// Hidden by class, not by unmounting: see the long comment in DiceTray.js on
+// why #DiceTray-stage has to stay in the DOM across opens and closes.
+.DiceTray-closed {
+    display: none;
+}
+
+// The toggle itself, off a character sheet or director view - nothing to
+// roll dice for elsewhere on the site.
+.DiceTray-toggle-hidden {
+    display: none;
+}
+
+.DiceTray-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.DiceTray-title {
+    font-family: var(--jnj-font-display);
+    font-weight: 600;
+}
+
+.DiceTray-close {
+    border: none;
+    background: none;
+    color: var(--jnj-color-text-muted);
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+
+    &:hover {
+        color: var(--jnj-color-text);
+    }
+}
+
+.DiceTray-color-button {
+    width: 1.375rem;
+    height: 1.375rem;
+    margin-left: auto;
+    margin-right: var(--jnj-space-2);
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: 50%;
+    background: var(--dice-tray-swatch, var(--jnj-color-accent));
+    cursor: pointer;
+
+    &:hover,
+    &[aria-expanded="true"] {
+        border-color: var(--jnj-color-text);
+    }
+}
+
+.DiceTray-color-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--jnj-space-2);
+    padding: var(--jnj-space-2);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-sm);
+    background: var(--jnj-color-bg-sunken);
+}
+
+// react-colorful is unstyled by default beyond its own layout - this sets
+// its size to fit the tray, same as .CharacterPage-colorpicker-actual does
+// for the character masthead's picker.
+.DiceTray-color-picker.react-colorful {
+    width: 100%;
+    max-width: 14rem;
+}
+
+.DiceTray-color-actions {
+    display: flex;
+    gap: var(--jnj-space-2);
+}
+
+.DiceTray-color-save,
+.DiceTray-color-cancel {
+    padding: var(--jnj-space-1) var(--jnj-space-3);
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-pill);
+    cursor: pointer;
+}
+
+.DiceTray-color-save {
+    background: var(--jnj-color-accent);
+    border-color: var(--jnj-color-accent);
+    color: var(--jnj-color-on-accent);
+    font-weight: 600;
+
+    &:hover {
+        background: var(--jnj-color-accent-hover);
+    }
+}
+
+.DiceTray-color-cancel {
+    background: none;
+    color: var(--jnj-color-text-muted);
+
+    &:hover {
+        color: var(--jnj-color-text);
+    }
+}
+
+.DiceTray-stage {
+    position: relative;
+    height: 10rem;
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-sm);
+    background: var(--jnj-color-bg-sunken);
+    overflow: hidden;
+
+    canvas {
+        width: 100%;
+        height: 100%;
+    }
+}
+
+.DiceTray-hint,
+.DiceTray-error {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--jnj-space-2);
+    text-align: center;
+    font-size: var(--jnj-text-xs);
+    color: var(--jnj-color-text-muted);
+}
+
+.DiceTray-error {
+    color: var(--jnj-color-danger);
+}
+
+.DiceTray-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--jnj-space-2);
+}
+
+.DiceTray-die-button {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: var(--jnj-space-1) var(--jnj-space-2);
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-pill);
+    background: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text);
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+        border-color: var(--jnj-color-accent);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: default;
+    }
+}
+
+.DiceTray-die-count {
+    color: var(--jnj-color-accent);
+    font-weight: 700;
+    font-size: var(--jnj-text-xs);
+}
+
+.DiceTray-modifier {
+    display: flex;
+    align-items: center;
+    gap: var(--jnj-space-2);
+    font-size: var(--jnj-text-sm);
+    color: var(--jnj-color-text-muted);
+}
+
+.DiceTray-modifier-label {
+    margin-right: auto;
+}
+
+.DiceTray-modifier-step {
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: 50%;
+    background: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text);
+    cursor: pointer;
+}
+
+.DiceTray-modifier-value {
+    min-width: 2ch;
+    text-align: center;
+    font-weight: 700;
+    color: var(--jnj-color-text);
+}
+
+.DiceTray-result {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: var(--jnj-space-2);
+    border-radius: var(--jnj-radius-sm);
+    background: var(--jnj-color-bg-sunken);
+    min-height: 3.5rem;
+    justify-content: center;
+}
+
+.DiceTray-total {
+    font-family: var(--jnj-font-display);
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--jnj-color-accent);
+}
+
+.DiceTray-breakdown {
+    font-size: var(--jnj-text-xs);
+    color: var(--jnj-color-text-muted);
+}
+
+.DiceTray-clear {
+    align-self: flex-end;
+    padding: var(--jnj-space-1) var(--jnj-space-3);
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-pill);
+    background: none;
+    color: var(--jnj-color-text-muted);
+    cursor: pointer;
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: default;
+    }
+
+    &:hover:not(:disabled) {
+        border-color: var(--jnj-color-danger);
+        color: var(--jnj-color-danger);
+    }
+}

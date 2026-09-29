@@ -35,6 +35,7 @@ jest.mock('../../src/components/BestiaryPage.js', () => ({ BestiaryPage: () => <
 jest.mock('../../src/components/ItemPage.js', () => ({ ItemPage: () => <div>ItemPage-stub</div> }));
 jest.mock('../../src/components/ItemListPage.js', () => ({ ItemListPage: () => <div>ItemListPage-stub</div> }));
 jest.mock('../../src/components/PartyPage.js', () => ({ PartyPage: () => <div>PartyPage-stub</div> }));
+jest.mock('../../src/components/DiceTray.js', () => ({ DiceTray: () => <div>DiceTray-stub</div> }));
 
 // eslint-disable-next-line import/first
 import { render, screen, act } from '@testing-library/react';

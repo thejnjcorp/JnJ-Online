@@ -25,6 +25,7 @@ import { AccessibilityProvider } from '../utils/AccessibilityContext.js';
 import { ItemPage } from './ItemPage';
 import { ItemListPage } from './ItemListPage';
 import { PartyPage } from './PartyPage';
+import { DiceTray } from './DiceTray';
 
 // The site shell (nav + home) reads its palette from a theme class - see
 // styles/themes/BaseTheme.scss for the token contract and DarkArcane.scss for
@@ -95,6 +96,7 @@ function App() {
             {routeMarkdownFiles}
           </Routes>
         </div>
+        <DiceTray/>
       </div>
     </BrowserRouter>
     </AccessibilityProvider>
