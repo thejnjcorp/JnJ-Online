@@ -106,7 +106,7 @@ const enemy = {
     id: 'enemy-1', enemy_name: 'Goblin', level: 2, current_health: 10, maximum_health: 10, temporary_health: 0,
     action_points: 1, base_armor_class: 11, base_hit_modifier: 1, base_damage_modifier: 0,
     base_damage_dice: 1, base_damage_dice_type: 4, base_healing_dice_type: 4,
-    Weaknesses: ['Fire'], Resistances: ['Cold'], actions: [],
+    Weaknesses: ['Fire'], Resistances: ['Cold'], Immunities: ['Poison'], actions: [],
 };
 
 // director_uid: 'owner-1' - renderReady() always signs in as owner-1 (see
@@ -405,13 +405,14 @@ describe('DirectorsPage', () => {
     });
 
     describe('Combat tab: enemies', () => {
-        test('shows the enemy name, level subtitle, and weakness/resistance chips', async () => {
+        test('shows the enemy name, level subtitle, and weakness/resistance/immunity chips', async () => {
             await renderReady({ campaignInfo: { ...baseCampaignInfo, enemy_list: [enemy] } });
             goToTab('Combat');
             expect(screen.getByText('Goblin')).toBeInTheDocument();
             expect(screen.getByText('Lvl 2')).toBeInTheDocument();
             expect(screen.getByText('Fire')).toBeInTheDocument();
             expect(screen.getByText('Cold')).toBeInTheDocument();
+            expect(screen.getByText('Poison')).toBeInTheDocument();
         });
 
         test('spending an enemy action point writes the whole updated enemy_list', async () => {

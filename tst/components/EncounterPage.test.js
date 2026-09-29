@@ -329,7 +329,7 @@ describe('EncounterPage', () => {
             renderPage({ encounter: { name: 'Ambush', roster: [] } });
             open();
             ['Level', 'Hit Modifier', 'Damage Dice', 'Hardness'].forEach(label => expect(field(label)).toBeInTheDocument());
-            expect(within(panel()).getByText('Weaknesses & Resistances')).toBeInTheDocument();
+            expect(within(panel()).getByText('Weaknesses, Resistances & Immunities')).toBeInTheDocument();
             expect(within(panel()).getByRole('button', { name: '+ Action' })).toBeInTheDocument();
         });
 

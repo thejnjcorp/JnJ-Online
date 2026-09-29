@@ -170,7 +170,7 @@ describe('EnemyPage', () => {
             expect(target).toEqual({ __collection: 'enemies' });
             expect(payload).toMatchObject({
                 enemy_name: 'Rust Bandit', enemy_type: 'Goon', level: 1, maximum_health: 12, strength_stat: -1, base_armor_class: 12, action_points: 3,
-                Weaknesses: [], Resistances: [], actions: [], description: '',
+                Weaknesses: [], Resistances: [], Immunities: [], actions: [], description: '',
                 public: false, canRead: ['dm'], canWrite: ['dm'], admins: ['dm'],
             });
             await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/enemies/new-enemy'));
@@ -393,6 +393,47 @@ describe('EnemyPage', () => {
             });
         });
 
+        describe('immunities', () => {
+            test('are rows of just a damage type, saved as plain strings with no amount', async () => {
+                renderNew();
+                await screen.findByLabelText('Name');
+                type('Name', 'Golem');
+                fireEvent.click(within(modifiers('Immunities')).getByRole('button', { name: '+ Add' }));
+                type('Immunities type 1', 'Fire');
+
+                fireEvent.click(save('Create Enemy'));
+
+                await waitFor(() => expect(mockAddDoc).toHaveBeenCalled());
+                expect(mockAddDoc.mock.calls[0][1]).toMatchObject({ Immunities: ['Fire'] });
+            });
+
+            test('a blank row blocks the save and says an immunity needs a damage type', async () => {
+                renderNew();
+                await screen.findByLabelText('Name');
+                type('Name', 'Golem');
+                fireEvent.click(within(modifiers('Immunities')).getByRole('button', { name: '+ Add' }));
+
+                fireEvent.click(save('Create Enemy'));
+
+                expect(mockAddDoc).not.toHaveBeenCalled();
+                expect(screen.getAllByText(/needs a damage type, like "Fire"/).length).toBeGreaterThan(0);
+            });
+
+            test('a row can be removed', async () => {
+                renderNew();
+                await screen.findByLabelText('Name');
+                type('Name', 'Golem');
+                fireEvent.click(within(modifiers('Immunities')).getByRole('button', { name: '+ Add' }));
+                type('Immunities type 1', 'Fire');
+
+                fireEvent.click(screen.getByRole('button', { name: 'Remove immunities 1' }));
+                fireEvent.click(save('Create Enemy'));
+
+                await waitFor(() => expect(mockAddDoc).toHaveBeenCalled());
+                expect(mockAddDoc.mock.calls[0][1].Immunities).toEqual([]);
+            });
+        });
+
         describe('actions', () => {
             test('+ Action adds an action editor, grouped under Actions, and an unfinished one blocks the save', async () => {
                 renderNew();
@@ -437,7 +478,7 @@ describe('EnemyPage', () => {
             base_armor_class: 17, maximum_health: 90, action_points: 4, hardness: 1,
             strength_stat: 3, dexterity_stat: 1, intelligence_stat: 2, charisma_stat: 4,
             base_hit_modifier: 3, base_damage_modifier: 2, base_damage_dice: 2, base_damage_dice_type: 3, base_healing_dice_type: 1,
-            Weaknesses: ['Lightning 5'], Resistances: ['Fire 5', 'Non Magical-Physical 4'],
+            Weaknesses: ['Lightning 5'], Resistances: ['Fire 5', 'Non Magical-Physical 4'], Immunities: ['Poison'],
             actions: [validAction({ id: undefined, actionName: 'Rally' })],
             public: false, canRead: ['dm'], canWrite: ['dm', 'co-dm'], admins: ['dm'],
             ...overrides,
@@ -485,6 +526,7 @@ describe('EnemyPage', () => {
             expect(field('Weaknesses type 1')).toHaveValue('Lightning');
             expect(field('Weaknesses amount 1')).toHaveValue(5);
             expect(field('Resistances type 2')).toHaveValue('Non Magical-Physical');
+            expect(field('Immunities type 1')).toHaveValue('Poison');
             expect(screen.getByText('Rally')).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /^Private/ })).toHaveAttribute('aria-pressed', 'true');
         });
@@ -510,7 +552,7 @@ describe('EnemyPage', () => {
             await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalled());
             const [target, payload] = mockUpdateDoc.mock.calls[0];
             expect(target).toEqual({ __doc: ['enemies', 'enemy-1'] });
-            expect(payload).toMatchObject({ enemy_name: 'Iron Captain', maximum_health: 120, canWrite: ['dm', 'co-dm'], public: false, canRead: ['dm'], Weaknesses: ['Lightning 5'] });
+            expect(payload).toMatchObject({ enemy_name: 'Iron Captain', maximum_health: 120, canWrite: ['dm', 'co-dm'], public: false, canRead: ['dm'], Weaknesses: ['Lightning 5'], Immunities: ['Poison'] });
             expect(payload).not.toHaveProperty('admins');
             expect(payload.actions[0]).toMatchObject({ actionName: 'Rally' });
             expect(typeof payload.actions[0].id).toBe('string'); // an action from before ids got one

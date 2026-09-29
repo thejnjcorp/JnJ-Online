@@ -31,7 +31,7 @@ export const ENEMY_STAT_FIELDS = [
     'enemy_name', 'enemy_type', 'level', 'base_armor_class', 'maximum_health', 'action_points', 'hardness',
     'strength_stat', 'dexterity_stat', 'intelligence_stat', 'charisma_stat',
     'base_hit_modifier', 'base_damage_modifier', 'base_damage_dice', 'base_damage_dice_type', 'base_healing_dice_type',
-    'Weaknesses', 'Resistances', 'actions',
+    'Weaknesses', 'Resistances', 'Immunities', 'actions',
     // its picture, for its token on the combat map: an image ref (see imageRefs.js), or empty
     'portrait_url',
 ];
@@ -42,7 +42,7 @@ export function newEnemy(tier = 'Regular') {
         base_armor_class: 12, maximum_health: 10, action_points: 3, hardness: 0,
         strength_stat: 0, dexterity_stat: 0, intelligence_stat: 0, charisma_stat: 0,
         base_hit_modifier: 0, base_damage_modifier: 0, base_damage_dice: 1, base_damage_dice_type: 2, base_healing_dice_type: 1,
-        Weaknesses: [], Resistances: [], actions: [], portrait_url: '',
+        Weaknesses: [], Resistances: [], Immunities: [], actions: [], portrait_url: '',
     };
 }
 
@@ -96,6 +96,9 @@ export function validateEnemy(enemy) {
         const bad = (enemy[field] || []).findIndex(entry => !isInt(parseModifier(entry).amount) || parseModifier(entry).type === '');
         if (bad >= 0) add(`field-${field}`, field, field, 'Each one needs a type and an amount, like "Fire 5".');
     });
+    // Immunity ("you do not take that type of damage") has no amount - just a
+    // damage type, unlike a weakness or resistance.
+    if ((enemy.Immunities || []).some(entry => (entry || '').trim() === '')) add('field-Immunities', 'Immunities', 'Immunities', 'Each one needs a damage type, like "Fire".');
 
     const actions = actionProblems(enemy.actions);
     return { fields, actions: actions.byIndex, problems: [...problems, ...actions.problems], valid: problems.length === 0 && actions.problems.length === 0 };

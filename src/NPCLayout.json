@@ -6,6 +6,7 @@
     "base_armor_class": 17,
     "Weaknesses": ["Lightning 5", "Acid 10"],
     "Resistances": ["Non Magical-Physical 4", "Fire 5"],
+    "Immunities": [],
     "action_points": 3,
     "statuses": [],
 

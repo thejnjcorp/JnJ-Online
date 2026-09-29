@@ -430,6 +430,14 @@
     color: var(--jnj-color-text);
 }
 
+.DirectorsPage-imm-chip {
+    padding: 3px 8px;
+    border-radius: var(--jnj-radius-pill);
+    background: rgba(154, 154, 165, 0.15);
+    border: 1px solid var(--jnj-color-text-faint);
+    color: var(--jnj-color-text);
+}
+
 .DirectorsPage-actions-toggle {
     width: 100%;
     display: flex;

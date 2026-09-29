@@ -128,7 +128,7 @@ function makeLineViewCard(playerInfoById, defeatedIds = []) {
 // object embedded in the campaign doc.
 function DirectorsEntityCard({
     kind, name, tier, subtitle, hpNow, hpMax, tempHp, ac, ap, onSetAp, reactionUsed, onToggleReaction, onRemove, defeated = false, onSetDefeated,
-    canAdvanceTurn, onNextTurn, weaknesses, resistances,
+    canAdvanceTurn, onNextTurn, weaknesses, resistances, immunities,
     statusEntity, onUpdateStatuses, hasStatusWrite, userId,
     actions, experiencePoints, baseHitModifier, baseDamageModifier,
     baseDamageDice, baseDamageDiceType, baseHealingDiceType,
@@ -138,7 +138,7 @@ function DirectorsEntityCard({
     const [actionsOpen, setActionsOpen] = useState(false);
     const hpPercent = hpMax > 0 ? Math.max(0, Math.min(100, (hpNow / hpMax) * 100)) : 0;
     const hasTempHp = tempHp > 0;
-    const hasWeakRes = kind === 'enemy' && ((weaknesses?.length || 0) + (resistances?.length || 0) > 0);
+    const hasWeakRes = kind === 'enemy' && ((weaknesses?.length || 0) + (resistances?.length || 0) + (immunities?.length || 0) > 0);
 
     return <div className={`DirectorsPage-entity-card DirectorsPage-entity-card-${kind}${defeated ? ' DirectorsPage-entity-card-defeated' : ''}`}>
         <button type="button" className="DirectorsPage-entity-header" onClick={() => setOpen(o => !o)}>
@@ -187,6 +187,7 @@ function DirectorsEntityCard({
             {hasWeakRes && <div className="DirectorsPage-weakres-row">
                 {weaknesses.map((w, i) => <span className="DirectorsPage-weak-chip" key={"w" + i}>{w}</span>)}
                 {resistances.map((r, i) => <span className="DirectorsPage-res-chip" key={"r" + i}>{r}</span>)}
+                {immunities?.map((imm, i) => <span className="DirectorsPage-imm-chip" key={"i" + i}>{imm}</span>)}
             </div>}
 
             <Statuses characterPage={statusEntity} userId={userId} onUpdateStatuses={onUpdateStatuses} hasWritePermissions={hasStatusWrite}/>
@@ -702,6 +703,7 @@ export function DirectorsPage() {
                                 onNextTurn={advanceTurn}
                                 weaknesses={actualEnemy.Weaknesses}
                                 resistances={actualEnemy.Resistances}
+                                immunities={actualEnemy.Immunities}
                                 statusEntity={actualEnemy}
                                 userId={userId}
                                 onUpdateStatuses={updateEnemyStatuses}

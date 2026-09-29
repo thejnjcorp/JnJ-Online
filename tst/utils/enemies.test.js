@@ -51,7 +51,7 @@ describe('enemyDocFields', () => {
 
 describe('newEnemy', () => {
     test('starts as a valid stat block but for its name, in the tier asked for', () => {
-        expect(newEnemy()).toMatchObject({ enemy_type: 'Regular', level: 1, action_points: 3, Weaknesses: [], Resistances: [], actions: [] });
+        expect(newEnemy()).toMatchObject({ enemy_type: 'Regular', level: 1, action_points: 3, Weaknesses: [], Resistances: [], Immunities: [], actions: [] });
         expect(newEnemy('Elite').enemy_type).toBe('Elite');
         const problems = validateEnemy(newEnemy()).problems;
         expect(problems.map(problem => problem.id)).toEqual(['field-enemy_name']);
@@ -103,6 +103,7 @@ describe('validateEnemy', () => {
         ['a die type of 7', { base_damage_dice_type: 7 }, 'base_damage_dice_type'],
         ['a weakness with no amount', { Weaknesses: ['Fire'] }, 'Weaknesses'],
         ['a resistance with no type', { Resistances: ['5'] }, 'Resistances'],
+        ['an immunity with no type', { Immunities: ['  '] }, 'Immunities'],
     ])('flags %s', (_name, change, field) => {
         const result = validateEnemy({ ...valid(), ...change });
         expect(result.valid).toBe(false);
@@ -112,6 +113,10 @@ describe('validateEnemy', () => {
 
     test('negative ability scores, hardness and modifiers are fine', () => {
         expect(validateEnemy({ ...valid(), strength_stat: -2, hardness: -1, base_damage_modifier: -3 }).valid).toBe(true);
+    });
+
+    test('an immunity is just a damage type, no amount needed', () => {
+        expect(validateEnemy({ ...valid(), Immunities: ['Fire', 'Non Magical-Physical'] }).valid).toBe(true);
     });
 
     test('an action with a problem is flagged by its place, in the same terms as a class action', () => {

@@ -71,6 +71,34 @@ function ModifierList({ title, initial, readOnly, onChange, error, problemId }) 
     </div>;
 }
 
+// Immunity ("you do not take that type of damage") is just a list of damage
+// types - no amount, unlike a weakness or resistance.
+function TypeList({ title, initial, readOnly, onChange, error, problemId }) {
+    const [rows, setRows] = useState(() => (initial || []).slice());
+
+    function update(next) {
+        setRows(next);
+        onChange(next);
+    }
+
+    return <div className="EnemyPage-modifiers" {...invalidProps(problemId, error)} tabIndex={error ? -1 : undefined}>
+        <span className="ClassPage-field-label">{title}</span>
+        {rows.map((row, index) => <div className="EnemyPage-modifier-row" key={index}>
+            <input
+                className={invalidClass('ClassPage-field-input', error)}
+                aria-label={`${title} type ${index + 1}`}
+                placeholder="Fire"
+                value={row}
+                disabled={readOnly}
+                onChange={event => update(rows.map((r, i) => (i === index ? event.target.value : r)))}
+            />
+            {!readOnly && <button type="button" className="EnemyPage-modifier-remove" aria-label={`Remove ${title.toLowerCase()} ${index + 1}`} onClick={() => update(rows.filter((_, i) => i !== index))}>Remove</button>}
+        </div>)}
+        <FieldError message={error}/>
+        {!readOnly && <button type="button" className="ClassPage-add-tag-button" onClick={() => update([...rows, ''])}>+ Add</button>}
+    </div>;
+}
+
 // The body of an enemy's form - tier, stat block, weaknesses and resistances,
 // actions and notes - shared by the bestiary's enemy page and the encounter
 // builder's "create an enemy". The name and whatever is saved around it (who can
@@ -170,10 +198,12 @@ export function EnemyStatBlockForm({ formData, setFormData, errors, readOnly = f
         </div>
 
         <div className="ClassPage-card">
-            <div className="ClassPage-section-title">Weaknesses &amp; Resistances</div>
+            <div className="ClassPage-section-title">Weaknesses, Resistances &amp; Immunities</div>
             <div className="ClassPage-hint">A type and an amount, like Fire 5. Shown as chips on the enemy's card.</div>
             <ModifierList key={`w-${idKey}`} title="Weaknesses" initial={formData.Weaknesses} readOnly={readOnly} onChange={value => set('Weaknesses', value)} error={errors.fields.Weaknesses} problemId="field-Weaknesses"/>
             <ModifierList key={`r-${idKey}`} title="Resistances" initial={formData.Resistances} readOnly={readOnly} onChange={value => set('Resistances', value)} error={errors.fields.Resistances} problemId="field-Resistances"/>
+            <div className="ClassPage-hint">Just a damage type, like Fire - immunity has no amount, it means none of that damage gets through.</div>
+            <TypeList key={`i-${idKey}`} title="Immunities" initial={formData.Immunities} readOnly={readOnly} onChange={value => set('Immunities', value)} error={errors.fields.Immunities} problemId="field-Immunities"/>
         </div>
 
         <div className="ClassPage-card">
