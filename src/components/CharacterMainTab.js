@@ -35,6 +35,7 @@ import { StatusChip } from "./StatusChip";
 import { ActionUsesReset } from "./ActionUses";
 import { CombatMapPeek } from "./CombatMapPeek";
 import { PartyCombatRoster } from "./PartyCombatRoster";
+import { CharacterPortrait } from "./CharacterPortrait";
 import { isLimitedUse } from "../utils/actionUses";
 
 function isPassive(action) {
@@ -297,6 +298,11 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                         {statuses.map(status => <StatusChip key={status.id} status={status}/>)}
                     </div>}
                 </div>
+                {(hasWritePermissions || characterPage.combat_portrait_url) && <div className="CharacterMainTab-combat-portrait">
+                    <span className="CharacterMainTab-caps-label CharacterMainTab-section-label">Combat Portrait</span>
+                    <p className="CharacterMainTab-combat-portrait-hint">Optional - shown on the combat map and the Director's tracker instead of your Roleplay tab portrait. Leave it unset to keep using that one everywhere.</p>
+                    <CharacterPortrait characterPage={characterPage} userId={userId} field="combat_portrait_url" label="combat portrait"/>
+                </div>}
                 {hasCampaign && <PartyCombatRoster characterList={characterList}/>}
                 <div className="CharacterMainTab-action-body">
                     {hasWritePermissions && limitedCombatActions.length > 0 && <ActionUsesReset actions={limitedCombatActions} uses={actionUses} onChange={setActionUses}/>}

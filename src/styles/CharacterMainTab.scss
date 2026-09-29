@@ -205,6 +205,30 @@
     margin-bottom: 10px;
 }
 
+.CharacterMainTab-combat-portrait {
+    margin-bottom: 22px;
+
+    .CharacterMainTab-section-label {
+        margin-bottom: 4px;
+    }
+
+    // .CharacterPage-portrait (CharacterPortrait.js) is sized by CharacterPage.scss
+    // to stretch across a flex row's own height (the vitals card it normally
+    // sits in) - standalone here, it needs an explicit height of its own.
+    .CharacterPage-portrait {
+        width: 220px;
+        height: 160px;
+        align-self: flex-start;
+    }
+}
+
+.CharacterMainTab-combat-portrait-hint {
+    margin: 0 0 10px;
+    max-width: 32rem;
+    font-size: 0.8125rem;
+    color: var(--jnj-color-text-muted);
+}
+
 .CharacterMainTab-background-editor {
     --markdown-editor-min-height: 6rem;
     background: transparent;
@@ -552,6 +576,12 @@
 }
 
 @media (max-width: 640px) {
+    // Same call as the roleplay portrait it sits beside on desktop (see
+    // CharacterPage.scss) - the narrow mobile layout has no room for it.
+    .CharacterMainTab-combat-portrait {
+        display: none;
+    }
+
     .CharacterMainTab-circle-button {
         width: 44px;
         height: 44px;

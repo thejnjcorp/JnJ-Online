@@ -122,4 +122,29 @@ describe('CharacterPortrait', () => {
             expect(mockUploadImageToImgur).not.toHaveBeenCalled();
         });
     });
+
+    describe('a second picture, via field/label (the combat portrait)', () => {
+        test('reads and labels itself off the given field, not portrait_url', () => {
+            render(<CharacterPortrait characterPage={{ ...characterPage, combat_portrait_url: 'https://example.com/combat.png' }} userId="owner-1" field="combat_portrait_url" label="combat portrait" />);
+            expect(screen.getByRole('img')).toHaveAttribute('src', 'https://example.com/combat.png');
+            expect(screen.getByRole('button', { name: 'Change combat portrait' })).toBeInTheDocument();
+        });
+
+        test('an unset field shows its own empty state, not portrait_url\'s', () => {
+            render(<CharacterPortrait characterPage={{ ...characterPage, portrait_url: 'https://example.com/p.png' }} userId="owner-1" field="combat_portrait_url" label="combat portrait" />);
+            expect(screen.getByText('No combat portrait yet')).toBeInTheDocument();
+            expect(screen.queryByRole('img')).not.toBeInTheDocument();
+        });
+
+        test('uploading saves to the given field', async () => {
+            mockUploadImageToImgur.mockResolvedValue('https://i.imgur.com/combat.png');
+            render(<CharacterPortrait characterPage={characterPage} userId="owner-1" field="combat_portrait_url" label="combat portrait" />);
+            const file = new File(['content'], 'combat.png', { type: 'image/png' });
+
+            fireEvent.change(screen.getByLabelText('Combat portrait image file'), { target: { files: [file] } });
+
+            await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalled());
+            expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { combat_portrait_url: 'https://i.imgur.com/combat.png' });
+        });
+    });
 });

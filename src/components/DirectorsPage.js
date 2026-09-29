@@ -362,14 +362,14 @@ export function DirectorsPage() {
     // string that only changes when a character's id/portrait/color
     // actually does, so the memo - and each chip's remount-sensitive state
     // - stays stable across unrelated echoes.
-    const playerInfoKey = characterList.map(c => `${c.character_id}:${c.portrait_url || ''}:${c.navigation_color || ''}`).join('|');
+    const playerInfoKey = characterList.map(c => `${c.character_id}:${c.combat_portrait_url || c.portrait_url || ''}:${c.navigation_color || ''}`).join('|');
     const defeatedIds = (campaignInfo.enemy_list ?? []).filter(enemy => enemy.defeated).map(enemy => 'npc:' + enemy.id);
     const defeatedKey = defeatedIds.join(',');
     const lineViewCard = useMemo(() => {
         const playerInfoById = {};
         characterList.forEach(character => {
             playerInfoById["character:" + character.character_id] = {
-                portraitUrl: character.portrait_url,
+                portraitUrl: character.combat_portrait_url || character.portrait_url,
                 color: character.navigation_color,
             };
         });

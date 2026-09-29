@@ -44,7 +44,7 @@ export function useCampaignMaps(campaignInfo) {
 // token) are for the map's tokens.
 export function useCombatEntities(characterList, campaignInfo) {
     return useMemo(() => [
-        ...withoutArchived(characterList).map((character) => ({ id: "character:" + character.character_id, title: character.character_name, kind: 'player', image: character.portrait_url, ownerIds: [character.userId, ...(character.canWrite ?? [])].filter(Boolean) })),
+        ...withoutArchived(characterList).map((character) => ({ id: "character:" + character.character_id, title: character.character_name, kind: 'player', image: character.combat_portrait_url || character.portrait_url, ownerIds: [character.userId, ...(character.canWrite ?? [])].filter(Boolean) })),
         ...(campaignInfo.ally_combat_npc_list ?? []).map((npc) => ({ id: "npc:" + npc.id, title: npc.enemy_name, kind: 'ally', image: npcImage(npc), defeated: Boolean(npc.defeated) })),
         ...(campaignInfo.enemy_list ?? []).map((npc) => ({ id: "npc:" + npc.id, title: npc.enemy_name, kind: 'enemy', image: npcImage(npc), defeated: Boolean(npc.defeated) })),
         ...(campaignInfo.neutral_combat_npc_list ?? []).map((npc) => ({ id: "npc:" + npc.id, title: npc.enemy_name, kind: 'neutral', image: npcImage(npc), defeated: Boolean(npc.defeated) })),

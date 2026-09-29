@@ -64,6 +64,16 @@ describe('useCombatEntities', () => {
         expect(result.current[0]).toMatchObject({ kind: 'player', image: 'aria.png' });
     });
 
+    test('a set combat_portrait_url is the token image instead of the roleplay portrait', () => {
+        const { result } = renderHook(() => useCombatEntities([{ character_id: 'c1', character_name: 'Aria', portrait_url: 'aria.png', combat_portrait_url: 'aria-combat.png' }], {}));
+        expect(result.current[0]).toMatchObject({ kind: 'player', image: 'aria-combat.png' });
+    });
+
+    test('an unset combat_portrait_url falls back to the roleplay portrait', () => {
+        const { result } = renderHook(() => useCombatEntities([{ character_id: 'c1', character_name: 'Aria', portrait_url: 'aria.png', combat_portrait_url: '' }], {}));
+        expect(result.current[0]).toMatchObject({ kind: 'player', image: 'aria.png' });
+    });
+
     test('merges ally, enemy, and neutral NPC lists, each prefixed with "npc:" using id, titled by enemy_name', () => {
         const campaignInfo = {
             ally_combat_npc_list: [{ id: 'a1', enemy_name: 'Ally One' }],

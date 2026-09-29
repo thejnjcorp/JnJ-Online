@@ -715,6 +715,30 @@ describe('CharacterMainTab', () => {
             });
         });
 
+        describe('the combat portrait', () => {
+            test('someone with write permissions sees the optional combat-portrait control', () => {
+                render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
+                goToTab('Combat');
+                expect(screen.getByText('Combat Portrait')).toBeInTheDocument();
+                expect(screen.getByText('No combat portrait yet')).toBeInTheDocument();
+                expect(screen.getByRole('button', { name: 'Change combat portrait' })).toBeInTheDocument();
+            });
+
+            test('a read-only viewer sees nothing if none was ever set - no clutter with nothing to do about it', () => {
+                render(<CharacterMainTab characterPage={characterPage} userId="stranger-1" />);
+                goToTab('Combat');
+                expect(screen.queryByText('Combat Portrait')).not.toBeInTheDocument();
+            });
+
+            test('a read-only viewer still sees one that was set, just without the edit control', () => {
+                const { container } = render(<CharacterMainTab characterPage={{ ...characterPage, combat_portrait_url: 'https://example.com/c.png' }} userId="stranger-1" />);
+                goToTab('Combat');
+                expect(screen.getByText('Combat Portrait')).toBeInTheDocument();
+                expect(container.querySelector('.CharacterMainTab-combat-portrait img')).toHaveAttribute('src', 'https://example.com/c.png');
+                expect(screen.queryByRole('button', { name: 'Change combat portrait' })).not.toBeInTheDocument();
+            });
+        });
+
         describe('limited-use actions', () => {
             const limited = { actionName: 'Fleetfoot', actionCost: 1, category: 'action', toHitBool: true, toHit: 2, actionType: 'perDay', actionTypeCount: 1 };
             const withLimited = (extra = {}) => ({ ...characterPage, actions: [...characterPage.actions, limited], ...extra });
