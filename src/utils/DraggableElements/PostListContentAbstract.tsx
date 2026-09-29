@@ -177,12 +177,13 @@ export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, 
     const sourcePost = (postsByStatus[sourceStatus] ?? [])[source.index];
     if (canMovePost && sourcePost && !canMovePost(sourcePost)) return;
 
-    const newPostStatus = swappableMode ? 
-      {
-        ...postsByStatus,
-        [sourceStatus]: [...(postsByStatus[destinationStatus] ?? [])],
-        [destinationStatus]: postsByStatus[sourceStatus] ?? []
-      } :
+    const newPostStatus = swappableMode ?
+      updatePostStatusSwap(
+        sourcePost,
+        { status: sourceStatus, index: source.index },
+        { status: destinationStatus, index: destination.index },
+        postsByStatus
+      ) :
       updatePostStatusLocal(
         sourcePost,
         { status: sourceStatus, index: source.index },
@@ -301,7 +302,36 @@ export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, 
   );
 };
 
-const updatePostStatusLocal = (
+// Swappable slots (the character's relic/backpack grid) hold at most one post
+// each, so a drag there is always "swap what's in slot A with what's in slot
+// B" rather than a reorder. This has to actually reassign `.status` (and
+// `.index`) on the posts moving between slots - unlike a plain array swap of
+// which posts sit under which key in postsByStatus, which leaves the moved
+// posts still carrying their old slot's status. That stale status is exactly
+// what updateUnorderedPosts below persists, so a swap that only touched
+// postsByStatus's keys silently no-ops the Firestore write and the drag
+// reverts on the next snapshot.
+export const updatePostStatusSwap = (
+  sourcePost: Post,
+  source: { status: Post["status"]; index: number },
+  destination: { status: Post["status"]; index: number },
+  postsByStatus: PostsByStatus
+) => {
+  const destinationPost = (postsByStatus[destination.status] ?? [])[destination.index];
+
+  const updatedSourcePost: Post = { ...sourcePost, status: destination.status, index: destination.index };
+  const updatedDestinationPost: Post | undefined = destinationPost
+    ? { ...destinationPost, status: source.status, index: source.index }
+    : undefined;
+
+  return {
+    ...postsByStatus,
+    [source.status]: updatedDestinationPost ? [updatedDestinationPost] : [],
+    [destination.status]: [updatedSourcePost],
+  };
+};
+
+export const updatePostStatusLocal = (
   sourcePost: Post,
   source: { status: Post["status"]; index: number },
   destination: { status: Post["status"]; index: number },
@@ -362,7 +392,7 @@ const updatePostStatusLocal = (
   };
 };
 
-const updateUnorderedPosts = (
+export const updateUnorderedPosts = (
         unorderedPosts: Post[],
         newPostStatus: { [x: string]: Post[]; },
         source: { status: Post["status"]; index: number },
