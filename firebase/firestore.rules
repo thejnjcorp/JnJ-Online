@@ -104,6 +104,15 @@ service cloud.firestore {
 
       allow create: if isSignedIn() && !documentExists("characters", characterId)
         && isCreatorDocAdmin() && request.resource.data.playerId == uid();
+
+      // A player's own private notebook for their character (see
+      // useCharacterNotes.js) - the character's own owner and co-writers only,
+      // not the whole campaign the way the character doc itself is (inCampaign()
+      // above) - this is personal scratch space, closer to the director's own
+      // notes (directors only) than the party's (whole campaign).
+      match /notes/{noteId} {
+        allow read, write: if isSignedIn() && isCharacterOwnerOrWriter(characterId);
+      }
     }
 
     // Same three-tier model as statuses above (public/isDefault/canRead,
@@ -395,6 +404,15 @@ service cloud.firestore {
       return uid() == campaign.data.get('director_uid', '')
         || uid() in campaign.data.get('canWrite', [])
         || uid() in campaign.data.get('admins', []);
+    }
+
+    // Same check the character doc itself grants its owner and co-writers -
+    // just read off the parent character doc instead of `resource`, since
+    // this is used from its notes subcollection.
+    function isCharacterOwnerOrWriter(characterId) {
+      let character = parentDoc('characters', characterId);
+      return uid() == character.get('playerId', '')
+        || uid() in character.get('canWrite', []);
     }
   }
 }

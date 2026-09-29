@@ -23,7 +23,7 @@ import { zoneRects } from "../utils/mapTokens";
 import { ReactComponent as ScrollIcon } from '../icons/scroll.svg';
 import { ReactComponent as SwordsIcon } from '../icons/swords.svg';
 import { ReactComponent as BagIcon } from '../icons/bag.svg';
-import { ReactComponent as NoteIcon } from '../icons/note.svg';
+import { CharacterNotes } from "./CharacterNotes";
 import { ReactComponent as MapIcon } from '../icons/map.svg';
 import { ReactComponent as PersonIcon } from '../icons/person.svg';
 import { useIsMobile } from "../utils/useIsMobile";
@@ -96,18 +96,15 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
     const debounceRef = useRef({});
     const [localValues, setLocalValues] = useState({
         description: characterPage.description ? characterPage.description : characterPage.class_description,
-        notes: characterPage.notes ? characterPage.notes : ""
     });
 
     useEffect(() => {
         setLocalValues({
             description: characterPage.description ? characterPage.description : characterPage.class_description,
-            notes: characterPage.notes ? characterPage.notes : ""
         });
     }, [
         characterPage.description,
         characterPage.class_description,
-        characterPage.notes
     ]);
 
     const handleChange = event => {
@@ -123,9 +120,8 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
             clearTimeout(debounceRef.current[name]);
         }
         debounceRef.current[name] = setTimeout(() => {
-            // Notes can be emptied out. A blank background isn't saved here - see
-            // restoreLoreIfEmpty.
-            if (value !== '' || name === 'notes') {
+            // A blank background isn't saved here - see restoreLoreIfEmpty.
+            if (value !== '') {
                 updateDoc(doc(db, "characters", characterPage.character_id), {
                     [name]: parsedValue
                 }).catch(e => {
@@ -231,19 +227,7 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                 />
             </div>}
             <div className="CharacterMainTab-notes CharacterMainTab-roleplay-card CharacterMainTab-roleplay-card-notes">
-                <div className="CharacterMainTab-roleplay-card-header">
-                    <NoteIcon/>
-                    <h2>Notes</h2>
-                    <span className="CharacterMainTab-roleplay-card-caption">Autosaves as you type</span>
-                </div>
-                <MarkdownEditor
-                    className="CharacterMainTab-notes-editor"
-                    label="Notes"
-                    placeholder="Start writing - it saves as you type."
-                    value={localValues.notes}
-                    readOnly={!hasWritePermissions}
-                    onChange={value => handleChange({ target: { name: 'notes', type: 'text', value } })}
-                />
+                <CharacterNotes characterId={characterPage.character_id} legacyNotes={characterPage.notes} canEdit={hasWritePermissions}/>
             </div>
             </div>
         },

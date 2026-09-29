@@ -45,6 +45,13 @@ jest.mock('../../src/utils/DraggableElements/PostListCombat.tsx', () => ({
 jest.mock('../../src/utils/DraggableElements/PostListCombatMap.tsx', () => ({
     PostListContentCombatMap: ({ campaignId, activeMap, entities, canEdit, toolbarsBeside }) => <div data-canedit={String(Boolean(canEdit))} data-beside={String(Boolean(toolbarsBeside))}>CombatMap-stub:{campaignId}:{activeMap?.map_id}:{entities.length}</div>,
 }));
+const mockCharacterNotesProps = [];
+jest.mock('../../src/components/CharacterNotes', () => ({
+    CharacterNotes: props => {
+        mockCharacterNotesProps.push(props);
+        return <div>CharacterNotes-stub:{props.characterId}</div>;
+    },
+}));
 
 // eslint-disable-next-line import/first
 import { screen, fireEvent, within } from '@testing-library/react';
@@ -81,6 +88,7 @@ beforeEach(() => {
     mockUseIsMobile.mockReturnValue(false);
     mockUseCampaignMaps.mockReturnValue({ activeMap: null });
     mockUseCombatEntities.mockReturnValue([]);
+    mockCharacterNotesProps.length = 0;
     window.alert = jest.fn();
 });
 
@@ -102,27 +110,29 @@ describe('CharacterMainTab', () => {
             expect(screen.queryByDisplayValue('A frontline tank.')).not.toBeInTheDocument();
         });
 
-        test('the background and notes are read-only without write permissions', () => {
+        test('the background is read-only without write permissions', () => {
             render(<CharacterMainTab characterPage={characterPage} userId="stranger-1" />);
             expect(screen.getByLabelText('Background')).toHaveAttribute('readonly');
-            expect(screen.getByLabelText('Notes')).toHaveAttribute('readonly');
         });
 
-        test('the notes are written in the Markdown editor, and can be edited by someone with write permissions', () => {
-            render(<CharacterMainTab characterPage={{ ...characterPage, notes: 'Met **Mara**.' }} userId="owner-1" />);
-            const notes = screen.getByLabelText('Notes');
-            expect(notes).toHaveValue('Met **Mara**.');
-            expect(notes).not.toHaveAttribute('readonly');
-        });
+        describe('notes', () => {
+            test('renders the character\'s own notebook (see CharacterNotes.js), passed this character\'s id', () => {
+                render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
+                expect(screen.getByText('CharacterNotes-stub:char-1')).toBeInTheDocument();
+            });
 
-        test('the notes can be emptied out, and that is saved', () => {
-            jest.useFakeTimers();
-            render(<CharacterMainTab characterPage={{ ...characterPage, notes: 'Old notes' }} userId="owner-1" />);
+            test('carries over whatever was in the old single-field notes, for CharacterNotes to import as a first page', () => {
+                render(<CharacterMainTab characterPage={{ ...characterPage, notes: 'Met Mara.' }} userId="owner-1" />);
+                expect(mockCharacterNotesProps.at(-1).legacyNotes).toBe('Met Mara.');
+            });
 
-            fireEvent.change(screen.getByLabelText('Notes'), { target: { value: '' } });
-            jest.advanceTimersByTime(1000);
+            test('only someone with write permissions can edit it', () => {
+                render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
+                expect(mockCharacterNotesProps.at(-1).canEdit).toBe(true);
 
-            expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { notes: '' });
+                render(<CharacterMainTab characterPage={characterPage} userId="stranger-1" />);
+                expect(mockCharacterNotesProps.at(-1).canEdit).toBeFalsy();
+            });
         });
 
         describe('the background', () => {
@@ -187,14 +197,14 @@ describe('CharacterMainTab', () => {
         test('typing updates immediately, then writes to Firestore after the debounce delay', () => {
             jest.useFakeTimers();
             render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
-            const notesBox = screen.getByLabelText('Notes');
+            const background = screen.getByLabelText('Background');
 
-            fireEvent.change(notesBox, { target: { value: 'Loves cats.' } });
-            expect(screen.getByDisplayValue('Loves cats.')).toBeInTheDocument();
+            fireEvent.change(background, { target: { value: 'A frontline tank who loves cats.' } });
+            expect(screen.getByDisplayValue('A frontline tank who loves cats.')).toBeInTheDocument();
             expect(mockUpdateDoc).not.toHaveBeenCalled();
 
             jest.advanceTimersByTime(1000);
-            expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { notes: 'Loves cats.' });
+            expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { description: 'A frontline tank who loves cats.' });
         });
 
         test('a failed write is alerted', () => {
@@ -202,7 +212,7 @@ describe('CharacterMainTab', () => {
             mockUpdateDoc.mockRejectedValue(new Error('offline'));
             render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
 
-            fireEvent.change(screen.getByLabelText('Notes'), { target: { value: 'Loves cats.' } });
+            fireEvent.change(screen.getByLabelText('Background'), { target: { value: 'A frontline tank who loves cats.' } });
             jest.advanceTimersByTime(1000);
 
             return Promise.resolve().then(() => expect(window.alert).toHaveBeenCalled());
@@ -504,7 +514,7 @@ describe('CharacterMainTab', () => {
                 render(<CharacterMainTab characterPage={sheet([stab, talk, parry])} userId="owner-1" />);
                 const card = screen.getByRole('heading', { name: 'Roleplay Actions' }).closest('.CharacterMainTab-roleplay-actions');
                 expect(within(card).getAllByText(/^(Stab|Silver Tongue|Parry)$/).map(el => el.textContent)).toEqual(['Silver Tongue', 'Parry']);
-                expect(card.compareDocumentPosition(screen.getByRole('heading', { name: 'Notes' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+                expect(card.compareDocumentPosition(screen.getByText(/CharacterNotes-stub/)) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
             });
 
             test('there is no Roleplay Actions card when the character has none', () => {

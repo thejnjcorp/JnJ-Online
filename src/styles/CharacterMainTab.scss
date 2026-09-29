@@ -61,10 +61,6 @@
 
 .CharacterMainTab-roleplay-card-notes {
     border-left-color: var(--jnj-color-ember);
-
-    .CharacterMainTab-roleplay-card-header {
-        color: var(--jnj-color-ember);
-    }
 }
 
 .CharacterMainTab-roleplay-card-header {
@@ -272,11 +268,6 @@
 
 .CharacterMainTab-background-editor {
     --markdown-editor-min-height: 6rem;
-    background: transparent;
-}
-
-.CharacterMainTab-notes-editor {
-    --markdown-editor-min-height: 12rem;
     background: transparent;
 }
 

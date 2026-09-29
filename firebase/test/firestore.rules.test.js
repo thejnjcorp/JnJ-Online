@@ -1633,6 +1633,51 @@ async function main() {
         await assertFails(updateDoc(ariaRef(testEnv.authenticatedContext('outsider_player').firestore()), { statuses: [status] }));
     });
 
+    console.log('\nA character\'s own notebook (characters/{id}/notes - its owner and co-writers only):');
+
+    async function seedCharacterWithNote() {
+        await testEnv.clearFirestore();
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            const db = adminCtx.firestore();
+            await setDoc(doc(db, 'characters', 'aria'), { character_name: 'Aria', playerId: 'player', campaign: 'camp1', canRead: ['player'], canWrite: ['player', 'friend'] });
+            await setDoc(doc(db, 'campaigns', 'camp1'), { campaign_name: 'C', director_uid: 'dir', canWrite: [], canRead: ['player', 'friend', 'teammate'], admins: [] });
+            await setDoc(doc(db, 'characters', 'aria', 'notes', 'n1'), { title: 'Session 1', body: 'Met a merchant.', order: 1 });
+        });
+    }
+
+    await check('the owner can read, create, edit and delete pages', async () => {
+        await seedCharacterWithNote();
+        const owner = testEnv.authenticatedContext('player');
+        await assertSucceeds(getDoc(doc(owner.firestore(), 'characters', 'aria', 'notes', 'n1')));
+        await assertSucceeds(addDoc(collection(owner.firestore(), 'characters', 'aria', 'notes'), { title: 'New', body: '', order: 2 }));
+        await assertSucceeds(updateDoc(doc(owner.firestore(), 'characters', 'aria', 'notes', 'n1'), { body: 'Edited' }));
+        await assertSucceeds(deleteDoc(doc(owner.firestore(), 'characters', 'aria', 'notes', 'n1')));
+    });
+
+    await check('a co-writer has the same access', async () => {
+        await seedCharacterWithNote();
+        const friend = testEnv.authenticatedContext('friend');
+        await assertSucceeds(getDoc(doc(friend.firestore(), 'characters', 'aria', 'notes', 'n1')));
+        await assertSucceeds(updateDoc(doc(friend.firestore(), 'characters', 'aria', 'notes', 'n1'), { body: 'x' }));
+    });
+
+    await check('not the campaign\'s director (unless also a co-writer), a teammate, or anyone else in the campaign - this is personal, unlike the character doc itself', async () => {
+        await seedCharacterWithNote();
+        for (const uid of ['dir', 'teammate', 'stranger']) {
+            const db = testEnv.authenticatedContext(uid).firestore();
+            await assertFails(getDoc(doc(db, 'characters', 'aria', 'notes', 'n1')));
+            await assertFails(getDocs(collection(db, 'characters', 'aria', 'notes')));
+            await assertFails(addDoc(collection(db, 'characters', 'aria', 'notes'), { title: 'x', body: '', order: 3 }));
+            await assertFails(updateDoc(doc(db, 'characters', 'aria', 'notes', 'n1'), { body: 'x' }));
+            await assertFails(deleteDoc(doc(db, 'characters', 'aria', 'notes', 'n1')));
+        }
+    });
+
+    await check('a signed-out visitor cannot read it either', async () => {
+        await seedCharacterWithNote();
+        await assertFails(getDoc(doc(testEnv.unauthenticatedContext().firestore(), 'characters', 'aria', 'notes', 'n1')));
+    });
+
     await testEnv.cleanup();
 
     if (failures > 0) {
