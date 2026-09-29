@@ -14,6 +14,14 @@
     color: var(--jnj-color-text);
 }
 
+.DirectorsPage-message {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: var(--jnj-space-4);
+    color: var(--jnj-color-text-muted);
+}
+
 .DirectorsPage-sidebar {
     height: 90vh;
     width: 280px;

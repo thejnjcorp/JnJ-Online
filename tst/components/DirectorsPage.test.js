@@ -109,8 +109,13 @@ const enemy = {
     Weaknesses: ['Fire'], Resistances: ['Cold'], actions: [],
 };
 
+// director_uid: 'owner-1' - renderReady() always signs in as owner-1 (see
+// below), and Director Mode now refuses anyone who isn't the director, a
+// co-director, or a doc admin, so every test that isn't specifically about
+// that gate (or deliberately overriding it to test a non-director) needs
+// this by default to reach the page at all.
 const baseCampaignInfo = {
-    campaign_name: 'The Iron Vale', director_name: 'Sam',
+    campaign_name: 'The Iron Vale', director_name: 'Sam', director_uid: 'owner-1',
     enemy_list: [], ally_combat_npc_list: [], neutral_combat_npc_list: [],
     active_map: null, maps: [],
 };
@@ -204,6 +209,27 @@ describe('DirectorsPage', () => {
         expect(screen.getByRole('button', { name: /Roleplay$/ })).toBeInTheDocument();
     });
 
+    describe('Director Mode access', () => {
+        test('a campaign member who is only a player (canRead, not a director) is refused the whole page, not a reduced view of it', async () => {
+            await renderReady({ campaignInfo: { ...baseCampaignInfo, director_uid: 'someone-else', canRead: ['owner-1'] } });
+            expect(screen.getByRole('alert')).toHaveTextContent("Director Mode is for the campaign's director and co-directors only.");
+            expect(screen.queryByText('Aria')).not.toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: /Combat$/ })).not.toBeInTheDocument();
+        });
+
+        test('shows Loading… rather than the denial, while the campaign doc is still on its way in', async () => {
+            const router = installSnapshotRouter();
+            renderWithRouter(<DirectorsPage />, { route: '/directors/camp-1' });
+            await act(async () => { await Promise.resolve(); });
+            expect(screen.getByText('Loading…')).toBeInTheDocument();
+            expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+            router.fireCampaign({ ...baseCampaignInfo, director_uid: 'someone-else', canRead: ['owner-1'] });
+            router.fireCharacters([]);
+            await act(async () => { await Promise.resolve(); });
+            expect(screen.getByRole('alert')).toBeInTheDocument();
+        });
+    });
+
     describe('Notes tab (directors only)', () => {
         test.each([
             ['the campaign\'s director', { director_uid: 'owner-1' }],
@@ -217,11 +243,12 @@ describe('DirectorsPage', () => {
             expect(screen.getByText('DirectorNotes-stub:camp-1')).toBeInTheDocument();
         });
 
-        test('is not offered to a player (in canRead, not a director) - the rule would refuse it anyway', async () => {
+        test('is not offered to a player (in canRead, not a director) - Director Mode itself refuses them first', async () => {
             await renderReady({ campaignInfo: { ...baseCampaignInfo, director_uid: 'someone-else', canWrite: ['someone-else'], canRead: ['owner-1'] } });
 
             expect(screen.queryByRole('button', { name: /Notes$/ })).not.toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /Combat$/ })).toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: /Combat$/ })).not.toBeInTheDocument();
+            expect(screen.getByRole('alert')).toHaveTextContent("Director Mode is for the campaign's director and co-directors only.");
         });
 
         test('is not offered before the campaign has loaded or while signed out', async () => {
@@ -501,13 +528,9 @@ describe('DirectorsPage', () => {
                 expect(screen.getByText(/No enemies in the fight/)).toBeInTheDocument();
             });
 
-            test('a player, who cannot direct, sees the enemies but none of the tools', async () => {
-                await renderReady({ campaignInfo: { ...baseCampaignInfo, enemy_list: [enemy], director_uid: 'someone-else', canRead: ['owner-1'] } });
-                goToTab('Combat');
-                expect(screen.getByText('Goblin')).toBeInTheDocument();
-                ['+ Add', 'Encounters', 'Clear all', 'Remove from fight'].forEach(name => expect(screen.queryByRole('button', { name })).not.toBeInTheDocument());
-                expect(screen.queryByText(/No enemies in the fight/)).not.toBeInTheDocument();
-            });
+            // A non-director never sees the enemy list at all any more - that's
+            // the whole point of Director Mode being planning-only (Director
+            // Mode access, above) - not a read-only view of it.
 
             test('Encounters goes to this campaign\'s encounters', async () => {
                 await renderReady({ campaignInfo: directing });
@@ -588,12 +611,6 @@ describe('DirectorsPage', () => {
                     expect(card()).not.toHaveClass('DirectorsPage-entity-card-defeated');
                 });
 
-                test('a player sees that an enemy is defeated, but cannot change it', async () => {
-                    await renderReady({ campaignInfo: { ...baseCampaignInfo, enemy_list: [{ ...enemy, defeated: true }], director_uid: 'someone-else', canRead: ['owner-1'] } });
-                    goToTab('Combat');
-                    expect(within(card()).getByText('Defeated')).toBeInTheDocument();
-                    ['Revive', 'Mark defeated'].forEach(name => expect(screen.queryByRole('button', { name })).not.toBeInTheDocument());
-                });
 
                 test('a failed write is alerted', async () => {
                     mockUpdateDoc.mockRejectedValue(new Error('offline'));
@@ -612,12 +629,6 @@ describe('DirectorsPage', () => {
                         expect(lastMapProps()).toMatchObject({ onSetDefeated: expect.any(Function), onRemoveEntity: expect.any(Function) });
                     });
 
-                    test('a player\'s are not', async () => {
-                        await renderReady({ campaignInfo: { ...baseCampaignInfo, enemy_list: [enemy], director_uid: 'someone-else', canRead: ['owner-1'] } });
-                        goToTab('Combat');
-                        expect(lastMapProps().onSetDefeated).toBeUndefined();
-                        expect(lastMapProps().onRemoveEntity).toBeUndefined();
-                    });
 
                     test('marking one defeated from its token writes it to that enemy, and reviving clears it', async () => {
                         const other = { ...enemy, id: 'enemy-2', enemy_name: 'Troll' };
@@ -751,13 +762,11 @@ describe('DirectorsPage', () => {
                 ['character:char-1', 'character:char-2', 'npc:goblin'].forEach(id => expect(lineProps().canMovePost({ id })).toBe(true));
             });
 
-            test('a player drags their own character and nobody else', async () => {
-                await renderReady({ campaignInfo: { ...baseCampaignInfo, director_uid: 'someone-else', canRead: ['owner-1'] } });
-                goToTab('Combat');
-                expect(lineProps().canMovePost({ id: 'character:char-1' })).toBe(true);
-                expect(lineProps().canMovePost({ id: 'character:char-2' })).toBe(false);
-                expect(lineProps().canMovePost({ id: 'npc:goblin' })).toBe(false);
-            });
+            // combatantMover's own "a player only moves their own character"
+            // case is covered directly in combatTracker.test.js, where it's
+            // actually reachable by a player - the character page's own
+            // Combat Map tab; a non-director can't reach this line view at
+            // all any more (Director Mode access, above).
 
             test('with the map\'s zones as rectangles for where a moved token lands, or none without a map', async () => {
                 mockUseCampaignMaps.mockReturnValue({ maps: [], activeMap: { map_id: 'map-1', zones: [{ name: 'Gate', x: 50, y: 100, width: 100, height: 50 }] } });
@@ -773,20 +782,10 @@ describe('DirectorsPage', () => {
             });
         });
 
-        test('someone who is not a director cannot', async () => {
-            await renderReady();
-            goToTab('Combat');
-            screen.getAllByText(/CombatMap-stub/).forEach(stub => expect(stub).toHaveAttribute('data-canedit', 'false'));
-        });
-
-        test('a campaign that has not loaded yet is not taken for one with no map', async () => {
-            installSnapshotRouter();
-            renderWithRouter(<DirectorsPage />, { route: '/directors/camp-1' });
-            await act(async () => { await Promise.resolve(); });
-            goToTab('Combat');
-            screen.queryAllByText(/CombatMap-stub/).forEach(stub => expect(stub).toHaveAttribute('data-nomap', 'false'));
-            expect(screen.queryByText(/Combat-stub:camp-1:1/)).not.toBeInTheDocument();
-        });
+        // A non-director can't reach this tab at all any more (Director Mode
+        // access, above) - a false "no map" reading before the campaign doc
+        // has arrived is no longer reachable either, since nothing renders
+        // until isLoaded is true (same test).
 
         test('waits for the characters too before treating the campaign as having no map', async () => {
             const router = installSnapshotRouter();
@@ -862,12 +861,6 @@ describe('DirectorsPage', () => {
                 expect(screen.queryByLabelText('Combat map')).not.toBeInTheDocument();
             });
 
-            test('a player is not offered it', async () => {
-                mockUseCampaignMaps.mockReturnValue({ maps, activeMap: null });
-                await renderReady({ campaignInfo: { ...baseCampaignInfo, maps: ['map-1', 'map-2'] } });
-                goToTab('Combat');
-                expect(screen.queryByLabelText('Combat map')).not.toBeInTheDocument();
-            });
         });
 
         test('Map View shows the Open Full Map button once there is a map; Line View does not', async () => {

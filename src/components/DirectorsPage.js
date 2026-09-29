@@ -436,6 +436,19 @@ export function DirectorsPage() {
     const canMoveCombatant = combatantMover(combatEntities, userId, isDirector);
     const activeMapRects = activeMap ? zoneRects(activeMap.zones) : null;
 
+    // Director Mode is for planning: hiding enemies and prepping a fight before
+    // the party ever sees them is the whole point, so this can't be reached by
+    // anyone who isn't the director, a co-director, or a doc admin - not shown
+    // as "Loading…" forever for a genuine non-director, but not flashing the
+    // denial at a real director either while their own campaign doc is still
+    // on its way in.
+    if (!isDirector) {
+        if (!isLoaded || !userId) return <div className="DirectorsPage DirectorsPage-message">Loading…</div>;
+        return <div className="DirectorsPage DirectorsPage-message" role="alert">
+            Director Mode is for the campaign's director and co-directors only.
+        </div>;
+    }
+
     return <div className="DirectorsPage">
         <div className={'DirectorsPage-sidebar ' + pageTheme}>
             {resolvedCharacterList.map((character) => {

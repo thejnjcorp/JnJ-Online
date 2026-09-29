@@ -228,9 +228,9 @@ export function CampaignPage() {
             <button type="button" className='CampaignPage-secondary-button' onClick={() => navigate("/party/" + campaignId)}>
                 Party
             </button>
-            <button type="button" className='CampaignPage-secondary-button' onClick={() => navigate("/directors/" + campaignId)}>
+            {canWrite && <button type="button" className='CampaignPage-secondary-button' onClick={() => navigate("/directors/" + campaignId)}>
                 Director Mode
-            </button>
+            </button>}
             <button type="button" className='CampaignPage-secondary-button' onClick={() => navigate("/campaigns/" + campaignId + "/classes")}>
                 Manage Classes
             </button>

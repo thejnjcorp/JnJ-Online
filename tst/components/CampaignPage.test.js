@@ -236,10 +236,18 @@ describe('CampaignPage', () => {
             ['Manage Races', '/campaigns/camp-1/races'],
             ['Manage Statuses', '/campaigns/camp-1/statuses'],
         ])('%s navigates to %s', async (label, route) => {
-            signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale' });
+            // canWrite: Director Mode is gated to someone who can direct; harmless for the other rows.
+            signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale', canWrite: ['user-1'] });
             renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
             fireEvent.click(await screen.findByText(label));
             expect(mockNavigate).toHaveBeenCalledWith(route);
+        });
+
+        test('Director Mode is offered only to someone who can direct - it hides enemies from players to plan with', async () => {
+            signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale' }); // no canWrite: just a player
+            renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
+            await screen.findByText('Party'); // the page has finished loading
+            expect(screen.queryByText('Director Mode')).not.toBeInTheDocument();
         });
 
         describe('Encounters button', () => {
