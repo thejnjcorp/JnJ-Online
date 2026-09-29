@@ -2,6 +2,9 @@
 .CombatMapPeek {
     display: inline-flex;
     margin-left: auto;
+    // The panel below anchors to this, not to the viewport - see its own
+    // comment for why.
+    position: relative;
 }
 
 .CombatMapPeek-button {
@@ -17,14 +20,10 @@
     color: var(--jnj-color-text);
     cursor: pointer;
     transition: border-color var(--jnj-transition), color var(--jnj-transition);
-    // The panel below is fixed to the viewport's top-right corner, independent
-    // of wherever this button actually sits on the page - at some combination
-    // of sticky layout and font/text-scale, the button's own position can end
-    // up under that same rectangle. Without a stacking context of its own
-    // (position: relative) and a z-index above the panel's, a static button
-    // always paints below a positioned sibling, so the panel would swallow the
-    // click that was meant to close it. Being genuinely on top guarantees this
-    // button stays clickable no matter where layout puts it.
+    // Belt and suspenders with the panel now anchoring to .CombatMapPeek
+    // itself (see its comment) rather than the viewport: this still keeps
+    // the button above the panel in paint order, so it can never be the one
+    // swallowing its own click even if an animation frame briefly overlaps it.
     position: relative;
     z-index: 31;
 
@@ -41,13 +40,20 @@
     }
 }
 
-// Fixed to the edge of the window, over the page but under the full-screen
-// overlays, and animated in from the side.
+// Anchored to .CombatMapPeek (the button's own wrapper) rather than fixed to
+// the viewport corner: that used to put the panel at a fixed on-screen spot
+// regardless of where the button itself actually was, so the two could end up
+// overlapping - the button buried under the panel (making it unclickable), or
+// (once the button was given a higher z-index to fix that) the button
+// floating visibly over the map instead, moving independently as the sticky
+// action-points row scrolled. Anchoring here means the panel always opens
+// directly below its own trigger and moves as one with it - it can no longer
+// land anywhere else on the button, at any scroll position or text scale.
 .CombatMapPeek-panel {
-    position: fixed;
+    position: absolute;
     z-index: 30;
-    top: calc(var(--jnj-nav-height, 3.5rem) + var(--jnj-space-3));
-    right: var(--jnj-space-3);
+    top: calc(100% + var(--jnj-space-2));
+    right: 0;
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
@@ -63,12 +69,12 @@
 
 @keyframes combat-map-peek-in {
     from {
-        transform: translateX(3rem);
+        transform: translateY(-0.5rem);
         opacity: 0;
     }
 
     to {
-        transform: translateX(0);
+        transform: translateY(0);
         opacity: 1;
     }
 }
