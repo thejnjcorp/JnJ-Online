@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import Markdown from 'markdown-to-jsx';
+import Markdown from './ColoredMarkdown';
 import MarkdownEditor from './MarkdownEditor';
 import { ClassTagEditDialog } from './ClassTagEditDialog';
 import { ActionPreview } from './ActionPreview';

@@ -6,7 +6,7 @@ import { auth, db } from '../utils/firebase';
 import { STATUS_STAT_DEFINITIONS, getEffectsArray } from '../utils/statusEffects';
 import { STATUS_TYPES, statusColorClass, statusColorStyle } from '../utils/statusStyle';
 import '../styles/StatusListPage.scss';
-import Markdown from 'markdown-to-jsx';
+import Markdown from './ColoredMarkdown';
 
 function effectLabel(effect) {
     const definition = STATUS_STAT_DEFINITIONS.find(s => s.key === effect.stat);

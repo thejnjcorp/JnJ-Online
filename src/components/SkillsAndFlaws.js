@@ -1,5 +1,5 @@
 import Collapsible from 'react-collapsible';
-import Markdown from 'markdown-to-jsx';
+import Markdown from './ColoredMarkdown';
 import circleIcon from '../icons/circle.svg';
 import { useState, useReducer } from 'react';
 import { db } from '../utils/firebase';

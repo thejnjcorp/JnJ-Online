@@ -9,7 +9,7 @@ import { CombatActionList } from './CombatActionList';
 import { newCharacterFormReducer } from '../utils/newCharacterFormReducer';
 import { raceActionsOf } from '../utils/characterClass';
 import { loadAvailableClasses, loadAvailableRaces } from '../utils/availableOptions';
-import Markdown from 'markdown-to-jsx';
+import Markdown from './ColoredMarkdown';
 
 export const formReducer = newCharacterFormReducer;
 

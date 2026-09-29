@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import Markdown from 'markdown-to-jsx';
+import Markdown from './ColoredMarkdown';
 import '../styles/BlogPages.scss';
 import Collapsible from "react-collapsible";
 

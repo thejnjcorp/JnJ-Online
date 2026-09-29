@@ -3,13 +3,16 @@ import {
     MDXEditor,
     BlockTypeSelect,
     BoldItalicUnderlineToggles,
+    ButtonWithTooltip,
     CreateLink,
     InsertTable,
     InsertThematicBreak,
     ListsToggle,
     Separator,
     UndoRedo,
+    directivesPlugin,
     headingsPlugin,
+    insertDirective$,
     linkDialogPlugin,
     linkPlugin,
     listsPlugin,
@@ -19,10 +22,27 @@ import {
     tablePlugin,
     thematicBreakPlugin,
     toolbarPlugin,
+    usePublisher,
 } from '@mdxeditor/editor';
 import '@mdxeditor/editor/style.css';
 import { MarkdownFallback } from './MarkdownFallback';
 import { keepBlankLines } from '../utils/markdownBlankLines';
+import { ColorDirectiveDescriptor } from './ColorDirectiveEditor';
+import { ReactComponent as ColorPickerIcon } from '../icons/colorpicker.svg';
+
+// Inserts an empty :color[]{color=...} at the cursor - the ColorDirectiveEditor
+// (registered below via directivesPlugin) then takes over, showing a swatch
+// to change the color and a nested editor for the phrase's own text.
+function ColorDirectiveButton() {
+    const insertDirective = usePublisher(insertDirective$);
+    return <ButtonWithTooltip
+        title="Colored text"
+        onPointerDown={event => event.preventDefault()}
+        onClick={() => insertDirective({ name: 'color', type: 'textDirective', attributes: { color: '#ff0000' } })}
+    >
+        <ColorPickerIcon/>
+    </ButtonWithTooltip>;
+}
 
 // Only what markdown-to-jsx (which renders all of this text) can show: no
 // underline (it needs raw HTML, which we don't render) and no images or code
@@ -30,6 +50,7 @@ import { keepBlankLines } from '../utils/markdownBlankLines';
 const compactPlugins = [
     listsPlugin(),
     markdownShortcutPlugin(),
+    directivesPlugin({ directiveDescriptors: [ColorDirectiveDescriptor] }),
     toolbarPlugin({
         toolbarContents: () => <>
             <UndoRedo/>
@@ -37,6 +58,8 @@ const compactPlugins = [
             <BoldItalicUnderlineToggles options={['Bold', 'Italic']}/>
             <Separator/>
             <ListsToggle options={['bullet', 'number']}/>
+            <Separator/>
+            <ColorDirectiveButton/>
         </>,
     }),
 ];
@@ -50,6 +73,7 @@ const fullPlugins = [
     linkDialogPlugin(),
     tablePlugin(),
     markdownShortcutPlugin(),
+    directivesPlugin({ directiveDescriptors: [ColorDirectiveDescriptor] }),
     toolbarPlugin({
         toolbarContents: () => <>
             <UndoRedo/>
@@ -63,6 +87,8 @@ const fullPlugins = [
             <CreateLink/>
             <InsertTable/>
             <InsertThematicBreak/>
+            <Separator/>
+            <ColorDirectiveButton/>
         </>,
     }),
 ];
@@ -77,6 +103,7 @@ const actionPlugins = [
     thematicBreakPlugin(),
     tablePlugin(),
     markdownShortcutPlugin(),
+    directivesPlugin({ directiveDescriptors: [ColorDirectiveDescriptor] }),
     toolbarPlugin({
         toolbarContents: () => <>
             <UndoRedo/>
@@ -89,6 +116,8 @@ const actionPlugins = [
             <Separator/>
             <InsertTable/>
             <InsertThematicBreak/>
+            <Separator/>
+            <ColorDirectiveButton/>
         </>,
     }),
 ];

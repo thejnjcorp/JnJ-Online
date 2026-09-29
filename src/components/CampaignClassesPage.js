@@ -5,7 +5,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../utils/firebase';
 import { subscribeClassToCampaign } from '../utils/campaignSubscriptions';
 import '../styles/CampaignClassesPage.scss';
-import Markdown from 'markdown-to-jsx';
+import Markdown from './ColoredMarkdown';
 
 const TYPE_FILTERS = ['all', 'Attrionist', 'Crit Hunter', 'Manipulator', 'Snowballer'];
 

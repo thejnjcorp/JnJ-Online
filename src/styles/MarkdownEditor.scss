@@ -120,6 +120,27 @@
     font-size: var(--jnj-text-xs);
 }
 
+.ColorDirectiveEditor {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--jnj-space-1);
+    vertical-align: middle;
+
+    .ColorDirectiveEditor-swatch {
+        width: 1.1rem;
+        height: 1.1rem;
+        padding: 0;
+        border: 1px solid var(--jnj-color-border-strong);
+        border-radius: var(--jnj-radius-sm);
+        background: transparent;
+        cursor: pointer;
+    }
+
+    .ColorDirectiveEditor-text {
+        display: inline-block;
+    }
+}
+
 .MarkdownEditor-fallback {
     box-sizing: border-box;
     display: block;

@@ -36,8 +36,10 @@ module.exports = {
     MDXEditor,
     headingsPlugin: plugin, linkDialogPlugin: plugin, linkPlugin: plugin, listsPlugin: plugin,
     markdownShortcutPlugin: plugin, maxLengthPlugin: length => ({ maxLength: length }), quotePlugin: plugin, tablePlugin: plugin,
-    thematicBreakPlugin: plugin, toolbarPlugin: plugin,
+    thematicBreakPlugin: plugin, toolbarPlugin: plugin, directivesPlugin: plugin,
     BlockTypeSelect: component, BoldItalicUnderlineToggles: component, CreateLink: component,
     InsertTable: component, InsertThematicBreak: component, ListsToggle: component,
-    Separator: component, UndoRedo: component,
+    Separator: component, UndoRedo: component, ButtonWithTooltip: component,
+    insertDirective$: {},
+    usePublisher: () => () => {},
 };

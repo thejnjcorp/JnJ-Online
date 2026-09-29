@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import '../styles/ClassVersionControl.scss';
-import Markdown from 'markdown-to-jsx';
+import Markdown from './ColoredMarkdown';
 
 function formatDate(timestamp) {
     if (!timestamp?.toDate) return '';

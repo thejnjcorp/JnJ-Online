@@ -3,7 +3,7 @@ import { arrayUnion, collection, doc, getDoc, getDocs, or, query, updateDoc, whe
 import { db } from '../utils/firebase';
 import { clampStacks, getEffectsArray, stacksLabel } from '../utils/statusEffects';
 import { STATUS_TYPES, isHexColor, isToken, statusColorClass, statusColorStyle } from '../utils/statusStyle';
-import Markdown from 'markdown-to-jsx';
+import Markdown from './ColoredMarkdown';
 import MarkdownEditor from './MarkdownEditor';
 
 const byName = (a, b) => (a.name || '').localeCompare(b.name || '');

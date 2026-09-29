@@ -1,5 +1,5 @@
 import '../styles/CombatActionList.scss';
-import Markdown from 'markdown-to-jsx';
+import Markdown from './ColoredMarkdown';
 import { ReactComponent as LockIcon } from '../icons/lock.svg';
 import { CharacterStatCalculator } from './CharacterStatCalculator';
 import { getActionCategory, isReactionAction } from '../utils/classActions';

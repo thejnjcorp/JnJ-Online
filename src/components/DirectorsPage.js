@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
 import { Tooltip } from 'react-tooltip';
 import 'react-tooltip/dist/react-tooltip.css';
-import Markdown from 'markdown-to-jsx';
+import Markdown from './ColoredMarkdown';
 import '../styles/CharacterPageStyles/DefaultCharacterPage.scss';
 import '../styles/DirectorsPage.scss';
 import '../styles/CharacterMainTab.scss';

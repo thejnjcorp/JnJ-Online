@@ -4,7 +4,7 @@ import { db } from '../utils/firebase';
 import { AddStatusDialog } from './AddStatusDialog';
 import { StatusChip } from './StatusChip';
 import { MAX_STACKS, NO_STACK_COUNT, clampStacks, stacksLabel } from '../utils/statusEffects';
-import Markdown from 'markdown-to-jsx';
+import Markdown from './ColoredMarkdown';
 
 // onUpdateStatuses/hasWritePermissions let a caller point this at a
 // non-character write path (Director's Page enemy cards - NPCs aren't

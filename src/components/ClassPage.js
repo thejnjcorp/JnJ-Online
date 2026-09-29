@@ -3,7 +3,7 @@ import { reverseCharacterDiceConverter, CharacterDiceConverter } from './Charact
 import { useNavigate, useLocation } from 'react-router-dom';
 import { addDoc, arrayRemove, collection, getDoc, getDocs, doc, or, query, updateDoc, where } from '@firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import Markdown from 'markdown-to-jsx';
+import Markdown from './ColoredMarkdown';
 import MarkdownEditor from './MarkdownEditor';
 import { auth, db } from '../utils/firebase';
 import { ADMIN_UIDS } from '../utils/statusEffects';

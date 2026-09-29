@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import Markdown from 'markdown-to-jsx';
+import Markdown from './ColoredMarkdown';
 import { useItem } from '../utils/useItems';
 import { imageSrc } from '../utils/imageRefs';
 import '../styles/Party.scss';

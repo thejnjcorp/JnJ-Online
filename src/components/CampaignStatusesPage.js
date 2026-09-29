@@ -5,7 +5,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../utils/firebase';
 import { STATUS_TYPES, statusColorClass, statusColorStyle } from '../utils/statusStyle';
 import '../styles/CampaignClassesPage.scss';
-import Markdown from 'markdown-to-jsx';
+import Markdown from './ColoredMarkdown';
 
 const POLARITY_FILTERS = ['all', ...STATUS_TYPES.map(type => type.key)];
 

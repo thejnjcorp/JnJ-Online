@@ -5,7 +5,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../utils/firebase';
 import { subscribeRaceToCampaign } from '../utils/campaignSubscriptions';
 import '../styles/CampaignClassesPage.scss';
-import Markdown from 'markdown-to-jsx';
+import Markdown from './ColoredMarkdown';
 
 // The race counterpart to CampaignClassesPage.js (same markup and styling):
 // one screen for managing a campaign's whole race roster at once.
