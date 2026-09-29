@@ -10,9 +10,14 @@ jest.mock('firebase/firestore', () => ({
 // react-colorful's real picker needs pointer-drag gestures on a gradient
 // canvas to pick a color, which isn't practical to simulate in jsdom -
 // stubbed as a plain text input so a new color can be set with fireEvent.change.
+// HexColorInput is a real text input in the real component too, so its stub
+// is functionally identical, just under the component's own "Hex color" label.
 jest.mock('react-colorful', () => ({
     HexColorPicker: ({ color, onChange }) => (
         <input aria-label="hex color" value={color} onChange={(e) => onChange(e.target.value)} />
+    ),
+    HexColorInput: ({ color, onChange }) => (
+        <input aria-label="Hex color" value={color} onChange={(e) => onChange(e.target.value)} />
     ),
 }));
 
@@ -69,6 +74,23 @@ describe('CharacterPageNavigationColorPickerButton', () => {
 
         expect(screen.queryByLabelText('hex color')).not.toBeInTheDocument();
         expect(mockUpdateDoc).not.toHaveBeenCalled();
+    });
+
+    test('the hex text field is pre-seeded with the character\'s current navigation_color too', () => {
+        render(<CharacterPageNavigationColorPickerButton characterPageLayoutLive={characterPageLayoutLive} />);
+        fireEvent.click(screen.getByRole('button', { name: 'palette.svg' }));
+
+        expect(screen.getByLabelText('Hex color')).toHaveValue('#ff0000');
+    });
+
+    test('typing a hex value and clicking Set Color saves it - a hex/rgb entry option alongside the visual picker', () => {
+        render(<CharacterPageNavigationColorPickerButton characterPageLayoutLive={characterPageLayoutLive} />);
+        fireEvent.click(screen.getByRole('button', { name: 'palette.svg' }));
+
+        fireEvent.change(screen.getByLabelText('Hex color'), { target: { value: '#00ff00' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Set Color' }));
+
+        expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { navigation_color: '#00ff00' });
     });
 
     test('picking a new color and clicking Set Color saves it to the character doc and closes the panel', () => {

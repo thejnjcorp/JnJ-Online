@@ -1,4 +1,4 @@
-import { HexColorPicker } from "react-colorful";
+import { HexColorInput, HexColorPicker } from "react-colorful";
 import { useState } from "react";
 import { Tooltip } from "react-tooltip";
 import { doc, updateDoc } from "firebase/firestore";
@@ -36,6 +36,13 @@ export function CharacterPageNavigationColorPickerButton({characterPageLayoutLiv
             />
             <div className="CharacterPage-colorpicker-panel">
                 <HexColorPicker className="CharacterPage-colorpicker-actual" color={selectedColor} onChange={setSelectedColor}/>
+                <HexColorInput
+                    className="CharacterPage-colorpicker-hex-input"
+                    aria-label="Hex color"
+                    color={selectedColor}
+                    onChange={setSelectedColor}
+                    prefixed
+                />
                 <button type="button" className="CharacterPage-colorpicker-select-button" onClick={handleSetColor}>Set Color</button>
                 <button type="button" className="CharacterPage-colorpicker-cancel-button" onClick={() => setShowColorPicker(false)}>Cancel</button>
             </div>
