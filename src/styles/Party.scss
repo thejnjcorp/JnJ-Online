@@ -388,13 +388,7 @@
     align-items: center;
     gap: var(--jnj-space-1);
     width: 100%;
-    padding: 0;
-    border: 0;
-    background: none;
-    color: inherit;
-    font: inherit;
     text-align: left;
-    cursor: pointer;
 }
 
 .InventoryCard-thumb {
@@ -412,15 +406,95 @@
     text-overflow: ellipsis;
 }
 
-.InventoryCard-panel {
-    margin: 2px 0 var(--jnj-space-2);
-    padding: var(--jnj-space-2);
-    border: 1px solid var(--jnj-color-border);
-    border-radius: var(--jnj-radius-md);
-    background: var(--jnj-color-bg-raised);
-    color: var(--jnj-color-text);
-    font-size: var(--jnj-text-xs);
+// Deliberately small and off to the side (not stretched to fill the card) -
+// the rest of the card is the drag handle, and used to be entirely covered
+// by one big button that opened this same content in place, leaving only
+// the card's thin outer padding free to actually grab and drag.
+.InventoryCard-details-button {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    padding: 0;
+    border: 0;
+    border-radius: var(--jnj-radius-sm);
+    background: none;
+    color: var(--jnj-color-text-muted);
+    cursor: pointer;
+
+    svg {
+        width: 0.75rem;
+        height: 0.75rem;
+    }
+
+    &:hover {
+        color: var(--jnj-color-text);
+        background: var(--jnj-color-bg-hover);
+    }
+}
+
+.InventoryCard-popup-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background-color: rgba(0, 0, 0, 0.6);
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+.InventoryCard-popup {
+    position: fixed;
+    z-index: 31;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(360px, calc(100vw - 48px));
+    max-height: 80vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-2);
+    padding: var(--jnj-space-4);
     text-align: left;
+    background: var(--jnj-color-bg-raised);
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-lg);
+    box-shadow: var(--jnj-shadow-lg);
+    color: var(--jnj-color-text);
+    font-size: var(--jnj-text-sm);
+}
+
+.InventoryCard-popup-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--jnj-space-2);
+}
+
+.InventoryCard-popup-title {
+    font-weight: 700;
+    font-size: 1.0625rem;
+}
+
+.InventoryCard-popup-close {
+    flex: none;
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: 50%;
+    background: var(--jnj-color-bg-sunken);
+    color: var(--jnj-color-text);
+    line-height: 1;
+    cursor: pointer;
+
+    &:hover {
+        border-color: var(--jnj-color-danger);
+        color: var(--jnj-color-danger);
+    }
 }
 
 .InventoryCard-controls {

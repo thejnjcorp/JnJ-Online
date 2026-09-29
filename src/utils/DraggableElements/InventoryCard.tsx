@@ -5,6 +5,7 @@ import { useItem } from "../useItems";
 import { isItemEntry, quantityOf, MAX_QUANTITY } from "../inventory";
 import { putInParty, removeCharacterEntry, setCharacterQuantity } from "../partyInventory";
 import type { Post } from "./Post.ts";
+import { ReactComponent as ChevronDownIcon } from "../../icons/chevron_down.svg";
 import "../../styles/Party.scss";
 
 // What an inventory card needs to know about whose inventory it is in: the character,
@@ -16,10 +17,15 @@ export const InventoryContext = createContext<InventoryContextValue>({ character
 type EntryPost = Post & { item_id?: string; quantity?: number };
 
 // One entry of a character's inventory, in its slot: the item's picture, name and how
-// many, dragged from slot to slot. Pressing it opens the item's details and - for
-// someone who may change the inventory - the controls: more or fewer, put some in the
-// party inventory, or remove it. An entry from before items existed shows the text it
-// was typed with, and can only be removed.
+// many, dragged from slot to slot. Bar its small details button in the corner, the
+// whole card is the drag handle - a card used to be one big button that opened its
+// details in place, which left only its thin outer padding free to actually grab and
+// drag. The details button opens the item's description and - for someone who may
+// change the inventory - the controls (more or fewer, put some in the party inventory,
+// or remove it) as a popup instead of inline: inline pushed the rest of the slot grid
+// around every time one was open, which didn't fit a small fixed-size slot well. An
+// entry from before items existed shows the text it was typed with, and can only be
+// removed.
 export const InventoryCard = ({ post, index, titleClassName, boxClassName }: { post: Post; index: number; titleClassName: string; contentClassName?: string; boxClassName: string; extraClassNames?: string[]; readOnly?: boolean }) => {
     const { characterId, canEdit, campaignId, userId } = useContext(InventoryContext);
     const entry = post as EntryPost;
@@ -48,31 +54,41 @@ export const InventoryCard = ({ post, index, titleClassName, boxClassName }: { p
                 {(provided, snapshot) => (
                     <div style={{ marginBottom: "1px" }} {...provided.dragHandleProps} {...provided.draggableProps} ref={provided.innerRef}>
                         <div className={snapshot.isDragging ? `${boxClassName} isDragging` : boxClassName}>
-                            <button type="button" className={`${titleClassName} InventoryCard-title`} aria-expanded={open} onClick={() => setOpen(!open)}>
+                            <div className={`${titleClassName} InventoryCard-title`}>
                                 <ItemThumb item={state.item} className="InventoryCard-thumb"/>
                                 <span className="InventoryCard-name">{name}</span>
                                 {quantity > 1 && <span className="ItemLine-quantity" aria-label={`quantity ${quantity}`}>×{quantity}</span>}
-                            </button>
+                                <button type="button" className="InventoryCard-details-button" aria-label={`${name} details`} aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(o => !o)}>
+                                    <ChevronDownIcon/>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}
             </Draggable>
-            {open && <div className="InventoryCard-panel">
-                <ItemDetails state={state} content={(post as Post).content} legacy={!real}/>
-                {canEdit && <div className="InventoryCard-controls">
-                    {real && <div className="InventoryCard-quantity" role="group" aria-label="Quantity">
-                        <button type="button" className="Party-button" aria-label="One fewer" onClick={() => run(() => setCharacterQuantity(characterId, entry.id as string, quantity - 1))}>−</button>
-                        <span>{quantity}</span>
-                        <button type="button" className="Party-button" aria-label="One more" disabled={quantity >= MAX_QUANTITY} onClick={() => run(() => setCharacterQuantity(characterId, entry.id as string, quantity + 1))}>+</button>
+            {open && <>
+                <button type="button" className="InventoryCard-popup-scrim" aria-label="Close" onClick={() => setOpen(false)}/>
+                <div className="InventoryCard-popup" role="dialog" aria-label={`${name} details`}>
+                    <div className="InventoryCard-popup-header">
+                        <span className="InventoryCard-popup-title">{name}</span>
+                        <button type="button" className="InventoryCard-popup-close" aria-label="Close details" onClick={() => setOpen(false)}>×</button>
+                    </div>
+                    <ItemDetails state={state} content={(post as Post).content} legacy={!real}/>
+                    {canEdit && <div className="InventoryCard-controls">
+                        {real && <div className="InventoryCard-quantity" role="group" aria-label="Quantity">
+                            <button type="button" className="Party-button" aria-label="One fewer" onClick={() => run(() => setCharacterQuantity(characterId, entry.id as string, quantity - 1))}>−</button>
+                            <span>{quantity}</span>
+                            <button type="button" className="Party-button" aria-label="One more" disabled={quantity >= MAX_QUANTITY} onClick={() => run(() => setCharacterQuantity(characterId, entry.id as string, quantity + 1))}>+</button>
+                        </div>}
+                        {real && campaignId && <div className="InventoryCard-party">
+                            <input className="Party-input Party-input-narrow" type="number" min={1} max={quantity} aria-label="How many to put in the party inventory" value={amount} onChange={(event) => setAmount(Number(event.target.value))}/>
+                            <button type="button" className="Party-button" onClick={() => run(() => putInParty({ campaignId, characterId, itemId: entry.item_id, title: name, quantity: putAmount, userId }))}>Put in party inventory</button>
+                        </div>}
+                        <button type="button" className="Party-button Party-button-danger" onClick={() => run(() => removeCharacterEntry(characterId, entry.id as string))}>Remove</button>
                     </div>}
-                    {real && campaignId && <div className="InventoryCard-party">
-                        <input className="Party-input Party-input-narrow" type="number" min={1} max={quantity} aria-label="How many to put in the party inventory" value={amount} onChange={(event) => setAmount(Number(event.target.value))}/>
-                        <button type="button" className="Party-button" onClick={() => run(() => putInParty({ campaignId, characterId, itemId: entry.item_id, title: name, quantity: putAmount, userId }))}>Put in party inventory</button>
-                    </div>}
-                    <button type="button" className="Party-button Party-button-danger" onClick={() => run(() => removeCharacterEntry(characterId, entry.id as string))}>Remove</button>
-                </div>}
-                {message && <div className="Party-error" role="alert">{message}</div>}
-            </div>}
+                    {message && <div className="Party-error" role="alert">{message}</div>}
+                </div>
+            </>}
         </div>
     );
 };
