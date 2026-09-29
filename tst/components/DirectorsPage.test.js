@@ -1072,14 +1072,31 @@ describe('DirectorsPage', () => {
         describe('existing maps', () => {
             const map = { map_id: 'map-1', link: 'map.png', admins: ['owner-1'] };
 
-            test('renders each map and marks the active one', async () => {
+            test('renders each map as a thumbnail and marks the active one - its full zone editor stays collapsed until opened', async () => {
                 mockUseCampaignMaps.mockReturnValue({ maps: [map], activeMap: null });
                 await renderReady({ campaignInfo: { ...baseCampaignInfo, active_map: 'map-1' } });
                 goToTab('Maps');
-                expect(screen.getByText('MapRenderer-stub:map-1:owner-1')).toBeInTheDocument();
                 expect(screen.getByRole('button', { name: 'Unselect Map' })).toBeEnabled();
                 expect(screen.getByText('Active on the combat tracker')).toBeInTheDocument();
                 expect(screen.queryByRole('button', { name: 'Set as Active' })).not.toBeInTheDocument();
+                expect(screen.queryByText('MapRenderer-stub:map-1:owner-1')).not.toBeInTheDocument();
+
+                fireEvent.click(screen.getByRole('button', { name: "Open this map's zone editor" }));
+
+                expect(screen.getByText('MapRenderer-stub:map-1:owner-1')).toBeInTheDocument();
+            });
+
+            test('opening one map\'s editor and closing it again collapses it back to just the thumbnail', async () => {
+                mockUseCampaignMaps.mockReturnValue({ maps: [map], activeMap: null });
+                await renderReady();
+                goToTab('Maps');
+
+                fireEvent.click(screen.getByRole('button', { name: "Open this map's zone editor" }));
+                expect(screen.getByText('MapRenderer-stub:map-1:owner-1')).toBeInTheDocument();
+
+                fireEvent.click(screen.getByRole('button', { name: 'Close zone editor' }));
+
+                expect(screen.queryByText('MapRenderer-stub:map-1:owner-1')).not.toBeInTheDocument();
             });
 
             test('Unselect Map clears active_map, leaving no map for the combat tracker', async () => {
@@ -1099,10 +1116,14 @@ describe('DirectorsPage', () => {
                 expect(screen.queryByText('Active on the combat tracker')).not.toBeInTheDocument();
             });
 
-            test('passes the map\'s admins list and the signed-in user down to DocAdminManager', async () => {
+            test('passes the map\'s admins list and the signed-in user down to DocAdminManager, once its editor is open', async () => {
                 mockUseCampaignMaps.mockReturnValue({ maps: [map], activeMap: null });
                 await renderReady();
                 goToTab('Maps');
+                expect(screen.queryByText('DocAdminManager-stub:["owner-1"]:owner-1')).not.toBeInTheDocument();
+
+                fireEvent.click(screen.getByRole('button', { name: "Open this map's zone editor" }));
+
                 expect(screen.getByText('DocAdminManager-stub:["owner-1"]:owner-1')).toBeInTheDocument();
             });
 

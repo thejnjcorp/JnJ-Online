@@ -373,6 +373,11 @@ export function DirectorsPage() {
     }
 
     const [mapLink, setMapLink] = useState('');
+    // Which map's full zone editor (MapRenderer) is open, in the gallery below -
+    // at most one at a time, collapsed by default. Rendering every map's full
+    // editor (draggable zone handles and all) at once, always, for every map in
+    // the campaign, was the clunky, space-wasting list this replaces.
+    const [expandedMapId, setExpandedMapId] = useState(null);
 
     const deleteMap = async (map) => {
         if (!window.confirm("Delete this map? This cannot be undone.")) return;
@@ -814,25 +819,41 @@ export function DirectorsPage() {
                     content: <div>
                         <PictureField name="New map" value={mapLink} onChange={setMapLink} square/>
                         <button type="button" onClick={addNewMapToCampaign} disabled={!mapLink}>Add Map</button>
-                        <div className='DirectorsPage-maps-list'>
+                        <div className='DirectorsPage-maps-gallery'>
                             {maps.map((map) => {
                                 const isActive = campaignInfo.active_map === map.map_id;
-                                return <div key={map.map_id} className='DirectorsPage-map-item'>
-                                    <MapRenderer map={map} userId={userId}/>
-                                    <button type="button"
-                                        className='DirectorsPage-set-active-map-button'
-                                        onClick={() => selectMap(isActive ? null : map.map_id)}
+                                const isExpanded = expandedMapId === map.map_id;
+                                const cardClass = ['DirectorsPage-map-card', isActive && 'DirectorsPage-map-card-active', isExpanded && 'DirectorsPage-map-card-expanded'].filter(Boolean).join(' ');
+                                return <div key={map.map_id} className={cardClass}>
+                                    <button
+                                        type="button"
+                                        className="DirectorsPage-map-thumb-button"
+                                        aria-expanded={isExpanded}
+                                        aria-label={isExpanded ? "Close this map's zone editor" : "Open this map's zone editor"}
+                                        onClick={() => setExpandedMapId(isExpanded ? null : map.map_id)}
                                     >
-                                        {isActive ? "Unselect Map" : "Set as Active"}
+                                        <img src={map.link} alt="" className="DirectorsPage-map-thumb"/>
+                                        {isActive && <span className='DirectorsPage-active-map-badge'>Active on the combat tracker</span>}
                                     </button>
-                                    {isActive && <span className='DirectorsPage-active-map-badge'>Active on the combat tracker</span>}
-                                    <button type="button"
-                                        className='DirectorsPage-delete-map-button'
-                                        onClick={() => deleteMap(map)}
-                                    >
-                                        Delete Map
-                                    </button>
-                                    <DocAdminManager docRef={doc(db, "maps", map.map_id)} admins={map.admins} userId={userId}/>
+                                    <div className="DirectorsPage-map-card-actions">
+                                        <button type="button"
+                                            className='DirectorsPage-set-active-map-button'
+                                            onClick={() => selectMap(isActive ? null : map.map_id)}
+                                        >
+                                            {isActive ? "Unselect Map" : "Set as Active"}
+                                        </button>
+                                        <button type="button"
+                                            className='DirectorsPage-delete-map-button'
+                                            onClick={() => deleteMap(map)}
+                                        >
+                                            Delete Map
+                                        </button>
+                                    </div>
+                                    {isExpanded && <div className="DirectorsPage-map-expanded">
+                                        <MapRenderer map={map} userId={userId}/>
+                                        <DocAdminManager docRef={doc(db, "maps", map.map_id)} admins={map.admins} userId={userId}/>
+                                        <button type="button" className="DirectorsPage-map-collapse-button" onClick={() => setExpandedMapId(null)}>Close zone editor</button>
+                                    </div>}
                                 </div>
                             })}
                         </div>
