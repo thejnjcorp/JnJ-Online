@@ -34,6 +34,7 @@ import { ActionViewControls } from "./ActionViewControls";
 import { StatusChip } from "./StatusChip";
 import { ActionUsesReset } from "./ActionUses";
 import { CombatMapPeek } from "./CombatMapPeek";
+import { PartyCombatRoster } from "./PartyCombatRoster";
 import { isLimitedUse } from "../utils/actionUses";
 
 function isPassive(action) {
@@ -292,6 +293,7 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                         {statuses.map(status => <StatusChip key={status.id} status={status}/>)}
                     </div>}
                 </div>
+                {hasCampaign && <PartyCombatRoster characterList={characterList}/>}
                 <div className="CharacterMainTab-action-body">
                     {hasWritePermissions && limitedCombatActions.length > 0 && <ActionUsesReset actions={limitedCombatActions} uses={actionUses} onChange={setActionUses}/>}
                     <ActionViewControls actions={combatActions} filter={activeFilter} onFilter={setCombatFilter} sort={combatSort} onSort={setCombatSort}/>

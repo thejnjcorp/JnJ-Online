@@ -1,0 +1,62 @@
+// A read-only party status board on the character's own Combat tab - see
+// components/PartyCombatRoster.js.
+
+.PartyCombatRoster {
+    margin-bottom: var(--jnj-space-3);
+}
+
+.PartyCombatRoster-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-2);
+}
+
+.PartyCombatRoster-card {
+    padding: var(--jnj-space-2) var(--jnj-space-3);
+    border: 1px solid var(--jnj-color-border);
+    border-radius: var(--jnj-radius-md);
+    background: var(--jnj-color-bg-sunken);
+}
+
+.PartyCombatRoster-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--jnj-space-2);
+    font-weight: 600;
+}
+
+.PartyCombatRoster-hp-label {
+    font-size: var(--jnj-text-sm);
+    color: var(--jnj-color-text-muted);
+    font-weight: 400;
+    white-space: nowrap;
+}
+
+.PartyCombatRoster-vitals {
+    display: flex;
+    align-items: center;
+    gap: var(--jnj-space-2);
+    margin-top: var(--jnj-space-1);
+    font-size: var(--jnj-text-xs);
+    color: var(--jnj-color-text-muted);
+}
+
+.PartyCombatRoster-hp-track {
+    flex: 1;
+    min-width: 4rem;
+    height: 6px;
+    border-radius: var(--jnj-radius-pill);
+    background: var(--jnj-color-bg);
+    overflow: hidden;
+}
+
+.PartyCombatRoster-hp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--jnj-color-success), #7fc493);
+}
+
+.PartyCombatRoster-temp,
+.PartyCombatRoster-hardness {
+    white-space: nowrap;
+}

@@ -231,6 +231,20 @@ describe('CharacterMainTab', () => {
             expect(container.querySelector('.TabContainer-content > .CharacterMainTab-action-points')).toBeInTheDocument();
         });
 
+        test('shows the whole party\'s HP/statuses read-only, since there is nowhere else a player can check on a teammate mid-fight', () => {
+            const teammate = { character_id: 'char-2', character_name: 'Bram', current_health: 5, maximum_health: 10, statuses: [] };
+            render(<CharacterMainTab characterPage={characterPage} userId="owner-1" characterList={[characterPage, teammate]} />);
+            goToTab('Combat');
+            expect(within(screen.getByLabelText('Party')).getByText('Bram')).toBeInTheDocument();
+            expect(within(screen.getByLabelText('Party')).getByText('5/10 HP')).toBeInTheDocument();
+        });
+
+        test('no party roster for a character with no campaign - nobody to share it with', () => {
+            render(<CharacterMainTab characterPage={{ ...characterPage, campaign: '' }} userId="owner-1" />);
+            goToTab('Combat');
+            expect(screen.queryByLabelText('Party')).not.toBeInTheDocument();
+        });
+
         describe('statuses next to the action points', () => {
             const statuses = [
                 { id: 's1', name: 'Haste', polarity: 'buff', stacks: 2 },
