@@ -17,6 +17,16 @@
     color: var(--jnj-color-text);
     cursor: pointer;
     transition: border-color var(--jnj-transition), color var(--jnj-transition);
+    // The panel below is fixed to the viewport's top-right corner, independent
+    // of wherever this button actually sits on the page - at some combination
+    // of sticky layout and font/text-scale, the button's own position can end
+    // up under that same rectangle. Without a stacking context of its own
+    // (position: relative) and a z-index above the panel's, a static button
+    // always paints below a positioned sibling, so the panel would swallow the
+    // click that was meant to close it. Being genuinely on top guarantees this
+    // button stays clickable no matter where layout puts it.
+    position: relative;
+    z-index: 31;
 
     svg {
         width: 100%;
