@@ -382,6 +382,13 @@
             cursor: default;
         }
     }
+
+    // circle.svg/circle_filled.svg are baked black (#000000) - same trick as
+    // CharacterMainTab-circle - without this they render invisibly on this
+    // page's dark cards.
+    img {
+        filter: invert(1);
+    }
 }
 
 .DirectorsPage-reaction {
@@ -403,6 +410,11 @@
 
         &:disabled {
             cursor: default;
+        }
+
+        // same baked-black icon as the action point circles above
+        img {
+            filter: invert(1);
         }
     }
 }
