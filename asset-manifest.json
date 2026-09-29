@@ -1,7 +1,7 @@
 {
   "files": {
-    "main.css": "/JnJ-Online/static/css/main.7ad54136.css",
-    "main.js": "/JnJ-Online/static/js/main.902cc3a6.js",
+    "main.css": "/JnJ-Online/static/css/main.e3b71f32.css",
+    "main.js": "/JnJ-Online/static/js/main.0b9d90ed.js",
     "static/js/540.5d774e05.chunk.js": "/JnJ-Online/static/js/540.5d774e05.chunk.js",
     "static/js/981.f81e4c11.chunk.js": "/JnJ-Online/static/js/981.f81e4c11.chunk.js",
     "static/js/916.e7b634ae.chunk.js": "/JnJ-Online/static/js/916.e7b634ae.chunk.js",
@@ -16,12 +16,12 @@
     "static/media/strength.svg": "/JnJ-Online/static/media/strength.45131f355faa8d2ad58375a6bfb0af74.svg",
     "static/media/dexterity.svg": "/JnJ-Online/static/media/dexterity.a5617fd1b11fec33b7b285b019e5252e.svg",
     "index.html": "/JnJ-Online/index.html",
-    "static/media/colorpicker.svg": "/JnJ-Online/static/media/colorpicker.c6ad43261a3c0de20fba2991d942552e.svg",
     "static/media/intelligence.svg": "/JnJ-Online/static/media/intelligence.0762515db546f70338a8cc08e7473d31.svg",
     "static/media/trash_can.svg": "/JnJ-Online/static/media/trash_can.e68e4a9bff0f80224cfeef3fb17e049e.svg",
     "static/media/default_profile.svg": "/JnJ-Online/static/media/default_profile.bfa6b1bf0bb79cddcb1583911fc58628.svg",
     "static/media/shield.svg": "/JnJ-Online/static/media/shield.4864cb36a836c83fc600695b01d914d8.svg",
     "static/media/charisma.svg": "/JnJ-Online/static/media/charisma.1d37201f2910fa9c89fbcc9aafe119e5.svg",
+    "static/media/colorpicker.svg": "/JnJ-Online/static/media/colorpicker.23b0b392f06da8e058fcee4acf235a42.svg",
     "static/media/loading.svg": "/JnJ-Online/static/media/loading.d0eb5ef18157850cbf97f4481df38b36.svg",
     "static/media/palette.svg": "/JnJ-Online/static/media/palette.0f60698be84156eb590053c490fb26b9.svg",
     "static/media/scroll.svg": "/JnJ-Online/static/media/scroll.950fda8cdc2e8064e14612691eeed9a7.svg",
@@ -40,8 +40,8 @@
     "static/media/chevron_down.svg": "/JnJ-Online/static/media/chevron_down.6bcffede3ac013cca3b41b310faf1e5a.svg",
     "static/media/circle_filled.svg": "/JnJ-Online/static/media/circle_filled.7a9cf4bfa5d0574978939f15556bb38e.svg",
     "static/media/circle.svg": "/JnJ-Online/static/media/circle.e7eb2b803d30d626f271a1aba0c8d9fe.svg",
-    "main.7ad54136.css.map": "/JnJ-Online/static/css/main.7ad54136.css.map",
-    "main.902cc3a6.js.map": "/JnJ-Online/static/js/main.902cc3a6.js.map",
+    "main.e3b71f32.css.map": "/JnJ-Online/static/css/main.e3b71f32.css.map",
+    "main.0b9d90ed.js.map": "/JnJ-Online/static/js/main.0b9d90ed.js.map",
     "981.f81e4c11.chunk.js.map": "/JnJ-Online/static/js/981.f81e4c11.chunk.js.map",
     "916.e7b634ae.chunk.js.map": "/JnJ-Online/static/js/916.e7b634ae.chunk.js.map",
     "453.e1c165ac.chunk.js.map": "/JnJ-Online/static/js/453.e1c165ac.chunk.js.map",
@@ -53,7 +53,7 @@
     "649.39f55f4d.chunk.js.map": "/JnJ-Online/static/js/649.39f55f4d.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.7ad54136.css",
-    "static/js/main.902cc3a6.js"
+    "static/css/main.e3b71f32.css",
+    "static/js/main.0b9d90ed.js"
   ]
 }
