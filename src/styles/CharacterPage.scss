@@ -495,7 +495,25 @@
 }
 
 .CharacterPage-vitals-statuses-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--jnj-space-2);
     margin-bottom: var(--jnj-space-2);
+}
+
+.CharacterPage-status-clear-all {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--jnj-color-danger);
+    font-size: 0.71875rem;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover {
+        text-decoration: underline;
+    }
 }
 
 .CharacterPage-status-list {
@@ -612,13 +630,58 @@
     }
 }
 
-.CharacterPage-status-detail {
-    margin-top: 6px;
-    max-width: 260px;
-    padding: 10px 12px;
+.CharacterPage-status-popup-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background-color: rgba(0, 0, 0, 0.6);
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+.CharacterPage-status-popup {
+    position: fixed;
+    z-index: 31;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(360px, calc(100vw - 48px));
+    max-height: 80vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+    padding: var(--jnj-space-4);
+    text-align: left;
+    background: var(--jnj-color-bg-raised);
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-lg);
+    box-shadow: var(--jnj-shadow-lg);
+    color: var(--jnj-color-text);
+}
+
+.CharacterPage-status-popup-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--jnj-space-2);
+    margin-bottom: var(--jnj-space-3);
+}
+
+.CharacterPage-status-popup-close {
+    flex: none;
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: 50%;
     background: var(--jnj-color-bg-sunken);
-    border: 1px solid var(--jnj-color-border);
-    border-radius: var(--jnj-radius-md);
+    color: var(--jnj-color-text);
+    line-height: 1;
+    cursor: pointer;
+
+    &:hover {
+        border-color: var(--jnj-color-danger);
+        color: var(--jnj-color-danger);
+    }
 }
 
 .CharacterPage-status-detail-description {

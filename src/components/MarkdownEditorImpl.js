@@ -10,6 +10,8 @@ import {
     ListsToggle,
     Separator,
     UndoRedo,
+    $isDirectiveNode,
+    activeEditor$,
     directivesPlugin,
     headingsPlugin,
     insertDirective$,
@@ -19,29 +21,91 @@ import {
     markdownShortcutPlugin,
     maxLengthPlugin,
     quotePlugin,
+    rootEditor$,
     tablePlugin,
     thematicBreakPlugin,
     toolbarPlugin,
     usePublisher,
+    useCellValue,
 } from '@mdxeditor/editor';
+import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_HIGH, KEY_BACKSPACE_COMMAND } from 'lexical';
 import '@mdxeditor/editor/style.css';
 import { MarkdownFallback } from './MarkdownFallback';
 import { keepBlankLines } from '../utils/markdownBlankLines';
 import { ColorDirectiveDescriptor } from './ColorDirectiveEditor';
 import { ReactComponent as ColorPickerIcon } from '../icons/colorpicker.svg';
 
-// Inserts an empty :color[]{color=...} at the cursor - the ColorDirectiveEditor
+// Inserts a :color[...]{color=...} at the cursor - the ColorDirectiveEditor
 // (registered below via directivesPlugin) then takes over, showing a swatch
-// to change the color and a nested editor for the phrase's own text.
+// to change the color and a nested editor for the phrase's own text. Text
+// already selected when this is clicked becomes the new phrase's own content
+// (onPointerDown's preventDefault keeps that selection from being lost to the
+// button stealing focus first), rather than being left behind empty.
 function ColorDirectiveButton() {
     const insertDirective = usePublisher(insertDirective$);
+    const activeEditor = useCellValue(activeEditor$);
+
+    function handleClick() {
+        let selectedText = '';
+        activeEditor?.getEditorState().read(() => {
+            const selection = $getSelection();
+            if ($isRangeSelection(selection) && !selection.isCollapsed()) {
+                selectedText = selection.getTextContent();
+            }
+        });
+        const payload = { name: 'color', type: 'textDirective', attributes: { color: '#ff0000' } };
+        if (selectedText) payload.children = [{ type: 'text', value: selectedText }];
+        insertDirective(payload);
+    }
+
     return <ButtonWithTooltip
         title="Colored text"
         onPointerDown={event => event.preventDefault()}
-        onClick={() => insertDirective({ name: 'color', type: 'textDirective', attributes: { color: '#ff0000' } })}
+        onClick={handleClick}
     >
         <ColorPickerIcon/>
     </ButtonWithTooltip>;
+}
+
+// A color directive is a DecoratorNode - as far as the outer editor is
+// concerned, an atomic unit - so Lexical's own default Backspace behavior,
+// right after one, is to delete the whole thing in a single keystroke. That's
+// surprising once it has real text in it: this steps into it instead (same
+// place the swatch's own auto-focus lands a brand new one), leaving normal
+// character-by-character deletion, and the node's own already-there
+// "backspace an empty one closes it" handling, to take it from there.
+// Renders nothing - just registers the command for as long as this editor
+// instance is mounted.
+function ColorDirectiveBackspaceGuard() {
+    const rootEditor = useCellValue(rootEditor$);
+
+    useEffect(() => {
+        if (!rootEditor) return;
+        return rootEditor.registerCommand(
+            KEY_BACKSPACE_COMMAND,
+            event => {
+                const selection = $getSelection();
+                if (!$isRangeSelection(selection) || !selection.isCollapsed()) return false;
+                const { anchor } = selection;
+                const anchorNode = anchor.getNode();
+                const nodeBeforeCursor = anchor.type === 'element'
+                    ? anchorNode.getChildAtIndex(anchor.offset - 1)
+                    : (anchor.offset === 0 ? anchorNode.getPreviousSibling() : null);
+                if (!nodeBeforeCursor || !$isDirectiveNode(nodeBeforeCursor) || nodeBeforeCursor.getMdastNode().name !== 'color') return false;
+                // Without this, returning true only stops Lexical's own
+                // command chain - the native keydown still reaches the
+                // browser's default contentEditable deletion, which by then
+                // lands on the nested editor .select() just focused, deleting
+                // one more character than intended.
+                event.preventDefault();
+                nodeBeforeCursor.select();
+                return true;
+            },
+            COMMAND_PRIORITY_HIGH,
+        );
+    }, [rootEditor]);
+
+    return null;
 }
 
 // Only what markdown-to-jsx (which renders all of this text) can show: no
@@ -60,6 +124,7 @@ const compactPlugins = [
             <ListsToggle options={['bullet', 'number']}/>
             <Separator/>
             <ColorDirectiveButton/>
+            <ColorDirectiveBackspaceGuard/>
         </>,
     }),
 ];
@@ -89,6 +154,7 @@ const fullPlugins = [
             <InsertThematicBreak/>
             <Separator/>
             <ColorDirectiveButton/>
+            <ColorDirectiveBackspaceGuard/>
         </>,
     }),
 ];
@@ -118,6 +184,7 @@ const actionPlugins = [
             <InsertThematicBreak/>
             <Separator/>
             <ColorDirectiveButton/>
+            <ColorDirectiveBackspaceGuard/>
         </>,
     }),
 ];

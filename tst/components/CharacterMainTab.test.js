@@ -283,10 +283,29 @@ describe('CharacterMainTab', () => {
                 expect(within(strip).getByText('Inspired').closest('.CharacterPage-status-chip').style.getPropertyValue('--status-color')).toBe('#f5a623');
             });
 
-            test('are read-only labels here (the sheet\'s status panel is where they are managed)', () => {
-                render(<CharacterMainTab characterPage={{ ...characterPage, statuses }} userId="owner-1" />);
+            test('open that status\'s details as a popup when pressed, with its stacks and controls for someone who can edit', () => {
+                render(<CharacterMainTab characterPage={{ ...characterPage, statuses: statuses.map(s => ({ ...s, description: `About ${s.name}` })) }} userId="owner-1" />);
                 goToTab('Combat');
-                expect(within(screen.getByRole('group', { name: 'Active statuses' })).queryAllByRole('button')).toHaveLength(0);
+                const strip = screen.getByRole('group', { name: 'Active statuses' });
+
+                fireEvent.click(within(strip).getByRole('button', { name: /^Haste/ }));
+
+                const dialog = screen.getByRole('dialog', { name: 'Haste details' });
+                expect(within(dialog).getByText('About Haste')).toBeInTheDocument();
+                expect(within(dialog).getByRole('button', { name: 'Remove' })).toBeInTheDocument();
+
+                fireEvent.click(screen.getByRole('button', { name: 'Close details' }));
+                expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+            });
+
+            test('open read-only for a viewer who cannot edit the character', () => {
+                render(<CharacterMainTab characterPage={{ ...characterPage, statuses }} userId="stranger-1" />);
+                goToTab('Combat');
+
+                fireEvent.click(within(screen.getByRole('group', { name: 'Active statuses' })).getByRole('button', { name: /^Haste/ }));
+
+                const dialog = screen.getByRole('dialog', { name: 'Haste details' });
+                expect(within(dialog).queryByRole('button', { name: 'Remove' })).not.toBeInTheDocument();
             });
 
             test('leave the bar exactly as it was for a character with none', () => {

@@ -40,6 +40,8 @@ module.exports = {
     BlockTypeSelect: component, BoldItalicUnderlineToggles: component, CreateLink: component,
     InsertTable: component, InsertThematicBreak: component, ListsToggle: component,
     Separator: component, UndoRedo: component, ButtonWithTooltip: component,
-    insertDirective$: {},
+    insertDirective$: {}, activeEditor$: {}, rootEditor$: {},
     usePublisher: () => () => {},
+    useCellValue: () => null,
+    $isDirectiveNode: () => false,
 };

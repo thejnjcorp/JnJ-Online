@@ -1,88 +1,36 @@
 import { useState } from 'react';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../utils/firebase';
 import { AddStatusDialog } from './AddStatusDialog';
 import { StatusChip } from './StatusChip';
-import { MAX_STACKS, NO_STACK_COUNT, clampStacks, stacksLabel } from '../utils/statusEffects';
-import Markdown from './ColoredMarkdown';
+import { StatusPopup } from './StatusPopup';
+import { useStatusEditing } from '../utils/useStatusEditing';
 
 // onUpdateStatuses/hasWritePermissions let a caller point this at a
 // non-character write path (Director's Page enemy cards - NPCs aren't
 // documents in the `characters` collection, see DirectorsPage.js's
 // updateEnemyStatuses). When omitted, this defaults to exactly the original
 // character-doc behavior, so the character page is unaffected.
-export function Statuses({characterPage, userId, onUpdateStatuses, hasWritePermissions: hasWritePermissionsProp}) {
-    const [expandedIds, setExpandedIds] = useState([]);
+export function Statuses({characterPage, userId, onUpdateStatuses, hasWritePermissions}) {
     const [addDialogOpen, setAddDialogOpen] = useState(false);
-    let hasWritePermissions = false;
-    if (hasWritePermissionsProp !== undefined) hasWritePermissions = hasWritePermissionsProp;
-    else if (userId) hasWritePermissions = characterPage.userId === userId || characterPage.canWrite?.includes(userId);
-    const statuses = characterPage.statuses || [];
-
-    function toggleExpanded(statusId) {
-        setExpandedIds(prev => prev.includes(statusId) ? prev.filter(id => id !== statusId) : [...prev, statusId]);
-    }
-
-    async function writeStatuses(nextStatuses) {
-        if (onUpdateStatuses) {
-            await onUpdateStatuses(nextStatuses);
-        } else {
-            await updateDoc(doc(db, "characters", characterPage.character_id), { statuses: nextStatuses });
-        }
-    }
-
-    async function handleRemove(status) {
-        try {
-            await writeStatuses(statuses.filter(s => s.id !== status.id));
-        } catch (e) {
-            alert(e);
-        }
-    }
-
-    // A single whole-array write (rather than an arrayRemove+arrayUnion pair,
-    // which Firestore can't apply as one atomic transform on the same field)
-    // computed from the live characterPage.statuses this component already
-    // has - the same "increase the Exhaustion/Wounded count" use case the
-    // Add Status dialog's stepper covers at add-time, now usable after the
-    // fact too.
-    async function handleStacksChange(status, delta) {
-        const newStacks = clampStacks(status.stacks + delta);
-        if (newStacks === status.stacks) return;
-        try {
-            await writeStatuses(statuses.map(s => s.id === status.id ? { ...s, stacks: newStacks } : s));
-        } catch (e) {
-            alert(e);
-        }
-    }
+    const { statuses, canWrite, openStatus, toggleOpen, close, removeStatus, clearAll, changeStacks } =
+        useStatusEditing({ characterPage, userId, onUpdateStatuses, hasWritePermissions });
 
     return <div className="CharacterPage-vitals-statuses">
         <div className="CharacterPage-vitals-statuses-header">
             <span className="CharacterPage-vitals-label">Statuses</span>
+            {canWrite && statuses.length > 0 &&
+                <button type="button" className="CharacterPage-status-clear-all" onClick={clearAll}>Clear All</button>}
         </div>
         <div className="CharacterPage-status-list">
             {statuses.map(status =>
                 <div className="CharacterPage-status-wrap" key={status.id}>
-                    <StatusChip status={status} onClick={() => toggleExpanded(status.id)}/>
-                    {expandedIds.includes(status.id) && <div className="CharacterPage-status-detail">
-                        <div className="CharacterPage-status-detail-description"><Markdown options={{ disableParsingRawHTML: true }}>{status.description || ""}</Markdown></div>
-                        <div className="CharacterPage-status-detail-stacks">
-                            <span className="CharacterPage-vitals-label">Stacks</span>
-                            {hasWritePermissions
-                                ? <div className="CharacterPage-status-detail-stepper">
-                                    <button type="button" onClick={() => handleStacksChange(status, -1)} disabled={status.stacks <= NO_STACK_COUNT}>&minus;</button>
-                                    <span>{stacksLabel(status.stacks)}</span>
-                                    <button type="button" onClick={() => handleStacksChange(status, 1)} disabled={status.stacks >= MAX_STACKS}>+</button>
-                                </div>
-                                : <span className="CharacterPage-status-detail-stacks-value">{stacksLabel(status.stacks)}</span>}
-                        </div>
-                        {hasWritePermissions && <button type="button" className="CharacterPage-status-detail-remove" onClick={() => handleRemove(status)}>Remove</button>}
-                    </div>}
+                    <StatusChip status={status} onClick={() => toggleOpen(status.id)}/>
                 </div>
             )}
-            {hasWritePermissions && <button type="button" className="CharacterPage-status-add-button" onClick={() => setAddDialogOpen(true)}>
+            {canWrite && <button type="button" className="CharacterPage-status-add-button" onClick={() => setAddDialogOpen(true)}>
                 + Add Status
             </button>}
         </div>
+        {openStatus && <StatusPopup status={openStatus} canWrite={canWrite} onClose={close} onStacksChange={changeStacks} onRemove={removeStatus}/>}
         {addDialogOpen && <AddStatusDialog characterPage={characterPage} userId={userId} onClose={() => setAddDialogOpen(false)} onUpdateStatuses={onUpdateStatuses}/>}
     </div>
 }

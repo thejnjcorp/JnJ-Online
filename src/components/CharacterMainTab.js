@@ -32,6 +32,8 @@ import { getActionCategory, isCombatAction, isReactionAction, isRoleplayAction }
 import { filterActions, filterOptions, isFilterActive, sortActions } from "../utils/tags";
 import { ActionViewControls } from "./ActionViewControls";
 import { StatusChip } from "./StatusChip";
+import { StatusPopup } from "./StatusPopup";
+import { useStatusEditing } from "../utils/useStatusEditing";
 import { ActionUsesReset } from "./ActionUses";
 import { CombatMapPeek } from "./CombatMapPeek";
 import { PartyCombatRoster } from "./PartyCombatRoster";
@@ -52,7 +54,8 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
     // character's own class actions - see utils/statusEffects.js.
     const effectiveStats = getEffectiveCharacterStats(characterPage);
     const allActions = [...characterPage.actions, ...getGrantedActions(characterPage)];
-    const statuses = characterPage.statuses || [];
+    const statusEditing = useStatusEditing({ characterPage, userId });
+    const { statuses } = statusEditing;
     // How the Combat tab's lists are narrowed and ordered. A filter for something
     // the actions no longer have (a class change, say) is dropped rather than
     // silently hiding everything.
@@ -295,10 +298,11 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                         {hasCampaign && <CombatMapPeek campaignId={characterPage.campaign} activeMap={activeMap} entities={combatEntities} userId={userId} canEdit={canEditCampaign}/>}
                     </div>
                     {/* Riding along with the action points, so the statuses in play stay in
-                        view while the actions scroll (their details are on the vitals card). */}
+                        view while the actions scroll; pressing one opens its details. */}
                     {statuses.length > 0 && <div className="CharacterMainTab-status-strip" role="group" aria-label="Active statuses">
-                        {statuses.map(status => <StatusChip key={status.id} status={status}/>)}
+                        {statuses.map(status => <StatusChip key={status.id} status={status} onClick={() => statusEditing.toggleOpen(status.id)}/>)}
                     </div>}
+                    {statusEditing.openStatus && <StatusPopup status={statusEditing.openStatus} canWrite={statusEditing.canWrite} onClose={statusEditing.close} onStacksChange={statusEditing.changeStacks} onRemove={statusEditing.removeStatus}/>}
                 </div>
                 {(hasWritePermissions || characterPage.combat_portrait_url) && <div className="CharacterMainTab-combat-portrait">
                     <span className="CharacterMainTab-caps-label CharacterMainTab-section-label">Combat Portrait</span>
