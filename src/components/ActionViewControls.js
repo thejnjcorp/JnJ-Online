@@ -11,8 +11,8 @@ export function ActionViewControls({ actions, filter, onFilter, sort, onSort }) 
     const { categories, tags } = filterOptions(actions);
     const showCategories = categories.length > 1;
 
-    return <div className="ActionViewControls" role="group" aria-label="Filter and sort actions">
-        {showCategories && <div className="ActionViewControls-group" role="group" aria-label="Type">
+    return <fieldset className="ActionViewControls" aria-label="Filter and sort actions">
+        {showCategories && <fieldset className="ActionViewControls-group" aria-label="Type">
             <span className="ActionViewControls-label">Type</span>
             {categories.map(category => <button
                 type="button"
@@ -21,9 +21,9 @@ export function ActionViewControls({ actions, filter, onFilter, sort, onSort }) 
                 aria-pressed={filter.categories.includes(category.key)}
                 onClick={() => onFilter({ ...filter, categories: toggle(filter.categories, category.key) })}
             >{category.label}</button>)}
-        </div>}
+        </fieldset>}
 
-        {tags.length > 0 && <div className="ActionViewControls-group" role="group" aria-label="Tags">
+        {tags.length > 0 && <fieldset className="ActionViewControls-group" aria-label="Tags">
             <span className="ActionViewControls-label">Tags</span>
             {tags.map(tag => {
                 const on = filter.tags.includes(tag.key);
@@ -36,7 +36,7 @@ export function ActionViewControls({ actions, filter, onFilter, sort, onSort }) 
                     onClick={() => onFilter({ ...filter, tags: toggle(filter.tags, tag.key) })}
                 >{tag.label}</button>;
             })}
-        </div>}
+        </fieldset>}
 
         <div className="ActionViewControls-group">
             <label className="ActionViewControls-label" htmlFor="action-sort">Sort</label>
@@ -45,5 +45,5 @@ export function ActionViewControls({ actions, filter, onFilter, sort, onSort }) 
             </select>
             {isFilterActive(filter) && <button type="button" className="ActionViewControls-clear" onClick={() => onFilter({ categories: [], tags: [] })}>Clear filters</button>}
         </div>
-    </div>;
+    </fieldset>;
 }

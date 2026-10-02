@@ -7,7 +7,7 @@
 // array/object along the way, and returns the object to descend into next.
 export function navigateFormDataKey(currentObject, key, isLast) {
     // If the key contains an array index (e.g., "actions[0]")
-    const arrayMatch = key.match(/(\w+)\[(\d+)\]/);
+    const arrayMatch = /^(\w+)\[(\d+)\]/.exec(key);
     if (arrayMatch) {
         const arrayName = arrayMatch[1]; // Array name, like 'actions'
         const arrayIndex = Number.parseInt(arrayMatch[2], 10); // Index, like 0 or 1
@@ -37,10 +37,9 @@ export const classFormReducer = (state, event) => {
         };
     }
     const { name, value } = event;
-    const arrayRegex = /(\w+)\[(\d+)\](\.\w+|\[\d+\])*/g;
     const newState = { ...state };
 
-    if (!arrayRegex.test(name)) {
+    if (!/\w\[\d+\]/.test(name)) {
         // If there are no arrays or nested objects, handle the flat properties
         return {
             ...state,

@@ -10,6 +10,7 @@ import trashCanIcon from '../icons/trash_can.svg';
 import { featTierOf, getActionCategory } from '../utils/classActions';
 import { levelOf, levelsFor, modifierOf } from '../utils/skillsAndFlaws';
 import MarkdownEditor from './MarkdownEditor';
+import { keyed } from '../utils/keyed';
 
 // One feat in the sidebar list. Exported so the class editor's action preview
 // can show a feat exactly as a character's sheet does. Its tier (1-3, see
@@ -24,8 +25,8 @@ export function FeatEntry({ feat, id, open = false }) {
             <span className="SkillsAndFlaws-chevron">›</span>
             <span className="SkillsAndFlaws-name">{feat.actionName}</span>
             <span className="SkillsAndFlaws-circles">
-                {Array.from({ length: tier }, (_, index) => (
-                    <img key={index} src={circleIcon} alt='circle' className='SkillsAndFlaws-circle' width={18}/>
+                {keyed(Array.from({ length: tier }), 'circle').map(({ key }) => (
+                    <img key={key} src={circleIcon} alt='circle' className='SkillsAndFlaws-circle' width={18}/>
                 ))}
             </span>
         </>}

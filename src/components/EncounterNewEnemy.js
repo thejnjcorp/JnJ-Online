@@ -48,7 +48,7 @@ export function EncounterNewEnemy({ onAdd, onClose }) {
         }
     }
 
-    return <div className="EncounterPage-create" role="group" aria-label="New enemy">
+    return <fieldset className="EncounterPage-create" aria-label="New enemy">
         <div className="ClassPage-section-title">New enemy for this encounter</div>
         <div className="ClassPage-hint">Build it here - stat block, actions and all. It goes into the roster as a copy that belongs to this encounter.</div>
         <input
@@ -70,5 +70,5 @@ export function EncounterNewEnemy({ onAdd, onClose }) {
             <button type="button" className="ClassPage-edit-button" onClick={handleAdd} disabled={submitting}>{submitting ? 'Adding…' : 'Add to encounter'}</button>
             <button type="button" className="ClassPage-add-tag-button" onClick={onClose} disabled={submitting}>Cancel</button>
         </div>
-    </div>;
+    </fieldset>;
 }

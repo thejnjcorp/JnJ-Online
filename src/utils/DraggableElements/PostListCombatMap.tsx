@@ -17,6 +17,11 @@ import "../../styles/CombatMap.scss";
 
 const NO_POSTS: Post[] = [];
 
+// Where a token sits now, if it has a position on the map yet.
+function positionOf(post?: { x?: number; y?: number }) {
+    return post && Number.isFinite(post.x) && Number.isFinite(post.y) ? { x: post.x, y: post.y } : null;
+}
+
 // How long a dropped token is held at its new spot waiting for the tracker to show it.
 type Spot = { x: number; y: number };
 type PendingDrop = { to: Spot; from: Spot | null; skipped: Spot[] };
@@ -65,7 +70,10 @@ export function PostListContentCombatMap({ campaignId, activeMap, entities = [],
     // The zones combatants are placed in: the map's, or - when the director has chosen
     // no map (`noMap`; never guessed from a map that is merely still loading) - one
     // shared column, so the tracker still works without a map.
-    const syncZones = useMemo(() => (activeMap ? zoneNames : (noMap ? [NO_MAP_ZONE] : [])), [activeMap, zoneNames, noMap]);
+    const syncZones = useMemo(() => {
+        if (activeMap) return zoneNames;
+        return noMap ? [NO_MAP_ZONE] : [];
+    }, [activeMap, zoneNames, noMap]);
     // What the director has drawn on the map (shown to everyone), and their tools for adding to it.
     const drawing = useMapDrawing(activeMap, userId);
     // The director's pictures of obstacles and items, shown to everyone and tied to no zone.
@@ -145,7 +153,7 @@ export function PostListContentCombatMap({ campaignId, activeMap, entities = [],
         const earlier = pendingRef.current[id];
         const drop = {
             to: { x: round(point.x), y: round(point.y) },
-            from: earlier ? earlier.from : before && Number.isFinite(before.x) && Number.isFinite(before.y) ? { x: before.x, y: before.y } : null,
+            from: earlier ? earlier.from : positionOf(before),
             skipped: earlier ? [...earlier.skipped, earlier.to] : [],
         };
         const letGo = () => setPending((current) => {
@@ -199,7 +207,7 @@ export function PostListContentCombatMap({ campaignId, activeMap, entities = [],
             backgroundImage={activeMap.link}
             zoneLayout={zones}
             className={combatMapClassName}
-            overlay={({ width, height }) => {
+            renderOverlay={({ width, height }) => {
                 const aspect = height / width;
                 aspectRef.current = aspect;
                 return <>

@@ -63,6 +63,26 @@ function parseFieldValue(type, checked, value) {
     return value;
 }
 
+// The visibility half of a status document: who can see it. canRead is a snapshot, not a
+// live campaign lookup - see the comment on the statuses match block in firestore.rules. Every
+// save (create or edit) re-copies the campaign's current membership, so editing a
+// campaign-locked status is also how you refresh it after the campaign's roster changes.
+function visibilityFieldsFor(formData, { isAdmin, myCampaigns, uid }) {
+    if (formData.visibility === 'public') {
+        // isDefault only ever true for the admin account - a non-admin picking this option
+        // lands in the pool instead (public + browsable, but not auto-usable - see
+        // AddStatusDialog.js). firestore.rules enforces this too; this just avoids ever
+        // attempting a write it would reject.
+        return { public: true, isDefault: isAdmin, canRead: [], campaignId: null };
+    }
+    if (formData.visibility === 'campaign') {
+        const campaign = myCampaigns.find(c => c.id === formData.campaignId);
+        const members = Array.from(new Set([...(campaign?.canRead || []), ...(campaign?.canWrite || [])]));
+        return { public: false, isDefault: false, canRead: members, campaignId: formData.campaignId };
+    }
+    return { public: false, isDefault: false, canRead: [uid], campaignId: null };
+}
+
 export function StatusPage() {
     const [formData, setFormData] = useReducer(formReducer, EMPTY_STATUS);
     const [classOptions, setClassOptions] = useState([]);
@@ -251,21 +271,7 @@ export function StatusPage() {
             // save (create or edit) re-copies the campaign's current
             // membership, so editing a campaign-locked status is also how
             // you refresh it after the campaign's roster changes.
-            let visibilityFields;
-            if (formData.visibility === 'public') {
-                // isDefault only ever true for the admin account - a
-                // non-admin picking this option lands in the pool instead
-                // (public + browsable, but not auto-usable - see
-                // AddStatusDialog.js). firestore.rules enforces this too;
-                // this just avoids ever attempting a write it would reject.
-                visibilityFields = { public: true, isDefault: isAdmin, canRead: [], campaignId: null };
-            } else if (formData.visibility === 'campaign') {
-                const campaign = myCampaigns.find(c => c.id === formData.campaignId);
-                const members = Array.from(new Set([...(campaign?.canRead || []), ...(campaign?.canWrite || [])]));
-                visibilityFields = { public: false, isDefault: false, canRead: members, campaignId: formData.campaignId };
-            } else {
-                visibilityFields = { public: false, isDefault: false, canRead: [uid], campaignId: null };
-            }
+            const visibilityFields = visibilityFieldsFor(formData, { isAdmin, myCampaigns, uid });
             const payload = {
                 name: formData.name,
                 description: formData.description || '',

@@ -15,7 +15,7 @@ function Picker({ catalog, forClass, taken, onPick, onCustom, onClose }) {
     const general = offered.filter(tag => !tag.classes?.length);
     const scoped = offered.filter(tag => tag.classes?.length);
 
-    const group = (title, tags) => tags.length > 0 && <div className="ActionTags-group" role="group" aria-label={title}>
+    const group = (title, tags) => tags.length > 0 && <fieldset className="ActionTags-group" aria-label={title}>
         <div className="ActionTags-group-title">{title}</div>
         <div className="ActionTags-options">
             {tags.map(tag => <button
@@ -28,7 +28,7 @@ function Picker({ catalog, forClass, taken, onPick, onCustom, onClose }) {
                 <span className="ActionTags-pill" style={pillStyle(tag)}>{tag.tagInfo}</span>
             </button>)}
         </div>
-    </div>;
+    </fieldset>;
 
     return <div className="ActionTags-picker">
         <input

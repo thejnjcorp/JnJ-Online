@@ -250,9 +250,9 @@ export function DirectorNotes({
                 value={shown.body || ''}
                 onChange={body => edit({ body })}
             />
-            <div className="DirectorNotes-status" role="status" aria-live="polite">
+            <output className="DirectorNotes-status" aria-live="polite">
                 {STATUS_TEXT[saveState] || (edited ? `Last edited ${edited}${editedBy}` : '')}
-            </div>
+            </output>
         </section>}
     </div>;
 }

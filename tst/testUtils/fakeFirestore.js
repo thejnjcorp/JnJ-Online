@@ -20,7 +20,7 @@ export function fakeFirestore(initial = {}) {
         get: async ref => snapshotOf(ref.__path),
         set: (ref, data, options) => {
             writes.push({ op: 'set', path: ref.__path, data, options });
-            docs.set(ref.__path, options?.merge ? { ...(docs.get(ref.__path) || {}), ...structuredClone(data) } : structuredClone(data));
+            docs.set(ref.__path, options?.merge ? { ...docs.get(ref.__path), ...structuredClone(data) } : structuredClone(data));
         },
         update: (ref, data) => {
             if (!docs.has(ref.__path)) throw new Error('No document to update: ' + ref.__path);

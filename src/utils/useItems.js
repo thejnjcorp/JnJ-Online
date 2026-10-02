@@ -17,7 +17,7 @@ export function useItem(itemId) {
 
 // Several items at once: { [id]: { item, status } }, for a list to show them.
 export function useItemsById(itemIds) {
-    const key = [...new Set(itemIds.filter(Boolean))].sort().join(',');
+    const key = [...new Set(itemIds.filter(Boolean))].sort((a, b) => a.localeCompare(b)).join(',');
     const [states, setStates] = useState({});
     useEffect(() => {
         const ids = key === '' ? [] : key.split(',');

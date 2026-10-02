@@ -45,10 +45,13 @@ async function main() {
         assert.equal(wanted.length, 12);
         assert.equal(new Set(wanted.map(s => s.name)).size, wanted.length);
         for (const s of wanted) {
-            assert.ok(s.name && s.description, s.name);
+            assert.ok(s.name, s.name);
+            assert.ok(s.description, s.name);
             assert.ok(['buff', 'debuff', 'neutral', 'token'].includes(s.polarity), s.name);
             if (s.polarity === 'token') assert.deepEqual(s.effects, [], s.name);
-            assert.ok(Number.isInteger(s.defaultStacks) && s.defaultStacks >= 0 && s.defaultStacks <= 9, s.name);
+            assert.ok(Number.isInteger(s.defaultStacks), s.name);
+            assert.ok(s.defaultStacks >= 0, s.name);
+            assert.ok(s.defaultStacks <= 9, s.name);
             assert.deepEqual(s.classes, ['Monk'], s.name);
             assert.equal(s.decaysPerTurn, false, s.name);
             assert.equal(s.grantedAction, null, s.name);

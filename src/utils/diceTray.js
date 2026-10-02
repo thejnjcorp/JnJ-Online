@@ -46,7 +46,10 @@ export const diceTotal = results => valuesOf(results).reduce((sum, value) => sum
 export const grandTotal = (results, modifier) => diceTotal(results) + (Number(modifier) || 0);
 
 // "+3", "-2", or "" for no modifier at all.
-export const formatModifier = modifier => (modifier > 0 ? `+${modifier}` : modifier < 0 ? `${modifier}` : '');
+export function formatModifier(modifier) {
+    if (modifier > 0) return `+${modifier}`;
+    return modifier < 0 ? `${modifier}` : '';
+}
 
 // The breakdown line under the total - "4 + 6 + 2 +3", or just the dice sum
 // when there is no modifier.

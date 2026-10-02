@@ -20,6 +20,13 @@ const tierRank = key => ENEMY_TIERS.findIndex(tier => tier.key === key);
 // Your library of enemy stat blocks - filter by tier, or search by name - and
 // where you make new ones. An enemy is copied into an encounter (or straight
 // into a fight) when you use it.
+// What the list says when there is nothing to show: why not, and what to do.
+function emptyMessage(status, total) {
+    if (status === 'error') return "Couldn't load the bestiary.";
+    if (status === 'loading') return 'Loading…';
+    return total === 0 ? 'No enemies yet - create your first.' : 'No enemies match these filters.';
+}
+
 export function BestiaryPage() {
     const { enemies, status } = useBestiary();
     const [userId, setUserId] = useState('');
@@ -49,20 +56,20 @@ export function BestiaryPage() {
             </div>
 
             <div className="StatusListPage-filter-groups">
-                <div className="StatusListPage-filters" role="group" aria-label="Whose">
+                <fieldset className="StatusListPage-filters" aria-label="Whose">
                     {OWNERSHIP_FILTERS.map(option => <button type="button" key={option.key}
                         className={ownership === option.key ? 'StatusListPage-filter-button StatusListPage-filter-button-active' : 'StatusListPage-filter-button'}
                         aria-pressed={ownership === option.key}
                         onClick={() => setOwnership(option.key)}
                     >{option.label}</button>)}
-                </div>
-                <div className="StatusListPage-filters" role="group" aria-label="Tier">
+                </fieldset>
+                <fieldset className="StatusListPage-filters" aria-label="Tier">
                     {[{ key: 'all', label: 'All' }, ...ENEMY_TIERS.map(item => ({ key: item.key, label: item.plural }))].map(option => <button type="button" key={option.key}
                         className={tier === option.key ? 'StatusListPage-filter-button StatusListPage-filter-button-active' : 'StatusListPage-filter-button'}
                         aria-pressed={tier === option.key}
                         onClick={() => setTier(option.key)}
                     >{option.label}</button>)}
-                </div>
+                </fieldset>
                 <input className="BestiaryPage-search" type="search" placeholder="Search enemies" aria-label="Search enemies" value={search} onChange={event => setSearch(event.target.value)}/>
             </div>
 
@@ -82,7 +89,7 @@ export function BestiaryPage() {
                     <div className="StatusListPage-card-visibility">{enemy.public ? 'Public' : 'Private'}</div>
                 </button>)}
                 {shown.length === 0 && <div className="StatusListPage-empty">
-                    {status === 'error' ? "Couldn't load the bestiary." : status === 'loading' ? 'Loading…' : enemies.length === 0 ? 'No enemies yet - create your first.' : 'No enemies match these filters.'}
+                    {emptyMessage(status, enemies.length)}
                 </div>}
             </div>
 

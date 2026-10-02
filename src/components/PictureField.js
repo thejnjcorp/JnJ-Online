@@ -62,7 +62,7 @@ export function PictureField({ name, value, readOnly, error, onChange, square = 
                 </label>
                 {value && <button type="button" className="EnemyPage-modifier-remove" onClick={() => { setBroken(false); onChange(''); }}>Remove picture</button>}
             </div>}
-            {uploading && <div className="ClassPage-hint" role="status">Uploading...</div>}
+            {uploading && <output className="ClassPage-hint">Uploading...</output>}
             {broken && <div className="ClassPage-hint" role="alert">That picture didn't load - check the link.</div>}
             <FieldError message={error}/>
         </div>

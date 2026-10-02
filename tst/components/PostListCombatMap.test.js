@@ -33,7 +33,7 @@ const mockAbstractProps = [];
 jest.mock('../../src/utils/DraggableElements/Post.ts', () => ({
     PostListContentAbstract: props => {
         mockAbstractProps.push(props);
-        return <div data-testid="map">{props.overlay({ width: 1000, height: 500 })}</div>;
+        return <div data-testid="map">{props.renderOverlay({ width: 1000, height: 500 })}</div>;
     },
 }));
 

@@ -1,5 +1,6 @@
 import MarkdownToJsx from 'markdown-to-jsx';
 import { splitColorDirectives } from '../utils/colorDirective';
+import { keyed } from '../utils/keyed';
 
 // A block (one blank-line-separated chunk of markdown - see below) with any
 // line that starts like a heading, blockquote, list item, table row, or code
@@ -41,17 +42,17 @@ export default function ColoredMarkdown({ children, options, ...rest }) {
     }
 
     const blocks = children.split(/\n{2,}/);
-    return <>{blocks.map((block, index) => {
+    return <>{keyed(blocks, 'block').map(({ item: block, key }) => {
         // A lone block rendered by itself (rather than as part of the whole
         // original text) reads to markdown-to-jsx as "just one line", which
         // it renders inline (a bare <span>) instead of wrapping in <p> -
         // forceBlock keeps that wrapping consistent regardless of the split.
-        if (!block.includes(':color[')) return <MarkdownToJsx key={index} options={{ ...options, forceBlock: true }} {...rest}>{block}</MarkdownToJsx>;
+        if (!block.includes(':color[')) return <MarkdownToJsx key={key} options={{ ...options, forceBlock: true }} {...rest}>{block}</MarkdownToJsx>;
         const segments = splitColorDirectives(block);
         if (!isPlainProse(block)) {
             const plain = segments.map(segment => (typeof segment === 'string' ? segment : segment.text)).join('');
-            return <MarkdownToJsx key={index} options={options} {...rest}>{plain}</MarkdownToJsx>;
+            return <MarkdownToJsx key={key} options={options} {...rest}>{plain}</MarkdownToJsx>;
         }
-        return <p key={index}>{segments.map((segment, i) => <InlineSegment key={i} segment={segment} options={options}/>)}</p>;
+        return <p key={key}>{keyed(segments, 'segment').map(({ item: segment, key: segmentKey }) => <InlineSegment key={segmentKey} segment={segment} options={options}/>)}</p>;
     })}</>;
 }

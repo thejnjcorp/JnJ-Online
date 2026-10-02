@@ -99,9 +99,9 @@ function BeatEditor({ beat, scene, scenes, encounters, maps, onChange, onCreateP
             return <>
                 <div className="Scenes-field">
                     <span className="Scenes-field-label">How it is decided</span>
-                    <div className="Scenes-segmented" role="group" aria-label="How it is decided">
+                    <fieldset className="Scenes-segmented" aria-label="How it is decided">
                         {DECISION_METHODS.map(method => <button type="button" key={method.key} aria-pressed={(beat.method || 'party') === method.key} onClick={() => update({ method: method.key })}>{method.label}</button>)}
-                    </div>
+                    </fieldset>
                 </div>
                 <div className="Scenes-decision-editor">
                     {(beat.options || []).map((option, index) => <div className="Scenes-option-row" key={option.id}>
@@ -191,10 +191,10 @@ export function SceneBuilder({ scene, scenes, session, encounters, maps, onSave,
                 </div>
                 <div className="Scenes-builder-title-row">
                     <input type="text" className="Scenes-title-input" aria-label="Scene name" value={current.name || ''} placeholder="Untitled scene" onChange={event => edit({ name: event.target.value })}/>
-                    <div className="Scenes-segmented" role="group" aria-label="Scene status">
+                    <fieldset className="Scenes-segmented" aria-label="Scene status">
                         {[['draft', 'Draft'], ['ready', 'Ready'], ['active', 'Active'], ['completed', 'Completed']].map(([key, label]) =>
                             <button type="button" key={key} aria-pressed={current.status === key} onClick={() => setStatus(key)}>{label}</button>)}
-                    </div>
+                    </fieldset>
                 </div>
             </div>
 
@@ -256,7 +256,7 @@ export function SceneBuilder({ scene, scenes, session, encounters, maps, onSave,
             </ol>
 
             <div className="Scenes-builder-footer">
-                <span className="Scenes-save-state" role="status">{SAVE_TEXT[state] || ''}</span>
+                <output className="Scenes-save-state">{SAVE_TEXT[state] || ''}</output>
                 <button type="button" className="Scenes-button" onClick={() => setStatus('draft')}>Save Draft</button>
                 <button type="button" className="Scenes-button" onClick={() => setStatus('ready')} disabled={beats.length === 0}>Mark Ready</button>
                 <button type="button" className="Scenes-button Scenes-button-primary" disabled={beats.length === 0}
@@ -269,9 +269,9 @@ export function SceneBuilder({ scene, scenes, session, encounters, maps, onSave,
                 <h3 className="Scenes-card-title">Scene settings</h3>
                 <div className="Scenes-field">
                     <span className="Scenes-field-label">Type</span>
-                    <div className="Scenes-segmented" role="group" aria-label="Scene type">
+                    <fieldset className="Scenes-segmented" aria-label="Scene type">
                         {SCENE_TYPES.map(type => <button type="button" key={type.key} aria-pressed={current.type === type.key} onClick={() => edit({ type: type.key })}>{type.label}</button>)}
-                    </div>
+                    </fieldset>
                 </div>
                 <Field label="In-world date"><input type="text" value={current.inWorldDate || ''} onChange={event => edit({ inWorldDate: event.target.value })}/></Field>
                 <Field label="Episode"><input type="text" value={current.episode || ''} placeholder="Groups scenes on the timeline" onChange={event => edit({ episode: event.target.value })}/></Field>

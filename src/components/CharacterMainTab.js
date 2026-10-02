@@ -39,6 +39,16 @@ import { CombatMapPeek } from "./CombatMapPeek";
 import { PartyCombatRoster } from "./PartyCombatRoster";
 import { CharacterPortrait } from "./CharacterPortrait";
 import { isLimitedUse } from "../utils/actionUses";
+import { isDirectorOf } from '../utils/campaignRoles';
+
+// Hover text for an action point circle: clicking the one you are on spends it.
+function circleTitle(actionPoints, n) {
+    return actionPoints === n ? `Spend this point (leaves ${n - 1})` : `Set to ${n}`;
+}
+
+function reactionClickTitle(reactionUsed) {
+    return reactionUsed ? 'Reaction used - click to give it back' : 'Reaction available - click to mark it used';
+}
 
 function isPassive(action) {
     const category = getActionCategory(action);
@@ -90,7 +100,7 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
     // A player's own characters put themselves on the tracker; nobody else's are touched.
     useOwnCombatTokens({ campaignId: hasCampaign ? characterPage.campaign : '', activeMap, entities: combatEntities, userId });
     // Only someone who can write the campaign (its director) moves the map's tokens.
-    const canEditCampaign = Boolean(userId) && (campaignInfo.director_uid === userId || Boolean(campaignInfo.canWrite?.includes(userId)) || Boolean(campaignInfo.admins?.includes(userId)));
+    const canEditCampaign = isDirectorOf(campaignInfo, userId);
     // The actual map render felt cramped embedded at tab-content size, so it
     // now opens full-screen on demand instead of living inline - see the
     // overlay rendered after the TabContainer below.
@@ -255,7 +265,7 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                                 type="button"
                                 className="CharacterMainTab-circle-button"
                                 disabled={!hasWritePermissions}
-                                title={hasWritePermissions ? (characterPage.action_points === n ? `Spend this point (leaves ${n - 1})` : `Set to ${n}`) : undefined}
+                                title={hasWritePermissions ? circleTitle(characterPage.action_points, n) : undefined}
                                 onClick={hasWritePermissions ? () => clickCircle(n) : undefined}
                             >
                                 <img
@@ -279,14 +289,14 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                                 className="CharacterMainTab-circle-button CharacterMainTab-reaction-button"
                                 aria-label={reactionUsed ? 'Reaction used' : 'Reaction available'}
                                 aria-pressed={!reactionUsed}
-                                title={hasWritePermissions ? (reactionUsed ? 'Reaction used - click to give it back' : 'Reaction available - click to mark it used') : undefined}
+                                title={hasWritePermissions ? reactionClickTitle(reactionUsed) : undefined}
                                 disabled={!hasWritePermissions}
                                 onClick={hasWritePermissions ? toggleReaction : undefined}
                             >
                                 <img src={reactionUsed ? circleIcon : circleFilledIcon} alt="" className="CharacterMainTab-circle" width={30}/>
                             </button>
                         </span>
-                        <span className="CharacterMainTab-hero-points" role="group" aria-label="Hero points">
+                        <fieldset className="CharacterMainTab-hero-points" aria-label="Hero points">
                             <span className="CharacterMainTab-caps-label">
                                 <span className="CharacterMainTab-ap-full">Hero Points</span>
                                 <span className="CharacterMainTab-ap-short" aria-hidden="true">Hero</span>
@@ -294,14 +304,14 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                             <button type="button" className="CharacterMainTab-hero-points-step" aria-label="Spend a hero point" disabled={!hasWritePermissions || heroPoints <= 0} onClick={() => setHeroPoints(heroPoints - 1)}>−</button>
                             <span className="CharacterMainTab-hero-points-value">{heroPoints}</span>
                             <button type="button" className="CharacterMainTab-hero-points-step" aria-label="Add a hero point" disabled={!hasWritePermissions} onClick={() => setHeroPoints(heroPoints + 1)}>+</button>
-                        </span>
+                        </fieldset>
                         {hasCampaign && <CombatMapPeek campaignId={characterPage.campaign} activeMap={activeMap} entities={combatEntities} userId={userId} canEdit={canEditCampaign}/>}
                     </div>
                     {/* Riding along with the action points, so the statuses in play stay in
                         view while the actions scroll; pressing one opens its details. */}
-                    {statuses.length > 0 && <div className="CharacterMainTab-status-strip" role="group" aria-label="Active statuses">
+                    {statuses.length > 0 && <fieldset className="CharacterMainTab-status-strip" aria-label="Active statuses">
                         {statuses.map(status => <StatusChip key={status.id} status={status} onClick={() => statusEditing.toggleOpen(status.id)}/>)}
-                    </div>}
+                    </fieldset>}
                     {statusEditing.openStatus && <StatusPopup status={statusEditing.openStatus} canWrite={statusEditing.canWrite} onClose={statusEditing.close} onStacksChange={statusEditing.changeStacks} onRemove={statusEditing.removeStatus}/>}
                 </div>
                 {(hasWritePermissions || characterPage.combat_portrait_url) && <div className="CharacterMainTab-combat-portrait">

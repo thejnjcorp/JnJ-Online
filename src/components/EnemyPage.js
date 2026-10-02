@@ -107,6 +107,9 @@ export function EnemyPage() {
 
     if (!loaded) return <div className="ClassPage"><div className="ClassPage-inner"><div className="ClassPage-hint">Loading…</div></div></div>;
 
+    let submitLabel = isEditing ? 'Update Enemy' : 'Create Enemy';
+    if (submitting) submitLabel = 'Saving…';
+
     return <div className="ClassPage">
         <div className="ClassPage-inner">
             <button type="button" className="ClassPage-breadcrumb" onClick={() => navigate('/bestiary')}>&larr; Bestiary</button>
@@ -152,7 +155,7 @@ export function EnemyPage() {
 
             <div className="EnemyPage-actions">
                 <button type="button" className="StatusPage-submit-button" onClick={handleSubmit} disabled={readOnly || submitting}>
-                    {submitting ? 'Saving…' : (isEditing ? 'Update Enemy' : 'Create Enemy')}
+                    {submitLabel}
                 </button>
                 {isEditing && !readOnly && <button type="button" className="StatusPage-delete-button" onClick={handleDelete}>Delete Enemy</button>}
             </div>

@@ -58,7 +58,7 @@ describe('AccessibilityProvider', () => {
 
         mount('user-1');
 
-        await waitFor(() => expect(screen.getByText('scale:2 font:lexend save:idle')).toBeInTheDocument());
+        expect(await screen.findByText('scale:2 font:lexend save:idle')).toBeInTheDocument();
         expect(mockDoc).toHaveBeenCalledWith({ __db: true }, 'players', 'user-1');
         await waitFor(() => expect(document.documentElement.getAttribute('data-a11y-font')).toBe('lexend'));
         expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY)).textScale).toBe(2);

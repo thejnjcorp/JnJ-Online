@@ -10,7 +10,7 @@ export function ClassPublishDialog({ nextVersion, busy, onPublish, onClose, kind
 
     return <>
         <button type="button" className="ClassPublishDialog-scrim" aria-label="Close" onClick={onClose}/>
-        <div className="ClassPublishDialog" role="dialog" aria-label="Publish new version">
+        <dialog open className="ClassPublishDialog" aria-label="Publish new version">
             <div className="ClassPublishDialog-title">Publish as v{nextVersion}</div>
             <p className="ClassPage-hint">
                 The {kind} as it is currently saved is frozen as v{nextVersion - 1} - characters pinned to it keep it
@@ -33,6 +33,6 @@ export function ClassPublishDialog({ nextVersion, busy, onPublish, onClose, kind
                     {busy ? 'Publishing…' : `Publish v${nextVersion}`}
                 </button>
             </div>
-        </div>
+        </dialog>
     </>;
 }

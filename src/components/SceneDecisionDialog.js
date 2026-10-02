@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { beatCount, optionLetter, readiness, typeLabel } from '../utils/scenes';
+import { useEscapeKey } from '../utils/useEscapeKey';
 
 // "Which way did the party go?": pick the path that is actually happening, and say
 // what becomes of the paths that aren't (kept on the bench for later, or thrown
 // away). Or the party did something nobody planned for: name a new path on the fly.
 export function SceneDecisionDialog({ owner, beat, scenes, onConfirm, onAddPath, onClose }) {
+    useEscapeKey(onClose);
     const [chosen, setChosen] = useState(beat.chosenOptionId || beat.options?.[0]?.id || '');
     const [keep, setKeep] = useState(true);
     const [adding, setAdding] = useState(false);
@@ -44,7 +46,7 @@ export function SceneDecisionDialog({ owner, beat, scenes, onConfirm, onAddPath,
 
     return <>
         <button type="button" className="Scenes-scrim" aria-label="Close" onClick={onClose}/>
-        <div className="Scenes-dialog Scenes-dialog-wide" role="dialog" aria-modal="true" aria-label="Which way did the party go?" onKeyDown={event => { if (event.key === 'Escape') onClose(); }}>
+        <dialog open className="Scenes-dialog Scenes-dialog-wide" aria-modal="true" aria-label="Which way did the party go?">
             <div className="Scenes-dialog-head">
                 <div>
                     <span className="Scenes-chip Scenes-chip-decision">Decision</span>
@@ -101,6 +103,6 @@ export function SceneDecisionDialog({ owner, beat, scenes, onConfirm, onAddPath,
                     {chosenOption ? `Confirm: ${nameOf(chosenOption)}` : 'Confirm'}
                 </button>
             </div>
-        </div>
+        </dialog>
     </>;
 }

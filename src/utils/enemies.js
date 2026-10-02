@@ -53,8 +53,13 @@ export function newEnemy(tier = 'Regular') {
 // "Fire 5" <-> { type: 'Fire', amount: 5 } - how weaknesses and resistances are
 // written on an enemy (and shown as chips on its card).
 export function parseModifier(text) {
-    const match = /^(.*?)\s*(-?\d+)\s*$/.exec(text || '');
-    return match ? { type: match[1].trim(), amount: Number(match[2]) } : { type: (text || '').trim(), amount: NaN };
+    const trimmed = (text || '').trim();
+    // the number is the digits at the end, with their minus sign if they have one
+    let start = trimmed.length;
+    while (start > 0 && trimmed[start - 1] >= '0' && trimmed[start - 1] <= '9') start -= 1;
+    if (start === trimmed.length) return { type: trimmed, amount: Number.NaN };
+    if (start > 0 && trimmed[start - 1] === '-') start -= 1;
+    return { type: trimmed.slice(0, start).trim(), amount: Number(trimmed.slice(start)) };
 }
 
 export const formatModifier = ({ type, amount }) => `${(type || '').trim()} ${Number.isNaN(amount) ? '' : amount}`.trim();

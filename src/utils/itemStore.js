@@ -42,7 +42,7 @@ export function subscribeItem(itemId, listener) {
 
     return () => {
         const current = stores.get(itemId);
-        if (!current || !current.listeners.delete(listener)) return;
+        if (!current?.listeners.delete(listener)) return;
         if (current.listeners.size > 0) return;
         clearTimeout(current.timer);
         current.timer = setTimeout(() => {

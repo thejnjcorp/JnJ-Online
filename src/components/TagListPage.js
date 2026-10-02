@@ -15,6 +15,12 @@ const OWNERSHIP_FILTERS = [
 
 // The tag catalog: every tag the viewer can see, filterable by who made it and
 // by which class it is for. Choosing one opens it (editable if it's theirs).
+// What the list says when there is nothing to show.
+function emptyMessage(status) {
+    if (status === 'error') return "Couldn't load the tags.";
+    return status === 'loading' ? 'Loading…' : 'No tags match these filters.';
+}
+
 export function TagListPage() {
     const { tags, status } = useTagCatalog();
     const [userId, setUserId] = useState('');
@@ -44,7 +50,7 @@ export function TagListPage() {
             </div>
 
             <div className="StatusListPage-filter-groups">
-                <div className="StatusListPage-filters" role="group" aria-label="Whose">
+                <fieldset className="StatusListPage-filters" aria-label="Whose">
                     {OWNERSHIP_FILTERS.map(option =>
                         <button type="button" key={option.key}
                             className={ownership === option.key ? 'StatusListPage-filter-button StatusListPage-filter-button-active' : 'StatusListPage-filter-button'}
@@ -52,8 +58,8 @@ export function TagListPage() {
                             onClick={() => setOwnership(option.key)}
                         >{option.label}</button>
                     )}
-                </div>
-                <div className="StatusListPage-filters" role="group" aria-label="For">
+                </fieldset>
+                <fieldset className="StatusListPage-filters" aria-label="For">
                     {scopes.map(option =>
                         <button type="button" key={option.key}
                             className={scope === option.key ? 'StatusListPage-filter-button StatusListPage-filter-button-active' : 'StatusListPage-filter-button'}
@@ -61,7 +67,7 @@ export function TagListPage() {
                             onClick={() => setScope(option.key)}
                         >{option.label}</button>
                     )}
-                </div>
+                </fieldset>
             </div>
 
             <div className="StatusListPage-grid">
@@ -76,7 +82,7 @@ export function TagListPage() {
                     </button>
                 )}
                 {shown.length === 0 && <div className="StatusListPage-empty">
-                    {status === 'error' ? "Couldn't load the tags." : status === 'loading' ? 'Loading…' : 'No tags match these filters.'}
+                    {emptyMessage(status)}
                 </div>}
             </div>
 

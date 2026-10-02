@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { HexColorPicker } from 'react-colorful';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
@@ -49,7 +49,7 @@ export function DiceTray() {
     // every render, see above) pick up the real theme colour on a character
     // or campaign with nothing saved, rather than freezing at whatever it
     // read on the very first render.
-    const [, forceRender] = useState(false);
+    const [, forceRender] = useReducer(count => count + 1, 0);
     const [colorPickerOpen, setColorPickerOpen] = useState(false);
     const [draftColor, setDraftColor] = useState(fallbackColor);
     const [colorError, setColorError] = useState('');
@@ -75,7 +75,7 @@ export function DiceTray() {
             if (cancelled) return;
             const saved = snapshot.data()?.dice_color;
             if (saved) setSavedColor(saved);
-            else forceRender(current => !current);
+            else forceRender();
         }).catch(error => console.log("Couldn't load the dice colour: " + error));
         return () => { cancelled = true; };
         // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberately the id/collection, not the colorContext object itself, which is a new object every render (diceColorContext isn't memoized) and would re-run this on every render rather than only when the character/campaign it points to actually changes.
@@ -173,7 +173,7 @@ export function DiceTray() {
             breaking the tray for the rest of the session. Only the 3D
             library's dynamic import (below) is actually deferred until the
             first open. */}
-        <div className={open && relevant ? 'DiceTray' : 'DiceTray DiceTray-closed'} role="region" aria-label="Dice tray">
+        <section className={open && relevant ? 'DiceTray' : 'DiceTray DiceTray-closed'} aria-label="Dice tray">
             <div className="DiceTray-header">
                 <span className="DiceTray-title">Dice Tray</span>
                 <button
@@ -201,7 +201,7 @@ export function DiceTray() {
                 {status === 'error' && <div className="DiceTray-error" role="alert">Couldn't load the dice tray. Try again in a moment.</div>}
             </div>
 
-            <div className="DiceTray-picker" role="group" aria-label="Add a die">
+            <fieldset className="DiceTray-picker" aria-label="Add a die">
                 {DIE_SIDES.map(sides => <button
                     type="button"
                     key={sides}
@@ -212,7 +212,7 @@ export function DiceTray() {
                     {`d${sides}`}
                     {pool[sides] > 0 && <span className="DiceTray-die-count">×{pool[sides]}</span>}
                 </button>)}
-            </div>
+            </fieldset>
 
             <div className="DiceTray-modifier">
                 <span className="DiceTray-modifier-label">Modifier</span>
@@ -231,6 +231,6 @@ export function DiceTray() {
             </div>
 
             <button type="button" className="DiceTray-clear" onClick={clearTray} disabled={!hasDice}>Clear</button>
-        </div>
+        </section>
     </>;
 }

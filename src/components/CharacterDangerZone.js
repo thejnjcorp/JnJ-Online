@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { archiveCharacter, cancelCharacterDeletion, canRetireCharacter, DELETION_GRACE_DAYS, deletionDate, formatDeletionDate, isArchived, scheduleCharacterDeletion, unarchiveCharacter } from '../utils/characterArchive';
 import '../styles/CampaignPage.scss';
+import { useEscapeKey } from '../utils/useEscapeKey';
 
 // Archiving and deleting a character, for its owner (see canRetireCharacter):
 // nothing at all for anyone else. Laid out like a campaign's danger zone.
 export function CharacterDangerZone({ character, userId }) {
+    useEscapeKey(() => setConfirming(false));
     const [confirming, setConfirming] = useState(false);
     if (!canRetireCharacter(character, userId)) return null;
 
@@ -52,7 +54,7 @@ export function CharacterDangerZone({ character, userId }) {
 
         {confirming && <>
             <button type="button" className="CampaignPage-scrim" style={{ border: 0, padding: 0 }} aria-label="Close" onClick={() => setConfirming(false)}/>
-            <div className="CampaignPage-dialog" role="dialog" aria-modal="true" aria-label="Schedule deletion" onKeyDown={event => { if (event.key === 'Escape') setConfirming(false); }}>
+            <dialog open className="CampaignPage-dialog" aria-modal="true" aria-label="Schedule deletion">
                 <h3>Schedule deletion?</h3>
                 <p className="CampaignPage-dialog-help">
                     "{character.character_name}" will be permanently deleted in {DELETION_GRACE_DAYS} days, along with everything on its sheet. You can cancel any time before then.
@@ -61,7 +63,7 @@ export function CharacterDangerZone({ character, userId }) {
                     <button type="button" className="CampaignPage-dialog-button CampaignPage-dialog-button-danger" onClick={() => { setConfirming(false); run(scheduleCharacterDeletion); }}>Schedule Deletion</button>
                     <button type="button" className="CampaignPage-dialog-button" onClick={() => setConfirming(false)}>Cancel</button>
                 </div>
-            </div>
+            </dialog>
         </>}
     </>;
 }
@@ -70,8 +72,8 @@ export function CharacterDangerZone({ character, userId }) {
 export function ArchivedCharacterBanner({ character }) {
     if (!isArchived(character)) return null;
     const scheduled = deletionDate(character);
-    return <div className="CampaignPage-archived-banner" role="status">
+    return <output className="CampaignPage-archived-banner">
         This character is archived - it is off the characters list and out of the combat tracker.
         {scheduled && <> It's scheduled for permanent deletion on {formatDeletionDate(scheduled)}.</>}
-    </div>;
+    </output>;
 }

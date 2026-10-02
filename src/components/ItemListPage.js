@@ -18,6 +18,13 @@ const OWNERSHIP_FILTERS = [
 // The item database: every item you can see - the public ones and your own - to
 // search, filter by tag and open, and where you make new ones. Inventories refer to
 // these, so a torch or a rope is written once for every table.
+// What the list says when there is nothing to show: why not, and what to do.
+function emptyMessage(status, total) {
+    if (status === 'error') return "Couldn't load the item database.";
+    if (status === 'loading') return 'Loading…';
+    return total === 0 ? 'No items yet - create your first.' : 'No items match these filters.';
+}
+
 export function ItemListPage() {
     const { items, status } = useItemCatalog();
     const [userId, setUserId] = useState('');
@@ -45,14 +52,14 @@ export function ItemListPage() {
             </div>
 
             <div className="StatusListPage-filter-groups">
-                <div className="StatusListPage-filters" role="group" aria-label="Whose">
+                <fieldset className="StatusListPage-filters" aria-label="Whose">
                     {OWNERSHIP_FILTERS.map(option => <button type="button" key={option.key}
                         className={ownership === option.key ? 'StatusListPage-filter-button StatusListPage-filter-button-active' : 'StatusListPage-filter-button'}
                         aria-pressed={ownership === option.key}
                         onClick={() => setOwnership(option.key)}
                     >{option.label}</button>)}
-                </div>
-                {tags.length > 0 && <div className="StatusListPage-filters" role="group" aria-label="Tag">
+                </fieldset>
+                {tags.length > 0 && <fieldset className="StatusListPage-filters" aria-label="Tag">
                     <button type="button"
                         className={tag === '' ? 'StatusListPage-filter-button StatusListPage-filter-button-active' : 'StatusListPage-filter-button'}
                         aria-pressed={tag === ''}
@@ -63,7 +70,7 @@ export function ItemListPage() {
                         aria-pressed={tag === name}
                         onClick={() => setTag(name)}
                     >{name}</button>)}
-                </div>}
+                </fieldset>}
                 <input className="BestiaryPage-search" type="search" placeholder="Search items" aria-label="Search items" value={search} onChange={event => setSearch(event.target.value)}/>
             </div>
 
@@ -78,7 +85,7 @@ export function ItemListPage() {
                     <div className="StatusListPage-card-visibility">{item.isPublic ? 'Public' : 'Private'}</div>
                 </button>)}
                 {shown.length === 0 && <div className="StatusListPage-empty">
-                    {status === 'error' ? "Couldn't load the item database." : status === 'loading' ? 'Loading…' : items.length === 0 ? 'No items yet - create your first.' : 'No items match these filters.'}
+                    {emptyMessage(status, items.length)}
                 </div>}
             </div>
 

@@ -13,6 +13,7 @@ import { PartyInventoryTab } from './PartyInventoryTab';
 import { PartyTradesTab } from './PartyTradesTab';
 import { PartyCalendarTab } from './PartyCalendarTab';
 import '../styles/Party.scss';
+import { isDirectorOf } from '../utils/campaignRoles';
 
 const TABS = [
     { key: 'inventory', label: 'Inventory' },
@@ -70,7 +71,7 @@ export function PartyPage() {
     }, [campaignId, campaign]);
 
     const members = useMemo(() => membersOf(campaign), [campaign]);
-    const isDirector = Boolean(userId) && (campaign?.director_uid === userId || Boolean(campaign?.canWrite?.includes(userId)) || Boolean(campaign?.admins?.includes(userId)));
+    const isDirector = isDirectorOf(campaign, userId);
     const myCharacters = useMemo(() => characters.filter(character => userId && (character.playerId === userId || character.userId === userId)), [characters, userId]);
     const acting = myCharacters.find(character => character.character_id === actingAs) ?? myCharacters[0] ?? null;
 

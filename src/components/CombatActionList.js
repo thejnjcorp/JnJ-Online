@@ -8,6 +8,7 @@ import { isLimitedUse, spendUse, usesLeft } from '../utils/actionUses';
 import { ActionUsesTracker } from './ActionUses';
 import { updateDoc, doc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
+import { keyed } from '../utils/keyed';
 
 const OUTCOME_TABLE_ROWS = [
     { key: 'criticalSuccess', label: 'Critical Success' },
@@ -54,6 +55,60 @@ function containsReaction(action){
     return getActionCategory(action) === 'reaction';
 }
 
+// A trigger and/or requirement, when the action has them.
+function TriggerLines({ action }) {
+    if (!action.trigger && !action.requirement) return null;
+    return <div className='CombatActionListCard-meta-lines'>
+        {action.trigger && <div className='CombatActionListCard-trigger'><strong>Trigger:</strong> {action.trigger}</div>}
+        {action.requirement && <div className='CombatActionListCard-requirement'><strong>Requirement:</strong> {action.requirement}</div>}
+    </div>;
+}
+
+// What a roll lands on, for an action with an outcome table.
+function OutcomeTable({ action }) {
+    const rows = OUTCOME_TABLE_ROWS.filter(row => action.outcomeTable?.[row.key]);
+    if (rows.length === 0) return null;
+    return <table className='CombatActionListCard-outcome-table'>
+        <tbody>
+            {rows.map(row => <tr key={row.key}>
+                <th>{row.label}</th>
+                <td>{action.outcomeTable[row.key]}</td>
+            </tr>)}
+        </tbody>
+    </table>;
+}
+
+// Using an action: in the Roleplay tab only its uses are spent; where the page runs the
+// action itself (the director's cards) it does; otherwise the character's own doc is updated.
+function spendAction({ action, roleplay, tracked, reaction, actionUses, onActionUsesChange, onUseAction, characterPage }) {
+    try {
+        if (roleplay) {
+            onActionUsesChange(spendUse(actionUses, action));
+        } else if (onUseAction) {
+            onUseAction(action);
+            if (tracked) onActionUsesChange(spendUse(actionUses, action));
+        } else {
+            updateDoc(doc(db, "characters", characterPage.character_id), {
+                // A reaction spends the reaction, not an action point - it's
+                // usable on someone else's turn precisely because it doesn't
+                // touch this turn's action economy.
+                ...(reaction ? { reaction_used: true } : { action_points: characterPage.action_points - action.actionCost }),
+                ...(tracked ? { action_uses: spendUse(actionUses, action) } : {}),
+            });
+        }
+    } catch (e) {
+        alert(e);
+    }
+}
+
+// The text on an action's Use button.
+function actionButtonLabel({ spentOut, reactionSpent, roleplay, action }) {
+    if (spentOut) return "No uses left";
+    if (reactionSpent) return "Reaction used";
+    if (roleplay) return "Use";
+    return containsReaction(action) ? "Use Reaction" : "Use Action";
+}
+
 export function CombatActionList({actions, experience_points, baseArmorClass, baseHitModifier, baseDamageModifier, baseDamageDice, baseDamageDiceType, baseHealingDiceType, canUseActions = false, locked = false, characterPage, userId, onUseAction, hasWritePermissions: hasWritePermissionsProp, actionUses = {}, onActionUsesChange, roleplay = false}) {
     let hasWritePermissions = false;
     if (hasWritePermissionsProp !== undefined) hasWritePermissions = hasWritePermissionsProp;
@@ -82,7 +137,7 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
     }
 
     return <div className='CombatActionList'>
-        {actions.map((action, index) => {
+        {keyed(actions, 'action').map(({ item: action, index, key }) => {
             // A feat gets a synthetic "Feat" chip at render time rather
             // than a persisted tag, so authoring a feat via the Category
             // dropdown is enough to get the visual label - no redundant
@@ -90,14 +145,13 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
             const displayTags = getActionCategory(action) === 'feat'
                 ? [{ tagInfo: 'Feat' }, ...namedTags(action)]
                 : namedTags(action);
-            const hasOutcomeTable = action.outcomeTable && Object.values(action.outcomeTable).some(Boolean);
             const tracked = !locked && Boolean(onActionUsesChange) && isLimitedUse(action);
             const spentOut = tracked && usesLeft(action, actionUses) === 0;
             const reaction = !roleplay && isReactionAction(action);
             const reactionSpent = reaction && Boolean(characterPage?.reaction_used);
             const showUse = !locked && canUseActions && hasWritePermissions && (!roleplay || tracked);
             const cardClass = ['CombatActionListCard', locked && 'CombatActionListCard-locked', (spentOut || reactionSpent) && 'CombatActionListCard-spent'].filter(Boolean).join(' ');
-            return <div className={cardClass} key={index}>
+            return <div className={cardClass} key={key}>
                 <div className='CombatActionListCard-header'>
                     {locked && <LockIcon className="CombatActionListCard-lock"/>}
                     <span className='CombatActionListCard-name'>{action.actionName}</span>
@@ -116,46 +170,15 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
                 </div>
                 <div className='CombatActionListCard-subtitle'>{[...subtitleParts(action, roleplay), metaText(action)].join(' · ')}</div>
 
-                {!locked && (action.trigger || action.requirement) && <div className='CombatActionListCard-meta-lines'>
-                    {action.trigger && <div className='CombatActionListCard-trigger'><strong>Trigger:</strong> {action.trigger}</div>}
-                    {action.requirement && <div className='CombatActionListCard-requirement'><strong>Requirement:</strong> {action.requirement}</div>}
-                </div>}
+                {!locked && <TriggerLines action={action}/>}
 
                 {!locked && <div className='CombatActionListCard-description'><Markdown options={{ disableParsingRawHTML: true }}>{action.description || ""}</Markdown></div>}
 
-                {!locked && hasOutcomeTable && <table className='CombatActionListCard-outcome-table'>
-                    <tbody>
-                        {OUTCOME_TABLE_ROWS.map(row => action.outcomeTable[row.key] &&
-                            <tr key={row.key}>
-                                <th>{row.label}</th>
-                                <td>{action.outcomeTable[row.key]}</td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>}
+                {!locked && <OutcomeTable action={action}/>}
 
                 {(tracked || showUse) && <div className='CombatActionListCard-footer'>
                     {tracked && <ActionUsesTracker action={action} uses={actionUses} canEdit={hasWritePermissions} onChange={onActionUsesChange}/>}
-                    {showUse && <button type="button" className='CombatActionList-use-action-button' disabled={spentOut || reactionSpent} onClick={() => {
-                        try {
-                            if (roleplay) {
-                                onActionUsesChange(spendUse(actionUses, action));
-                            } else if (onUseAction) {
-                                onUseAction(action);
-                                if (tracked) onActionUsesChange(spendUse(actionUses, action));
-                            } else {
-                                updateDoc(doc(db, "characters", characterPage.character_id), {
-                                    // A reaction spends the reaction, not an action point - it's
-                                    // usable on someone else's turn precisely because it doesn't
-                                    // touch this turn's action economy.
-                                    ...(reaction ? { reaction_used: true } : { action_points: characterPage.action_points - action.actionCost }),
-                                    ...(tracked ? { action_uses: spendUse(actionUses, action) } : {}),
-                                })
-                            }
-                        } catch (e) {
-                            alert(e);
-                        }
-                    }}>{spentOut ? "No uses left" : reactionSpent ? "Reaction used" : (roleplay ? "Use" : `Use ${containsReaction(action) ? "Reaction" : "Action"}`)}</button>}
+                    {showUse && <button type="button" className='CombatActionList-use-action-button' disabled={spentOut || reactionSpent} onClick={() => spendAction({ action, roleplay, tracked, reaction, actionUses, onActionUsesChange, onUseAction, characterPage })}>{actionButtonLabel({ spentOut, reactionSpent, roleplay, action })}</button>}
                 </div>}
             </div>;
         })}

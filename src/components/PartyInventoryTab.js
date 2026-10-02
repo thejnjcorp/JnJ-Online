@@ -57,10 +57,10 @@ export function PartyInventoryTab({ campaignId, party, loaded, acting, userId, m
                 {entries.map(entry => <li key={entry.id} className="Party-list-item">
                     <ItemLine itemId={isItemEntry(entry) ? entry.item_id : ''} title={entry.title} content={entry.content} quantity={quantityOf(entry)}>
                         {acting && isItemEntry(entry) && <AmountAction label="Take" max={quantityOf(entry)} onDo={quantity => run(() => takeFromParty({ campaignId, characterId: acting.character_id, itemId: entry.item_id, title: entry.title, quantity }))}/>}
-                        {isItemEntry(entry) && <span className="Party-quantity" role="group" aria-label={`Quantity of ${entry.title}`}>
+                        {isItemEntry(entry) && <fieldset className="Party-quantity" aria-label={`Quantity of ${entry.title}`}>
                             <button type="button" className="Party-button" aria-label={`One fewer ${entry.title}`} onClick={() => run(() => setPartyQuantity(campaignId, entry.id, quantityOf(entry) - 1))}>−</button>
                             <button type="button" className="Party-button" aria-label={`One more ${entry.title}`} disabled={quantityOf(entry) >= MAX_QUANTITY} onClick={() => run(() => setPartyQuantity(campaignId, entry.id, quantityOf(entry) + 1))}>+</button>
-                        </span>}
+                        </fieldset>}
                         <button type="button" className="Party-button Party-button-danger" aria-label={`Remove ${entry.title}`} onClick={() => run(() => removePartyEntry(campaignId, entry.id))}>Remove</button>
                     </ItemLine>
                 </li>)}

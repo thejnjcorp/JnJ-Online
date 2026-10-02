@@ -9,12 +9,12 @@ export function MapDrawingToolbar({ drawing }) {
     return <div className="MapDrawingToolbar" role="toolbar" aria-label="Map drawing tools">
         <button type="button" className="MapDrawingToolbar-button" aria-pressed={active} onClick={() => setActive(!active)}>{active ? 'Stop drawing' : 'Draw on map'}</button>
         {active && <>
-            <div className="MapDrawingToolbar-group" role="group" aria-label="Tool">
+            <fieldset className="MapDrawingToolbar-group" aria-label="Tool">
                 <button type="button" className="MapDrawingToolbar-button" aria-pressed={tool === 'pen'} onClick={() => setTool('pen')}>Pen</button>
                 <button type="button" className="MapDrawingToolbar-button" aria-pressed={tool === 'eraser'} onClick={() => setTool('eraser')}>Eraser</button>
-            </div>
+            </fieldset>
             {tool === 'pen' && <>
-                <div className="MapDrawingToolbar-group" role="group" aria-label="Color">
+                <fieldset className="MapDrawingToolbar-group" aria-label="Color">
                     {COLORS.map(swatch => <button
                         key={swatch.key}
                         type="button"
@@ -25,10 +25,10 @@ export function MapDrawingToolbar({ drawing }) {
                         onClick={() => setColor(swatch.value)}
                     />)}
                     <input type="color" className="MapDrawingToolbar-custom" aria-label="Custom color" value={color} onChange={event => setColor(event.target.value)}/>
-                </div>
-                <div className="MapDrawingToolbar-group" role="group" aria-label="Line width">
+                </fieldset>
+                <fieldset className="MapDrawingToolbar-group" aria-label="Line width">
                     {SIZES.map(option => <button key={option.key} type="button" className="MapDrawingToolbar-button" aria-pressed={size === option.value} onClick={() => setSize(option.value)}>{option.label}</button>)}
-                </div>
+                </fieldset>
             </>}
             <div className="MapDrawingToolbar-group">
                 <button type="button" className="MapDrawingToolbar-button" disabled={strokes.length === 0} onClick={undo}>Undo</button>

@@ -10,7 +10,7 @@ import { db } from './firebase';
 
 // Permission/visibility fields belong to the doc as a whole, not to any one
 // version, so they're never snapshotted.
-const NON_CONTENT_FIELDS = ['id', 'public', 'isDefault', 'canRead', 'canWrite', 'admins', 'visibility'];
+const NON_CONTENT_FIELDS = new Set(['id', 'public', 'isDefault', 'canRead', 'canWrite', 'admins', 'visibility']);
 
 const LABELS = { classes: 'Class', races: 'Race' };
 
@@ -20,7 +20,7 @@ export function versionOf(data) {
 
 export function docContent(data) {
     return Object.fromEntries(
-        Object.entries(data || {}).filter(([key, value]) => !NON_CONTENT_FIELDS.includes(key) && value !== undefined)
+        Object.entries(data || {}).filter(([key, value]) => !NON_CONTENT_FIELDS.has(key) && value !== undefined)
     );
 }
 

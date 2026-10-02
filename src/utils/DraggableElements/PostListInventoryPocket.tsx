@@ -6,9 +6,9 @@ import { InventoryCard, InventoryContext } from "./InventoryCard.tsx";
 
 // A character's pocket (`inventory_pocket`): one slot beside the backpack, for what
 // they keep to hand. Entries are the same as the backpack's (see PostListInventory).
-export function PostListContentInventoryPocket({ inputStatuses, characterId, className = {}, campaignId = undefined, canEdit = false, userId = undefined }: {
+export function PostListContentInventoryPocket({ inputStatuses, characterId, className = {}, campaignId = undefined, canEdit = false, userId = undefined }: Readonly<{
     inputStatuses: unknown; characterId: string; className?: object; campaignId?: string; canEdit?: boolean; userId?: string;
-}) {
+}>) {
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
 

@@ -80,7 +80,7 @@ export function ensureFontLoaded(fontKey, doc = document) {
     const link = doc.createElement('link');
     link.rel = 'stylesheet';
     link.href = font.stylesheet;
-    link.setAttribute('data-a11y-font', font.key);
+    link.dataset.a11yFont = font.key;
     doc.head.appendChild(link);
 }
 
@@ -92,11 +92,11 @@ export function applyAccessibility(settings, root = document.documentElement) {
 
     const font = READING_FONTS.find(candidate => candidate.key === normalized.font);
     if (font?.family) {
-        root.setAttribute('data-a11y-font', font.key);
+        root.dataset.a11yFont = font.key;
         root.style.setProperty('--jnj-a11y-font', font.family);
         ensureFontLoaded(font.key, root.ownerDocument);
     } else {
-        root.removeAttribute('data-a11y-font');
+        delete root.dataset.a11yFont;
         root.style.removeProperty('--jnj-a11y-font');
     }
 

@@ -8,6 +8,12 @@ import '../styles/EncounterPage.scss';
 
 // A campaign's encounters: the fights a director has prepared, each with a
 // roster of enemies. Open one to build it and stage it into the fight.
+// What the list says when there is nothing to show.
+function emptyMessage(status) {
+    if (status === 'error') return "Couldn't load the encounters. Only this campaign's directors can see them.";
+    return status === 'loading' ? 'Loading…' : 'No encounters yet.';
+}
+
 export function EncountersPage() {
     const location = useLocation();
     const navigate = useNavigate();
@@ -56,7 +62,7 @@ export function EncountersPage() {
                     </div>;
                 })}
                 {encounters.length === 0 && <div className="StatusListPage-empty">
-                    {status === 'error' ? "Couldn't load the encounters. Only this campaign's directors can see them." : status === 'loading' ? 'Loading…' : 'No encounters yet.'}
+                    {emptyMessage(status)}
                 </div>}
             </div>
 

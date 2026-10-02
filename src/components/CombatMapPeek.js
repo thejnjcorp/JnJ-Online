@@ -49,7 +49,7 @@ export function CombatMapPeek({ campaignId, activeMap, entities, userId, canEdit
         >
             <MapIcon/>
         </button>
-        {open && <div id="combat-map-peek-panel" className="CombatMapPeek-panel" role="region" aria-label="Combat map">
+        {open && <section id="combat-map-peek-panel" className="CombatMapPeek-panel" aria-label="Combat map">
             <div className="CombatMapPeek-header">
                 <span className="CombatMapPeek-title">Combat map</span>
                 {pinned && <button type="button" className="CombatMapPeek-close" aria-label="Close the combat map" onClick={() => { setPinned(false); setHovering(false); }}>×</button>}
@@ -64,6 +64,6 @@ export function CombatMapPeek({ campaignId, activeMap, entities, userId, canEdit
                     noActiveMapMessage="The director hasn't set an active combat map yet."
                 />
             </div>
-        </div>}
+        </section>}
     </span>;
 }

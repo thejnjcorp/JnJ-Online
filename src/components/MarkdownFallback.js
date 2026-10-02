@@ -5,7 +5,7 @@ import '../styles/MarkdownEditor.scss';
 export function MarkdownFallback({ value, onChange, label, placeholder, readOnly, maxLength, variant = 'full', className = '', note }) {
     const classes = ['MarkdownEditor', `MarkdownEditor-${variant}`, className].filter(Boolean).join(' ');
     return <div className={classes}>
-        <div className="MarkdownEditor-fallback-note" role="status">{note}</div>
+        <output className="MarkdownEditor-fallback-note">{note}</output>
         <textarea
             className="MarkdownEditor-fallback"
             aria-label={label}

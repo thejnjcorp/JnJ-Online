@@ -43,27 +43,38 @@ export function calendarOf(party) {
     return validateCalendar(stored).valid ? stored : defaultCalendar();
 }
 
+const badName = item => typeof item?.name !== 'string' || item.name.trim() === '' || item.name.length > MAX_NAME_LENGTH;
+
+function weekdayProblems(weekdays) {
+    if (!Array.isArray(weekdays) || weekdays.length < 1 || weekdays.length > MAX_WEEKDAYS) return [`A week needs from 1 to ${MAX_WEEKDAYS} days.`];
+    return weekdays.some(name => typeof name !== 'string' || name.trim() === '' || name.length > MAX_NAME_LENGTH)
+        ? [`Each weekday needs a name of up to ${MAX_NAME_LENGTH} characters.`]
+        : [];
+}
+
+function monthProblems(months) {
+    if (!Array.isArray(months) || months.length < 1 || months.length > MAX_MONTHS) return [`A year needs from 1 to ${MAX_MONTHS} months.`];
+    const problems = [];
+    if (months.some(badName)) problems.push(`Each month needs a name of up to ${MAX_NAME_LENGTH} characters.`);
+    if (months.some(month => !isWhole(month?.days) || month.days < 1 || month.days > MAX_MONTH_DAYS)) problems.push(`Each month needs from 1 to ${MAX_MONTH_DAYS} days.`);
+    return problems;
+}
+
+function tagProblems(tags) {
+    if (!Array.isArray(tags) || tags.length > MAX_TAGS) return [`There can be at most ${MAX_TAGS} tags.`];
+    const problems = [];
+    if (tags.some(badName)) problems.push(`Each tag needs a name of up to ${MAX_NAME_LENGTH} characters.`);
+    if (tags.some(tag => !isHexColor(tag?.color))) problems.push('Each tag needs a colour.');
+    const names = tags.map(tag => (tag.name || '').trim().toLowerCase());
+    if (new Set(names).size !== names.length) problems.push('Two tags cannot have the same name.');
+    return problems;
+}
+
 // Problems with a calendar's setup, as plain sentences.
 export function validateCalendar(calendar) {
-    const problems = [];
     if (!calendar || typeof calendar !== 'object') return { valid: false, problems: ['There is no calendar.'] };
-    const { weekdays, months, today } = calendar;
-    if (!Array.isArray(weekdays) || weekdays.length < 1 || weekdays.length > MAX_WEEKDAYS) problems.push(`A week needs from 1 to ${MAX_WEEKDAYS} days.`);
-    else if (weekdays.some(name => typeof name !== 'string' || name.trim() === '' || name.length > MAX_NAME_LENGTH)) problems.push(`Each weekday needs a name of up to ${MAX_NAME_LENGTH} characters.`);
-    if (!Array.isArray(months) || months.length < 1 || months.length > MAX_MONTHS) problems.push(`A year needs from 1 to ${MAX_MONTHS} months.`);
-    else {
-        if (months.some(month => typeof month?.name !== 'string' || month.name.trim() === '' || month.name.length > MAX_NAME_LENGTH)) problems.push(`Each month needs a name of up to ${MAX_NAME_LENGTH} characters.`);
-        if (months.some(month => !isWhole(month?.days) || month.days < 1 || month.days > MAX_MONTH_DAYS)) problems.push(`Each month needs from 1 to ${MAX_MONTH_DAYS} days.`);
-    }
-    const tags = calendar.tags ?? [];
-    if (!Array.isArray(tags) || tags.length > MAX_TAGS) problems.push(`There can be at most ${MAX_TAGS} tags.`);
-    else {
-        if (tags.some(tag => typeof tag?.name !== 'string' || tag.name.trim() === '' || tag.name.length > MAX_NAME_LENGTH)) problems.push(`Each tag needs a name of up to ${MAX_NAME_LENGTH} characters.`);
-        if (tags.some(tag => !isHexColor(tag?.color))) problems.push('Each tag needs a colour.');
-        const names = tags.map(tag => (tag.name || '').trim().toLowerCase());
-        if (new Set(names).size !== names.length) problems.push('Two tags cannot have the same name.');
-    }
-    if (problems.length === 0 && !isValidDate(calendar, today)) problems.push('Today is not a date in this calendar.');
+    const problems = [...weekdayProblems(calendar.weekdays), ...monthProblems(calendar.months), ...tagProblems(calendar.tags ?? [])];
+    if (problems.length === 0 && !isValidDate(calendar, calendar.today)) problems.push('Today is not a date in this calendar.');
     return { valid: problems.length === 0, problems };
 }
 
@@ -115,7 +126,7 @@ export function weekdayOf(calendar, date) {
 export function monthGrid(calendar, year, month) {
     const columns = calendar.weekdays.length;
     const blanks = weekdayOf(calendar, { year, month, day: 1 });
-    const cells = [...Array(blanks).fill(null), ...Array.from({ length: daysInMonth(calendar, month) }, (_, i) => i + 1)];
+    const cells = [...new Array(blanks).fill(null), ...Array.from({ length: daysInMonth(calendar, month) }, (_, i) => i + 1)];
     while (cells.length % columns !== 0) cells.push(null);
     return Array.from({ length: cells.length / columns }, (_, row) => cells.slice(row * columns, (row + 1) * columns));
 }

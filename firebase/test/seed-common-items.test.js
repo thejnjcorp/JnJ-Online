@@ -39,7 +39,8 @@ async function main() {
         assert.ok(made.length >= 15);
         made.forEach(item => {
             assert.equal(item.isPublic, true);
-            assert.ok(item.item_name.length > 0 && item.item_name.length <= 60);
+            assert.ok(item.item_name.length > 0);
+            assert.ok(item.item_name.length <= 60);
             assert.ok(item.item_description.length > 0);
             assert.ok(item.tags.length > 0);
             assert.equal(item.item_image, '');

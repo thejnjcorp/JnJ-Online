@@ -11,6 +11,13 @@ function formatWhen(millis) {
 
 // One character's half of a trade: what they are putting in, whether they have
 // agreed, and - for the player whose character it is - the means to change it.
+// The button that confirms (or takes back) one side's agreement. `both` is when the same
+// person plays both sides, so the sides need telling apart by name.
+function agreementLabel(half, both) {
+    if (half.confirmed) return both ? `Take back ${half.character_name}'s agreement` : 'Take back my agreement';
+    return both ? `${half.character_name} agrees to this trade` : 'I agree to this trade';
+}
+
 function TradeSide({ trade, side, character, mine, campaignId, onError }) {
     const half = trade[side];
     const [chosen, setChosen] = useState('');
@@ -38,7 +45,7 @@ function TradeSide({ trade, side, character, mine, campaignId, onError }) {
 
     const removeLine = itemId => run(() => offerItems(campaignId, trade.id, half.character_id, half.items.filter(line => line.item_id !== itemId)));
 
-    return <div className={half.confirmed ? 'Trade-side Trade-side-confirmed' : 'Trade-side'} aria-label={`${half.character_name}'s side of the trade`} role="group">
+    return <fieldset className={half.confirmed ? 'Trade-side Trade-side-confirmed' : 'Trade-side'} aria-label={`${half.character_name}'s side of the trade`}>
         <div className="Trade-side-header">
             <span className="Trade-side-name">{half.character_name}</span>
             <span className={half.confirmed ? 'Trade-badge Trade-badge-confirmed' : 'Trade-badge'}>{half.confirmed ? 'Agreed' : 'Not agreed yet'}</span>
@@ -60,7 +67,7 @@ function TradeSide({ trade, side, character, mine, campaignId, onError }) {
             <input className="Party-input Party-input-narrow" type="number" min={1} aria-label="How many to offer" value={amount} onChange={event => setAmount(event.target.value)}/>
             <button type="button" className="Party-button" disabled={chosen === ''} onClick={addLine}>Add</button>
         </div>}
-    </div>;
+    </fieldset>;
 }
 
 // Trades between the party's characters. A trade is a shared window: each side puts in
@@ -126,9 +133,7 @@ export function PartyTradesTab({ campaignId, party, characters, myCharacters, is
                     <div className="Trade-actions">
                         {mySides.map(side => {
                             const half = trade[side];
-                            const label = half.confirmed
-                                ? (both ? `Take back ${half.character_name}'s agreement` : 'Take back my agreement')
-                                : (both ? `${half.character_name} agrees to this trade` : 'I agree to this trade');
+                            const label = agreementLabel(half, both);
                             return <button key={side} type="button" className="Party-button Party-button-primary" onClick={() => run(() => setConfirmed(campaignId, trade.id, half.character_id, !half.confirmed))}>{label}</button>;
                         })}
                         {(mySides.length > 0 || isDirector) && <button type="button" className="Party-button Party-button-danger" onClick={() => run(() => cancelTrade(campaignId, trade.id))}>Cancel trade</button>}

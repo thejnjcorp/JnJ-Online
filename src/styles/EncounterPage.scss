@@ -167,7 +167,8 @@
     align-items: flex-end;
     gap: var(--jnj-space-3);
 
-    label {
+    label,
+    .EncounterPage-count-field {
         display: flex;
         flex-direction: column;
         gap: var(--jnj-space-1);

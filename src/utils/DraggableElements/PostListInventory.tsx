@@ -10,11 +10,9 @@ import '../../styles/PostCardInventoryDefaults.scss';
 // database with a quantity (see inventory.js and InventoryCard.tsx). Every change to
 // the doc is shown, whoever made it - a trade with another player, a director giving
 // something - not only the ones made here.
-export function PostListContentInventory({ inputStatuses, characterId, className = {}, campaignId = undefined, canEdit = false, userId = undefined }: {
+export function PostListContentInventory({ inputStatuses, characterId, className = {}, campaignId = undefined, canEdit = false, userId = undefined }: Readonly<{
     inputStatuses: unknown; characterId: string; className?: object; campaignId?: string; canEdit?: boolean; userId?: string;
-    // no longer used: trading is done on the party page
-    campaignCharacterList?: unknown[];
-}) {
+}>) {
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
 

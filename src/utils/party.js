@@ -60,7 +60,7 @@ export function subscribeParty(campaignId, listener) {
 
     return () => {
         const current = stores.get(campaignId);
-        if (!current || !current.listeners.delete(listener)) return; // stopped already
+        if (!current?.listeners.delete(listener)) return; // stopped already
         if (current.listeners.size > 0) return;
         clearTimeout(current.timer);
         current.timer = setTimeout(() => {

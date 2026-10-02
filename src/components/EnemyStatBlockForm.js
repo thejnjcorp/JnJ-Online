@@ -4,6 +4,7 @@ import { benchmarkDefaults, benchmarkFor, benchmarkSummary } from '../utils/enco
 import { newActionDefaults } from '../utils/classValidation';
 import { getActionCategory } from '../utils/classActions';
 import { newCustomTag } from '../utils/tags';
+import { keyed } from '../utils/keyed';
 import { ClassActionEditor } from './ClassActionEditor';
 import { FieldError, invalidClass, invalidProps } from './FormErrors';
 import { PictureField } from './PictureField';
@@ -28,7 +29,7 @@ const STAT_INPUTS = [
 // A number field's value: '' shows as empty, so clearing it isn't a 0 that
 // looks valid.
 const shown = value => (typeof value === 'number' && !Number.isNaN(value) ? value : '');
-const parsed = text => (text.trim() === '' ? NaN : Number(text));
+const parsed = text => (text.trim() === '' ? Number.NaN : Number(text));
 
 // Weaknesses or resistances: a list of "type amount" rows. The rows are kept
 // here as typed (so "Non Magical" can be typed with its space) and reported
@@ -41,12 +42,12 @@ function ModifierList({ title, initial, readOnly, onChange, error, problemId }) 
 
     function update(next) {
         setRows(next);
-        onChange(next.map(row => formatModifier({ type: row.type, amount: row.amount === '' ? NaN : Number(row.amount) })));
+        onChange(next.map(row => formatModifier({ type: row.type, amount: row.amount === '' ? Number.NaN : Number(row.amount) })));
     }
 
     return <div className="EnemyPage-modifiers" {...invalidProps(problemId, error)} tabIndex={error ? -1 : undefined}>
         <span className="ClassPage-field-label">{title}</span>
-        {rows.map((row, index) => <div className="EnemyPage-modifier-row" key={index}>
+        {keyed(rows, 'row').map(({ item: row, index, key }) => <div className="EnemyPage-modifier-row" key={key}>
             <input
                 className={invalidClass('ClassPage-field-input', error)}
                 aria-label={`${title} type ${index + 1}`}
@@ -83,7 +84,7 @@ function TypeList({ title, initial, readOnly, onChange, error, problemId }) {
 
     return <div className="EnemyPage-modifiers" {...invalidProps(problemId, error)} tabIndex={error ? -1 : undefined}>
         <span className="ClassPage-field-label">{title}</span>
-        {rows.map((row, index) => <div className="EnemyPage-modifier-row" key={index}>
+        {keyed(rows, 'row').map(({ item: row, index, key }) => <div className="EnemyPage-modifier-row" key={key}>
             <input
                 className={invalidClass('ClassPage-field-input', error)}
                 aria-label={`${title} type ${index + 1}`}
@@ -171,7 +172,7 @@ export function EnemyStatBlockForm({ formData, setFormData, errors, readOnly = f
 
         <div className="ClassPage-card">
             <div className="ClassPage-section-title">Tier</div>
-            <div className="ClassPage-pill-group" role="group" aria-label="Tier" {...invalidProps('field-enemy_type', errors.fields.enemy_type)} tabIndex={errors.fields.enemy_type ? -1 : undefined}>
+            <fieldset className="ClassPage-pill-group" aria-label="Tier" {...invalidProps('field-enemy_type', errors.fields.enemy_type)} tabIndex={errors.fields.enemy_type ? -1 : undefined}>
                 {ENEMY_TIERS.map(tier => <button
                     type="button"
                     key={tier.key}
@@ -180,7 +181,7 @@ export function EnemyStatBlockForm({ formData, setFormData, errors, readOnly = f
                     disabled={readOnly}
                     onClick={() => set('enemy_type', tier.key)}
                 >{tier.key}</button>)}
-            </div>
+            </fieldset>
             <FieldError message={errors.fields.enemy_type}/>
             <div className="ClassPage-hint">A label - shown as a badge and used to filter and total up encounters. What makes an enemy stronger is the numbers you give it below.</div>
             {benchmark && <div className="EnemyPage-benchmark">

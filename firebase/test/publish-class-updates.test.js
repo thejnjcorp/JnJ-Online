@@ -140,7 +140,9 @@ async function main() {
                 const where = `${entry.class_name} / ${action.actionName}`;
                 assert.ok(action.actionName, where);
                 assert.ok(['feat', 'passive', 'reaction', 'action'].includes(action.category), where);
-                assert.ok(Number.isInteger(action.actionCost) && action.actionCost >= 0 && action.actionCost <= 3, where);
+                assert.ok(Number.isInteger(action.actionCost), where);
+                assert.ok(action.actionCost >= 0, where);
+                assert.ok(action.actionCost <= 3, where);
                 if (action.toHitBool) assert.equal(typeof action.toHit, 'number', where);
                 else assert.match(action.difficultyClass, /^\w+,-?\d+$/, where);
                 if (action.actionType !== 'standard') assert.ok(Number.isInteger(action.actionTypeCount), where);

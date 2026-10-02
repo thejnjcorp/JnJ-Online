@@ -3,6 +3,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { ABILITY_STATS, claimLevelUps, describeReward, pendingLevelUps, unchosenRewards } from '../utils/levelUps';
 import '../styles/LevelUpPrompt.scss';
+import { useEscapeKey } from '../utils/useEscapeKey';
 
 function RewardLine({ reward, character, choice, onChoose }) {
     if (reward.kind === 'stat_point') {
@@ -22,6 +23,7 @@ function RewardLine({ reward, character, choice, onChoose }) {
 }
 
 function LevelUpDialog({ character, pending, onClose }) {
+    useEscapeKey(onClose);
     const [choices, setChoices] = useState({});
     const [saving, setSaving] = useState(false);
     const missing = unchosenRewards(pending, choices);
@@ -40,7 +42,7 @@ function LevelUpDialog({ character, pending, onClose }) {
 
     return <>
         <button type="button" className="LevelUp-scrim" aria-label="Close" onClick={onClose}/>
-        <div className="LevelUp-dialog" role="dialog" aria-modal="true" aria-label="Level up" onKeyDown={event => { if (event.key === 'Escape') onClose(); }}>
+        <dialog open className="LevelUp-dialog" aria-modal="true" aria-label="Level up">
             <h2 className="LevelUp-title">Level up</h2>
             {pending.map(({ level, rewards, unlockedActions }) => <section className="LevelUp-level" key={level} aria-label={`Level ${level}`}>
                 <h3>Level {level}</h3>
@@ -58,7 +60,7 @@ function LevelUpDialog({ character, pending, onClose }) {
                     {saving ? 'Saving…' : 'Confirm level-up'}
                 </button>
             </div>
-        </div>
+        </dialog>
     </>;
 }
 
@@ -72,10 +74,10 @@ export function LevelUpPrompt({ character, userId }) {
 
     const levels = pending.map(entry => entry.level);
     return <>
-        <div className="LevelUp-banner" role="status">
+        <output className="LevelUp-banner">
             <span>{levels.length === 1 ? `Level ${levels[0]} reached - ` : `Levels ${levels.join(', ')} reached - `}rewards are waiting.</span>
             <button type="button" className="LevelUp-button LevelUp-button-primary" onClick={() => setOpen(true)}>Level up</button>
-        </div>
+        </output>
         {open && <LevelUpDialog character={character} pending={pending} onClose={() => setOpen(false)}/>}
     </>;
 }

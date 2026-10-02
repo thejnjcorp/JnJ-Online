@@ -393,3 +393,23 @@ describe('an enemy\'s notes (tactics, personality, what it drops)', () => {
         expect(enemyDocFields({ ...bandit, description: undefined }).description).toBe('');
     });
 });
+
+describe('parseModifier edge cases', () => {
+    const { parseModifier } = require('../../src/utils/enemies');
+
+    test('reads the number at the end, with its minus sign, whatever precedes it', () => {
+        expect(parseModifier('Fire 5')).toEqual({ type: 'Fire', amount: 5 });
+        expect(parseModifier('Fire-5')).toEqual({ type: 'Fire', amount: -5 });
+        expect(parseModifier('  Cold  -3  ')).toEqual({ type: 'Cold', amount: -3 });
+        expect(parseModifier('Cold 3 4')).toEqual({ type: 'Cold 3', amount: 4 });
+        expect(parseModifier('12')).toEqual({ type: '', amount: 12 });
+        expect(parseModifier('--3')).toEqual({ type: '-', amount: -3 });
+    });
+
+    test('with no number at the end the whole text is the type', () => {
+        expect(parseModifier('Fire')).toEqual({ type: 'Fire', amount: Number.NaN });
+        expect(parseModifier('')).toEqual({ type: '', amount: Number.NaN });
+        expect(parseModifier(undefined)).toEqual({ type: '', amount: Number.NaN });
+        expect(parseModifier('5 fire')).toEqual({ type: '5 fire', amount: Number.NaN });
+    });
+});

@@ -527,7 +527,7 @@ describe('EncounterPage', () => {
 
                 fireEvent.click(within(panel()).getByRole('button', { name: 'Add to encounter' }));
 
-                await waitFor(() => expect(screen.getByLabelText('Name of Ash Warden')).toBeInTheDocument());
+                expect(await screen.findByLabelText('Name of Ash Warden')).toBeInTheDocument();
                 expect(mockAddDoc).toHaveBeenCalledTimes(1);
                 const [target, data] = mockAddDoc.mock.calls[0];
                 expect(target).toEqual({ __collection: 'enemies' });

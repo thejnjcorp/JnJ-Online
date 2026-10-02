@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { SCENE_TYPES, mainScenes, sessionTitle } from '../utils/scenes';
+import { useEscapeKey } from '../utils/useEscapeKey';
 
 // What the "place on timeline" choice means to the timeline: nothing (the end), null
 // (the start), or the scene to follow.
@@ -13,6 +14,7 @@ function afterSceneIdOf(choice) {
 // scene. Creating hands everything to `onCreate`, which makes the scene and opens it
 // in the builder.
 export function NewSceneDialog({ sessions, scenes, defaultSessionId, afterSceneId, onCreate, onClose }) {
+    useEscapeKey(onClose);
     const firstSession = defaultSessionId || sessions[sessions.length - 1]?.id || '';
     const [name, setName] = useState('');
     const [type, setType] = useState('roleplay');
@@ -47,7 +49,7 @@ export function NewSceneDialog({ sessions, scenes, defaultSessionId, afterSceneI
 
     return <>
         <button type="button" className="Scenes-scrim" aria-label="Close" onClick={onClose}/>
-        <div className="Scenes-dialog" role="dialog" aria-modal="true" aria-label="New Scene" onKeyDown={event => { if (event.key === 'Escape') onClose(); }}>
+        <dialog open className="Scenes-dialog" aria-modal="true" aria-label="New Scene">
             <div className="Scenes-dialog-head">
                 <h2 className="Scenes-dialog-title">New Scene</h2>
                 <button type="button" className="Scenes-icon-button" aria-label="Close dialog" onClick={onClose}>&times;</button>
@@ -61,9 +63,9 @@ export function NewSceneDialog({ sessions, scenes, defaultSessionId, afterSceneI
 
             <div className="Scenes-field">
                 <span className="Scenes-field-label" id="new-scene-type">Scene type</span>
-                <div className="Scenes-segmented" role="group" aria-labelledby="new-scene-type">
+                <fieldset className="Scenes-segmented" aria-labelledby="new-scene-type">
                     {SCENE_TYPES.map(option => <button type="button" key={option.key} aria-pressed={type === option.key} onClick={() => setType(option.key)}>{option.label}</button>)}
-                </div>
+                </fieldset>
             </div>
 
             <div className="Scenes-field-row">
@@ -102,10 +104,10 @@ export function NewSceneDialog({ sessions, scenes, defaultSessionId, afterSceneI
 
             <div className="Scenes-field">
                 <span className="Scenes-field-label" id="new-scene-start">Start from</span>
-                <div className="Scenes-segmented" role="group" aria-labelledby="new-scene-start">
+                <fieldset className="Scenes-segmented" aria-labelledby="new-scene-start">
                     <button type="button" aria-pressed={startFrom === 'blank'} onClick={() => setStartFrom('blank')}>Blank</button>
                     <button type="button" aria-pressed={startFrom === 'duplicate'} onClick={() => setStartFrom('duplicate')} disabled={scenes.length === 0}>Duplicate scene</button>
-                </div>
+                </fieldset>
                 {startFrom === 'duplicate' && <select aria-label="Scene to duplicate" value={duplicateOf} onChange={event => setDuplicateOf(event.target.value)}>
                     <option value="">Choose a scene…</option>
                     {scenes.filter(scene => !scene.benched).map(scene => <option key={scene.id} value={scene.id}>{scene.name || 'Untitled scene'}</option>)}
@@ -116,6 +118,6 @@ export function NewSceneDialog({ sessions, scenes, defaultSessionId, afterSceneI
                 <button type="button" className="Scenes-button" onClick={onClose}>Cancel</button>
                 <button type="button" className="Scenes-button Scenes-button-primary" onClick={create} disabled={!canCreate}>Create &amp; Build &rarr;</button>
             </div>
-        </div>
+        </dialog>
     </>;
 }

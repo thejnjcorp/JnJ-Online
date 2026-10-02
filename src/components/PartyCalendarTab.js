@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { updateParty } from '../utils/party';
 import { usePartyEvents } from '../utils/usePartyEvents';
+import { keyed } from '../utils/keyed';
 import {
     MAX_EVENT_DESCRIPTION, MAX_EVENT_TITLE, MAX_MONTHS, MAX_MONTH_DAYS, MAX_NAME_LENGTH, MAX_TAGS, MAX_WEEKDAYS, RECURRENCES,
     addDays, calendarOf, daysInMonth, eventDate, eventDocFields, eventsOnDate, findTag, formatDate, formatMonth, hasHappened, isValidDate, monthGrid, nextTagColor, recurrenceLabel, sameDate, shiftMonth,
@@ -51,18 +52,18 @@ function EventForm({ calendar, initial, onSave, onCancel }) {
         <div className="Party-hint">Use "Manage tags" above to colour-code a kind of event, like a Holiday.</div>
         <textarea className="Party-input Calendar-textarea" aria-label="Event details" placeholder="Details, so the party can look back on it" maxLength={MAX_EVENT_DESCRIPTION} rows={3} value={form.description} onChange={event => set({ description: event.target.value })}/>
         <div className="Calendar-date-fields">
-            <label>Day
+            <label>Day{' '}
                 <input className="Party-input Party-input-narrow" type="number" min={1} max={daysInMonth(calendar, form.month) || undefined} aria-label="Event day" value={form.day} onChange={event => set({ day: Number(event.target.value) })}/>
             </label>
-            <label>Month
+            <label>Month{' '}
                 <select className="Party-input" aria-label="Event month" value={form.month} onChange={event => set({ month: Number(event.target.value) })}>
-                    {calendar.months.map((month, index) => <option key={index} value={index}>{month.name}</option>)}
+                    {keyed(calendar.months, 'month').map(({ item: month, index, key }) => <option key={key} value={index}>{month.name}</option>)}
                 </select>
             </label>
-            <label>Year
+            <label>Year{' '}
                 <input className="Party-input Party-input-narrow" type="number" aria-label="Event year" value={form.year} onChange={event => set({ year: Number(event.target.value) })}/>
             </label>
-            <label>Repeats
+            <label>Repeats{' '}
                 <select className="Party-input" aria-label="Repeats" value={form.recurrence || 'none'} onChange={event => set({ recurrence: event.target.value })}>
                     {RECURRENCES.map(option => <option key={option.key} value={option.key}>{option.label}</option>)}
                 </select>
@@ -106,14 +107,14 @@ function CalendarSettings({ calendar, onSave, onClose }) {
         <div className="Party-hint">Set the calendar to match your world. Events keep the day, month number and year they were given, so shortening the year can leave events on days that no longer exist.</div>
 
         <h4 className="Calendar-settings-heading">Weekdays</h4>
-        {draft.weekdays.map((name, index) => <div className="Calendar-settings-row" key={index}>
+        {keyed(draft.weekdays, 'weekday').map(({ item: name, index, key }) => <div className="Calendar-settings-row" key={key}>
             <input className="Party-input" aria-label={`Weekday ${index + 1}`} maxLength={MAX_NAME_LENGTH + 5} value={name} onChange={event => changeWeekday(index, event.target.value)}/>
             <button type="button" className="Party-button" aria-label={`Remove weekday ${index + 1}`} disabled={draft.weekdays.length <= 1} onClick={() => setDraft(current => ({ ...current, weekdays: current.weekdays.filter((_, i) => i !== index) }))}>Remove</button>
         </div>)}
         <button type="button" className="Party-button" disabled={draft.weekdays.length >= MAX_WEEKDAYS} onClick={() => setDraft(current => ({ ...current, weekdays: [...current.weekdays, `Day ${current.weekdays.length + 1}`] }))}>+ Add a weekday</button>
 
         <h4 className="Calendar-settings-heading">Months</h4>
-        {draft.months.map((month, index) => <div className="Calendar-settings-row" key={index}>
+        {keyed(draft.months, 'month').map(({ item: month, index, key }) => <div className="Calendar-settings-row" key={key}>
             <input className="Party-input" aria-label={`Month ${index + 1} name`} maxLength={MAX_NAME_LENGTH + 5} value={month.name} onChange={event => changeMonth(index, { name: event.target.value })}/>
             <input className="Party-input Party-input-narrow" type="number" min={1} max={MAX_MONTH_DAYS} aria-label={`Month ${index + 1} days`} value={month.days} onChange={event => changeMonth(index, { days: Number(event.target.value) })}/>
             <span className="Party-hint">days</span>
@@ -124,9 +125,9 @@ function CalendarSettings({ calendar, onSave, onClose }) {
         <h4 className="Calendar-settings-heading">Today</h4>
         <div className="Calendar-date-fields">
             <label>Day <input className="Party-input Party-input-narrow" type="number" aria-label="Today's day" value={draft.today.day} onChange={event => changeToday({ day: Number(event.target.value) })}/></label>
-            <label>Month
+            <label>Month{' '}
                 <select className="Party-input" aria-label="Today's month" value={draft.today.month} onChange={event => changeToday({ month: Number(event.target.value) })}>
-                    {draft.months.map((month, index) => <option key={index} value={index}>{month.name}</option>)}
+                    {keyed(draft.months, 'month').map(({ item: month, index, key }) => <option key={key} value={index}>{month.name}</option>)}
                 </select>
             </label>
             <label>Year <input className="Party-input Party-input-narrow" type="number" aria-label="Today's year" value={draft.today.year} onChange={event => changeToday({ year: Number(event.target.value) })}/></label>
@@ -229,6 +230,14 @@ function TagManager({ campaignId, calendar }) {
 // today's date as the game has it (anyone can move that on as the story does). For
 // bookkeeping - when did we reach the gate, how long ago did we buy the horses. The
 // director sets up the calendar itself.
+// A calendar day's accessible name: its date, how many events it has, and whether it is today.
+function dayLabel(dateText, eventCount, isToday) {
+    const parts = [dateText];
+    if (eventCount > 0) parts.push(`${eventCount} ${eventCount === 1 ? 'event' : 'events'}`);
+    if (isToday) parts.push('today');
+    return parts.join(', ');
+}
+
 export function PartyCalendarTab({ campaignId, party, isDirector }) {
     const calendar = useMemo(() => calendarOf(party), [party]);
     const { events, status, addEvent, saveEvent, deleteEvent } = usePartyEvents(campaignId, calendar);
@@ -290,18 +299,18 @@ export function PartyCalendarTab({ campaignId, party, isDirector }) {
 
         <table className="Calendar-grid" aria-label={formatMonth(calendar, view)}>
             <thead>
-                <tr>{calendar.weekdays.map((name, index) => <th scope="col" key={index}>{name}</th>)}</tr>
+                <tr>{keyed(calendar.weekdays, 'weekday').map(({ item: name, key }) => <th scope="col" key={key}>{name}</th>)}</tr>
             </thead>
             <tbody>
-                {grid.map((week, row) => <tr key={row}>
-                    {week.map((day, column) => {
+                {keyed(grid, 'week').map(({ item: week, key: weekKey }) => <tr key={weekKey}>
+                    {keyed(week, 'day').map(({ item: day, key: column }) => {
                         if (day === null) return <td key={column} className="Calendar-blank"/>;
                         const date = { year: view.year, month: view.month, day };
                         const here = eventsOnDate(calendar, events, date);
                         const dayTagColor = here.map(event => findTag(calendar, event.category)?.color).find(Boolean);
                         const classes = ['Calendar-day', sameDate(date, today) && 'Calendar-day-today', sameDate(date, selected) && 'Calendar-day-selected', dayTagColor && 'Calendar-day-tagged'].filter(Boolean).join(' ');
                         return <td key={column}>
-                            <button type="button" className={classes} style={dayTagColor ? { '--calendar-tag-color': dayTagColor } : undefined} aria-pressed={sameDate(date, selected)} aria-label={`${formatDate(calendar, date)}${here.length ? `, ${here.length} ${here.length === 1 ? 'event' : 'events'}` : ''}${sameDate(date, today) ? ', today' : ''}`} onClick={() => pick(date)}>
+                            <button type="button" className={classes} style={dayTagColor ? { '--calendar-tag-color': dayTagColor } : undefined} aria-pressed={sameDate(date, selected)} aria-label={dayLabel(formatDate(calendar, date), here.length, sameDate(date, today))} onClick={() => pick(date)}>
                                 <span className="Calendar-day-number">{day}</span>
                                 {here.slice(0, 2).map(event => {
                                     const tag = findTag(calendar, event.category);

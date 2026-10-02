@@ -35,7 +35,7 @@ jest.mock('../../src/components/CharacterMainTab', () => ({ CharacterMainTab: ({
 jest.mock('../../src/components/DocAdminManager', () => ({ DocAdminManager: () => null }));
 
 // eslint-disable-next-line import/first
-import { screen, act, waitFor } from '@testing-library/react';
+import { screen, act } from '@testing-library/react';
 // eslint-disable-next-line import/first
 import { CharacterPage } from '../../src/components/CharacterPage';
 // eslint-disable-next-line import/first
@@ -95,7 +95,7 @@ describe('CharacterPage class resolution', () => {
 
         mount({ ...savedCopy, class_version: 1 });
 
-        await waitFor(() => expect(screen.getByText(/Nav:Monk \(saved\):fallback/)).toBeInTheDocument());
+        expect(await screen.findByText(/Nav:Monk \(saved\):fallback/)).toBeInTheDocument();
         expect(screen.getByText('Actions:Saved Action,Mild Fire')).toBeInTheDocument();
     });
 

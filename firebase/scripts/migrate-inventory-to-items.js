@@ -36,6 +36,84 @@ function initDb() {
 const isItemEntry = entry => typeof entry?.item_id === 'string' && entry.item_id !== '';
 const clean = value => (typeof value === 'string' ? value.trim() : '');
 
+// The item a free-text entry becomes. Entries with the same owner, title and description share
+// one item, readable by everyone who can read any of the characters that hold it.
+function itemFor(name, description, { db, owner, readers, itemsByKey, work, summary }) {
+    const key = `${owner}|${name}|${description}`;
+    const existing = itemsByKey.get(key);
+    if (existing) {
+        existing.data.canRead = [...new Set([...existing.data.canRead, ...readers])];
+        return existing;
+    }
+    const made = {
+        ref: db.collection('items').doc(),
+        data: {
+            item_name: name,
+            item_description: description,
+            item_image: '',
+            tags: [],
+            isPublic: false,
+            canRead: readers,
+            canWrite: owner ? [owner] : [],
+            admins: owner ? [owner] : [],
+            migrated_from: 'inventory',
+        },
+    };
+    itemsByKey.set(key, made);
+    work.push(made);
+    summary.itemsMade++;
+    return made;
+}
+
+// One inventory entry: already an item entry (left as it is), untitled (skipped and
+// reported), or converted to an entry that refers to an item.
+function convertEntry(entry, listName, context) {
+    const { label, summary } = context;
+    if (isItemEntry(entry)) {
+        summary.alreadyItems++;
+        return { entry, changed: false };
+    }
+    const name = clean(entry?.title).slice(0, MAX_ITEM_NAME);
+    if (!name) {
+        summary.skipped.push(`${label}: an entry in ${listName} has no title`);
+        return { entry, changed: false };
+    }
+    const description = typeof entry.content === 'string' ? entry.content : '';
+    const made = itemFor(name, description, context);
+    summary.converted++;
+    console.log(`${DRY_RUN ? '[dry run] ' : ''}${label}: "${name}" (${listName}, slot ${entry.status ?? '?'}) -> item ${made.ref.id}`);
+    return { entry: { id: entry.id, item_id: made.ref.id, title: name, quantity: 1, status: entry.status, index: entry.index ?? 0 }, changed: true };
+}
+
+// The inventory lists of one character that have something to convert, as an update.
+function convertCharacter(doc, shared) {
+    const character = doc.data();
+    const owner = character.playerId || character.userId || (character.admins || [])[0] || '';
+    const readers = [...new Set([owner, ...(character.canRead || []), ...(character.canWrite || [])].filter(Boolean))];
+    const label = `${doc.id} (${character.character_name || 'unnamed'})`;
+    const context = { ...shared, owner, readers, label };
+    const update = {};
+    for (const listName of LISTS) {
+        if (!Array.isArray(character[listName])) continue;
+        const results = character[listName].map(entry => convertEntry(entry, listName, context));
+        if (results.some(result => result.changed)) update[listName] = results.map(result => result.entry);
+    }
+    return update;
+}
+
+// Items first, so a character never refers to an item that isn't there yet.
+async function commitWork(db, work) {
+    const items = work.filter(entry => !entry.update);
+    const sheets = work.filter(entry => entry.update);
+    for (const group of [items, sheets]) {
+        for (let i = 0; i < group.length; i += 400) {
+            const batch = db.batch();
+            group.slice(i, i + 400).forEach(({ ref, data, update }) => (update ? batch.update(ref, data) : batch.set(ref, data)));
+            await batch.commit();
+        }
+    }
+}
+
 async function main() {
     if (DRY_RUN) console.log('--dry-run: no writes will be made.\n');
     const db = initDb();
@@ -46,76 +124,14 @@ async function main() {
     const work = [];
 
     for (const doc of characters) {
-        const character = doc.data();
-        const owner = character.playerId || character.userId || (character.admins || [])[0] || '';
-        const readers = [...new Set([owner, ...(character.canRead || []), ...(character.canWrite || [])].filter(Boolean))];
-        const update = {};
-        const label = `${doc.id} (${character.character_name || 'unnamed'})`;
-
-        for (const listName of LISTS) {
-            const list = Array.isArray(character[listName]) ? character[listName] : null;
-            if (!list) continue;
-            let changed = false;
-            const next = list.map(entry => {
-                if (isItemEntry(entry)) { summary.alreadyItems++; return entry; }
-                const name = clean(entry?.title).slice(0, MAX_ITEM_NAME);
-                if (!name) {
-                    summary.skipped.push(`${label}: an entry in ${listName} has no title`);
-                    return entry;
-                }
-                const description = typeof entry.content === 'string' ? entry.content : '';
-                const key = `${owner}|${name}|${description}`;
-                let made = itemsByKey.get(key);
-                if (made) {
-                    // shared with another of this player's characters: everyone who can read either can read it
-                    made.data.canRead = [...new Set([...made.data.canRead, ...readers])];
-                }
-                if (!made) {
-                    const itemRef = db.collection('items').doc();
-                    made = {
-                        ref: itemRef,
-                        data: {
-                            item_name: name,
-                            item_description: description,
-                            item_image: '',
-                            tags: [],
-                            isPublic: false,
-                            canRead: readers,
-                            canWrite: owner ? [owner] : [],
-                            admins: owner ? [owner] : [],
-                            migrated_from: 'inventory',
-                        },
-                    };
-                    itemsByKey.set(key, made);
-                    work.push(made);
-                    summary.itemsMade++;
-                }
-                const itemRef = made.ref;
-                changed = true;
-                summary.converted++;
-                console.log(`${DRY_RUN ? '[dry run] ' : ''}${label}: "${name}" (${listName}, slot ${entry.status ?? '?'}) -> item ${itemRef.id}`);
-                return { id: entry.id, item_id: itemRef.id, title: name, quantity: 1, status: entry.status, index: entry.index ?? 0 };
-            });
-            if (changed) update[listName] = next;
-        }
+        const update = convertCharacter(doc, { db, itemsByKey, work, summary });
         if (Object.keys(update).length > 0) {
             summary.charactersChanged++;
             work.push({ ref: doc.ref, data: update, update: true });
         }
     }
 
-    if (!DRY_RUN) {
-        // items first, so a character never refers to an item that isn't there yet
-        const items = work.filter(entry => !entry.update);
-        const sheets = work.filter(entry => entry.update);
-        for (const group of [items, sheets]) {
-            for (let i = 0; i < group.length; i += 400) {
-                const batch = db.batch();
-                group.slice(i, i + 400).forEach(({ ref, data, update }) => (update ? batch.update(ref, data) : batch.set(ref, data)));
-                await batch.commit();
-            }
-        }
-    }
+    if (!DRY_RUN) await commitWork(db, work);
 
     console.log(`\n${characters.length} character(s): ${summary.charactersChanged} ${DRY_RUN ? 'would change' : 'changed'}, ` +
         `${summary.converted} entr${summary.converted === 1 ? 'y' : 'ies'} ${DRY_RUN ? 'would become' : 'became'} items ` +

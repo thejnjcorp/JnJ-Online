@@ -58,7 +58,7 @@ export const InventoryCard = ({ post, index, titleClassName, boxClassName }: { p
                 {(provided, snapshot) => (
                     <div style={{ marginBottom: "1px" }} {...provided.dragHandleProps} {...provided.draggableProps} ref={provided.innerRef}>
                         <div
-                            className={`${snapshot.isDragging ? `${boxClassName} isDragging` : boxClassName} InventoryCard-clickable`}
+                            className={[boxClassName, snapshot.isDragging && 'isDragging', 'InventoryCard-clickable'].filter(Boolean).join(' ')}
                             role="button"
                             tabIndex={0}
                             aria-label={`${name} details`}
@@ -78,18 +78,18 @@ export const InventoryCard = ({ post, index, titleClassName, boxClassName }: { p
             </Draggable>
             {open && <>
                 <button type="button" className="InventoryCard-popup-scrim" aria-label="Close" onClick={() => setOpen(false)}/>
-                <div className="InventoryCard-popup" role="dialog" aria-label={`${name} details`}>
+                <dialog open className="InventoryCard-popup" aria-label={`${name} details`}>
                     <div className="InventoryCard-popup-header">
                         <span className="InventoryCard-popup-title">{name}</span>
                         <button type="button" className="InventoryCard-popup-close" aria-label="Close details" onClick={() => setOpen(false)}>×</button>
                     </div>
                     <ItemDetails state={state} content={(post as Post).content} legacy={!real}/>
                     {canEdit && <div className="InventoryCard-controls">
-                        {real && <div className="InventoryCard-quantity" role="group" aria-label="Quantity">
+                        {real && <fieldset className="InventoryCard-quantity" aria-label="Quantity">
                             <button type="button" className="Party-button" aria-label="One fewer" onClick={() => run(() => setCharacterQuantity(characterId, entry.id as string, quantity - 1))}>−</button>
                             <span>{quantity}</span>
                             <button type="button" className="Party-button" aria-label="One more" disabled={quantity >= MAX_QUANTITY} onClick={() => run(() => setCharacterQuantity(characterId, entry.id as string, quantity + 1))}>+</button>
-                        </div>}
+                        </fieldset>}
                         {real && campaignId && <div className="InventoryCard-party">
                             <input className="Party-input Party-input-narrow" type="number" min={1} max={quantity} aria-label="How many to put in the party inventory" value={amount} onChange={(event) => setAmount(Number(event.target.value))}/>
                             <button type="button" className="Party-button" onClick={() => run(() => putInParty({ campaignId, characterId, itemId: entry.item_id, title: name, quantity: putAmount, userId }))}>Put in party inventory</button>
@@ -97,7 +97,7 @@ export const InventoryCard = ({ post, index, titleClassName, boxClassName }: { p
                         <button type="button" className="Party-button Party-button-danger" onClick={() => run(() => removeCharacterEntry(characterId, entry.id as string))}>Remove</button>
                     </div>}
                     {message && <div className="Party-error" role="alert">{message}</div>}
-                </div>
+                </dialog>
             </>}
         </div>
     );

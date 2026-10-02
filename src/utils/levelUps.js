@@ -105,7 +105,7 @@ export function unchosenRewards(pending, choices) {
 // to the character's level, including levels that had nothing to claim.
 export function claimLevelUps(character, pending, choices, now = Date.now()) {
     const changes = {};
-    const bonuses = { ...(character.level_bonuses || {}) };
+    const bonuses = { ...character.level_bonuses };
     const history = [];
 
     pending.forEach(({ level, rewards }) => {

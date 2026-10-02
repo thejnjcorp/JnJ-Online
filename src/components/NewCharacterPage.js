@@ -11,6 +11,9 @@ import { raceActionsOf } from '../utils/characterClass';
 import { loadAvailableClasses, loadAvailableRaces } from '../utils/availableOptions';
 import Markdown from './ColoredMarkdown';
 
+// Class-level bookkeeping that stays on the class rather than being copied onto a character.
+const CLASS_BOOKKEEPING_FIELDS = new Set(['id', 'canWrite', 'description', 'public', 'isDefault', 'visibility', 'version', 'versionNotes', 'publishedAt']);
+
 export const formReducer = newCharacterFormReducer;
 
 export function NewCharacterPage() {
@@ -109,7 +112,8 @@ export function NewCharacterPage() {
         // version metadata) stays on the class. The race's actions are kept in
         // their own field rather than merged into `actions`, so a live class
         // can replace `actions` without dropping them.
-        const { id, canWrite, description, public: isPublic, isDefault, visibility, version, versionNotes, publishedAt, ...classFields } = selectedClass;
+        const { description, version } = selectedClass;
+        const classFields = Object.fromEntries(Object.entries(selectedClass).filter(([key]) => !CLASS_BOOKKEEPING_FIELDS.has(key)));
         const newData = {
             ...classFields,
             class_description: description,

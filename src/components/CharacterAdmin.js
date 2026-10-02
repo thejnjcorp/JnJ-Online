@@ -5,6 +5,7 @@ import { canAdministerCharacter, classToCharacterFields, raceToCharacterFields }
 import { loadAvailableClasses, loadAvailableRaces } from '../utils/availableOptions';
 import { ABILITY_STATS, BONUS_STATS, MAX_LEVEL, claimedLevel, levelOf } from '../utils/levelUps';
 import '../styles/CharacterAdmin.scss';
+import { useEscapeKey } from '../utils/useEscapeKey';
 
 const NUMBER_FIELDS = [
     ...ABILITY_STATS.map(stat => ({ key: stat.key, label: stat.label, min: undefined })),
@@ -38,6 +39,7 @@ function optionsWith(available, currentId, currentName) {
 }
 
 function AdminDialog({ character, userId, onClose }) {
+    useEscapeKey(onClose);
     const [form, setForm] = useState(() => initialForm(character));
     const [classes, setClasses] = useState(null);
     const [races, setRaces] = useState(null);
@@ -137,7 +139,7 @@ function AdminDialog({ character, userId, onClose }) {
 
     return <>
         <button type="button" className="CharacterAdmin-scrim" aria-label="Close" onClick={onClose}/>
-        <div className="CharacterAdmin-dialog" role="dialog" aria-modal="true" aria-label="Update character" onKeyDown={event => { if (event.key === 'Escape') onClose(); }}>
+        <dialog open className="CharacterAdmin-dialog" aria-modal="true" aria-label="Update character">
             <h2 className="CharacterAdmin-title">Update character</h2>
             <p className="CharacterAdmin-help">For fixing a character or changing what it is. Everything here is saved straight to the sheet.</p>
 
@@ -155,9 +157,9 @@ function AdminDialog({ character, userId, onClose }) {
                         {classOptions.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
                     </select>
                 </label>
-                {classChanged && <div className="CharacterAdmin-note" role="status">
+                {classChanged && <output className="CharacterAdmin-note">
                     Changing class replaces the character's class actions and base stats with the new class's, and clears the level-up bonuses from the old one (below - adjust them if needed). Ability scores and experience stay as they are.
-                </div>}
+                </output>}
                 <label className="CharacterAdmin-field">
                     <span>Race</span>
                     <select value={form.race_id} onChange={event => set('race_id', event.target.value)} disabled={!ready}>
@@ -165,7 +167,7 @@ function AdminDialog({ character, userId, onClose }) {
                         {raceOptions.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
                     </select>
                 </label>
-                {raceChanged && <div className="CharacterAdmin-note" role="status">Changing race replaces the character's racial actions with the new race's.</div>}
+                {raceChanged && <output className="CharacterAdmin-note">Changing race replaces the character's racial actions with the new race's.</output>}
                 {loadFailed && <div className="CharacterAdmin-error" role="alert">Couldn't load the classes and races this campaign offers.</div>}
             </fieldset>
 
@@ -203,7 +205,7 @@ function AdminDialog({ character, userId, onClose }) {
                     {saving ? 'Saving…' : 'Save changes'}
                 </button>
             </div>
-        </div>
+        </dialog>
     </>;
 }
 

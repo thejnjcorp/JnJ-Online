@@ -72,11 +72,9 @@ async function commitInBatches(db, updates) {
     }
 }
 
-async function main() {
-    if (DRY_RUN) console.log('--dry-run: no writes will be made.\n');
-    const db = initDb();
-
-    const raceDocs = (await db.collection('races').get()).docs;
+// Marks the races that predate public/isDefault as Default, and indexes every race (as it
+// will be once those updates land) by id and by name.
+function planRaces(raceDocs) {
     const raceUpdates = [];
     const racesById = new Map();
     const racesByName = new Map();
@@ -95,11 +93,13 @@ async function main() {
         if (!racesByName.has(current.name)) racesByName.set(current.name, []);
         racesByName.get(current.name).push({ id: doc.id, data: current });
     }
+    return { raceUpdates, racesById, racesByName };
+}
 
-    const characters = (await db.collection('characters').get()).docs;
+// Links each character that isn't yet to the race it names, reporting the ones that can't be.
+function planCharacters(characters, racesById, racesByName) {
     const summary = { alreadyLinked: 0, linked: 0, unmatched: [], ambiguous: [] };
     const characterUpdates = [];
-
     for (const doc of characters) {
         const character = doc.data();
         if (Number.isInteger(character.race_version)) {
@@ -123,6 +123,16 @@ async function main() {
         characterUpdates.push({ ref: doc.ref, update });
         summary.linked++;
     }
+    return { summary, characterUpdates };
+}
+
+async function main() {
+    if (DRY_RUN) console.log('--dry-run: no writes will be made.\n');
+    const db = initDb();
+
+    const { raceUpdates, racesById, racesByName } = planRaces((await db.collection('races').get()).docs);
+    const characters = (await db.collection('characters').get()).docs;
+    const { summary, characterUpdates } = planCharacters(characters, racesById, racesByName);
 
     if (!DRY_RUN) {
         await commitInBatches(db, raceUpdates);

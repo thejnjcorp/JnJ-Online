@@ -76,6 +76,13 @@ function ColorDirectiveButton() {
 // "backspace an empty one closes it" handling, to take it from there.
 // Renders nothing - just registers the command for as long as this editor
 // instance is mounted.
+// The node just before the cursor: the previous child of an element selection, or the
+// previous sibling when the cursor is at the start of a text node.
+function nodeBefore(anchor, anchorNode) {
+    if (anchor.type === 'element') return anchorNode.getChildAtIndex(anchor.offset - 1);
+    return anchor.offset === 0 ? anchorNode.getPreviousSibling() : null;
+}
+
 function ColorDirectiveBackspaceGuard() {
     const rootEditor = useCellValue(rootEditor$);
 
@@ -88,9 +95,7 @@ function ColorDirectiveBackspaceGuard() {
                 if (!$isRangeSelection(selection) || !selection.isCollapsed()) return false;
                 const { anchor } = selection;
                 const anchorNode = anchor.getNode();
-                const nodeBeforeCursor = anchor.type === 'element'
-                    ? anchorNode.getChildAtIndex(anchor.offset - 1)
-                    : (anchor.offset === 0 ? anchorNode.getPreviousSibling() : null);
+                const nodeBeforeCursor = nodeBefore(anchor, anchorNode);
                 if (!nodeBeforeCursor || !$isDirectiveNode(nodeBeforeCursor) || nodeBeforeCursor.getMdastNode().name !== 'color') return false;
                 // Without this, returning true only stops Lexical's own
                 // command chain - the native keydown still reaches the
@@ -246,7 +251,7 @@ export default function MarkdownEditorImpl({ value, onChange, placeholder, label
         />;
     }
 
-    return <div className={classes} role="group" aria-label={label}>
+    return <fieldset className={classes} aria-label={label}>
         <MDXEditor
             ref={editorRef}
             className="MarkdownEditor-root"
@@ -260,5 +265,5 @@ export default function MarkdownEditorImpl({ value, onChange, placeholder, label
             readOnly={readOnly}
             suppressHtmlProcessing
         />
-    </div>;
+    </fieldset>;
 }

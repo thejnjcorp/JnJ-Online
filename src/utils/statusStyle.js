@@ -23,7 +23,7 @@ export const isHexColor = value => /^#[0-9a-f]{6}$/i.test(value || '');
 // luminance; 0.179 is where the two contrast ratios are equal).
 export function readableOn(hex) {
     const channel = start => {
-        const value = parseInt(hex.slice(start, start + 2), 16) / 255;
+        const value = Number.parseInt(hex.slice(start, start + 2), 16) / 255;
         return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
     };
     const luminance = 0.2126 * channel(1) + 0.7152 * channel(3) + 0.0722 * channel(5);

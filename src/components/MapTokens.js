@@ -108,7 +108,7 @@ export function MapTokens({ tokens, rects, aspect, canMove = false, onMove, sele
                 type="button"
                 className={className}
                 style={{ left: `${x * 100}%`, top: `${(y / aspect) * 100}%`, width: `${TOKEN_SIZE * 100}%` }}
-                aria-label={`${token.title || 'Combatant'}${zone ? `, ${zone}` : ''}${token.defeated ? ', defeated' : ''}`}
+                aria-label={[token.title || 'Combatant', zone, token.defeated && 'defeated'].filter(Boolean).join(', ')}
                 aria-pressed={token.selectable ? selected === token.id : undefined}
                 tabIndex={canMoveToken(token) ? 0 : -1}
                 onPointerDown={event => handleDown(event, token)}

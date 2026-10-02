@@ -16,7 +16,7 @@ import '../styles/ClassPage.scss';
 import '../styles/EncounterPage.scss';
 import '../styles/BalanceGuide.scss';
 
-const asNumber = text => (text.trim() === '' ? NaN : Number(text));
+const asNumber = text => (text.trim() === '' ? Number.NaN : Number(text));
 const shown = value => (typeof value === 'number' && !Number.isNaN(value) ? value : '');
 
 function RosterRow({ entry, zoneNames, onChange, onRemove }) {
@@ -34,17 +34,18 @@ function RosterRow({ entry, zoneNames, onChange, onRemove }) {
             </select>
         </div>
         <div className="EncounterPage-row-numbers">
-            <label>Count
+            <div className="EncounterPage-count-field">
+                <span>Count</span>
                 <div className="EncounterPage-count">
                     <button type="button" aria-label={`Fewer ${label}`} disabled={entry.count <= 1} onClick={() => onChange({ ...entry, count: entry.count - 1 })}>−</button>
                     <span aria-label={`Number of ${label}`}>{entry.count}</span>
                     <button type="button" aria-label={`More ${label}`} onClick={() => onChange({ ...entry, count: entry.count + 1 })}>+</button>
                 </div>
-            </label>
-            {[['level', 'Level'], ['maximum_health', 'HP'], ['base_armor_class', 'AC'], ['action_points', 'AP']].map(([field, title]) => <label key={field}>{title}
+            </div>
+            {[['level', 'Level'], ['maximum_health', 'HP'], ['base_armor_class', 'AC'], ['action_points', 'AP']].map(([field, title]) => <label key={field}>{title}{' '}
                 <input className="ClassPage-field-input ClassPage-field-input-narrow" type="number" aria-label={`${title} of ${label}`} value={shown(enemy[field])} onChange={event => setStat(field, asNumber(event.target.value))}/>
             </label>)}
-            {zoneNames.length > 0 && <label>Starts in
+            {zoneNames.length > 0 && <label>Starts in{' '}
                 <select className="ClassPage-field-input" aria-label={`Starting zone of ${label}`} value={zoneNames.includes(entry.zone) ? entry.zone : ''} onChange={event => onChange({ ...entry, zone: event.target.value })}>
                     <option value="">{zoneNames[0]} (first zone)</option>
                     {zoneNames.slice(1).map(zone => <option key={zone} value={zone}>{zone}</option>)}
@@ -216,7 +217,7 @@ export function EncounterPage() {
                 <MarkdownEditor label="Encounter notes" placeholder="The setup, read-aloud text, tactics, what happens if the party wins or loses." value={draft.notes} onChange={value => set({ notes: value })}/>
             </div>
 
-            {dirty && <div className="EncounterPage-unsaved" role="status">You have unsaved changes. <button type="button" onClick={save} disabled={busy}>Save</button></div>}
+            {dirty && <output className="EncounterPage-unsaved">You have unsaved changes. <button type="button" onClick={save} disabled={busy}>Save</button></output>}
         </div>
     </div>;
 }

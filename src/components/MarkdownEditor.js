@@ -41,7 +41,7 @@ class LoadFailureBoundary extends Component {
 //   maxLength, readOnly        optional limit on the text, and view-only mode
 export default function MarkdownEditor(props) {
     return <LoadFailureBoundary editorProps={props}>
-        <Suspense fallback={<div className="MarkdownEditor-loading" role="status">Loading editor…</div>}>
+        <Suspense fallback={<output className="MarkdownEditor-loading">Loading editor…</output>}>
             <MarkdownEditorImpl {...props}/>
         </Suspense>
     </LoadFailureBoundary>;

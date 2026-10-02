@@ -41,12 +41,15 @@ export function validateAction(action) {
     // value (someone typed 0 or 5) is flagged.
     if (action.category === 'feat' && action.tier !== undefined && !isWholeNumberIn(action.tier, FEAT_TIER_RANGE)) errors.tier = `Tier must be a whole number from ${FEAT_TIER_RANGE.min} to ${FEAT_TIER_RANGE.max}.`;
     if (action.usage !== undefined && !ACTION_USAGE_KEYS.includes(action.usage)) errors.usage = 'Pick where this is used.';
-    if (action.toHitBool) {
-        if (!isNumber(action.toHit)) errors.toHit = 'Enter a to-hit modifier (0 is fine).';
-    } else if (typeof action.difficultyClass !== 'string' || !DIFFICULTY_CLASS_PATTERN.test(action.difficultyClass)) {
-        errors.difficultyClass = 'Use "Stat,Modifier", for example Dex,0.';
-    }
+    Object.assign(errors, hitProblems(action));
     return errors;
+}
+
+// An action either rolls to hit (a modifier) or sets a difficulty class (Stat,Modifier).
+function hitProblems(action) {
+    if (action.toHitBool) return isNumber(action.toHit) ? {} : { toHit: 'Enter a to-hit modifier (0 is fine).' };
+    const valid = typeof action.difficultyClass === 'string' && DIFFICULTY_CLASS_PATTERN.test(action.difficultyClass);
+    return valid ? {} : { difficultyClass: 'Use "Stat,Modifier", for example Dex,0.' };
 }
 
 function actionLabel(action, index) {
@@ -85,7 +88,9 @@ const CLASS_NUMBER_FIELDS = [
 
 const DAMAGE_KINDS = [['melee', 'Melee'], ['ranged', 'Ranged']];
 
-function finish(fields, actions, orderedProblems, rewards = { errors: {} }) {
+const NO_REWARD_ERRORS = Object.freeze({ errors: {} });
+
+function finish(fields, actions, orderedProblems, rewards = NO_REWARD_ERRORS) {
     return {
         fields,
         actions: actions.byIndex,

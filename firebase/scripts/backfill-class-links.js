@@ -73,6 +73,54 @@ function findRaceFeat(character, racesById) {
     return saved || race.feat;
 }
 
+// What linking one character involves: its update and a line saying what is being done, or why
+// it can't be (status 'unmatched' / 'ambiguous', with a reason).
+function planCharacter(doc, classesById, classesByName, racesById) {
+    const character = doc.data();
+    const label = `${doc.id} (${character.character_name || 'unnamed'})`;
+    const match = findClass(character, classesById, classesByName);
+    if (match.status !== 'linked') return { status: match.status, text: `${label}: ${match.reason}` };
+
+    const update = { class_version: match.data.version ?? 1 };
+    if (!isRealId(character.class_id) || character.class_id !== match.id) update.class_id = match.id;
+    const raceFeat = findRaceFeat(character, racesById);
+    if (raceFeat) update.race_feat = raceFeat;
+
+    const classActionNames = new Set((match.data.actions || []).map(action => action.actionName));
+    const stale = (character.actions || []).filter(action =>
+        !classActionNames.has(action.actionName) && action.actionName !== raceFeat?.actionName);
+
+    console.log(`${DRY_RUN ? '[dry run] ' : ''}${label} -> class ${match.id} v${update.class_version}` +
+        (update.class_id ? ' (class_id repaired)' : '') +
+        (raceFeat ? `, race feat "${raceFeat.actionName}"` : ''));
+    if (stale.length > 0) {
+        console.log(`    note: ${stale.length} saved action(s) not in the current class (kept on the saved copy): ${stale.map(a => a.actionName).join(', ')}`);
+    }
+    return { status: 'linked', ref: doc.ref, update };
+}
+
+// Links each character that isn't yet to the class it names (and its race's feat), reporting
+// the ones that can't be linked.
+function planLinks(characters, classesById, classesByName, racesById) {
+    const summary = { alreadyLinked: 0, linked: 0, unmatched: [], ambiguous: [] };
+    const updates = [];
+
+    for (const doc of characters) {
+        if (Number.isInteger(doc.data().class_version)) {
+            summary.alreadyLinked++;
+            continue;
+        }
+        const plan = planCharacter(doc, classesById, classesByName, racesById);
+        if (plan.status === 'linked') {
+            updates.push({ ref: plan.ref, update: plan.update });
+            summary.linked++;
+        } else {
+            summary[plan.status].push(plan.text);
+        }
+    }
+    return { summary, updates };
+}
+
 async function main() {
     if (DRY_RUN) console.log('--dry-run: no writes will be made.\n');
     const db = initDb();
@@ -88,38 +136,7 @@ async function main() {
     const racesById = new Map((await db.collection('races').get()).docs.map(doc => [doc.id, doc.data()]));
 
     const characters = (await db.collection('characters').get()).docs;
-    const summary = { alreadyLinked: 0, linked: 0, unmatched: [], ambiguous: [] };
-    const updates = [];
-
-    for (const doc of characters) {
-        const character = doc.data();
-        if (Number.isInteger(character.class_version)) {
-            summary.alreadyLinked++;
-            continue;
-        }
-        const label = `${doc.id} (${character.character_name || 'unnamed'})`;
-        const match = findClass(character, classesById, classesByName);
-        if (match.status === 'unmatched') { summary.unmatched.push(`${label}: ${match.reason}`); continue; }
-        if (match.status === 'ambiguous') { summary.ambiguous.push(`${label}: ${match.reason}`); continue; }
-
-        const update = { class_version: match.data.version ?? 1 };
-        if (!isRealId(character.class_id) || character.class_id !== match.id) update.class_id = match.id;
-        const raceFeat = findRaceFeat(character, racesById);
-        if (raceFeat) update.race_feat = raceFeat;
-
-        const classActionNames = new Set((match.data.actions || []).map(action => action.actionName));
-        const stale = (character.actions || []).filter(action =>
-            !classActionNames.has(action.actionName) && action.actionName !== raceFeat?.actionName);
-
-        console.log(`${DRY_RUN ? '[dry run] ' : ''}${label} -> class ${match.id} v${update.class_version}` +
-            (update.class_id ? ' (class_id repaired)' : '') +
-            (raceFeat ? `, race feat "${raceFeat.actionName}"` : ''));
-        if (stale.length > 0) {
-            console.log(`    note: ${stale.length} saved action(s) not in the current class (kept on the saved copy): ${stale.map(a => a.actionName).join(', ')}`);
-        }
-        updates.push({ ref: doc.ref, update });
-        summary.linked++;
-    }
+    const { summary, updates } = planLinks(characters, classesById, classesByName, racesById);
 
     if (!DRY_RUN) {
         for (let i = 0; i < updates.length; i += 500) {

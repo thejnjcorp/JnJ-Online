@@ -240,7 +240,7 @@ export function ScenesTab({ campaignId, campaignInfo, maps, renderCombat }) {
     // ---- Render ----------------------------------------------------------
 
     let body;
-    if (status === 'loading') body = <div className="Scenes-view"><p className="Scenes-muted" role="status">Loading scenes…</p></div>;
+    if (status === 'loading') body = <div className="Scenes-view"><output className="Scenes-muted">Loading scenes…</output></div>;
     else if (status === 'error') body = <div className="Scenes-view"><p role="alert">{"Couldn't load the scenes. Only the campaign's directors can see them."}</p></div>;
     else if (view === 'build' || view === 'run') {
         body = <SceneWorkspace view={view} scene={sceneForView} session={sceneSession} scenes={scenes} encounters={encounters} maps={maps}

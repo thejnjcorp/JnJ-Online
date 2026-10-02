@@ -408,9 +408,7 @@ export function RacePage() {
             <div className="ClassPage-card">
                 <div className="ClassPage-section-title">Lore &amp; Flavor Text</div>
                 {isEditingMode
-                    ? <>
-                        <MarkdownEditor label="Lore" placeholder="Where this people comes from, what they look like, how they see the world." value={formData.description || ''} onChange={value => setFormData({ name: 'description', value })}/>
-                      </>
+                    ? <MarkdownEditor label="Lore" placeholder="Where this people comes from, what they look like, how they see the world." value={formData.description || ''} onChange={value => setFormData({ name: 'description', value })}/>
                     : <div className="ClassPage-lore-view"><Markdown options={{ disableParsingRawHTML: true }}>{formData.description || ''}</Markdown></div>}
             </div>
 

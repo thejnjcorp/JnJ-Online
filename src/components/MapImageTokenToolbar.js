@@ -8,9 +8,9 @@ import '../styles/MapDrawing.scss';
 import '../styles/MapImageTokens.scss';
 
 function SizePills({ label, value, onChange }) {
-    return <div className="MapDrawingToolbar-group" role="group" aria-label={label}>
+    return <fieldset className="MapDrawingToolbar-group" aria-label={label}>
         {IMAGE_TOKEN_SIZES.map(size => <button key={size.key} type="button" className="MapDrawingToolbar-button" aria-pressed={value === size.value} onClick={() => onChange(size.value)}>{size.label}</button>)}
-    </div>;
+    </fieldset>;
 }
 
 // A director's way to put pictures - fire, trees, pillars, holes, loot - on the
@@ -70,12 +70,12 @@ export function MapImageTokenToolbar({ imageTokens, userId, onDragging = () => {
 
     return <div className="MapImageTokenToolbar" role="toolbar" aria-label="Map image tokens">
         <button type="button" className="MapDrawingToolbar-button" aria-pressed={adding} onClick={() => setAdding(!adding)}>Add image token</button>
-        {chosen && <div className="MapDrawingToolbar-group" role="group" aria-label="Selected image token">
+        {chosen && <fieldset className="MapDrawingToolbar-group" aria-label="Selected image token">
             <span className="MapDrawingToolbar-label">{chosen.label || 'Image token'}</span>
             <SizePills label="Selected size" value={chosen.size} onChange={value => resize(chosen.id, value)}/>
             <button type="button" className="MapDrawingToolbar-button" disabled={full} onClick={() => copy(chosen.id)}>Copy</button>
             <button type="button" className="MapDrawingToolbar-button" onClick={() => remove(chosen.id)}>Remove</button>
-        </div>}
+        </fieldset>}
         {full && <span className="MapDrawingToolbar-note MapDrawingToolbar-note-full" role="alert">The map has {MAX_IMAGE_TOKENS} image tokens - remove some to add more.</span>}
         {adding && <div className="MapImageTokenToolbar-form">
             <section className="MapImageTokenToolbar-library" aria-label="Token library">
@@ -129,7 +129,7 @@ export function MapImageTokenToolbar({ imageTokens, userId, onDragging = () => {
                     <span>Save to my library</span>
                 </label>
                 {ref && <img className="MapImageTokenToolbar-preview" src={imageSrc(ref)} alt="Preview"/>}
-                {uploading && <span className="MapDrawingToolbar-note" role="status">Uploading...</span>}
+                {uploading && <output className="MapDrawingToolbar-note">Uploading...</output>}
                 {link.trim() !== '' && !ref && <span className="MapDrawingToolbar-note">That isn't a web link to a picture (it should start with https://).</span>}
                 <button type="button" className="MapDrawingToolbar-button" disabled={!ref || full || uploading} onClick={handlePlace}>Place on map</button>
             </div>

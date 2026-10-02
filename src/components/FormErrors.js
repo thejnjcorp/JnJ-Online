@@ -17,7 +17,7 @@ export function FieldError({ message }) {
 }
 
 function findProblemElement(problemId) {
-    return Array.from(document.querySelectorAll('[data-problem]')).find(element => element.getAttribute('data-problem') === problemId);
+    return Array.from(document.querySelectorAll('[data-problem]')).find(element => element.dataset.problem === problemId);
 }
 
 // Scrolls to (and focuses, when it can be) the problem with this id, or the

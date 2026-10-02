@@ -41,3 +41,30 @@ code {
     border-radius: var(--jnj-radius-sm);
   }
 }
+
+// Native elements used for their meaning (a <fieldset> for a labelled group of controls,
+// an <output> for a live status message, a <dialog open> for a popup) arrive with browser
+// styling of their own. These take that away, at zero specificity, so each component's own
+// class styles the element as it did when it was a plain <div> - and so that any of them
+// can still style these away from the default again.
+:where(fieldset) {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+}
+
+:where(output) {
+    display: block;
+}
+
+:where(dialog[open]) {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    max-width: none;
+    max-height: none;
+    inset-inline-end: auto;
+    color: inherit;
+    background: transparent;
+}

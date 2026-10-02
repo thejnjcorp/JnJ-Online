@@ -57,7 +57,7 @@ export function VersionControl({ kind, name, docId, pinned, versionField, listVe
 
         {open && <>
             <button type="button" className="ClassVersionControl-scrim" aria-label="Close" onClick={() => setOpen(false)}/>
-            <div className="ClassVersionControl-dialog" role="dialog" aria-label={`${kind} versions`}>
+            <dialog open className="ClassVersionControl-dialog" aria-label={`${kind} versions`}>
                 <h3>{name} versions</h3>
                 {!canSwitch && <p className="ClassVersionControl-hint">Only people who can edit this character can change its {kind.toLowerCase()} version.</p>}
                 {error && <p className="ClassVersionControl-error">{error}</p>}
@@ -82,7 +82,7 @@ export function VersionControl({ kind, name, docId, pinned, versionField, listVe
                     </li>)}
                 </ul>
                 <button type="button" className="ClassVersionControl-close-button" onClick={() => setOpen(false)}>Close</button>
-            </div>
+            </dialog>
         </>}
     </>;
 }

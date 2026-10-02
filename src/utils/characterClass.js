@@ -117,14 +117,14 @@ function resolveLinkedData(character, classData, raceData) {
 // A class doc's own bookkeeping (who can edit it, its visibility, its version
 // history) doesn't belong on a character. Permissions in particular must never
 // be copied over: they are the character's own.
-const CLASS_ONLY_FIELDS = ['id', 'canWrite', 'canRead', 'admins', 'author', 'public', 'isDefault', 'visibility', 'version', 'versionNotes', 'publishedAt', 'description'];
+const CLASS_ONLY_FIELDS = new Set(['id', 'canWrite', 'canRead', 'admins', 'author', 'public', 'isDefault', 'visibility', 'version', 'versionNotes', 'publishedAt', 'description']);
 
 // The character-doc fields for giving a character this class - the saved copy
 // it falls back to, pinned to the class's current version.
 export function classToCharacterFields(classDoc) {
     const fields = {};
     Object.entries(classDoc).forEach(([key, value]) => {
-        if (!CLASS_ONLY_FIELDS.includes(key) && value !== undefined) fields[key] = value;
+        if (!CLASS_ONLY_FIELDS.has(key) && value !== undefined) fields[key] = value;
     });
     return {
         ...fields,

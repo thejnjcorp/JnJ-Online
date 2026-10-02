@@ -88,7 +88,7 @@ export const tierByKey = key => ENCOUNTER_TIERS.find(tier => tier.key === key) |
 // so those count for the easier tier; 61-64 falls in the gap between Easy and
 // Standard).
 export function landingFor(total) {
-    if (!(total > 0)) return null;
+    if (Number.isNaN(total) || total <= 0) return null;
     if (total < ENCOUNTER_TIERS[0].ehp[0]) return { position: 'below' };
     const inside = ENCOUNTER_TIERS.find(tier => total >= tier.ehp[0] && total <= tier.ehp[1]);
     if (inside) return { position: 'in', tier: inside };
@@ -103,7 +103,7 @@ export function landingText(landing) {
     if (landing.position === 'in') return `${landing.tier.label} (${rangeText(landing.tier.ehp)} EHP, ${landing.tier.rounds})`;
     if (landing.position === 'below') return `Lighter than an Easy fight (under ${ENCOUNTER_TIERS[0].ehp[0]} EHP)`;
     if (landing.position === 'between') return `Between ${landing.lower.label} and ${landing.upper.label}`;
-    return `Bigger than a Set Piece (over ${ENCOUNTER_TIERS[ENCOUNTER_TIERS.length - 1].ehp[1]} EHP)`;
+    return `Bigger than a Set Piece (over ${ENCOUNTER_TIERS.at(-1).ehp[1]} EHP)`;
 }
 
 // --- Secondary objectives ---------------------------------------------------

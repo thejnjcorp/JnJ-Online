@@ -67,6 +67,146 @@ const formReducer = classFormReducer;
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
+// What the form shows: the live form data, or - when looking at an older version - that
+// version's snapshot, keeping the class's own permission and visibility fields (which
+// snapshots don't carry).
+function displayedFormData(liveFormData, snapshot) {
+    if (!snapshot) return liveFormData;
+    return {
+        ...snapshot.data,
+        version: snapshot.version,
+        canWrite: liveFormData.canWrite,
+        admins: liveFormData.admins,
+        public: liveFormData.public,
+        isDefault: liveFormData.isDefault,
+        visibility: liveFormData.visibility,
+    };
+}
+
+// The campaign as the page now knows it after subscribing it to (or unsubscribing it from) this class.
+function withSubscription(campaign, classId, wasSubscribed, subscribedStatusIds) {
+    const classIds = campaign.subscribedClassIds || [];
+    return {
+        ...campaign,
+        subscribedClassIds: wasSubscribed ? classIds.filter(id => id !== classId) : [...classIds, classId],
+        subscribedStatusIds,
+    };
+}
+
+// A toggled-on-then-abandoned outcome table shouldn't write
+// {criticalSuccess:"",success:"",failure:"",...} into Firestore - strip the whole field when
+// every sub-value is empty so CombatActionList's "does this action have an outcome table"
+// check stays a simple truthiness/Object.values(...).some(Boolean) test.
+function withoutEmptyOutcomeTable(action) {
+    if (!action.outcomeTable || Object.values(action.outcomeTable).some(Boolean)) return action;
+    const { outcomeTable, ...rest } = action;
+    return rest;
+}
+
+// The badge on a class: Private, Default (an admin's, everyone gets it), or Pool (public, subscribed to).
+function visibilityBadge(visibility, isDefault) {
+    if (visibility === 'private') return 'Private';
+    return isDefault ? 'Default' : 'Pool';
+}
+
+// How a class is shown to people: public (the pool) or private to its writers.
+function VisibilityCard({ options, visibility, onChange }) {
+    return <div className="ClassPage-card">
+        <div className="ClassPage-section-title">Visibility</div>
+        <div className="ClassPage-pill-group ClassPage-vis-pill-group">
+            {options.map(v => <button
+                type="button"
+                key={v.key}
+                className={v.key === visibility ? 'ClassPage-vis-pill ClassPage-vis-pill-selected' : 'ClassPage-vis-pill'}
+                onClick={() => onChange(v.key)}
+            >
+                <span>{v.label}</span>
+                <span className="ClassPage-vis-pill-sub">{v.hint}</span>
+            </button>)}
+        </div>
+    </div>;
+}
+
+// The class type pills, with the error that comes with them.
+function ClassTypePicker({ value, error, onChange }) {
+    return <>
+        <span className="ClassPage-field-label">Class Type</span>
+        <div className={error ? 'ClassPage-pill-group ClassPage-pill-group-invalid' : 'ClassPage-pill-group'} {...invalidProps('field-class_type', error)} tabIndex={error ? -1 : undefined}>
+            {TYPE_OPTIONS.map(t => <button
+                type="button"
+                key={t}
+                className={t === value ? `ClassPage-pill ClassPage-pill-selected ${TYPE_ACCENT_CLASS[t]}` : 'ClassPage-pill'}
+                onClick={() => onChange(t)}
+            >{t}</button>)}
+        </div>
+        <FieldError message={error}/>
+    </>;
+}
+
+// A pool class only shows up when creating a character in a campaign once that campaign
+// subscribes to it: one pill per campaign the author can write, filled in when subscribed.
+function SubscribeCampaignsCard({ campaigns, classId, onToggle }) {
+    return <div className='ClassPage-card'>
+        <div className="ClassPage-section-title">Subscribe your campaigns</div>
+        <div className='ClassPage-hint'>A pool class like this one only shows up when creating a character in a campaign once that campaign subscribes to it - not automatically, the way an admin default would.</div>
+        {campaigns.length === 0 && <div className='ClassPage-hint'>You don't direct (or have write access to) any campaigns yet.</div>}
+        <div className="ClassPage-pill-group">
+            {campaigns.map(c => {
+                const subscribed = c.subscribedClassIds?.includes(classId);
+                return <button
+                    key={c.id}
+                    type="button"
+                    className={subscribed ? 'ClassPage-pill ClassPage-pill-selected' : 'ClassPage-pill'}
+                    onClick={() => onToggle(c)}
+                >
+                    {c.campaign_name}{subscribed ? ' ✓' : ''}
+                </button>;
+            })}
+        </div>
+    </div>;
+}
+
+// Every published version of the class, which is the latest, which one is on screen, and
+// (when not editing) a way to look at another.
+function VersionHistoryCard({ versionList, latestVersion, shownVersion, viewing, canView, onView }) {
+    return <div className="ClassPage-card">
+        <div className="ClassPage-section-title">Version history</div>
+        <div className="ClassPage-hint">Characters are pinned to a version and only change version when someone switches them. Updating a class edits its latest version in place; publishing starts a new one.</div>
+        <ul className="ClassPage-version-list">
+            {versionList.map(entry => <li key={entry.version} className="ClassPage-version-row">
+                <div className="ClassPage-version-row-main">
+                    <span className="ClassPage-version-row-title">
+                        v{entry.version}
+                        {entry.version === latestVersion && <em> latest</em>}
+                        {entry.version === shownVersion && viewing && <em> viewing</em>}
+                    </span>
+                    {entry.notes && <div className="ClassPage-version-row-notes"><Markdown options={{ disableParsingRawHTML: true }}>{entry.notes}</Markdown></div>}
+                </div>
+                {canView && entry.version !== shownVersion && <button type="button" className="ClassPage-version-view-button" onClick={() => onView(entry.version)}>View</button>}
+            </li>)}
+        </ul>
+    </div>;
+}
+
+// The bar pinned under the form while editing: what is wrong (or that there are unsaved
+// changes), and Cancel / Publish / Save.
+function SaveBar({ problemCount, isEditingExisting, nextVersion, onJumpToProblem, onCancel, onPublish, onSave }) {
+    return <div className="ClassPage-save-bar">
+        {problemCount > 0
+            ? <button type="button" className="ClassPage-save-bar-label ClassPage-save-bar-label-error" onClick={onJumpToProblem}>
+                {problemCount === 1 ? '1 thing to fix' : `${problemCount} things to fix`}
+            </button>
+            : <span className="ClassPage-save-bar-label">Unsaved changes</span>}
+        <button type="button" className="ClassPage-cancel-button" onClick={onCancel}>Cancel</button>
+        {isEditingExisting && <button type="button" className="ClassPage-publish-button" onClick={onPublish}>
+            Publish as v{nextVersion}
+        </button>}
+        <button type="button" className="ClassPage-save-button" onClick={onSave}>
+            {isEditingExisting ? "Update Class" : "Create Class"}
+        </button>
+    </div>;
+}
+
 export function ClassPage() {
     const [liveFormData, setFormData] = useReducer(formReducer, { visibility: 'public' });
     // Looking at an older version is read-only and display-only: its snapshot
@@ -74,17 +214,7 @@ export function ClassPage() {
     // visibility fields, which snapshots don't carry) without touching the
     // real form state, so nothing from an old version can be saved by accident.
     const [viewingSnapshot, setViewingSnapshot] = useState(null);
-    const formData = viewingSnapshot
-        ? {
-            ...viewingSnapshot.data,
-            version: viewingSnapshot.version,
-            canWrite: liveFormData.canWrite,
-            admins: liveFormData.admins,
-            public: liveFormData.public,
-            isDefault: liveFormData.isDefault,
-            visibility: liveFormData.visibility,
-        }
-        : liveFormData;
+    const formData = displayedFormData(liveFormData, viewingSnapshot);
     const [versionList, setVersionList] = useState([]);
     const [publishDialogOpen, setPublishDialogOpen] = useState(false);
     const [publishing, setPublishing] = useState(false);
@@ -185,13 +315,7 @@ export function ClassPage() {
                 const newStatusIds = await subscribeClassToCampaign(campaign.id, { id: classId, class_name: formData.class_name });
                 subscribedStatusIds = Array.from(new Set([...subscribedStatusIds, ...newStatusIds]));
             }
-            setMyCampaigns(prev => prev.map(c => c.id !== campaign.id ? c : {
-                ...c,
-                subscribedClassIds: subscribed
-                    ? (c.subscribedClassIds || []).filter(id => id !== classId)
-                    : [...(c.subscribedClassIds || []), classId],
-                subscribedStatusIds,
-            }));
+            setMyCampaigns(prev => prev.map(c => (c.id === campaign.id ? withSubscription(c, classId, subscribed, subscribedStatusIds) : c)));
         } catch (e) {
             alert(e);
         }
@@ -205,7 +329,7 @@ export function ClassPage() {
 
     const hasWriteAccess = !isEditingExisting || Boolean(formData.canWrite?.includes(auth.currentUser.uid));
     const isAdmin = Boolean(userId) && ADMIN_UIDS.includes(userId);
-    const VISIBILITIES = getVisibilityOptions(isAdmin);
+    const visibilityOptions = getVisibilityOptions(isAdmin);
 
     const handleChange = event => {
         const { name, type, checked, value } = event.target;
@@ -233,17 +357,7 @@ export function ClassPage() {
 
     const handleAddAction = function(category) {
         const newAction = newActionDefaults(category);
-        if (formData.actions !== undefined) {
-            setFormData({
-                name: "actions",
-                value: formData.actions.concat(newAction)
-            });
-        } else {
-            setFormData({
-                name: "actions",
-                value: [newAction]
-            });
-        }
+        setFormData({ name: "actions", value: [...(formData.actions || []), newAction] });
     }
 
     const rerenderActionList = async function() {
@@ -253,55 +367,17 @@ export function ClassPage() {
     }
 
     const handleRemoveAction = function(index) {
-        if (formData.actions.length > 1) {
-            const newActions = [];
-            for (let i = 0; i < formData.actions.length; i++) {
-                if (i !== index) newActions.push(formData.actions[i]);
-            }
-            setFormData({
-                name: "actions",
-                value: newActions
-            })
-        } else {
-            setFormData({
-                name: "actions",
-                value: []
-            })
-        }
+        setFormData({ name: "actions", value: formData.actions.filter((_, i) => i !== index) });
         rerenderActionList();
     }
 
     const handleAddTag = function(index) {
         const newTag = newCustomTag();
-        if (formData.actions[index].tags !== undefined) {
-            setFormData({
-                name: `actions[${index}].tags`,
-                value: formData.actions[index].tags.concat(newTag)
-            });
-        } else {
-            setFormData({
-                name: `actions[${index}].tags`,
-                value: [newTag]
-            });
-        }
+        setFormData({ name: `actions[${index}].tags`, value: [...(formData.actions[index].tags || []), newTag] });
     }
 
     const handleRemoveTag = function(index, tagIndex) {
-        if (formData.actions[index].tags.length > 1) {
-            const newTags = [];
-            for (let i = 0; i < formData.actions[index].tags.length; i++) {
-                if (i !== tagIndex) newTags.push(formData.actions[index].tags[i]);
-            }
-            setFormData({
-                name: `actions[${index}].tags`,
-                value: newTags
-            })
-        } else {
-            setFormData({
-                name: `actions[${index}].tags`,
-                value: []
-            })
-        }
+        setFormData({ name: `actions[${index}].tags`, value: formData.actions[index].tags.filter((_, i) => i !== tagIndex) });
     }
 
     // False (after revealing every problem and scrolling to the first) when the
@@ -323,13 +399,7 @@ export function ClassPage() {
         // strip the whole field when every sub-value is empty so
         // CombatActionList's "does this action have an outcome table" check
         // stays a simple truthiness/Object.values(...).some(Boolean) test.
-        const cleanedActions = (formData.actions || []).map(action => {
-            if (action.outcomeTable && !Object.values(action.outcomeTable).some(Boolean)) {
-                const { outcomeTable, ...rest } = action;
-                return rest;
-            }
-            return action;
-        });
+        const cleanedActions = (formData.actions || []).map(withoutEmptyOutcomeTable);
 
         // isDefault only ever true for the admin account - a non-admin
         // picking "Public" lands in the pool instead (public + browsable,
@@ -441,9 +511,7 @@ export function ClassPage() {
     // The doc's own isDefault field, not the current viewer's admin status
     // - matches ClassListPage.js's visibilityOf(), so the badge here always
     // agrees with the catalog card regardless of who's looking at it.
-    let visLabel = 'Pool';
-    if (visibility === 'private') visLabel = 'Private';
-    else if (formData.isDefault) visLabel = 'Default';
+    const visLabel = visibilityBadge(visibility, formData.isDefault);
 
     return <>{isPageVisible && <div className='ClassPage'>
         <div className='ClassPage-inner'>
@@ -479,37 +547,13 @@ export function ClassPage() {
                     {isEditingExisting && hasWriteAccess && !viewingSnapshot && <button type="button" className="ClassPage-edit-button" onClick={isEditingMode ? handleSaveClick : handleEditClick}>
                         {isEditingMode ? 'Done Editing' : 'Edit'}
                     </button>}
-                    {isEditingMode && <>
-                        <span className="ClassPage-field-label">Class Type</span>
-                        <div className={errors.fields.class_type ? 'ClassPage-pill-group ClassPage-pill-group-invalid' : 'ClassPage-pill-group'} {...invalidProps('field-class_type', errors.fields.class_type)} tabIndex={errors.fields.class_type ? -1 : undefined}>
-                            {TYPE_OPTIONS.map(t => <button
-                                type="button"
-                                key={t}
-                                className={t === formData.class_type ? `ClassPage-pill ClassPage-pill-selected ${TYPE_ACCENT_CLASS[t]}` : 'ClassPage-pill'}
-                                onClick={() => setFormData({ name: 'class_type', value: t })}
-                            >{t}</button>)}
-                        </div>
-                        <FieldError message={errors.fields.class_type}/>
-                    </>}
+                    {isEditingMode && <ClassTypePicker value={formData.class_type} error={errors.fields.class_type} onChange={t => setFormData({ name: 'class_type', value: t })}/>}
                 </div>
             </div>
 
             {isEditingMode && <ValidationSummary problems={errors.problems}/>}
 
-            {isEditingMode && <div className="ClassPage-card">
-                <div className="ClassPage-section-title">Visibility</div>
-                <div className="ClassPage-pill-group ClassPage-vis-pill-group">
-                    {VISIBILITIES.map(v => <button
-                        type="button"
-                        key={v.key}
-                        className={v.key === visibility ? 'ClassPage-vis-pill ClassPage-vis-pill-selected' : 'ClassPage-vis-pill'}
-                        onClick={() => setFormData({ name: 'visibility', value: v.key })}
-                    >
-                        <span>{v.label}</span>
-                        <span className="ClassPage-vis-pill-sub">{v.hint}</span>
-                    </button>)}
-                </div>
-            </div>}
+            {isEditingMode && <VisibilityCard options={visibilityOptions} visibility={visibility} onChange={key => setFormData({ name: 'visibility', value: key })}/>}
 
             <div className="ClassPage-card">
                 <div className="ClassPage-section-title">Combat Stats</div>
@@ -559,9 +603,7 @@ export function ClassPage() {
             <div className="ClassPage-card">
                 <div className="ClassPage-section-title">Lore &amp; Flavor Text</div>
                 {isEditingMode
-                    ? <>
-                        <MarkdownEditor label="Lore & Flavor Text" placeholder={ClassLayout.description} value={formData.description || ''} onChange={value => setFormData({ name: 'description', value })}/>
-                      </>
+                    ? <MarkdownEditor label="Lore & Flavor Text" placeholder={ClassLayout.description} value={formData.description || ''} onChange={value => setFormData({ name: 'description', value })}/>
                     : <div className="ClassPage-lore-view"><Markdown options={{ disableParsingRawHTML: true }}>{formData.description || ''}</Markdown></div>}
                 <div className="ClassPage-field-row" style={{ marginTop: 'var(--jnj-space-3)' }}>
                     <div className="ClassPage-field-grow">
@@ -600,59 +642,15 @@ export function ClassPage() {
                 onChange={value => setFormData({ name: 'level_rewards', value })}
             />
 
-            {isEditingExisting && formData.public && !formData.isDefault && <div className='ClassPage-card'>
-                <div className="ClassPage-section-title">Subscribe your campaigns</div>
-                <div className='ClassPage-hint'>A pool class like this one only shows up when creating a character in a campaign once that campaign subscribes to it - not automatically, the way an admin default would.</div>
-                {myWritableCampaigns.length === 0 && <div className='ClassPage-hint'>You don't direct (or have write access to) any campaigns yet.</div>}
-                <div className="ClassPage-pill-group">
-                    {myWritableCampaigns.map(c => {
-                        const subscribed = c.subscribedClassIds?.includes(classId);
-                        return <button
-                            key={c.id}
-                            type="button"
-                            className={subscribed ? 'ClassPage-pill ClassPage-pill-selected' : 'ClassPage-pill'}
-                            onClick={() => toggleSubscription(c)}
-                        >
-                            {c.campaign_name}{subscribed ? ' ✓' : ''}
-                        </button>;
-                    })}
-                </div>
-            </div>}
+            {isEditingExisting && formData.public && !formData.isDefault && <SubscribeCampaignsCard campaigns={myWritableCampaigns} classId={classId} onToggle={toggleSubscription}/>}
 
-            {isEditingExisting && versionList.length > 0 && <div className="ClassPage-card">
-                <div className="ClassPage-section-title">Version history</div>
-                <div className="ClassPage-hint">Characters are pinned to a version and only change version when someone switches them. Updating a class edits its latest version in place; publishing starts a new one.</div>
-                <ul className="ClassPage-version-list">
-                    {versionList.map(entry => <li key={entry.version} className="ClassPage-version-row">
-                        <div className="ClassPage-version-row-main">
-                            <span className="ClassPage-version-row-title">
-                                v{entry.version}
-                                {entry.version === versionOf(liveFormData) && <em> latest</em>}
-                                {entry.version === versionOf(formData) && viewingSnapshot && <em> viewing</em>}
-                            </span>
-                            {entry.notes && <div className="ClassPage-version-row-notes"><Markdown options={{ disableParsingRawHTML: true }}>{entry.notes}</Markdown></div>}
-                        </div>
-                        {!isEditingMode && entry.version !== versionOf(formData) && <button type="button" className="ClassPage-version-view-button" onClick={() => viewVersion(entry.version)}>View</button>}
-                    </li>)}
-                </ul>
-            </div>}
+            {isEditingExisting && versionList.length > 0 && <VersionHistoryCard versionList={versionList} latestVersion={versionOf(liveFormData)} shownVersion={versionOf(formData)}
+                viewing={Boolean(viewingSnapshot)} canView={!isEditingMode} onView={viewVersion}/>}
 
             {isEditingExisting && <DocAdminManager docRef={doc(db, "classes", classId)} admins={formData.admins} userId={userId} onChanged={getClassData}/>}
 
-            {isEditingMode && <div className="ClassPage-save-bar">
-                {errors.problems.length > 0
-                    ? <button type="button" className="ClassPage-save-bar-label ClassPage-save-bar-label-error" onClick={() => scrollToProblem()}>
-                        {errors.problems.length === 1 ? '1 thing to fix' : `${errors.problems.length} things to fix`}
-                    </button>
-                    : <span className="ClassPage-save-bar-label">Unsaved changes</span>}
-                <button type="button" className="ClassPage-cancel-button" onClick={handleCancelClick}>Cancel</button>
-                {isEditingExisting && <button type="button" className="ClassPage-publish-button" onClick={() => { if (checkValid()) setPublishDialogOpen(true); }}>
-                    Publish as v{versionOf(liveFormData) + 1}
-                </button>}
-                <button type="button" className="ClassPage-save-button" onClick={handleSaveClick}>
-                    {isEditingExisting ? "Update Class" : "Create Class"}
-                </button>
-            </div>}
+            {isEditingMode && <SaveBar problemCount={errors.problems.length} isEditingExisting={isEditingExisting} nextVersion={versionOf(liveFormData) + 1}
+                onJumpToProblem={() => scrollToProblem()} onCancel={handleCancelClick} onPublish={() => { if (checkValid()) setPublishDialogOpen(true); }} onSave={handleSaveClick}/>}
 
             {publishDialogOpen && <ClassPublishDialog
                 nextVersion={versionOf(liveFormData) + 1}

@@ -61,9 +61,11 @@
 }
 
 .AccessibilitySettings-toggle {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--jnj-space-3);
+    // the checkbox in its own column, the title above the hint beside it
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: start;
+    column-gap: var(--jnj-space-3);
     padding: var(--jnj-space-3);
     border: 1px solid var(--jnj-color-border);
     border-radius: var(--jnj-radius-md);
@@ -75,17 +77,19 @@
         height: 18px;
         margin-top: 2px;
         accent-color: var(--jnj-color-accent);
-        flex-shrink: 0;
+        grid-row: 1 / span 2;
     }
 }
 
 .AccessibilitySettings-toggle-title {
+    grid-column: 2;
     display: block;
     font-size: 0.9375rem;
     font-weight: 600;
 }
 
 .AccessibilitySettings-toggle-hint {
+    grid-column: 2;
     display: block;
     margin-top: 2px;
     font-size: 0.8125rem;

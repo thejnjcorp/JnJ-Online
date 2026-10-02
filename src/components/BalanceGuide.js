@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { GUIDE_SECTIONS } from '../utils/encounterGuideContent';
+import { keyed } from '../utils/keyed';
 import '../styles/BalanceGuide.scss';
 
 function Block({ block }) {
@@ -21,7 +22,7 @@ function Block({ block }) {
         <div className="BalanceGuide-table-wrap">
             <table>
                 <thead><tr>{block.columns.map(column => <th key={column} scope="col">{column}</th>)}</tr></thead>
-                <tbody>{block.rows.map(row => <tr key={row.join('|')}>{row.map((cell, index) => index === 0 ? <th key={index} scope="row">{cell}</th> : <td key={index}>{cell}</td>)}</tr>)}</tbody>
+                <tbody>{block.rows.map(row => <tr key={row.join('|')}>{keyed(row, 'cell').map(({ item: cell, index, key }) => index === 0 ? <th key={key} scope="row">{cell}</th> : <td key={key}>{cell}</td>)}</tr>)}</tbody>
             </table>
         </div>
     </div>;
@@ -41,7 +42,7 @@ export function BalanceGuide() {
             <span className={open ? 'BalanceGuide-chevron BalanceGuide-chevron-open' : 'BalanceGuide-chevron'} aria-hidden="true">›</span>
         </button>
         {open && <div id="balance-guide-body" className="BalanceGuide-body">
-            <div className="ClassPage-pill-group" role="group" aria-label="Guide sections">
+            <fieldset className="ClassPage-pill-group" aria-label="Guide sections">
                 {GUIDE_SECTIONS.map(candidate => <button
                     key={candidate.key}
                     type="button"
@@ -49,8 +50,8 @@ export function BalanceGuide() {
                     aria-pressed={candidate.key === sectionKey}
                     onClick={() => setSectionKey(candidate.key)}
                 >{candidate.label}</button>)}
-            </div>
-            {section.blocks.map((block, index) => <Block key={index} block={block}/>)}
+            </fieldset>
+            {keyed(section.blocks, 'block').map(({ item: block, key }) => <Block key={key} block={block}/>)}
         </div>}
     </div>;
 }

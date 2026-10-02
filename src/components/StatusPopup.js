@@ -19,7 +19,7 @@ export function StatusPopup({ status, canWrite, onClose, onStacksChange, onRemov
     return createPortal(
         <>
             <button type="button" className="CharacterPage-status-popup-scrim" aria-label="Close" onClick={onClose}/>
-            <div className="CharacterPage-status-popup" role="dialog" aria-label={`${status.name} details`}>
+            <dialog open className="CharacterPage-status-popup" aria-label={`${status.name} details`}>
                 <div className="CharacterPage-status-popup-header">
                     <StatusChip status={status}/>
                     <button type="button" className="CharacterPage-status-popup-close" aria-label="Close details" onClick={onClose}>×</button>
@@ -36,7 +36,7 @@ export function StatusPopup({ status, canWrite, onClose, onStacksChange, onRemov
                         : <span className="CharacterPage-status-detail-stacks-value">{stacksLabel(status.stacks)}</span>}
                 </div>
                 {canWrite && <button type="button" className="CharacterPage-status-detail-remove" onClick={() => onRemove(status)}>Remove</button>}
-            </div>
+            </dialog>
         </>,
         document.body
     );

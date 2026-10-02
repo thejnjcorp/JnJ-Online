@@ -27,7 +27,7 @@ const ADMIN_UID = 'wmJQbIlzX9RydXFmh3DzSBpIqHa2';
 
 // Mirrors NON_CONTENT_FIELDS in src/utils/versionedDocs.js: permission and
 // visibility belong to the class as a whole, never to one version.
-const NON_CONTENT_FIELDS = ['id', 'public', 'isDefault', 'canRead', 'canWrite', 'admins', 'visibility'];
+const NON_CONTENT_FIELDS = new Set(['id', 'public', 'isDefault', 'canRead', 'canWrite', 'admins', 'visibility']);
 
 function initDb() {
     if (process.env.FIRESTORE_EMULATOR_HOST) {
@@ -44,7 +44,7 @@ function versionOf(data) {
 
 function docContent(data) {
     return Object.fromEntries(
-        Object.entries(data).filter(([key, value]) => !NON_CONTENT_FIELDS.includes(key) && value !== undefined)
+        Object.entries(data).filter(([key, value]) => !NON_CONTENT_FIELDS.has(key) && value !== undefined)
     );
 }
 
@@ -88,6 +88,54 @@ async function publish(db, ref, entry) {
     });
 }
 
+// Brings one class in line with its wanted content: creates it, publishes a new version, or
+// leaves it. Returns which ('created' | 'published' | 'upToDate'), or nothing when the
+// entry can't be applied (reported in `problems`).
+async function syncClass(db, entry, prefix, problems) {
+    const matches = await findClass(db, entry.class_name);
+
+    if (matches.length > 1) {
+        problems.push(`${entry.class_name}: ${matches.length} classes share this name (${matches.map(doc => doc.id).join(', ')})`);
+        return undefined;
+    }
+
+    if (matches.length === 0) {
+        if (!entry.create) {
+            problems.push(`${entry.class_name}: no such class, and the entry doesn't say how to create one`);
+            return undefined;
+        }
+        console.log(`${prefix}${entry.class_name}: not found -> creating as a Default at v1, ${entry.content.actions.length} action(s)`);
+        if (!DRY_RUN) {
+            await db.collection('classes').add({
+                ...entry.create,
+                ...entry.content,
+                version: 1,
+                versionNotes: entry.versionNotes,
+                publishedAt: FieldValue.serverTimestamp(),
+                public: true,
+                isDefault: true,
+                canRead: [],
+                canWrite: [ADMIN_UID],
+                admins: [ADMIN_UID],
+            });
+        }
+        return 'created';
+    }
+
+    const doc = matches[0];
+    const current = doc.data();
+    if (matchesContent(current, entry.content)) {
+        console.log(`${entry.class_name} (${doc.id}): already up to date at v${versionOf(current)}, skipped`);
+        return 'upToDate';
+    }
+
+    const from = versionOf(current);
+    console.log(`${prefix}${entry.class_name} (${doc.id}): v${from} -> v${from + 1}, ` +
+        `${(current.actions || []).length} -> ${entry.content.actions.length} action(s)`);
+    if (!DRY_RUN) await publish(db, doc.ref, entry);
+    return 'published';
+}
+
 async function main() {
     if (DRY_RUN) console.log('--dry-run: no writes will be made.\n');
     const db = initDb();
@@ -96,50 +144,8 @@ async function main() {
     const summary = { published: 0, created: 0, upToDate: 0 };
 
     for (const entry of updates) {
-        const matches = await findClass(db, entry.class_name);
-
-        if (matches.length > 1) {
-            problems.push(`${entry.class_name}: ${matches.length} classes share this name (${matches.map(doc => doc.id).join(', ')})`);
-            continue;
-        }
-
-        if (matches.length === 0) {
-            if (!entry.create) {
-                problems.push(`${entry.class_name}: no such class, and the entry doesn't say how to create one`);
-                continue;
-            }
-            console.log(`${prefix}${entry.class_name}: not found -> creating as a Default at v1, ${entry.content.actions.length} action(s)`);
-            if (!DRY_RUN) {
-                await db.collection('classes').add({
-                    ...entry.create,
-                    ...entry.content,
-                    version: 1,
-                    versionNotes: entry.versionNotes,
-                    publishedAt: FieldValue.serverTimestamp(),
-                    public: true,
-                    isDefault: true,
-                    canRead: [],
-                    canWrite: [ADMIN_UID],
-                    admins: [ADMIN_UID],
-                });
-            }
-            summary.created++;
-            continue;
-        }
-
-        const doc = matches[0];
-        const current = doc.data();
-        if (matchesContent(current, entry.content)) {
-            console.log(`${entry.class_name} (${doc.id}): already up to date at v${versionOf(current)}, skipped`);
-            summary.upToDate++;
-            continue;
-        }
-
-        const from = versionOf(current);
-        console.log(`${prefix}${entry.class_name} (${doc.id}): v${from} -> v${from + 1}, ` +
-            `${(current.actions || []).length} -> ${entry.content.actions.length} action(s)`);
-        if (!DRY_RUN) await publish(db, doc.ref, entry);
-        summary.published++;
+        const outcome = await syncClass(db, entry, prefix, problems);
+        if (outcome) summary[outcome]++;
     }
 
     console.log(`\n${summary.published} ${DRY_RUN ? 'to publish' : 'published'}, ` +

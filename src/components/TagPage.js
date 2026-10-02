@@ -134,7 +134,8 @@ export function TagPage() {
         }
     }
 
-    const submitLabel = submitting ? 'Saving…' : (isEditing ? 'Update Tag' : 'Create Tag');
+    let submitLabel = isEditing ? 'Update Tag' : 'Create Tag';
+    if (submitting) submitLabel = 'Saving…';
 
     return <div className="StatusPage">
         <div className="StatusPage-inner">

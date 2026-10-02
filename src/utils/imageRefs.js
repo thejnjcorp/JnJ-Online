@@ -12,8 +12,8 @@ export const IMGUR_HOST = 'https://i.imgur.com/';
 
 // Imgur ids are 5 to 7 letters and digits today; some room is left.
 const IMGUR_HASH = '[A-Za-z0-9]{5,12}';
-const IMGUR_REF = new RegExp(`^${IMGUR_HASH}\\.[A-Za-z0-9]{3,5}$`);
-const IMGUR_LINK = new RegExp(`^https?://(?:i\\.)?imgur\\.com/(${IMGUR_HASH}\\.[A-Za-z0-9]{3,5})$`, 'i');
+const IMGUR_REF = new RegExp(String.raw`^${IMGUR_HASH}\.[A-Za-z0-9]{3,5}$`);
+const IMGUR_LINK = new RegExp(String.raw`^https?://(?:i\.)?imgur\.com/(${IMGUR_HASH}\.[A-Za-z0-9]{3,5})$`, 'i');
 
 export const MAX_IMAGE_URL_LENGTH = 500;
 

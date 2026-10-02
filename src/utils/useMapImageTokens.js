@@ -30,9 +30,9 @@ export function useMapImageTokens(map, userId) {
         selected,
         select: setSelectedId,
         // put a new one where it was dropped, or in the middle of the map, selected
-        add: (fields, aspect, at = { x: 0.5, y: aspect / 2 }) => {
+        add: (fields, aspect, at) => {
             if (!canEdit || tokens.length >= MAX_IMAGE_TOKENS) return null;
-            const token = newImageToken(fields, clampToMap(at, aspect));
+            const token = newImageToken(fields, clampToMap(at ?? { x: 0.5, y: aspect / 2 }, aspect));
             save({ image_tokens: arrayUnion(token) });
             setSelectedId(token.id);
             return token.id;

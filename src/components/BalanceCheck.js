@@ -28,7 +28,7 @@ export function BalanceCheck({ roster, target, objective, zoneCount, onTarget, o
         <div className="BalanceCheck-controls">
             <div className="BalanceCheck-control">
                 <span className="ClassPage-field-label">Target difficulty</span>
-                <div className="ClassPage-pill-group" role="group" aria-label="Target difficulty">
+                <fieldset className="ClassPage-pill-group" aria-label="Target difficulty">
                     {ENCOUNTER_TIERS.map(tier => <button
                         key={tier.key}
                         type="button"
@@ -36,7 +36,7 @@ export function BalanceCheck({ roster, target, objective, zoneCount, onTarget, o
                         aria-pressed={tier.key === target}
                         onClick={() => onTarget(tier.key === target ? '' : tier.key)}
                     >{tier.label}</button>)}
-                </div>
+                </fieldset>
             </div>
             <label className="BalanceCheck-control">
                 <span className="ClassPage-field-label">Secondary objective</span>

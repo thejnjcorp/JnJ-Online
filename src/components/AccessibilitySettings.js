@@ -69,10 +69,8 @@ export function AccessibilitySettings() {
                     checked={settings[toggle.key]}
                     onChange={event => update({ [toggle.key]: event.target.checked })}
                 />
-                <span>
-                    <span className="AccessibilitySettings-toggle-title">{toggle.label}</span>
-                    <span className="AccessibilitySettings-toggle-hint">{toggle.hint}</span>
-                </span>
+                <span className="AccessibilitySettings-toggle-title">{toggle.label}</span>
+                <span className="AccessibilitySettings-toggle-hint">{toggle.hint}</span>
             </label>)}
         </div>
 
@@ -84,8 +82,8 @@ export function AccessibilitySettings() {
             </p>
         </div>
 
-        <div className="AccessibilitySettings-status" role="status" aria-live="polite">
+        <output className="AccessibilitySettings-status" aria-live="polite">
             {SAVE_MESSAGES[saveState] || ''}
-        </div>
+        </output>
     </section>;
 }

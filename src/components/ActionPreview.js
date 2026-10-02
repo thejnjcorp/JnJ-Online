@@ -7,7 +7,7 @@ import '../styles/ActionPreview.scss';
 const noop = () => {};
 
 function Choice({ options, selected, onPick, label }) {
-    return <div className="ClassPage-pill-group" role="group" aria-label={label}>
+    return <fieldset className="ClassPage-pill-group" aria-label={label}>
         {options.map(option => <button
             type="button"
             key={option.key}
@@ -15,7 +15,7 @@ function Choice({ options, selected, onPick, label }) {
             aria-pressed={option.key === selected}
             onClick={() => onPick(option.key)}
         >{option.label}</button>)}
-    </div>;
+    </fieldset>;
 }
 
 // What an action looks like where players will meet it: a card on the
@@ -43,7 +43,7 @@ export function ActionPreview({ action, stats = {} }) {
     if (isRoleplayAction(action)) views.push({ key: 'roleplay', label: 'Roleplay tab' });
     if (isFeat) views.push({ key: 'sidebar', label: 'Skills sidebar' });
 
-    const [requestedView, setView] = useState('combat');
+    const [requestedView, setRequestedView] = useState('combat');
     const [phone, setPhone] = useState(false);
     // A limited-use action's uses can be tried out here, though nothing is saved.
     const [uses, setUses] = useState({});
@@ -81,7 +81,7 @@ export function ActionPreview({ action, stats = {} }) {
     return <div className="ActionPreview">
         <span className="ClassPage-field-label">Preview</span>
         <div className="ActionPreview-controls">
-            {views.length > 1 && <Choice label="Where to preview" options={views} selected={view} onPick={setView}/>}
+            {views.length > 1 && <Choice label="Where to preview" options={views} selected={view} onPick={setRequestedView}/>}
             {view !== 'sidebar' && <Choice
                 label="Screen size"
                 options={[{ key: 'desktop', label: 'Desktop' }, { key: 'phone', label: 'Phone' }]}

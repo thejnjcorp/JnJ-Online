@@ -124,6 +124,9 @@ export function ItemPage() {
 
     const canShare = isEditing && !readOnly && !formData.isPublic && formData.visibility !== 'public' && myCampaigns.length > 0;
 
+    let submitLabel = isEditing ? 'Update Item' : 'Create Item';
+    if (submitting) submitLabel = 'Saving…';
+
     return <div className="ClassPage">
         <div className="ClassPage-inner">
             <button type="button" className="ClassPage-breadcrumb" onClick={() => navigate('/item-list')}>&larr; Items</button>
@@ -225,7 +228,7 @@ export function ItemPage() {
 
             <div className="EnemyPage-actions">
                 <button type="button" className="StatusPage-submit-button" onClick={handleSubmit} disabled={readOnly || submitting}>
-                    {submitting ? 'Saving…' : (isEditing ? 'Update Item' : 'Create Item')}
+                    {submitLabel}
                 </button>
                 {isEditing && !readOnly && <button type="button" className="StatusPage-delete-button" onClick={handleDelete}>Delete Item</button>}
             </div>

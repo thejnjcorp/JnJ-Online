@@ -43,6 +43,44 @@ function sameContent(current, wanted) {
     });
 }
 
+// Brings one wanted status in line: creates it, updates it, or leaves it. Returns which
+// ('created' | 'updated' | 'upToDate'), or nothing when it can't be told which document is
+// meant (reported in `problems`).
+async function syncStatus(db, wanted, prefix, problems) {
+    const snap = await db.collection('statuses').where('name', '==', wanted.name).get();
+    const matches = snap.docs.filter(doc => (doc.data().classes || []).some(name => wanted.classes.includes(name)));
+
+    if (matches.length > 1) {
+        problems.push(`${wanted.name}: ${matches.length} statuses share this name and class (${matches.map(doc => doc.id).join(', ')})`);
+        return undefined;
+    }
+
+    if (matches.length === 0) {
+        console.log(`${prefix}${wanted.name}: not found -> creating (${wanted.classes.join(', ')})`);
+        if (!DRY_RUN) {
+            await db.collection('statuses').add({
+                ...wanted,
+                public: true,
+                isDefault: true,
+                canRead: [],
+                campaignId: null,
+                canWrite: [ADMIN_UID],
+                admins: [ADMIN_UID],
+            });
+        }
+        return 'created';
+    }
+
+    const doc = matches[0];
+    if (sameContent(doc.data(), wanted)) {
+        console.log(`${wanted.name} (${doc.id}): already up to date, skipped`);
+        return 'upToDate';
+    }
+    console.log(`${prefix}${wanted.name} (${doc.id}): content differs -> updating`);
+    if (!DRY_RUN) await doc.ref.update(wanted);
+    return 'updated';
+}
+
 async function main() {
     if (DRY_RUN) console.log('--dry-run: no writes will be made.\n');
     const db = initDb();
@@ -51,40 +89,8 @@ async function main() {
     const summary = { created: 0, updated: 0, upToDate: 0 };
 
     for (const wanted of statuses) {
-        const snap = await db.collection('statuses').where('name', '==', wanted.name).get();
-        const matches = snap.docs.filter(doc => (doc.data().classes || []).some(name => wanted.classes.includes(name)));
-
-        if (matches.length > 1) {
-            problems.push(`${wanted.name}: ${matches.length} statuses share this name and class (${matches.map(doc => doc.id).join(', ')})`);
-            continue;
-        }
-
-        if (matches.length === 0) {
-            console.log(`${prefix}${wanted.name}: not found -> creating (${wanted.classes.join(', ')})`);
-            if (!DRY_RUN) {
-                await db.collection('statuses').add({
-                    ...wanted,
-                    public: true,
-                    isDefault: true,
-                    canRead: [],
-                    campaignId: null,
-                    canWrite: [ADMIN_UID],
-                    admins: [ADMIN_UID],
-                });
-            }
-            summary.created++;
-            continue;
-        }
-
-        const doc = matches[0];
-        if (sameContent(doc.data(), wanted)) {
-            console.log(`${wanted.name} (${doc.id}): already up to date, skipped`);
-            summary.upToDate++;
-            continue;
-        }
-        console.log(`${prefix}${wanted.name} (${doc.id}): content differs -> updating`);
-        if (!DRY_RUN) await doc.ref.update(wanted);
-        summary.updated++;
+        const outcome = await syncStatus(db, wanted, prefix, problems);
+        if (outcome) summary[outcome]++;
     }
 
     console.log(`\n${summary.created} ${DRY_RUN ? 'to create' : 'created'}, ` +
