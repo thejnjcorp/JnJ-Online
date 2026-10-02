@@ -1316,6 +1316,42 @@ async function main() {
         }
     });
 
+    console.log('\nSessions and scenes (campaigns/{id}/sessions and /scenes), directors only:');
+
+    const seedScenes = () => testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+        await testEnv.clearFirestore();
+        await setDoc(doc(adminCtx.firestore(), 'campaigns', 'camp1'), { campaign_name: 'C', director_uid: 'dir', canWrite: ['dir', 'codir'], canRead: ['dir', 'codir', 'player'], admins: ['dir'] });
+        await setDoc(doc(adminCtx.firestore(), 'campaigns', 'camp1', 'sessions', 's1'), { number: 1 });
+        await setDoc(doc(adminCtx.firestore(), 'campaigns', 'camp1', 'scenes', 'sc1'), { name: 'Ambush', sessionId: 's1', beats: [] });
+    });
+
+    await check('the director and a co-director can read, create, edit, list and delete sessions and scenes', async () => {
+        await seedScenes();
+        for (const uid of ['dir', 'codir']) {
+            const db = testEnv.authenticatedContext(uid).firestore();
+            for (const [name, id] of [['sessions', 's1'], ['scenes', 'sc1']]) {
+                await assertSucceeds(getDoc(doc(db, 'campaigns', 'camp1', name, id)));
+                await assertSucceeds(getDocs(collection(db, 'campaigns', 'camp1', name)));
+                await assertSucceeds(updateDoc(doc(db, 'campaigns', 'camp1', name, id), { name: 'Renamed' }));
+                await assertSucceeds(addDoc(collection(db, 'campaigns', 'camp1', name), { name: 'New' }));
+            }
+        }
+        await assertSucceeds(deleteDoc(doc(testEnv.authenticatedContext('dir').firestore(), 'campaigns', 'camp1', 'scenes', 'sc1')));
+    });
+
+    await check('players, strangers and signed-out visitors cannot see or change sessions and scenes (the plot is the director\'s)', async () => {
+        await seedScenes();
+        for (const ctx of [testEnv.authenticatedContext('player'), testEnv.authenticatedContext('stranger'), testEnv.unauthenticatedContext()]) {
+            const db = ctx.firestore();
+            for (const [name, id] of [['sessions', 's1'], ['scenes', 'sc1']]) {
+                await assertFails(getDoc(doc(db, 'campaigns', 'camp1', name, id)));
+                await assertFails(getDocs(collection(db, 'campaigns', 'camp1', name)));
+                await assertFails(updateDoc(doc(db, 'campaigns', 'camp1', name, id), { name: 'x' }));
+                await assertFails(addDoc(collection(db, 'campaigns', 'camp1', name), { name: 'x' }));
+            }
+        }
+    });
+
     console.log('\nThe party doc (campaigns/{id}/party/main), shared by everyone in the campaign:');
 
     const seedParty = () => testEnv.withSecurityRulesDisabled(async (adminCtx) => {

@@ -33,6 +33,7 @@ import { ReactComponent as DexterityIcon } from '../icons/dexterity_line.svg';
 import { ReactComponent as IntelligenceIcon } from '../icons/intelligence_line.svg';
 import { ReactComponent as CharismaIcon } from '../icons/charisma_line.svg';
 import { DirectorNotes } from './DirectorNotes';
+import { ScenesTab } from './ScenesTab';
 import { ReactComponent as ChevronDownIcon } from '../icons/chevron_down.svg';
 import { PostListContentCombatMap } from '../utils/DraggableElements/PostListCombatMap.tsx';
 import { PostListContentCombat } from '../utils/DraggableElements/PostListCombat.tsx';
@@ -291,6 +292,36 @@ function DirectorsEntityCard({
     </div>;
 }
 
+// The party at a glance, above the sidebar's skills and flaws: each player's name,
+// armor class and a health bar, so a roleplay beat doesn't need the combat tab open
+// just to see who is hurt.
+function PartyStrip({ characters }) {
+    if (characters.length === 0) return null;
+    return <div className="DirectorsPage-party-strip">
+        <span className="DirectorsPage-party-strip-title">Player Characters</span>
+        {characters.map(character => {
+            const full = { ...characterPageLayout, ...character };
+            const effective = getEffectiveCharacterStats(full);
+            const ac = CharacterStatCalculator(
+                full.experience_points, effective.base_armor_class, effective.base_hit_modifier, effective.base_damage_modifier,
+                full.base_damage_dice, full.base_damage_dice_type, full.base_healing_dice_type,
+            ).ArmorClass;
+            const now = Number(full.current_health) || 0;
+            const max = Number(full.maximum_health) || 0;
+            return <div className="DirectorsPage-party-strip-row" key={character.character_id}>
+                <div className="DirectorsPage-party-strip-line">
+                    <span className="DirectorsPage-party-strip-name">{character.character_name}</span>
+                    <span className="DirectorsPage-party-strip-ac">{`AC ${ac}`}</span>
+                </div>
+                <div className="DirectorsPage-party-strip-hp">
+                    <div className="DirectorsPage-party-strip-bar" aria-hidden="true"><div style={{ width: `${max > 0 ? Math.max(0, Math.min(100, (now / max) * 100)) : 0}%` }}/></div>
+                    <span>{`${now}/${max}`}</span>
+                </div>
+            </div>;
+        })}
+    </div>;
+}
+
 export function DirectorsPage() {
     const location = useLocation();
     const campaignId = location.pathname.split("/").at(2);
@@ -513,8 +544,301 @@ export function DirectorsPage() {
         </div>;
     }
 
+    const combatContent = <div className='DirectorsPage-combat-grid' style={{gridTemplateColumns: combatGridTemplateColumns}}>
+        <div className={playersCollapsed ? 'DirectorsPage-panel DirectorsPage-panel-collapsed' : 'DirectorsPage-panel'}>
+            <div className="DirectorsPage-panel-title">
+                <PersonIcon className="DirectorsPage-panel-title-icon"/>
+                {!playersCollapsed && <span className="DirectorsPage-panel-title-name">Player Characters</span>}
+                <button type="button"
+                    className="DirectorsPage-panel-collapse-button"
+                    onClick={() => setPlayersCollapsed(c => !c)}
+                    aria-label={playersCollapsed ? "Expand Player Characters" : "Collapse Player Characters"}
+                >
+                    <ChevronDownIcon className={playersCollapsed ? "DirectorsPage-chevron" : "DirectorsPage-chevron DirectorsPage-chevron-open"}/>
+                </button>
+            </div>
+            {!playersCollapsed && resolvedCharacterList.map((character) => {
+                const actualCharacter = { ...characterPageLayout, ...character }
+                // Reaching this code at all already means isDirector (the whole
+                // page refuses anyone else - see the guard above), and
+                // firestore.rules' isCharacterCampaignDirector() grants exactly
+                // this - statuses, action_points, reaction_used, current_health,
+                // temporary_health - on every player's character, not just one
+                // the director happens to co-write.
+                const hasWritePermissions = true;
+                function setActionPoints(actionPoints) {
+                    try {
+                        updateDoc(doc(db, "characters", actualCharacter.character_id), {
+                            action_points: actionPoints
+                        });
+                    } catch (e) {
+                        alert(e);
+                    }
+                }
+                function setHp(current_health) {
+                    try {
+                        updateDoc(doc(db, "characters", actualCharacter.character_id), { current_health });
+                    } catch (e) {
+                        alert(e);
+                    }
+                }
+                function setTempHp(temporary_health) {
+                    try {
+                        updateDoc(doc(db, "characters", actualCharacter.character_id), { temporary_health });
+                    } catch (e) {
+                        alert(e);
+                    }
+                }
+                function setHeroPoints(hero_points) {
+                    try {
+                        updateDoc(doc(db, "characters", actualCharacter.character_id), { hero_points: Math.max(0, hero_points) });
+                    } catch (e) {
+                        alert(e);
+                    }
+                }
+                function toggleReaction() {
+                    try {
+                        updateDoc(doc(db, "characters", actualCharacter.character_id), {
+                            reaction_used: !actualCharacter.reaction_used
+                        });
+                    } catch (e) {
+                        alert(e);
+                    }
+                }
+                // The only turn-based automation this pass wires up: statuses
+                // with a turn_start effect (currently just action_points, e.g.
+                // Haste +1 / Slowed -1 - see statusEffects.js) apply once, then
+                // lose a stack; anything else (a passive condition like
+                // Exhaustion, or a purely descriptive one like Wounded) passes
+                // through untouched. Everything else about turn order is still
+                // the GM calling it verbally, per the ruleset - this just saves
+                // the manual math for the handful of statuses that have any.
+                function advanceTurn() {
+                    try {
+                        updateDoc(doc(db, "characters", actualCharacter.character_id), advanceTurnStatuses(actualCharacter));
+                    } catch (e) {
+                        alert(e);
+                    }
+                }
+                const effectiveCharacter = getEffectiveCharacterStats(actualCharacter);
+                const grantedActions = getGrantedActions(actualCharacter);
+                const armorClass = CharacterStatCalculator(
+                    actualCharacter.experience_points,
+                    effectiveCharacter.base_armor_class,
+                    effectiveCharacter.base_hit_modifier,
+                    effectiveCharacter.base_damage_modifier,
+                    actualCharacter.base_damage_dice,
+                    actualCharacter.base_damage_dice_type,
+                    actualCharacter.base_healing_dice_type
+                ).ArmorClass;
+                return <DirectorsEntityCard
+                    key={character.character_id}
+                    kind="player"
+                    name={character.character_name}
+                    subtitle={actualCharacter.class_name || actualCharacter.class}
+                    hpNow={actualCharacter.current_health}
+                    hpMax={actualCharacter.maximum_health}
+                    tempHp={actualCharacter.temporary_health}
+                    onSetHp={hasWritePermissions ? setHp : undefined}
+                    onSetTempHp={hasWritePermissions ? setTempHp : undefined}
+                    ac={armorClass}
+                    abilityScores={{
+                        strength_stat: effectiveCharacter.strength_stat,
+                        dexterity_stat: effectiveCharacter.dexterity_stat,
+                        intelligence_stat: effectiveCharacter.intelligence_stat,
+                        charisma_stat: effectiveCharacter.charisma_stat,
+                    }}
+                    ap={actualCharacter.action_points}
+                    onSetAp={hasWritePermissions ? setActionPoints : undefined}
+                    heroPoints={actualCharacter.hero_points ?? 1}
+                    onSetHeroPoints={hasWritePermissions ? setHeroPoints : undefined}
+                    reactionUsed={Boolean(actualCharacter.reaction_used)}
+                    onToggleReaction={hasWritePermissions ? toggleReaction : undefined}
+                    canAdvanceTurn={hasWritePermissions}
+                    onNextTurn={advanceTurn}
+                    statusEntity={actualCharacter}
+                    userId={userId}
+                    hasStatusWrite={hasWritePermissions}
+                    actions={[...actualCharacter.actions, ...grantedActions].filter(isCombatAction)}
+                    experiencePoints={actualCharacter.experience_points}
+                    baseHitModifier={effectiveCharacter.base_hit_modifier}
+                    baseDamageModifier={effectiveCharacter.base_damage_modifier}
+                    baseDamageDice={actualCharacter.base_damage_dice}
+                    baseDamageDiceType={actualCharacter.base_damage_dice_type}
+                    baseHealingDiceType={actualCharacter.base_healing_dice_type}
+                    canUseActions={true}
+                />
+            })}
+        </div>
+        <div className='DirectorsPage-panel DirectorsPage-panel-tracker'>
+            <div className="DirectorsPage-panel-title">
+                <MapIcon className="DirectorsPage-panel-title-icon"/>
+                <span className="DirectorsPage-panel-title-name">Combat Tracker</span>
+            </div>
+            <div className="DirectorsPage-tracker-mode-row-wrap">
+                <div className="DirectorsPage-tracker-mode-row">
+                    <button type="button"
+                        className={trackerMode === 'line' ? "DirectorsPage-mode-btn DirectorsPage-mode-btn-active" : "DirectorsPage-mode-btn"}
+                        onClick={() => setTrackerMode('line')}
+                    >Line View</button>
+                    <button type="button"
+                        className={trackerMode === 'map' ? "DirectorsPage-mode-btn DirectorsPage-mode-btn-active" : "DirectorsPage-mode-btn"}
+                        onClick={() => setTrackerMode('map')}
+                    >Map View</button>
+                </div>
+                {isDirector && maps.length > 0 && <label className="DirectorsPage-map-select">
+                    <span>Map</span>
+                    <select aria-label="Combat map" value={campaignInfo.active_map || ''} onChange={event => selectMap(event.target.value)}>
+                        <option value="">No map</option>
+                        {maps.map((map, index) => <option key={map.map_id} value={map.map_id}>{`Map ${index + 1}`}</option>)}
+                    </select>
+                </label>}
+                {trackerMode === 'map' && activeMap && <button type="button"
+                    className="DirectorsPage-tracker-expand-button"
+                    onClick={() => setMapOverlayOpen(true)}
+                >
+                    <MapIcon/> Open Full Map
+                </button>}
+            </div>
+            {/* Both views stay mounted at once (toggled via CSS, not
+                unmounted) since PostListContentCombatMap owns the
+                effect that syncs combat_tracker with who's actually in
+                the fight - if Map View were never mounted, a Director
+                who only ever used Line View would never see new
+                combatants show up. */}
+            <div className={trackerMode === 'line' ? "DirectorsPage-tracker-view" : "DirectorsPage-tracker-view DirectorsPage-tracker-view-hidden"}>
+                <PostListContentCombat
+                    key={activeMap?.map_id || "no-active-map"}
+                    campaignId={campaignId}
+                    inputStatuses={zoneNames.length > 0 ? zoneNames : (noMap ? [NO_MAP_ZONE] : [])}
+                    className={lineViewClassName}
+                    PostCardComponent={lineViewCard}
+                    canMovePost={canMoveCombatant}
+                    rects={activeMapRects}
+                />
+                {activeMap && zoneNames.length === 0 && <div className="DirectorsPage-tracker-empty">This map has no zones yet. Add some from the Maps tab.</div>}
+                {/* One shared Tooltip, matched by data-tooltip-id on every
+                    chip (see makeLineViewCard) - react-tooltip reads each
+                    chip's own data-tooltip-content, so a single mount here
+                    covers all of them regardless of how many render. */}
+                <Tooltip id="DirectorsPage-line-view-tooltip" place="top"/>
+            </div>
+            <div className={trackerMode === 'map' ? "DirectorsPage-tracker-view DirectorsPage-tracker-view-map" : "DirectorsPage-tracker-view DirectorsPage-tracker-view-map DirectorsPage-tracker-view-hidden"}>
+                <PostListContentCombatMap
+                    key={activeMap?.map_id || "no-active-map"}
+                    campaignId={campaignId}
+                    activeMap={activeMap}
+                    entities={combatEntities}
+                    userId={userId}
+                    canEdit={isDirector}
+                    noMap={noMap}
+                    onSetDefeated={isDirector ? setEnemyDefeated : undefined}
+                    onRemoveEntity={isDirector ? removeEntityFromFight : undefined}
+                />
+            </div>
+        </div>
+        <div className={enemiesCollapsed ? 'DirectorsPage-panel DirectorsPage-panel-collapsed' : 'DirectorsPage-panel'}>
+            <div className="DirectorsPage-panel-title">
+                <SwordsIcon className="DirectorsPage-panel-title-icon"/>
+                {!enemiesCollapsed && <span className="DirectorsPage-panel-title-name">Enemies</span>}
+                {!enemiesCollapsed && isDirector && <div className="DirectorsPage-enemy-tools">
+                    <button type="button" onClick={() => setAddEnemyOpen(true)}>+ Add</button>
+                    <button type="button" onClick={() => navigate('/campaigns/' + campaignId + '/encounters')}>Encounters</button>
+                    {campaignInfo.enemy_list.length > 0 && <button type="button" onClick={clearEnemies}>Clear all</button>}
+                </div>}
+                <button type="button"
+                    className="DirectorsPage-panel-collapse-button"
+                    onClick={() => setEnemiesCollapsed(c => !c)}
+                    aria-label={enemiesCollapsed ? "Expand Enemies" : "Collapse Enemies"}
+                >
+                    <ChevronDownIcon className={enemiesCollapsed ? "DirectorsPage-chevron" : "DirectorsPage-chevron DirectorsPage-chevron-open"}/>
+                </button>
+            </div>
+            {!enemiesCollapsed && campaignInfo.enemy_list.map((enemy) => {
+                const actualEnemy = { ...npcLayout, ...enemy, campaign: campaignId }
+                function setActionPoints(actionPoints) {
+                    updateEnemy(actualEnemy.id, { action_points: actionPoints }).catch(e => alert(e));
+                }
+                function setHp(current_health) {
+                    updateEnemy(actualEnemy.id, { current_health }).catch(e => alert(e));
+                }
+                function setTempHp(temporary_health) {
+                    updateEnemy(actualEnemy.id, { temporary_health }).catch(e => alert(e));
+                }
+                function advanceTurn() {
+                    updateEnemy(actualEnemy.id, advanceTurnStatuses(actualEnemy)).catch(e => alert(e));
+                }
+                function updateEnemyStatuses(nextStatuses) {
+                    return updateEnemy(actualEnemy.id, { statuses: nextStatuses });
+                }
+                function toggleReaction() {
+                    updateEnemy(actualEnemy.id, { reaction_used: !actualEnemy.reaction_used }).catch(e => alert(e));
+                }
+                function useAction(action) {
+                    // A reaction spends the reaction, not an action point - same
+                    // reasoning as CombatActionList.js's own default write path.
+                    updateEnemy(actualEnemy.id, isReactionAction(action)
+                        ? { reaction_used: true }
+                        : { action_points: actualEnemy.action_points - action.actionCost }
+                    ).catch(e => alert(e));
+                }
+                const effectiveEnemy = getEffectiveCharacterStats(actualEnemy);
+                const grantedActions = getGrantedActions(actualEnemy);
+                return <DirectorsEntityCard
+                    key={enemy.id}
+                    kind="enemy"
+                    name={actualEnemy.enemy_name}
+                    tier={enemy.enemy_type} /* not actualEnemy: the layout it is merged over has a tier of its own */
+                    subtitle={"Lvl " + actualEnemy.level}
+                    onRemove={isDirector ? () => removeEnemyFromFight(actualEnemy) : undefined}
+                    defeated={Boolean(enemy.defeated)}
+                    onSetDefeated={isDirector ? (defeated) => updateEnemy(actualEnemy.id, { defeated }).catch(e => alert(e)) : undefined}
+                    hpNow={actualEnemy.current_health}
+                    hpMax={actualEnemy.maximum_health}
+                    tempHp={actualEnemy.temporary_health}
+                    onSetHp={isDirector ? setHp : undefined}
+                    onSetTempHp={isDirector ? setTempHp : undefined}
+                    ac={effectiveEnemy.base_armor_class}
+                    abilityScores={{
+                        strength_stat: effectiveEnemy.strength_stat,
+                        dexterity_stat: effectiveEnemy.dexterity_stat,
+                        intelligence_stat: effectiveEnemy.intelligence_stat,
+                        charisma_stat: effectiveEnemy.charisma_stat,
+                    }}
+                    notes={actualEnemy.description}
+                    ap={actualEnemy.action_points}
+                    onSetAp={setActionPoints}
+                    reactionUsed={Boolean(actualEnemy.reaction_used)}
+                    onToggleReaction={toggleReaction}
+                    canAdvanceTurn={true}
+                    onNextTurn={advanceTurn}
+                    weaknesses={actualEnemy.Weaknesses}
+                    resistances={actualEnemy.Resistances}
+                    immunities={actualEnemy.Immunities}
+                    statusEntity={actualEnemy}
+                    userId={userId}
+                    onUpdateStatuses={updateEnemyStatuses}
+                    hasStatusWrite={true}
+                    actions={[...actualEnemy.actions, ...grantedActions].filter(isCombatAction)}
+                    experiencePoints={0}
+                    baseHitModifier={effectiveEnemy.base_hit_modifier}
+                    baseDamageModifier={effectiveEnemy.base_damage_modifier}
+                    baseDamageDice={actualEnemy.base_damage_dice}
+                    baseDamageDiceType={actualEnemy.base_damage_dice_type}
+                    baseHealingDiceType={actualEnemy.base_healing_dice_type}
+                    canUseActions={true}
+                    onUseAction={useAction}
+                />
+            })}
+            {!enemiesCollapsed && isDirector && campaignInfo.enemy_list.length === 0 && <div className="DirectorsPage-enemies-empty">
+                No enemies in the fight. Add one from your bestiary, or stage an encounter.
+            </div>}
+        </div>
+    </div>;
+
     return <div className="DirectorsPage">
         <div className={'DirectorsPage-sidebar ' + pageTheme}>
+            <PartyStrip characters={resolvedCharacterList}/>
             {resolvedCharacterList.map((character) => {
                 const actualCharacter = { ...characterPageLayout, ...character }
                 return <Collapsible
@@ -538,300 +862,8 @@ export function DirectorsPage() {
         </div>
         <div className='DirectorsPage-MainBody'>
             <TabContainer container_height={"90vh"} content_height={"90vh"} tabs={[
-                {tabName: "Roleplay", icon: <ScrollIcon/>, content: <>
-                    hi
-                </>},
-                {tabName: "Combat", icon: <SwordsIcon/>, content: <div className='DirectorsPage-combat-grid' style={{gridTemplateColumns: combatGridTemplateColumns}}>
-                    <div className={playersCollapsed ? 'DirectorsPage-panel DirectorsPage-panel-collapsed' : 'DirectorsPage-panel'}>
-                        <div className="DirectorsPage-panel-title">
-                            <PersonIcon className="DirectorsPage-panel-title-icon"/>
-                            {!playersCollapsed && <span className="DirectorsPage-panel-title-name">Player Characters</span>}
-                            <button type="button"
-                                className="DirectorsPage-panel-collapse-button"
-                                onClick={() => setPlayersCollapsed(c => !c)}
-                                aria-label={playersCollapsed ? "Expand Player Characters" : "Collapse Player Characters"}
-                            >
-                                <ChevronDownIcon className={playersCollapsed ? "DirectorsPage-chevron" : "DirectorsPage-chevron DirectorsPage-chevron-open"}/>
-                            </button>
-                        </div>
-                        {!playersCollapsed && resolvedCharacterList.map((character) => {
-                            const actualCharacter = { ...characterPageLayout, ...character }
-                            // Reaching this code at all already means isDirector (the whole
-                            // page refuses anyone else - see the guard above), and
-                            // firestore.rules' isCharacterCampaignDirector() grants exactly
-                            // this - statuses, action_points, reaction_used, current_health,
-                            // temporary_health - on every player's character, not just one
-                            // the director happens to co-write.
-                            const hasWritePermissions = true;
-                            function setActionPoints(actionPoints) {
-                                try {
-                                    updateDoc(doc(db, "characters", actualCharacter.character_id), {
-                                        action_points: actionPoints
-                                    });
-                                } catch (e) {
-                                    alert(e);
-                                }
-                            }
-                            function setHp(current_health) {
-                                try {
-                                    updateDoc(doc(db, "characters", actualCharacter.character_id), { current_health });
-                                } catch (e) {
-                                    alert(e);
-                                }
-                            }
-                            function setTempHp(temporary_health) {
-                                try {
-                                    updateDoc(doc(db, "characters", actualCharacter.character_id), { temporary_health });
-                                } catch (e) {
-                                    alert(e);
-                                }
-                            }
-                            function setHeroPoints(hero_points) {
-                                try {
-                                    updateDoc(doc(db, "characters", actualCharacter.character_id), { hero_points: Math.max(0, hero_points) });
-                                } catch (e) {
-                                    alert(e);
-                                }
-                            }
-                            function toggleReaction() {
-                                try {
-                                    updateDoc(doc(db, "characters", actualCharacter.character_id), {
-                                        reaction_used: !actualCharacter.reaction_used
-                                    });
-                                } catch (e) {
-                                    alert(e);
-                                }
-                            }
-                            // The only turn-based automation this pass wires up: statuses
-                            // with a turn_start effect (currently just action_points, e.g.
-                            // Haste +1 / Slowed -1 - see statusEffects.js) apply once, then
-                            // lose a stack; anything else (a passive condition like
-                            // Exhaustion, or a purely descriptive one like Wounded) passes
-                            // through untouched. Everything else about turn order is still
-                            // the GM calling it verbally, per the ruleset - this just saves
-                            // the manual math for the handful of statuses that have any.
-                            function advanceTurn() {
-                                try {
-                                    updateDoc(doc(db, "characters", actualCharacter.character_id), advanceTurnStatuses(actualCharacter));
-                                } catch (e) {
-                                    alert(e);
-                                }
-                            }
-                            const effectiveCharacter = getEffectiveCharacterStats(actualCharacter);
-                            const grantedActions = getGrantedActions(actualCharacter);
-                            const armorClass = CharacterStatCalculator(
-                                actualCharacter.experience_points,
-                                effectiveCharacter.base_armor_class,
-                                effectiveCharacter.base_hit_modifier,
-                                effectiveCharacter.base_damage_modifier,
-                                actualCharacter.base_damage_dice,
-                                actualCharacter.base_damage_dice_type,
-                                actualCharacter.base_healing_dice_type
-                            ).ArmorClass;
-                            return <DirectorsEntityCard
-                                key={character.character_id}
-                                kind="player"
-                                name={character.character_name}
-                                subtitle={actualCharacter.class_name || actualCharacter.class}
-                                hpNow={actualCharacter.current_health}
-                                hpMax={actualCharacter.maximum_health}
-                                tempHp={actualCharacter.temporary_health}
-                                onSetHp={hasWritePermissions ? setHp : undefined}
-                                onSetTempHp={hasWritePermissions ? setTempHp : undefined}
-                                ac={armorClass}
-                                abilityScores={{
-                                    strength_stat: effectiveCharacter.strength_stat,
-                                    dexterity_stat: effectiveCharacter.dexterity_stat,
-                                    intelligence_stat: effectiveCharacter.intelligence_stat,
-                                    charisma_stat: effectiveCharacter.charisma_stat,
-                                }}
-                                ap={actualCharacter.action_points}
-                                onSetAp={hasWritePermissions ? setActionPoints : undefined}
-                                heroPoints={actualCharacter.hero_points ?? 1}
-                                onSetHeroPoints={hasWritePermissions ? setHeroPoints : undefined}
-                                reactionUsed={Boolean(actualCharacter.reaction_used)}
-                                onToggleReaction={hasWritePermissions ? toggleReaction : undefined}
-                                canAdvanceTurn={hasWritePermissions}
-                                onNextTurn={advanceTurn}
-                                statusEntity={actualCharacter}
-                                userId={userId}
-                                hasStatusWrite={hasWritePermissions}
-                                actions={[...actualCharacter.actions, ...grantedActions].filter(isCombatAction)}
-                                experiencePoints={actualCharacter.experience_points}
-                                baseHitModifier={effectiveCharacter.base_hit_modifier}
-                                baseDamageModifier={effectiveCharacter.base_damage_modifier}
-                                baseDamageDice={actualCharacter.base_damage_dice}
-                                baseDamageDiceType={actualCharacter.base_damage_dice_type}
-                                baseHealingDiceType={actualCharacter.base_healing_dice_type}
-                                canUseActions={true}
-                            />
-                        })}
-                    </div>
-                    <div className='DirectorsPage-panel DirectorsPage-panel-tracker'>
-                        <div className="DirectorsPage-panel-title">
-                            <MapIcon className="DirectorsPage-panel-title-icon"/>
-                            <span className="DirectorsPage-panel-title-name">Combat Tracker</span>
-                        </div>
-                        <div className="DirectorsPage-tracker-mode-row-wrap">
-                            <div className="DirectorsPage-tracker-mode-row">
-                                <button type="button"
-                                    className={trackerMode === 'line' ? "DirectorsPage-mode-btn DirectorsPage-mode-btn-active" : "DirectorsPage-mode-btn"}
-                                    onClick={() => setTrackerMode('line')}
-                                >Line View</button>
-                                <button type="button"
-                                    className={trackerMode === 'map' ? "DirectorsPage-mode-btn DirectorsPage-mode-btn-active" : "DirectorsPage-mode-btn"}
-                                    onClick={() => setTrackerMode('map')}
-                                >Map View</button>
-                            </div>
-                            {isDirector && maps.length > 0 && <label className="DirectorsPage-map-select">
-                                <span>Map</span>
-                                <select aria-label="Combat map" value={campaignInfo.active_map || ''} onChange={event => selectMap(event.target.value)}>
-                                    <option value="">No map</option>
-                                    {maps.map((map, index) => <option key={map.map_id} value={map.map_id}>{`Map ${index + 1}`}</option>)}
-                                </select>
-                            </label>}
-                            {trackerMode === 'map' && activeMap && <button type="button"
-                                className="DirectorsPage-tracker-expand-button"
-                                onClick={() => setMapOverlayOpen(true)}
-                            >
-                                <MapIcon/> Open Full Map
-                            </button>}
-                        </div>
-                        {/* Both views stay mounted at once (toggled via CSS, not
-                            unmounted) since PostListContentCombatMap owns the
-                            effect that syncs combat_tracker with who's actually in
-                            the fight - if Map View were never mounted, a Director
-                            who only ever used Line View would never see new
-                            combatants show up. */}
-                        <div className={trackerMode === 'line' ? "DirectorsPage-tracker-view" : "DirectorsPage-tracker-view DirectorsPage-tracker-view-hidden"}>
-                            <PostListContentCombat
-                                key={activeMap?.map_id || "no-active-map"}
-                                campaignId={campaignId}
-                                inputStatuses={zoneNames.length > 0 ? zoneNames : (noMap ? [NO_MAP_ZONE] : [])}
-                                className={lineViewClassName}
-                                PostCardComponent={lineViewCard}
-                                canMovePost={canMoveCombatant}
-                                rects={activeMapRects}
-                            />
-                            {activeMap && zoneNames.length === 0 && <div className="DirectorsPage-tracker-empty">This map has no zones yet. Add some from the Maps tab.</div>}
-                            {/* One shared Tooltip, matched by data-tooltip-id on every
-                                chip (see makeLineViewCard) - react-tooltip reads each
-                                chip's own data-tooltip-content, so a single mount here
-                                covers all of them regardless of how many render. */}
-                            <Tooltip id="DirectorsPage-line-view-tooltip" place="top"/>
-                        </div>
-                        <div className={trackerMode === 'map' ? "DirectorsPage-tracker-view DirectorsPage-tracker-view-map" : "DirectorsPage-tracker-view DirectorsPage-tracker-view-map DirectorsPage-tracker-view-hidden"}>
-                            <PostListContentCombatMap
-                                key={activeMap?.map_id || "no-active-map"}
-                                campaignId={campaignId}
-                                activeMap={activeMap}
-                                entities={combatEntities}
-                                userId={userId}
-                                canEdit={isDirector}
-                                noMap={noMap}
-                                onSetDefeated={isDirector ? setEnemyDefeated : undefined}
-                                onRemoveEntity={isDirector ? removeEntityFromFight : undefined}
-                            />
-                        </div>
-                    </div>
-                    <div className={enemiesCollapsed ? 'DirectorsPage-panel DirectorsPage-panel-collapsed' : 'DirectorsPage-panel'}>
-                        <div className="DirectorsPage-panel-title">
-                            <SwordsIcon className="DirectorsPage-panel-title-icon"/>
-                            {!enemiesCollapsed && <span className="DirectorsPage-panel-title-name">Enemies</span>}
-                            {!enemiesCollapsed && isDirector && <div className="DirectorsPage-enemy-tools">
-                                <button type="button" onClick={() => setAddEnemyOpen(true)}>+ Add</button>
-                                <button type="button" onClick={() => navigate('/campaigns/' + campaignId + '/encounters')}>Encounters</button>
-                                {campaignInfo.enemy_list.length > 0 && <button type="button" onClick={clearEnemies}>Clear all</button>}
-                            </div>}
-                            <button type="button"
-                                className="DirectorsPage-panel-collapse-button"
-                                onClick={() => setEnemiesCollapsed(c => !c)}
-                                aria-label={enemiesCollapsed ? "Expand Enemies" : "Collapse Enemies"}
-                            >
-                                <ChevronDownIcon className={enemiesCollapsed ? "DirectorsPage-chevron" : "DirectorsPage-chevron DirectorsPage-chevron-open"}/>
-                            </button>
-                        </div>
-                        {!enemiesCollapsed && campaignInfo.enemy_list.map((enemy) => {
-                            const actualEnemy = { ...npcLayout, ...enemy, campaign: campaignId }
-                            function setActionPoints(actionPoints) {
-                                updateEnemy(actualEnemy.id, { action_points: actionPoints }).catch(e => alert(e));
-                            }
-                            function setHp(current_health) {
-                                updateEnemy(actualEnemy.id, { current_health }).catch(e => alert(e));
-                            }
-                            function setTempHp(temporary_health) {
-                                updateEnemy(actualEnemy.id, { temporary_health }).catch(e => alert(e));
-                            }
-                            function advanceTurn() {
-                                updateEnemy(actualEnemy.id, advanceTurnStatuses(actualEnemy)).catch(e => alert(e));
-                            }
-                            function updateEnemyStatuses(nextStatuses) {
-                                return updateEnemy(actualEnemy.id, { statuses: nextStatuses });
-                            }
-                            function toggleReaction() {
-                                updateEnemy(actualEnemy.id, { reaction_used: !actualEnemy.reaction_used }).catch(e => alert(e));
-                            }
-                            function useAction(action) {
-                                // A reaction spends the reaction, not an action point - same
-                                // reasoning as CombatActionList.js's own default write path.
-                                updateEnemy(actualEnemy.id, isReactionAction(action)
-                                    ? { reaction_used: true }
-                                    : { action_points: actualEnemy.action_points - action.actionCost }
-                                ).catch(e => alert(e));
-                            }
-                            const effectiveEnemy = getEffectiveCharacterStats(actualEnemy);
-                            const grantedActions = getGrantedActions(actualEnemy);
-                            return <DirectorsEntityCard
-                                key={enemy.id}
-                                kind="enemy"
-                                name={actualEnemy.enemy_name}
-                                tier={enemy.enemy_type} /* not actualEnemy: the layout it is merged over has a tier of its own */
-                                subtitle={"Lvl " + actualEnemy.level}
-                                onRemove={isDirector ? () => removeEnemyFromFight(actualEnemy) : undefined}
-                                defeated={Boolean(enemy.defeated)}
-                                onSetDefeated={isDirector ? (defeated) => updateEnemy(actualEnemy.id, { defeated }).catch(e => alert(e)) : undefined}
-                                hpNow={actualEnemy.current_health}
-                                hpMax={actualEnemy.maximum_health}
-                                tempHp={actualEnemy.temporary_health}
-                                onSetHp={isDirector ? setHp : undefined}
-                                onSetTempHp={isDirector ? setTempHp : undefined}
-                                ac={effectiveEnemy.base_armor_class}
-                                abilityScores={{
-                                    strength_stat: effectiveEnemy.strength_stat,
-                                    dexterity_stat: effectiveEnemy.dexterity_stat,
-                                    intelligence_stat: effectiveEnemy.intelligence_stat,
-                                    charisma_stat: effectiveEnemy.charisma_stat,
-                                }}
-                                notes={actualEnemy.description}
-                                ap={actualEnemy.action_points}
-                                onSetAp={setActionPoints}
-                                reactionUsed={Boolean(actualEnemy.reaction_used)}
-                                onToggleReaction={toggleReaction}
-                                canAdvanceTurn={true}
-                                onNextTurn={advanceTurn}
-                                weaknesses={actualEnemy.Weaknesses}
-                                resistances={actualEnemy.Resistances}
-                                immunities={actualEnemy.Immunities}
-                                statusEntity={actualEnemy}
-                                userId={userId}
-                                onUpdateStatuses={updateEnemyStatuses}
-                                hasStatusWrite={true}
-                                actions={[...actualEnemy.actions, ...grantedActions].filter(isCombatAction)}
-                                experiencePoints={0}
-                                baseHitModifier={effectiveEnemy.base_hit_modifier}
-                                baseDamageModifier={effectiveEnemy.base_damage_modifier}
-                                baseDamageDice={actualEnemy.base_damage_dice}
-                                baseDamageDiceType={actualEnemy.base_damage_dice_type}
-                                baseHealingDiceType={actualEnemy.base_healing_dice_type}
-                                canUseActions={true}
-                                onUseAction={useAction}
-                            />
-                        })}
-                        {!enemiesCollapsed && isDirector && campaignInfo.enemy_list.length === 0 && <div className="DirectorsPage-enemies-empty">
-                            No enemies in the fight. Add one from your bestiary, or stage an encounter.
-                        </div>}
-                    </div>
-                </div>},
+                {tabName: "Scenes", icon: <ScrollIcon/>, content: <ScenesTab campaignId={campaignId} campaignInfo={campaignInfo} maps={maps} renderCombat={() => combatContent}/>},
+                {tabName: "Combat", icon: <SwordsIcon/>, content: combatContent},
                 {
                     tabName: "Maps",
                     icon: <MapIcon/>,

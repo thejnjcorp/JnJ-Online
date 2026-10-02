@@ -46,6 +46,18 @@ service cloud.firestore {
         allow read, write: if isSignedIn() && isCampaignDirector(campaignId);
       }
 
+      // The campaign's sessions and the scenes planned for them (see the Scenes tab
+      // of DirectorsPage.js): beats, branching decisions and what the director
+      // has left to run. Directors only, same check as the notes - these hold the
+      // plot, and players can read the campaign doc.
+      match /sessions/{sessionId} {
+        allow read, write: if isSignedIn() && isCampaignDirector(campaignId);
+      }
+
+      match /scenes/{sceneId} {
+        allow read, write: if isSignedIn() && isCampaignDirector(campaignId);
+      }
+
       // The party doc: what the whole party shares and changes together - the
       // combat tracker (who is in the fight and where each token sits on the
       // map), and the party's inventory and notes. Unlike the campaign doc, every

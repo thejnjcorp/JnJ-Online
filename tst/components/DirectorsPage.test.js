@@ -200,13 +200,26 @@ describe('DirectorsPage', () => {
 
     test('the sidebar lists each character with their skills & flaws', async () => {
         await renderReady();
-        expect(screen.getByText('Aria')).toBeInTheDocument();
+        expect(screen.getByText('Aria', { selector: '.DirectorsPage-sidebar-char-name' })).toBeInTheDocument();
         expect(screen.getByText('SkillsAndFlaws-stub:Aria')).toBeInTheDocument();
     });
 
-    test('the Roleplay tab is present (placeholder content)', async () => {
+    test('the sidebar shows the party at a glance: each player\'s name, AC and health', async () => {
         await renderReady();
-        expect(screen.getByRole('button', { name: /Roleplay$/ })).toBeInTheDocument();
+        expect(screen.getByText('Aria', { selector: '.DirectorsPage-party-strip-name' })).toBeInTheDocument();
+        expect(screen.getByText('AC 12')).toBeInTheDocument();
+        expect(screen.getByText('20/25', { selector: '.DirectorsPage-party-strip-hp span' })).toBeInTheDocument();
+    });
+
+    test('the party strip is left out when the campaign has no characters', async () => {
+        await renderReady({ characters: [] });
+        expect(screen.queryByText('Player Characters')).not.toBeInTheDocument();
+    });
+
+    test('the Scenes tab is the first one, and is what opens', async () => {
+        await renderReady();
+        expect(screen.getByRole('button', { name: /Scenes$/ })).toBeInTheDocument();
+        expect(screen.getByRole('navigation', { name: 'Scenes sections' })).toBeInTheDocument();
     });
 
     describe('Director Mode access', () => {
@@ -259,7 +272,7 @@ describe('DirectorsPage', () => {
 
         test('the other tabs are untouched', async () => {
             await renderReady({ campaignInfo: { ...baseCampaignInfo, director_uid: 'owner-1' } });
-            ['Roleplay', 'Combat', 'Maps', 'Notes'].forEach(name => expect(screen.getByRole('button', { name: new RegExp(name + '$') })).toBeInTheDocument());
+            ['Scenes', 'Combat', 'Maps', 'Notes'].forEach(name => expect(screen.getByRole('button', { name: new RegExp(name + '$') })).toBeInTheDocument());
         });
     });
 
@@ -442,11 +455,11 @@ describe('DirectorsPage', () => {
         test('the Player Characters panel collapses via its own button', async () => {
             await renderReady();
             goToTab('Combat');
-            expect(screen.getByText('Player Characters')).toBeInTheDocument();
+            expect(screen.getByText('Player Characters', { selector: '.DirectorsPage-panel-title-name' })).toBeInTheDocument();
 
             fireEvent.click(screen.getByRole('button', { name: 'Collapse Player Characters' }));
 
-            expect(screen.queryByText('Player Characters')).not.toBeInTheDocument();
+            expect(screen.queryByText('Player Characters', { selector: '.DirectorsPage-panel-title-name' })).not.toBeInTheDocument();
             expect(screen.getByRole('button', { name: 'Expand Player Characters' })).toBeInTheDocument();
         });
     });

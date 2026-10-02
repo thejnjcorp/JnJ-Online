@@ -1033,3 +1033,67 @@
         text-decoration: line-through;
     }
 }
+
+// The party at a glance, above the sidebar's skills and flaws.
+.DirectorsPage-party-strip {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-2);
+    padding: 0 var(--jnj-space-4) var(--jnj-space-4);
+    border-bottom: 1px solid var(--jnj-color-border);
+}
+
+.DirectorsPage-party-strip-title {
+    color: var(--jnj-color-text-muted);
+    font-size: var(--jnj-text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: var(--jnj-tracking-caps);
+}
+
+.DirectorsPage-party-strip-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.DirectorsPage-party-strip-line {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--jnj-space-2);
+}
+
+.DirectorsPage-party-strip-name {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.DirectorsPage-party-strip-ac {
+    color: var(--jnj-color-text-muted);
+    font-size: var(--jnj-text-xs);
+    flex-shrink: 0;
+}
+
+.DirectorsPage-party-strip-hp {
+    display: flex;
+    align-items: center;
+    gap: var(--jnj-space-2);
+    font-size: var(--jnj-text-xs);
+    color: var(--jnj-color-text-muted);
+}
+
+.DirectorsPage-party-strip-bar {
+    flex: 1;
+    height: 6px;
+    border-radius: var(--jnj-radius-pill);
+    background: var(--jnj-color-bg-raised);
+    overflow: hidden;
+
+    > div {
+        height: 100%;
+        background: var(--jnj-color-success);
+    }
+}
