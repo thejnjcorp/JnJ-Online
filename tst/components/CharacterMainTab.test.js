@@ -46,6 +46,7 @@ jest.mock('../../src/utils/DraggableElements/PostListCombatMap.tsx', () => ({
     PostListContentCombatMap: ({ campaignId, activeMap, entities, canEdit, toolbarsBeside }) => <div data-canedit={String(Boolean(canEdit))} data-beside={String(Boolean(toolbarsBeside))}>CombatMap-stub:{campaignId}:{activeMap?.map_id}:{entities.length}</div>,
 }));
 const mockCharacterNotesProps = [];
+jest.mock('../../src/components/PartySpace', () => ({ PartySpace: ({ campaignId, tab, onTab, actingCharacterId }) => <div>PartySpace-stub:{campaignId}:{tab}:{actingCharacterId}<button type="button" onClick={() => onTab('trades')}>Go to trades</button></div> }));
 jest.mock('../../src/components/RollRequests', () => ({ RollRequests: ({ characterId, canClear }) => <div>RollRequests-stub:{characterId}:{String(canClear)}</div> }));
 jest.mock('../../src/components/CharacterNotes', () => ({
     CharacterNotes: props => {
@@ -920,6 +921,30 @@ describe('CharacterMainTab', () => {
             expect(screen.getByText('Backpack')).toBeInTheDocument();
             expect(screen.getByText('Pocket')).toBeInTheDocument();
             expect(screen.getAllByText(/Inventory-stub:char-1/)).toHaveLength(2); // relics + backpack
+        });
+    });
+
+    describe('Party tab', () => {
+        test('opens the party (inventory, trades, notebook, calendar) for the character\'s campaign, acting as this character', () => {
+            render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
+            goToTab('Party');
+            expect(screen.getByText('PartySpace-stub:camp-1:inventory:char-1')).toBeInTheDocument();
+        });
+
+        test('remembers which of its tabs it was on when you come back to it', () => {
+            render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
+            goToTab('Party');
+            fireEvent.click(screen.getByRole('button', { name: 'Go to trades' }));
+            goToTab('Roleplay');
+            goToTab('Party');
+            expect(screen.getByText('PartySpace-stub:camp-1:trades:char-1')).toBeInTheDocument();
+        });
+
+        test('a character with no campaign gets the join/create prompt instead', () => {
+            render(<CharacterMainTab characterPage={{ ...characterPage, campaign: null }} userId="owner-1" />);
+            goToTab('Party');
+            expect(screen.getByText("This character isn't part of a campaign yet.")).toBeInTheDocument();
+            expect(screen.queryByText(/PartySpace-stub/)).not.toBeInTheDocument();
         });
     });
 

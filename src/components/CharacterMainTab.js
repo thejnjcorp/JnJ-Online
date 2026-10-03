@@ -39,6 +39,7 @@ import { useStatusEditing } from "../utils/useStatusEditing";
 import { ActionUsesReset } from "./ActionUses";
 import { CombatMapPeek } from "./CombatMapPeek";
 import { RollRequests } from "./RollRequests";
+import { PartySpace } from "./PartySpace";
 import { PartyCombatRoster } from "./PartyCombatRoster";
 import { CharacterPortrait } from "./CharacterPortrait";
 import { isLimitedUse } from "../utils/actionUses";
@@ -117,6 +118,8 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
     // now opens full-screen on demand instead of living inline - see the
     // overlay rendered after the TabContainer below.
     const [mapOverlayOpen, setMapOverlayOpen] = useState(false);
+    // which of the party's own tabs (inventory, trades, notes, calendar) the Party tab is on
+    const [partyTab, setPartyTab] = useState('inventory');
 
     const debounceRef = useRef({});
     const [localValues, setLocalValues] = useState({
@@ -490,6 +493,16 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                     />
                 </div>
                 </div>
+            </div>
+        },
+        {
+            tabName: "Party",
+            icon: <PersonIcon/>,
+            content: !hasCampaign ? <div className="CharacterMainTab-no-campaign">
+                <p>This character isn't part of a campaign yet.</p>
+                <Link to="/campaigns" className="CharacterMainTab-no-campaign-link">Join or create a campaign</Link>
+            </div> : <div className="CharacterMainTab-party">
+                <PartySpace campaignId={characterPage.campaign} tab={partyTab} onTab={setPartyTab} actingCharacterId={characterPage.character_id}/>
             </div>
         },
         {

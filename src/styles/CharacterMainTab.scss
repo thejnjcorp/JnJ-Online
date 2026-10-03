@@ -691,3 +691,9 @@
         display: inline;
     }
 }
+
+// The party's inventory, trades, notebook and calendar, as a tab of the character's page.
+.CharacterMainTab-party {
+    padding: var(--jnj-space-4);
+    text-align: left;
+}

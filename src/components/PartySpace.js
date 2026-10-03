@@ -18,12 +18,12 @@ export const PARTY_TABS = [
 // calendar of what has happened - for the party page, and for the director's page, where it
 // opens over whatever the director is doing. `renderHeading` goes at the start of the header row (the
 // page's back link and title, given the campaign); `onLoaded` hears of the campaign once it is
-// there; `tab` and `onTab` are whichever tab is showing, and the way to
+// there; `actingCharacterId` is who the signed-in player is acting as to begin with (a character's own page); `tab` and `onTab` are whichever tab is showing, and the way to
 // change it, so each can keep that where it likes (the page in its address, the popup in state).
-export function PartySpace({ campaignId, tab, onTab, renderHeading = null, onLoaded = null }) {
+export function PartySpace({ campaignId, tab, onTab, renderHeading = null, onLoaded = null, actingCharacterId = '' }) {
     const { userId, campaign, characters, party, partyLoaded, partyError, members, isDirector, myCharacters } = usePartyData(campaignId);
     const [actingAs, setActingAs] = useState('');
-    const acting = myCharacters.find(character => character.character_id === actingAs) ?? myCharacters[0] ?? null;
+    const acting = myCharacters.find(character => character.character_id === (actingAs || actingCharacterId)) ?? myCharacters[0] ?? null;
     useEffect(() => {
         if (campaign && onLoaded) onLoaded(campaign);
     }, [campaign]); // eslint-disable-line react-hooks/exhaustive-deps

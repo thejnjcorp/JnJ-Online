@@ -65,6 +65,21 @@
     gap: var(--jnj-space-5);
 }
 
+.CharacterPage-masthead-back {
+    align-self: flex-start;
+    margin-bottom: var(--jnj-space-1);
+    color: var(--jnj-color-text-muted);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+        color: var(--jnj-color-text);
+        text-decoration: underline;
+    }
+}
+
 .CharacterPage-masthead-avatar-wrap {
     position: relative;
     flex-shrink: 0;

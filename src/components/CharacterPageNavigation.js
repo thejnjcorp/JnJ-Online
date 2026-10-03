@@ -81,6 +81,7 @@ export function CharacterPageNavigation({characterPage, userId, classInfo, raceI
                 </>}
             </div>
             <div className="CharacterPage-masthead-text">
+                {characterPage.campaign && <Link className="CharacterPage-masthead-back" to={`/campaigns/${characterPage.campaign}`}>&larr; Back to campaign</Link>}
                 <div className="CharacterPage-masthead-name">{characterPage.character_name || "Unnamed Character"}</div>
                 {subline && <div className="CharacterPage-masthead-subline">{subline}</div>}
                 {(classInfo || raceInfo || characterPage.campaign) && <div className="CharacterPage-masthead-versions">

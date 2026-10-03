@@ -214,3 +214,50 @@
 .ActionPreview-phone {
     @include phone-layout;
 }
+
+// Rolling a card up to its name and the line under it.
+.CombatActionList-fold-all {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.CombatActionList-fold-button {
+    padding: 2px 10px;
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-pill);
+    background: transparent;
+    color: var(--jnj-color-text-muted);
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover:not(:disabled) { color: var(--jnj-color-text); border-color: var(--jnj-color-accent); }
+    &:disabled { opacity: 0.4; cursor: default; }
+}
+
+.CombatActionListCard-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--jnj-color-text-muted);
+    cursor: pointer;
+
+    &:hover { color: var(--jnj-color-text); background: var(--jnj-color-bg-hover); }
+}
+
+.CombatActionListCard-chevron {
+    width: 1rem;
+    height: 1rem;
+    transform: rotate(-90deg);
+    transition: transform 0.15s ease;
+}
+
+.CombatActionListCard-chevron-open { transform: none; }

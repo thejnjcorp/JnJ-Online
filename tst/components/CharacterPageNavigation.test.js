@@ -142,4 +142,16 @@ describe('CharacterPageNavigation', () => {
             expect(screen.queryByRole('link', { name: 'Party' })).not.toBeInTheDocument();
         });
     });
+
+    describe('the way back to the campaign', () => {
+        test('is a link to the character\'s campaign page', () => {
+            render(<CharacterPageNavigation characterPage={{ ...characterPage, campaign: 'camp-1' }} userId="owner-1"/>, { wrapper: MemoryRouter });
+            expect(screen.getByRole('link', { name: /Back to campaign/ })).toHaveAttribute('href', '/campaigns/camp-1');
+        });
+
+        test('is not shown for a character with no campaign', () => {
+            render(<CharacterPageNavigation characterPage={characterPage} userId="owner-1"/>, { wrapper: MemoryRouter });
+            expect(screen.queryByRole('link', { name: /Back to campaign/ })).not.toBeInTheDocument();
+        });
+    });
 });

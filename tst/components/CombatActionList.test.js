@@ -41,6 +41,9 @@ afterEach(() => {
     delete window.alert;
 });
 
+// the buttons that fold a card up or down are not what these are looking for
+const expectNothingToPress = () => expect(screen.queryAllByRole('button').filter(button => !/^(Collapse|Expand)/.test(button.getAttribute('aria-label') || button.textContent))).toHaveLength(0);
+
 describe('CombatActionList', () => {
     describe('meta text', () => {
         test('a to-hit action shows "+<mod> to hit"', () => {
@@ -161,17 +164,17 @@ describe('CombatActionList', () => {
     describe('Use Action / Use Reaction button', () => {
         test('hidden when canUseActions is false', () => {
             render(<CombatActionList actions={[toHitAction]} {...STAT_PROPS} characterPage={characterPage} userId="owner-1" canUseActions={false} />);
-            expect(screen.queryByRole('button')).not.toBeInTheDocument();
+            expectNothingToPress();
         });
 
         test('hidden without write permissions even if canUseActions is true', () => {
             render(<CombatActionList actions={[toHitAction]} {...STAT_PROPS} characterPage={characterPage} userId="stranger-1" canUseActions />);
-            expect(screen.queryByRole('button')).not.toBeInTheDocument();
+            expectNothingToPress();
         });
 
         test('hidden when locked, even with permissions and canUseActions', () => {
             render(<CombatActionList actions={[toHitAction]} {...STAT_PROPS} characterPage={characterPage} userId="owner-1" canUseActions locked />);
-            expect(screen.queryByRole('button')).not.toBeInTheDocument();
+            expectNothingToPress();
         });
 
         test('reads "Use Action" for a normal action, "Use Reaction" for a reaction', () => {
@@ -216,7 +219,7 @@ describe('CombatActionList', () => {
 
             test('explicit hasWritePermissions=false hides it even for the owner', () => {
                 render(<CombatActionList actions={[toHitAction]} {...STAT_PROPS} characterPage={characterPage} userId="owner-1" canUseActions hasWritePermissions={false} />);
-                expect(screen.queryByRole('button')).not.toBeInTheDocument();
+                expectNothingToPress();
             });
         });
     });
@@ -268,7 +271,7 @@ describe('CombatActionList', () => {
         test('someone who cannot edit the sheet sees the uses but cannot change them', () => {
             setup({ userId: 'stranger-1', actionUses: { Fleetfoot: 1 } });
             expect(screen.getByText('1 / 2')).toBeInTheDocument();
-            expect(screen.queryByRole('button')).not.toBeInTheDocument();
+            expectNothingToPress();
         });
 
         test('a passive with limited uses shows them without a Use button', () => {
@@ -344,7 +347,7 @@ describe('CombatActionList', () => {
 
         test('an action with no limit has no Use button: there is nothing to spend', () => {
             setup(persuade);
-            expect(screen.queryByRole('button')).not.toBeInTheDocument();
+            expectNothingToPress();
         });
 
         test('a limited one has a Use button that spends a use and not action points', () => {
@@ -422,6 +425,101 @@ describe('CombatActionList', () => {
         test('a card with no character to look at (a preview) still works', () => {
             render(<CombatActionList actions={[parry]} {...STAT_PROPS} hasWritePermissions canUseActions onUseAction={jest.fn()} />);
             expect(screen.getByRole('button', { name: 'Use Reaction' })).toBeEnabled();
+        });
+    });
+
+    describe('folding a card up', () => {
+        const long = { actionName: 'Locally Sourced', toHitBool: false, difficultyClass: 'Dex,0', actionCost: 1, description: 'A very long description.', trigger: 'Someone eats', requirement: 'A kitchen' };
+        const other = { actionName: 'Fleetfoot', toHitBool: false, difficultyClass: 'Dex,0', actionCost: 1, description: 'Move quickly.' };
+        const list = actions => render(<CombatActionList actions={actions} {...STAT_PROPS} characterPage={characterPage} userId="owner-1" canUseActions />);
+
+        test('a card starts open, and its chevron rolls it up to its name and the line under it, and back', () => {
+            list([long]);
+            expect(screen.getByText('A very long description.')).toBeInTheDocument();
+            const toggle = screen.getByRole('button', { name: 'Collapse Locally Sourced' });
+            expect(toggle).toHaveAttribute('aria-expanded', 'true');
+            fireEvent.click(toggle);
+            expect(screen.queryByText('A very long description.')).not.toBeInTheDocument();
+            expect(screen.queryByText('Someone eats')).not.toBeInTheDocument();
+            expect(screen.getByText('Locally Sourced')).toBeInTheDocument();
+            expect(screen.getByText(/DC 14 Dex check/)).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Expand Locally Sourced' })).toHaveAttribute('aria-expanded', 'false');
+            fireEvent.click(screen.getByRole('button', { name: 'Expand Locally Sourced' }));
+            expect(screen.getByText('A very long description.')).toBeInTheDocument();
+        });
+
+        test('the Use button stays when a card is rolled up', () => {
+            list([long]);
+            fireEvent.click(screen.getByRole('button', { name: 'Collapse Locally Sourced' }));
+            expect(screen.getByRole('button', { name: 'Use Action' })).toBeInTheDocument();
+        });
+
+        test('with more than one, Collapse all and Expand all fold every card', () => {
+            list([long, other]);
+            fireEvent.click(screen.getByRole('button', { name: 'Collapse all' }));
+            expect(screen.queryByText('A very long description.')).not.toBeInTheDocument();
+            expect(screen.queryByText('Move quickly.')).not.toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Collapse all' })).toBeDisabled();
+            fireEvent.click(screen.getByRole('button', { name: 'Expand all' }));
+            expect(screen.getByText('A very long description.')).toBeInTheDocument();
+            expect(screen.getByText('Move quickly.')).toBeInTheDocument();
+        });
+
+        test('folding one leaves the others as they were', () => {
+            list([long, other]);
+            fireEvent.click(screen.getByRole('button', { name: 'Collapse Fleetfoot' }));
+            expect(screen.queryByText('Move quickly.')).not.toBeInTheDocument();
+            expect(screen.getByText('A very long description.')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Expand all' })).toBeEnabled();
+        });
+
+        test('one card alone has no Collapse all, and a locked card (no description shown) has nothing to fold', () => {
+            const { unmount } = list([long]);
+            expect(screen.queryByRole('button', { name: 'Collapse all' })).not.toBeInTheDocument();
+            unmount();
+            render(<CombatActionList actions={[long, other]} {...STAT_PROPS} characterPage={characterPage} locked />);
+            expect(screen.queryByRole('button', { name: /Collapse|Expand/ })).not.toBeInTheDocument();
+        });
+    });
+
+    describe('damage on an attack', () => {
+        const sword = { actionName: 'Slash', toHitBool: true, toHit: 3, actionCost: 1, range: '1 Zone', tags: [{ id: 't', tagInfo: 'Melee' }] };
+        const bow = { actionName: 'Shoot', toHitBool: true, toHit: 2, actionCost: 1, tags: [{ id: 't', tagInfo: 'Ranged' }] };
+        const fighter = {
+            ...characterPage, base_damage_modifier: 0, base_damage_dice: 1,
+            base_melee_damage_dice: 1, base_melee_damage_dice_type: 3, base_melee_damage_modifier: 2, base_melee_damage_type: 'Physical',
+            base_ranged_damage_dice: 1, base_ranged_damage_dice_type: 2, base_ranged_damage_modifier: 1, base_ranged_damage_type: 'Piercing',
+        };
+        const list = (actions, props = {}) => render(<CombatActionList actions={actions} {...STAT_PROPS} characterPage={fighter} userId="owner-1" {...props}/>);
+
+        test('a melee attack shows Melee and its damage inline with what it takes to hit', () => {
+            list([sword]);
+            expect(screen.getByText(/\+5 to hit · Melee · 1d8\+2 Physical · 1 Zone/)).toBeInTheDocument();
+        });
+
+        test('a ranged attack shows the ranged damage', () => {
+            list([bow]);
+            expect(screen.getByText(/\+4 to hit · Ranged · 1d6\+1 Piercing/)).toBeInTheDocument();
+        });
+
+        test('level and anything that raises damage add to the class\'s damage', () => {
+            // level 5: +2 damage and a die more; a status adds 1 on top
+            list([sword], { experience_points: 4000, baseDamageModifier: 1 });
+            expect(screen.getByText(/Melee · 2d8\+5 Physical/)).toBeInTheDocument();
+        });
+
+        test('an attack with neither tag, a check, and a class with no damage for it show no damage', () => {
+            list([{ ...sword, tags: [] }, { ...bow, tags: [{ id: 'a', tagInfo: 'Melee' }, { id: 'b', tagInfo: 'Ranged' }] }]);
+            expect(screen.queryByText(/Physical|Piercing/)).not.toBeInTheDocument();
+            expect(screen.queryByText(/Melee ·|Ranged ·/)).not.toBeInTheDocument();
+        });
+
+        test('a DC action tagged Melee shows no damage, and nor does a character whose class gives none', () => {
+            const { unmount } = list([{ ...dcAction, tags: [{ id: 't', tagInfo: 'Melee' }] }]);
+            expect(screen.queryByText(/Physical/)).not.toBeInTheDocument();
+            unmount();
+            render(<CombatActionList actions={[sword]} {...STAT_PROPS} characterPage={characterPage} userId="owner-1"/>);
+            expect(screen.getByText(/\+5 to hit · Melee · 1 Zone/)).toBeInTheDocument();
         });
     });
 });

@@ -27,9 +27,11 @@ const mockCalendarProps = [];
 jest.mock('../../src/components/PartyCalendarTab', () => ({ PartyCalendarTab: props => { mockCalendarProps.push(props); return <div>CalendarTab-stub:{String(props.isDirector)}</div>; } }));
 
 // eslint-disable-next-line import/first
-import { screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 // eslint-disable-next-line import/first
 import { PartyPage } from '../../src/components/PartyPage';
+// eslint-disable-next-line import/first
+import { PartySpace } from '../../src/components/PartySpace';
 // eslint-disable-next-line import/first
 import { renderWithRouter } from '../testUtils/renderWithRouter';
 
@@ -208,5 +210,28 @@ describe('PartyPage', () => {
             expect(screen.getByText('TradesTab-stub:3:1:false')).toBeInTheDocument();
             expect(campaignListener).toBeDefined();
         });
+    });
+});
+
+describe('PartySpace on a character\'s own page', () => {
+    function drawSpace(props) {
+        mockOnAuthStateChanged.mockImplementation((_auth, callback) => { Promise.resolve().then(() => callback({ uid: 'alice' })); return jest.fn(); });
+        mockOnSnapshot.mockImplementation((ref, onNext) => {
+            if (ref.__doc) Promise.resolve().then(() => onNext({ exists: () => true, id: 'camp-1', data: () => campaign }));
+            else Promise.resolve().then(() => onNext({ docs: [character('aria', 'Aria', 'alice'), character('cleo', 'Cleo', 'alice')].map(c => ({ id: c.id, data: c.data })) }));
+            return jest.fn();
+        });
+        return render(<PartySpace campaignId="camp-1" tab="inventory" onTab={jest.fn()} {...props}/>);
+    }
+
+    test('acts as the character whose page it is on, not just the player\'s first', async () => {
+        drawSpace({ actingCharacterId: 'cleo' });
+        expect(await screen.findByText(/InventoryTab-stub:cleo/)).toBeInTheDocument();
+        expect(screen.getByLabelText('Playing as')).toHaveValue('cleo');
+    });
+
+    test('falls back to the first of their characters when that one is not theirs', async () => {
+        drawSpace({ actingCharacterId: 'someone-else' });
+        expect(await screen.findByText(/InventoryTab-stub:aria/)).toBeInTheDocument();
     });
 });

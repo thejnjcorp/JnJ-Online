@@ -9,6 +9,9 @@ import { ActionUsesTracker } from './ActionUses';
 import { updateDoc, doc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { keyed } from '../utils/keyed';
+import { attackDamage, attackKind, attackKindLabel } from '../utils/attackDamage';
+import { ReactComponent as ChevronIcon } from '../icons/chevron_down.svg';
+import { useState } from 'react';
 
 const OUTCOME_TABLE_ROWS = [
     { key: 'criticalSuccess', label: 'Critical Success' },
@@ -114,6 +117,17 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
     if (hasWritePermissionsProp !== undefined) hasWritePermissions = hasWritePermissionsProp;
     else if (userId) hasWritePermissions = characterPage.userId === userId || characterPage.canWrite?.includes(userId);
 
+    // which cards are rolled up to their name and the line under it, so a long list reads at a glance
+    const [closed, setClosed] = useState(() => new Set());
+    const toggleCard = key => setClosed(previous => {
+        const next = new Set(previous);
+        if (next.has(key)) next.delete(key);
+        else next.add(key);
+        return next;
+    });
+    const cards = keyed(actions, 'action');
+    const foldable = !locked && cards.length > 1;
+
     function toHitInterperlator(toHit) {
         const characterStats = CharacterStatCalculator(experience_points, baseArmorClass, baseHitModifier, baseDamageModifier, baseDamageDice, baseDamageDiceType, baseHealingDiceType);
         const num = Number(toHit) + characterStats.HitModifier;
@@ -129,15 +143,29 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
         return ["DC", num, stat, "check"].filter(part => part !== '').join(" ");
     }
 
+    // An attack's damage, beside what it takes to hit: melee or ranged by its tag, from the class's damage for
+    // that kind plus what level and statuses add (see attackDamage).
+    function damageParts(action) {
+        const kind = action.toHitBool ? attackKind(action) : null;
+        if (!kind) return [];
+        const stats = CharacterStatCalculator(experience_points, baseArmorClass, baseHitModifier, baseDamageModifier, baseDamageDice, baseDamageDiceType, baseHealingDiceType);
+        return [attackKindLabel(kind), attackDamage(kind, characterPage, stats, { dice: baseDamageDice, modifier: baseDamageModifier })];
+    }
+
     function metaText(action) {
         const rollPart = action.toHitBool ? "+" + toHitInterperlator(action.toHit) + " to hit" : DifficultyClassInterperlator(action.difficultyClass);
-        const parts = [rollPart, action.range];
+        const parts = [rollPart, ...damageParts(action), action.range];
         if (locked && !roleplay) parts.push(`${action.actionCost} AP`);
         return parts.filter(Boolean).join(" · ");
     }
 
     return <div className='CombatActionList'>
-        {keyed(actions, 'action').map(({ item: action, index, key }) => {
+        {foldable && <div className='CombatActionList-fold-all'>
+            <button type="button" className='CombatActionList-fold-button' disabled={closed.size === 0} onClick={() => setClosed(new Set())}>Expand all</button>
+            <button type="button" className='CombatActionList-fold-button' disabled={closed.size === cards.length} onClick={() => setClosed(new Set(cards.map(card => card.key)))}>Collapse all</button>
+        </div>}
+        {cards.map(({ item: action, index, key }) => {
+            const open = locked || !closed.has(key);
             // A feat gets a synthetic "Feat" chip at render time rather
             // than a persisted tag, so authoring a feat via the Category
             // dropdown is enough to get the visual label - no redundant
@@ -154,6 +182,9 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
             return <div className={cardClass} key={key}>
                 <div className='CombatActionListCard-header'>
                     {locked && <LockIcon className="CombatActionListCard-lock"/>}
+                    {!locked && <button type="button" className='CombatActionListCard-toggle' aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} ${action.actionName}`} onClick={() => toggleCard(key)}>
+                        <ChevronIcon className={open ? 'CombatActionListCard-chevron CombatActionListCard-chevron-open' : 'CombatActionListCard-chevron'}/>
+                    </button>}
                     <span className='CombatActionListCard-name'>{action.actionName}</span>
                     {!locked && displayTags?.map((tag, i) =>
                         <span
@@ -170,11 +201,11 @@ export function CombatActionList({actions, experience_points, baseArmorClass, ba
                 </div>
                 <div className='CombatActionListCard-subtitle'>{[...subtitleParts(action, roleplay), metaText(action)].join(' · ')}</div>
 
-                {!locked && <TriggerLines action={action}/>}
+                {!locked && open && <TriggerLines action={action}/>}
 
-                {!locked && <div className='CombatActionListCard-description'><Markdown options={{ disableParsingRawHTML: true }}>{action.description || ""}</Markdown></div>}
+                {!locked && open && <div className='CombatActionListCard-description'><Markdown options={{ disableParsingRawHTML: true }}>{action.description || ""}</Markdown></div>}
 
-                {!locked && <OutcomeTable action={action}/>}
+                {!locked && open && <OutcomeTable action={action}/>}
 
                 {(tracked || showUse) && <div className='CombatActionListCard-footer'>
                     {tracked && <ActionUsesTracker action={action} uses={actionUses} canEdit={hasWritePermissions} onChange={onActionUsesChange}/>}
