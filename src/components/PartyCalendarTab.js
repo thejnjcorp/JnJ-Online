@@ -12,7 +12,7 @@ import '../styles/Party.scss';
 const emptyEvent = date => ({ id: null, title: '', category: '', description: '', recurrence: 'none', ...date });
 
 // An event's category, as a pill - in its tag's colour when it has one, otherwise
-// plain, exactly as before tags existed.
+// plain.
 function EventTag({ calendar, category }) {
     if (!category) return null;
     const tag = findTag(calendar, category);

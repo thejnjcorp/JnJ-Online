@@ -98,12 +98,6 @@ describe('useCharacterNotes', () => {
             await act(async () => { await result.current.createPage(); });
             expect(mockAddDoc.mock.calls[0][1]).toMatchObject({ title: 'New page', body: '' });
         });
-
-        test('takes an optional starting body - for carrying over the old single-field notes into a first page', async () => {
-            const { result } = renderHook(() => useCharacterNotes('aria'));
-            await act(async () => { await result.current.createPage('Notes', 'Met a merchant.') });
-            expect(mockAddDoc.mock.calls[0][1]).toMatchObject({ title: 'Notes', body: 'Met a merchant.' });
-        });
     });
 
     test('savePage updates just the given fields on that page and stamps when it was edited', async () => {

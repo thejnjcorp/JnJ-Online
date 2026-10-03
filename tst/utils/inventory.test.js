@@ -1,6 +1,6 @@
 import {
     BACKPACK_SLOTS, MAX_QUANTITY, POCKET_SLOT, RELIC_SLOTS,
-    addToEntries, countHeld, countOf, firstFreeSlot, giveToCharacter, holdingsOf, isItemEntry, quantityOf,
+    addToEntries, countHeld, countOf, firstFreeSlot, giveToCharacter, holdingsOf, quantityOf,
     removeEntry, removeFromEntries, setEntryQuantity, takeFromCharacter,
 } from '../../src/utils/inventory';
 
@@ -9,16 +9,10 @@ const rope = { id: 'rope', item_name: 'Rope' };
 const entry = (item_id, quantity, status, extra = {}) => ({ id: `e-${item_id}-${status}`, item_id, title: item_id, quantity, status, index: 0, ...extra });
 
 describe('entries', () => {
-    test('one that refers to an item is an item entry; a hand-typed one from before items is not', () => {
-        expect(isItemEntry({ item_id: 'torch' })).toBe(true);
-        expect(isItemEntry({ id: 'x', title: 'Old sword', content: '...' })).toBe(false);
-        expect(isItemEntry({ item_id: '' })).toBe(false);
-        expect(isItemEntry(undefined)).toBe(false);
-    });
 
-    test('an item entry has the quantity it says; a hand-typed one, or a broken one, counts as one', () => {
+    test('an item entry has the quantity it says; a broken one counts as one', () => {
         expect(quantityOf({ item_id: 'torch', quantity: 5 })).toBe(5);
-        expect(quantityOf({ title: 'Old sword' })).toBe(1);
+        expect(quantityOf({ title: 'Torch' })).toBe(1);
         expect(quantityOf({ item_id: 'torch', quantity: 0 })).toBe(1);
         expect(quantityOf({ item_id: 'torch', quantity: 2.5 })).toBe(1);
         expect(quantityOf({ item_id: 'torch' })).toBe(1);
@@ -120,7 +114,7 @@ describe('removeFromEntries', () => {
 });
 
 describe('editing one entry', () => {
-    const list = [entry('torch', 2, '1'), { id: 'legacy', title: 'Old sword', status: '2', index: 0 }];
+    const list = [entry('torch', 2, '1'), entry('rope', 1, '2')];
 
     test('setEntryQuantity sets it, and caps it', () => {
         expect(setEntryQuantity(list, 'e-torch-1', 7)[0].quantity).toBe(7);
@@ -128,18 +122,17 @@ describe('editing one entry', () => {
     });
 
     test('zero or less takes the entry out', () => {
-        expect(setEntryQuantity(list, 'e-torch-1', 0).map(e => e.id)).toEqual(['legacy']);
-        expect(setEntryQuantity(list, 'e-torch-1', -3).map(e => e.id)).toEqual(['legacy']);
+        expect(setEntryQuantity(list, 'e-torch-1', 0).map(e => e.id)).toEqual(['e-rope-2']);
+        expect(setEntryQuantity(list, 'e-torch-1', -3).map(e => e.id)).toEqual(['e-rope-2']);
     });
 
-    test('a hand-typed entry has no quantity to set, and something that is not a whole number changes nothing', () => {
-        expect(setEntryQuantity(list, 'legacy', 5)[1]).toBe(list[1]);
+    test('something that is not a whole number changes nothing', () => {
         expect(setEntryQuantity(list, 'e-torch-1', 2.5)).toBe(list);
         expect(setEntryQuantity(list, 'e-torch-1', NaN)).toBe(list);
     });
 
     test('removeEntry takes just that one', () => {
-        expect(removeEntry(list, 'legacy').map(e => e.id)).toEqual(['e-torch-1']);
+        expect(removeEntry(list, 'e-rope-2').map(e => e.id)).toEqual(['e-torch-1']);
     });
 });
 
@@ -156,8 +149,7 @@ describe('a character\'s two lists', () => {
         ]);
     });
 
-    test('holdings ignore hand-typed entries, and cope with a character with no inventory', () => {
-        expect(holdingsOf({ inventory: [{ id: 'x', title: 'Old' }] })).toEqual([]);
+    test('holdings cope with a character with no inventory', () => {
         expect(holdingsOf({})).toEqual([]);
         expect(holdingsOf(undefined)).toEqual([]);
         expect(countHeld(character, 'torch')).toBe(3);

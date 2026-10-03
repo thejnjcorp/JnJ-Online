@@ -1,5 +1,6 @@
+import { defaultCalendar } from '../../src/utils/calendar';
 import {
-    SCENE_TEMPLATES, advanceRun, blockedBeatIds, completeBeat, conditionChoices, conditionState, copyBeats, cueRound, isCombatPaused, isCueDue, beatMinutes, beatState, branchLinkPatches, buildTimeline, estimateMinutes, formatClock, groupArcs, jumpRun,
+    SCENE_TEMPLATES, calendarIsElsewhere, sceneDate, sceneDateText, sceneEventFields, sessionDatesText, advanceRun, blockedBeatIds, completeBeat, conditionChoices, conditionState, copyBeats, cueRound, isCombatPaused, isCueDue, beatMinutes, beatState, branchLinkPatches, buildTimeline, estimateMinutes, formatClock, groupArcs, jumpRun,
     newBeat, newScene, optionState, orderAfter, pauseRun, playedScenes, runElapsedMs, sessionState, sessionStats, settleDecision,
     sceneToOpen, splitParagraphs, startRun, timeGoalText, timelinePips, withoutUndefined,
 } from '../../src/utils/scenes';
@@ -357,5 +358,52 @@ describe('templates, and copying what is attached', () => {
         const [copy] = copyBeats([{ id: 'a', type: 'narration', onlyIf: { sceneId: 's', beatId: 'b', optionId: 'o' }, attachments: [{ id: 'att', kind: 'npc', npcName: 'Bully' }] }]);
         expect(copy.attachments).toEqual([{ id: expect.not.stringMatching(/^att$/), kind: 'npc', npcName: 'Bully' }]);
         expect(copy.onlyIf).toEqual({ sceneId: 's', beatId: 'b', optionId: 'o' });
+    });
+});
+
+describe('a scene\'s day on the calendar', () => {
+    const calendar = defaultCalendar();
+    const dated = (fields = {}) => ({ sessionId: 's1', name: 'Fire', premise: 'The warehouse burns', date: { year: 1, month: 11, day: 21 }, ...fields });
+
+    test('the date is there when the calendar has that day, and not when it does not', () => {
+        expect(sceneDate(dated(), calendar)).toEqual({ year: 1, month: 11, day: 21 });
+        expect(sceneDate(dated({ date: { year: 1, month: 1, day: 30 } }), calendar)).toBeNull();
+        expect(sceneDate(dated({ date: null }), calendar)).toBeNull();
+        expect(sceneDate(undefined, calendar)).toBeNull();
+    });
+
+    test('shows as the calendar writes it, or not at all', () => {
+        expect(sceneDateText(dated(), calendar)).toBe('21 December, year 1');
+        expect(sceneDateText(dated({ date: { year: 1, month: 1, day: 30 } }), calendar)).toBe('');
+        expect(sceneDateText(dated({ date: null }), calendar)).toBe('');
+    });
+
+    test('a session covers the days of its scenes, as one day or from the first to the last', () => {
+        const scenes = [
+            dated(), dated({ date: { year: 1, month: 11, day: 19 } }), dated({ sessionId: 's2', date: { year: 3, month: 0, day: 1 } }), dated({ date: null }),
+        ];
+        expect(sessionDatesText(scenes, 's1', calendar)).toBe('19 December, year 1 - 21 December, year 1');
+        expect(sessionDatesText([scenes[0]], 's1', calendar)).toBe('21 December, year 1');
+        expect(sessionDatesText(scenes, 's2', calendar)).toBe('1 January, year 3');
+        expect(sessionDatesText(scenes, 's9', calendar)).toBe('');
+    });
+
+    test('the calendar is elsewhere when today is another day than the scene\'s', () => {
+        expect(calendarIsElsewhere(dated(), calendar)).toBe(true);
+        expect(calendarIsElsewhere(dated({ date: { year: 1, month: 0, day: 1 } }), calendar)).toBe(false);
+        expect(calendarIsElsewhere(dated({ date: null }), calendar)).toBe(false);
+    });
+
+    test('what goes on the calendar for a scene is its name, what it was about and its day, tagged Scene', () => {
+        expect(sceneEventFields(dated(), calendar)).toEqual({
+            title: 'Fire', description: 'The warehouse burns', category: 'Scene', year: 1, month: 11, day: 21, recurrence: 'none',
+        });
+        expect(sceneEventFields(dated({ name: '', premise: '' }), calendar)).toMatchObject({ title: 'Untitled scene', description: '' });
+        expect(sceneEventFields(dated({ name: 'x'.repeat(200) }), calendar).title).toHaveLength(80);
+        expect(sceneEventFields(dated({ date: null }), calendar)).toBeNull();
+    });
+
+    test('a new scene has no date', () => {
+        expect(newScene().date).toBeNull();
     });
 });

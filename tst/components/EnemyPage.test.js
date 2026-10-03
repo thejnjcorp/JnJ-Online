@@ -208,6 +208,32 @@ describe('EnemyPage', () => {
             expect(mockNavigate).not.toHaveBeenCalled();
         });
 
+        describe('the colour', () => {
+            test('starts as none, with what that means, and a picked colour is saved with the enemy', async () => {
+                renderNew();
+                await screen.findByLabelText('Name');
+                expect(screen.getByText('Red, like every enemy')).toBeInTheDocument();
+                type('Name', 'Wolf');
+                fireEvent.change(screen.getByLabelText('Enemy color'), { target: { value: '#ff7a1f' } });
+                expect(screen.getByText('#ff7a1f')).toBeInTheDocument();
+                fireEvent.click(save('Create Enemy'));
+                await waitFor(() => expect(mockAddDoc).toHaveBeenCalled());
+                expect(mockAddDoc.mock.calls[0][1].color).toBe('#ff7a1f');
+            });
+
+            test('it can be cleared again, and an enemy saved without one has none', async () => {
+                renderNew();
+                await screen.findByLabelText('Name');
+                type('Name', 'Wolf');
+                fireEvent.change(screen.getByLabelText('Enemy color'), { target: { value: '#ff7a1f' } });
+                fireEvent.click(screen.getByRole('button', { name: 'Clear enemy color' }));
+                expect(screen.getByText('Red, like every enemy')).toBeInTheDocument();
+                fireEvent.click(save('Create Enemy'));
+                await waitFor(() => expect(mockAddDoc).toHaveBeenCalled());
+                expect(mockAddDoc.mock.calls[0][1].color).toBe('');
+            });
+        });
+
         describe('the picture', () => {
             const picture = () => document.querySelector('.EnemyPage-picture-token');
 

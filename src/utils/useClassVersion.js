@@ -30,7 +30,7 @@ function useVersionedDoc(resolve, linked, id, version) {
     return state;
 }
 
-// status: 'unlinked' (legacy character, nothing to load), 'loading',
+// status: 'unlinked' (a character with no class or race pinned, nothing to load), 'loading',
 // 'ready', or 'fallback' (the class couldn't be read - someone else's
 // Private class, deleted - so callers keep using the saved copy).
 export function useClassVersion(classId, version) {

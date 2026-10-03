@@ -109,11 +109,6 @@ describe('filterOptions', () => {
     test('carries a tag\'s colours for its chip', () => {
         expect(filterOptions(actions).tags[0]).toMatchObject({ tagColor: '#f00', textColor: '#fff' });
     });
-
-    test('a legacy action with only a Reaction tag counts as a reaction', () => {
-        const legacy = [{ actionName: 'Old', tags: [{ tagInfo: 'Reaction' }] }];
-        expect(filterOptions(legacy).categories.map(category => category.key)).toEqual(['reaction']);
-    });
 });
 
 describe('filterActions / isFilterActive', () => {

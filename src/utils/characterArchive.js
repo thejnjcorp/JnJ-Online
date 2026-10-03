@@ -10,8 +10,8 @@ export const DELETION_GRACE_DAYS = 30;
 
 export const isArchived = character => Boolean(character?.archived);
 
-// Old characters predate the `archived` field, so this is filtered on the client
-// rather than with a Firestore `where`, which would leave those out.
+// A character with no `archived` field is not archived, so this is filtered on the
+// client rather than with a Firestore `where`, which would leave those out.
 export const withoutArchived = characters => characters.filter(character => !isArchived(character));
 
 // Whoever owns a character: the player it was made for, and anyone the document

@@ -12,6 +12,7 @@
 
 import { actionProblems } from './classValidation';
 import { imageRef } from './imageRefs';
+import { chosenColor } from './entityColor';
 import { withoutUndefined } from './withoutUndefined';
 
 export const ENEMY_TIERS = [
@@ -35,6 +36,8 @@ export const ENEMY_STAT_FIELDS = [
     'Weaknesses', 'Resistances', 'Immunities', 'actions',
     // its picture, for its token on the combat map: an image ref (see imageRefs.js), or empty
     'portrait_url',
+    // the colour that outlines its tile and its token, to tell it from the others: #rrggbb, or empty for the red enemies have
+    'color',
     // tactics/personality/what it drops - for the director, not the players. Carried
     // into a fight (and the encounter roster before that) so it's on hand right on the
     // combat card, not just back on the bestiary entry.
@@ -47,7 +50,7 @@ export function newEnemy(tier = 'Regular') {
         base_armor_class: 12, maximum_health: 10, action_points: 3, hardness: 0,
         strength_stat: 0, dexterity_stat: 0, intelligence_stat: 0, charisma_stat: 0,
         base_hit_modifier: 0, base_damage_modifier: 0, base_damage_dice: 1, base_damage_dice_type: 2, base_healing_dice_type: 1,
-        Weaknesses: [], Resistances: [], Immunities: [], actions: [], portrait_url: '',
+        Weaknesses: [], Resistances: [], Immunities: [], actions: [], portrait_url: '', color: '',
     };
 }
 
@@ -102,6 +105,7 @@ export function validateEnemy(enemy) {
         if (message) add(`field-${field}`, field, label, message);
     });
     if (!isBlank(enemy.portrait_url) && !imageRef(enemy.portrait_url)) add('field-portrait_url', 'portrait_url', 'Picture', 'Use a web link to a picture, starting with https://.');
+    if (!isBlank(enemy.color) && !chosenColor(enemy.color)) add('field-color', 'color', 'Color', 'Pick a colour, or clear it.');
     ['Weaknesses', 'Resistances'].forEach(field => {
         const bad = (enemy[field] || []).findIndex(entry => !isInt(parseModifier(entry).amount) || parseModifier(entry).type === '');
         if (bad >= 0) add(`field-${field}`, field, field, 'Each one needs a type and an amount, like "Fire 5".');
@@ -130,6 +134,7 @@ export function enemyDocFields(form) {
     payload.enemy_name = (form.enemy_name || '').trim();
     // an Imgur link is kept as just its hash; nothing usable is kept as nothing
     payload.portrait_url = imageRef(form.portrait_url) ?? '';
+    payload.color = chosenColor(form.color);
     return payload;
 }
 

@@ -46,6 +46,12 @@ describe('MapTokens', () => {
             expect(screen.getByRole('button', { name: 'Lost' })).toBeInTheDocument();
         });
 
+        test('a token with a colour picked is outlined in it; one without keeps its side\'s', () => {
+            const { token } = setup({ tokens: [{ id: 'a', title: 'Aria Vale', kind: 'player', x: 0.2, y: 0.2, color: '#00ff85' }, { id: 'b', title: 'Rust Bandit', kind: 'enemy', x: 0.7, y: 0.2 }] });
+            expect(token('Aria Vale').style.getPropertyValue('--token-color')).toBe('#00ff85');
+            expect(token('Rust Bandit').style.getPropertyValue('--token-color')).toBe('');
+        });
+
         test('shows the portrait when there is one, and the initials when there is not', () => {
             const { token } = setup();
             expect(token('Rust Bandit').querySelector('img')).toHaveAttribute('src', 'bandit.png');

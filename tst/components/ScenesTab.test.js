@@ -19,7 +19,11 @@ jest.mock('../../src/utils/party', () => ({
     addTrackerPosts: jest.requireActual('../../src/utils/party').addTrackerPosts,
     partyDoc: id => ({ __party: id }),
     updateCombatTracker: (...args) => mockUpdateCombatTracker(...args),
+    setCalendarToday: (...args) => mockSetCalendarToday(...args),
 }));
+const mockSetCalendarToday = jest.fn();
+const mockAddPartyEvent = jest.fn();
+jest.mock('../../src/utils/usePartyEvents', () => ({ addPartyEvent: (...args) => mockAddPartyEvent(...args) }));
 
 let mockState;
 const mockCreateSession = jest.fn();
@@ -48,6 +52,10 @@ jest.mock('../../src/components/EncounterPage', () => ({
 jest.mock('../../src/components/PartySpace', () => ({
     PartySpace: ({ campaignId, tab, onTab }) => <div>PartySpace-stub:{campaignId}:{tab}<button type="button" onClick={() => onTab('notes')}>Go to notes</button></div>,
 }));
+
+// The party's calendar (on the party doc) that scenes are set on, and what goes on it.
+let mockParty;
+jest.mock('../../src/utils/useParty', () => ({ useParty: () => ({ party: mockParty, loaded: true }) }));
 
 let mockEncounters;
 jest.mock('../../src/utils/useEncounters', () => ({ useEncounters: () => ({ encounters: mockEncounters, status: 'ready' }) }));
@@ -91,6 +99,9 @@ function renderTab({ route = '/directors/camp-1', renderCombat = () => ({ main: 
 beforeEach(() => {
     mockState = { sessions, scenes: decisionFixture(), status: 'ready' };
     mockEncounters = [];
+    mockParty = {};
+    mockSetCalendarToday.mockResolvedValue(undefined);
+    mockAddPartyEvent.mockResolvedValue({ id: 'event-1' });
     mockCreateSession.mockResolvedValue('s3');
     mockUpdateSession.mockResolvedValue(undefined);
     mockCreateScene.mockResolvedValue('new-scene');
@@ -167,6 +178,33 @@ describe('ScenesTab', () => {
             fireEvent.click(screen.getByRole('button', { name: 'Session 1, Planned' }));
             expect(screen.getByRole('heading', { name: 'Session 1' })).toBeInTheDocument();
             expect(screen.getByText('Intro')).toBeInTheDocument();
+        });
+    });
+
+    describe('dates from the calendar', () => {
+        const dated = [
+            { ...decisionFixture()[0], date: { year: 1, month: 11, day: 19 } },
+            { ...decisionFixture()[1], date: { year: 1, month: 11, day: 21 } },
+            ...decisionFixture().slice(2),
+        ];
+
+        test('a session card with no date of its own shows the days its scenes are on', () => {
+            mockState = { ...mockState, sessions: [{ ...sessions[0], inWorldDate: '' }, sessions[1]], scenes: dated };
+            renderTab();
+            expect(within(screen.getByRole('button', { name: /^Session 1,/ })).getByText('In-world 19 December, year 1 - 21 December, year 1')).toBeInTheDocument();
+        });
+
+        test('a session\'s own date, when it has one, still wins', () => {
+            mockState = { ...mockState, scenes: dated };
+            renderTab();
+            expect(within(screen.getByRole('button', { name: /^Session 1,/ })).getByText('In-world Dec 15')).toBeInTheDocument();
+        });
+
+        test('each scene in a session shows its day under its name', () => {
+            mockState = { ...mockState, scenes: dated };
+            renderTab({ route: '/directors/camp-1?session=s1' });
+            expect(screen.getByText('19 December, year 1')).toBeInTheDocument();
+            expect(screen.getByText('21 December, year 1')).toBeInTheDocument();
         });
     });
 
@@ -366,14 +404,16 @@ describe('ScenesTab', () => {
             const dialog = openDialog();
             fireEvent.change(within(dialog).getByPlaceholderText('e.g. Aftermath'), { target: { value: 'Aftermath' } });
             fireEvent.click(within(dialog).getByRole('button', { name: 'Combat' }));
-            fireEvent.change(within(dialog).getByPlaceholderText('e.g. Dec 21'), { target: { value: 'Dec 21' } });
+            fireEvent.click(within(dialog).getByRole('button', { name: 'Set a date' }));
+            fireEvent.change(within(dialog).getByLabelText('In-world date, day'), { target: { value: '21' } });
+            fireEvent.change(within(dialog).getByLabelText('In-world date, month'), { target: { value: '11' } });
             fireEvent.change(within(dialog).getByPlaceholderText('e.g. 8'), { target: { value: '8' } });
             fireEvent.change(within(dialog).getByPlaceholderText('e.g. 12'), { target: { value: '12' } });
 
             fireEvent.click(within(dialog).getByRole('button', { name: /Create/ }));
 
             await waitFor(() => expect(mockCreateScene).toHaveBeenCalled());
-            expect(mockCreateScene.mock.calls[0][0]).toMatchObject({ sessionId: 's1', name: 'Aftermath', type: 'combat', inWorldDate: 'Dec 21', timeMin: 8, timeMax: 12 });
+            expect(mockCreateScene.mock.calls[0][0]).toMatchObject({ sessionId: 's1', name: 'Aftermath', type: 'combat', date: { year: 1, month: 11, day: 21 }, timeMin: 8, timeMax: 12 });
             expect(mockCreateScene.mock.calls[0][0].order).toBeGreaterThan(3);
             expect(await screen.findByRole('textbox', { name: 'Scene name' })).toBeInTheDocument();
         });
@@ -602,13 +642,15 @@ describe('ScenesTab', () => {
         test('setting the scene type, date, episode and time goal', async () => {
             build();
             fireEvent.click(within(screen.getByRole('group', { name: 'Scene type' })).getByRole('button', { name: 'Combat' }));
-            fireEvent.change(screen.getByLabelText('In-world date'), { target: { value: 'Dec 22' } });
+            fireEvent.click(screen.getByRole('button', { name: 'Set a date' }));
+            fireEvent.change(screen.getByLabelText('In-world date, day'), { target: { value: '22' } });
+            fireEvent.change(screen.getByLabelText('In-world date, month'), { target: { value: '11' } });
             fireEvent.change(screen.getByLabelText('Episode'), { target: { value: 'Episode 3' } });
             fireEvent.change(screen.getByLabelText('Goal from (min)'), { target: { value: '30' } });
             fireEvent.change(screen.getByLabelText('to (min)'), { target: { value: '50' } });
             expect(screen.getByText('Time goal: 30–50 min')).toBeInTheDocument();
             fireEvent.click(screen.getByRole('button', { name: 'Save Draft' }));
-            await waitFor(() => expect(mockUpdateScene).toHaveBeenCalledWith('intro', expect.objectContaining({ type: 'combat', inWorldDate: 'Dec 22', episode: 'Episode 3', timeMin: 30, timeMax: 50 })));
+            await waitFor(() => expect(mockUpdateScene).toHaveBeenCalledWith('intro', expect.objectContaining({ type: 'combat', date: { year: 1, month: 11, day: 22 }, episode: 'Episode 3', timeMin: 30, timeMax: 50 })));
         });
 
         describe('only runs if, for the scene', () => {
@@ -1079,6 +1121,99 @@ describe('ScenesTab', () => {
             fireEvent.change(pad, { target: { value: 'Let Leon throw first' } });
             fireEvent.blur(pad);
             await waitFor(() => expect(mockUpdateScene).toHaveBeenCalledWith('run', { beats: expect.arrayContaining([expect.objectContaining({ id: 'b1', notes: 'Let Leon throw first' })]) }));
+        });
+
+        describe('the party calendar', () => {
+            // a scene on 21 December of year 1, with the calendar saying it is 1 January
+            const dated = (fields = {}) => live({ date: { year: 1, month: 11, day: 21 }, ...fields });
+
+            test('starting a scene on another day offers to move the calendar to it, and does when asked', async () => {
+                mockState = { ...mockState, scenes: decisionFixture().map(item => (item.id === 'intro' ? { ...item, date: { year: 1, month: 11, day: 21 } } : item)) };
+                run('intro');
+                const option = screen.getByRole('checkbox', { name: 'Move the calendar to 21 December, year 1 (it says 1 January, year 1)' });
+                expect(option).toBeChecked();
+                fireEvent.click(screen.getByRole('button', { name: 'Start scene' }));
+                await waitFor(() => expect(mockSetCalendarToday).toHaveBeenCalledWith('camp-1', { year: 1, month: 11, day: 21 }));
+            });
+
+            test('the offer can be turned down, and is not made for a scene on the calendar\'s day or with no date', async () => {
+                mockState = { ...mockState, scenes: decisionFixture().map(item => (item.id === 'intro' ? { ...item, date: { year: 1, month: 11, day: 21 } } : item)) };
+                const { unmount } = run('intro');
+                fireEvent.click(screen.getByRole('checkbox', { name: /Move the calendar/ }));
+                fireEvent.click(screen.getByRole('button', { name: 'Start scene' }));
+                await waitFor(() => expect(mockUpdateScene).toHaveBeenCalledWith('intro', expect.objectContaining({ status: 'active' })));
+                expect(mockSetCalendarToday).not.toHaveBeenCalled();
+                unmount();
+                mockState = { ...mockState, scenes: decisionFixture().map(item => (item.id === 'intro' ? { ...item, date: { year: 1, month: 0, day: 1 } } : item)) };
+                run('intro');
+                expect(screen.queryByRole('checkbox', { name: /Move the calendar/ })).not.toBeInTheDocument();
+            });
+
+            test('while it runs, the scene\'s day is in the header, and a button sets the calendar to it', async () => {
+                dated();
+                run();
+                expect(screen.getByText(/Session 1 · 21 December, year 1/)).toBeInTheDocument();
+                fireEvent.click(screen.getByRole('button', { name: 'Set calendar to 21 December, year 1' }));
+                await waitFor(() => expect(mockSetCalendarToday).toHaveBeenCalledWith('camp-1', { year: 1, month: 11, day: 21 }));
+            });
+
+            test('with the calendar on the scene\'s day there is nothing to set', () => {
+                mockParty = { calendar: { ...require('../../src/utils/calendar').defaultCalendar(), today: { year: 1, month: 11, day: 21 } } };
+                dated();
+                run();
+                expect(screen.queryByRole('button', { name: /Set calendar to/ })).not.toBeInTheDocument();
+            });
+
+            test('ending a dated scene asks whether to log it on the calendar, and does, once', async () => {
+                dated({ premise: 'Fire at the warehouse' });
+                run();
+                fireEvent.click(screen.getByRole('button', { name: 'End Scene' }));
+                expect(mockUpdateScene).not.toHaveBeenCalledWith('run', expect.objectContaining({ status: 'completed' }));
+                expect(screen.getByRole('checkbox', { name: /Add "Run me" to the party's calendar on 21 December, year 1/ })).toBeChecked();
+                fireEvent.click(screen.getByRole('button', { name: 'End scene' }));
+                await waitFor(() => expect(mockAddPartyEvent).toHaveBeenCalledWith('camp-1', {
+                    title: 'Run me', description: 'Fire at the warehouse', category: 'Scene', year: 1, month: 11, day: 21, recurrence: 'none',
+                }));
+                await waitFor(() => expect(mockUpdateScene).toHaveBeenCalledWith('run', expect.objectContaining({ status: 'completed', calendarEventId: 'event-1' })));
+            });
+
+            test('the log can be unticked, and Keep running leaves the scene as it was', async () => {
+                dated();
+                run();
+                fireEvent.click(screen.getByRole('button', { name: 'End Scene' }));
+                fireEvent.click(screen.getByRole('button', { name: 'Keep running' }));
+                expect(screen.queryByRole('region', { name: 'End this scene' })).not.toBeInTheDocument();
+                fireEvent.click(screen.getByRole('button', { name: 'End Scene' }));
+                fireEvent.click(screen.getByRole('checkbox', { name: /to the party's calendar/ }));
+                fireEvent.click(screen.getByRole('button', { name: 'End scene' }));
+                await waitFor(() => expect(mockUpdateScene).toHaveBeenCalledWith('run', { status: 'completed', run: expect.objectContaining({ startedAt: null }) }));
+                expect(mockAddPartyEvent).not.toHaveBeenCalled();
+            });
+
+            test('a scene already on the calendar, or with no date, ends straight away', async () => {
+                dated({ calendarEventId: 'event-9' });
+                const { unmount } = run();
+                fireEvent.click(screen.getByRole('button', { name: 'End Scene' }));
+                await waitFor(() => expect(mockUpdateScene).toHaveBeenCalledWith('run', { status: 'completed', run: expect.objectContaining({ startedAt: null }) }));
+                expect(mockAddPartyEvent).not.toHaveBeenCalled();
+                unmount();
+                mockUpdateScene.mockClear();
+                live();
+                run();
+                fireEvent.click(screen.getByRole('button', { name: 'End Scene' }));
+                await waitFor(() => expect(mockUpdateScene).toHaveBeenCalledWith('run', expect.objectContaining({ status: 'completed' })));
+                expect(screen.queryByRole('region', { name: 'End this scene' })).not.toBeInTheDocument();
+            });
+
+            test('a failure to log it is said, and the scene is not ended', async () => {
+                mockAddPartyEvent.mockRejectedValue(new Error('offline'));
+                dated();
+                run();
+                fireEvent.click(screen.getByRole('button', { name: 'End Scene' }));
+                fireEvent.click(screen.getByRole('button', { name: 'End scene' }));
+                await waitFor(() => expect(window.alert).toHaveBeenCalledWith("Couldn't end the scene: offline"));
+                expect(mockUpdateScene).not.toHaveBeenCalledWith('run', expect.objectContaining({ status: 'completed' }));
+            });
         });
 
         test('End Scene completes it and returns to the session', async () => {

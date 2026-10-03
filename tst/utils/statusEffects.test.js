@@ -36,19 +36,8 @@ describe('getEffectsArray', () => {
         expect(getEffectsArray({ effects })).toBe(effects);
     });
 
-    test('wraps a legacy single status.effect object in an array', () => {
-        const effect = { stat: 'hardness', delta: 1 };
-        expect(getEffectsArray({ effect })).toEqual([effect]);
-    });
-
-    test('returns an empty array when neither effects nor effect is present', () => {
+    test('returns an empty array when there are no effects', () => {
         expect(getEffectsArray({})).toEqual([]);
-    });
-
-    test('prefers effects over a legacy effect if both are somehow present', () => {
-        const effects = [{ stat: 'a' }];
-        const effect = { stat: 'b' };
-        expect(getEffectsArray({ effects, effect })).toBe(effects);
     });
 });
 
@@ -316,11 +305,11 @@ describe('advanceTurnStatuses', () => {
         expect(advanceTurnStatuses({ action_points: 1, statuses: [drain] }).action_points).toBe(0);
     });
 
-    test('decaysPerTurn falls back to inferring from a turn_start effect when the field is missing (legacy statuses)', () => {
-        const legacyDecaying = { name: 'Haste (legacy)', stacks: 1, effect: { stat: 'action_points', trigger: 'turn_start', delta: 1 } };
-        const result = advanceTurnStatuses({ action_points: 0, statuses: [legacyDecaying] });
-        expect(result.action_points).toBe(1);
-        expect(result.statuses).toEqual([]); // its single stack decayed away
+    test('a status that does not say it decays per turn does not, even with a turn_start effect', () => {
+        const status = { name: 'Unmarked', stacks: 1, effects: [{ stat: 'action_points', trigger: 'turn_start', delta: 1 }] };
+        const result = advanceTurnStatuses({ action_points: 0, statuses: [status] });
+        expect(result.action_points).toBe(0);
+        expect(result.statuses).toEqual([status]);
     });
 
     test('decaysPerTurn=false is honored even if the status has a turn_start effect (explicit flag wins over inference)', () => {

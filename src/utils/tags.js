@@ -3,7 +3,7 @@
 // A tag on an action is a copy - { id, tagId?, tagInfo, tagColor, textColor,
 // tagDescription } - so a sheet shows it without ever reading the catalog. When
 // it was picked from the catalog, `tagId` says which one; a tag typed in on the
-// action itself (every tag before the catalog existed) has none.
+// action itself has none.
 
 import { getActionCategory } from './classActions';
 

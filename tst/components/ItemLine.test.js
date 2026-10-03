@@ -72,22 +72,6 @@ describe('ItemLine', () => {
         expect(screen.getByRole('button', { name: 'Torch' })).toBeInTheDocument();
     });
 
-    test('an entry from before items existed shows the text it was typed with, and is not "deleted"', () => {
-        mockUseItem.mockReturnValue({ item: null, status: 'missing' });
-        renderWithRouter(<ItemLine itemId="" title="Rusty Key" content="Opens *something*." quantity={1}/>);
-        fireEvent.click(screen.getByRole('button', { name: 'Rusty Key' }));
-        expect(screen.getByText('something').tagName).toBe('EM');
-        expect(screen.queryByText(/no longer in the item database/)).not.toBeInTheDocument();
-        expect(screen.queryByRole('link')).not.toBeInTheDocument();
-    });
-
-    test('an old entry with no text says there is no description', () => {
-        mockUseItem.mockReturnValue({ item: null, status: 'missing' });
-        renderWithRouter(<ItemLine itemId="" title="Rusty Key" quantity={1}/>);
-        fireEvent.click(screen.getByRole('button', { name: 'Rusty Key' }));
-        expect(screen.getByText('No description.')).toBeInTheDocument();
-    });
-
     test('an item with no description says so', () => {
         mockUseItem.mockReturnValue(ready({ ...torch, item_description: '' }));
         renderWithRouter(<ItemLine itemId="torch" title="Torch" quantity={1}/>);

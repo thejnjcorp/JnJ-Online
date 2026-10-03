@@ -59,14 +59,11 @@ export const STATUS_STAT_DEFINITIONS = [
     { key: 'charisma_stat', label: 'Charisma', triggers: ['passive'] },
 ];
 
-// Statuses created before `effects` (an array) existed only had a single
-// `effect` object - keeps those readable without a data migration.
+// What a status does: its list of effects.
 export function getEffectsArray(status) {
-    // A Token has no mechanics, whatever an older edit left in its effects.
+    // A Token has no mechanics, whatever an edit left in its effects.
     if (isToken(status)) return [];
-    if (Array.isArray(status.effects)) return status.effects;
-    if (status.effect) return [status.effect];
-    return [];
+    return Array.isArray(status.effects) ? status.effects : [];
 }
 
 function activeStatuses(characterPage) {
@@ -154,13 +151,10 @@ export function getGrantedActions(characterPage) {
 // effect - Haste/Slowed/Stunned both mutate action_points AND count down,
 // but Frightened counts down too despite its -1 to hit rolls being a
 // continuous passive effect the whole time it's active, not something that
-// gets "applied" turn by turn. `decaysPerTurn` defaults from whether the
-// status has a turn_start effect only for statuses saved before this field
-// existed - StatusPage.js always sets it explicitly now.
+// gets "applied" turn by turn. `decaysPerTurn` is set explicitly by
+// StatusPage.js.
 function decaysPerTurn(status) {
-    if (isToken(status)) return false;
-    if (typeof status.decaysPerTurn === 'boolean') return status.decaysPerTurn;
-    return getEffectsArray(status).some(e => e.trigger === 'turn_start');
+    return !isToken(status) && status.decaysPerTurn === true;
 }
 
 // Applies every active status's turn_start effects (currently only

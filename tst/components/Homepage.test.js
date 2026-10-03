@@ -25,7 +25,7 @@ import { Homepage } from '../../src/components/Homepage';
 // eslint-disable-next-line import/first
 import { renderWithRouter } from '../testUtils/renderWithRouter';
 
-const character = { id: 'char-a', character_name: 'Aria', class: 'Fighter', campaign: 'camp-a' };
+const character = { id: 'char-a', character_name: 'Aria', class_name: 'Fighter', campaign: 'camp-a' };
 const campaign = { id: 'camp-a', campaign_name: 'The Iron Vale', director_name: 'Sam' };
 
 function docsFrom(items) {

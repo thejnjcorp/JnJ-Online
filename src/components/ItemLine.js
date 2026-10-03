@@ -18,17 +18,14 @@ export function ItemThumb({ item, className = 'Party-thumb' }) {
         : <span className={`${className} Party-thumb-empty`} aria-hidden="true"/>;
 }
 
-// What an item is: its description, its tags, and a link to it in the database. `content`
-// is the text of an entry from before items existed, which has no item to read.
-export function ItemDetails({ state, content = '', showLink = true, legacy = false }) {
+// What an item is: its description, its tags, and a link to it in the database.
+export function ItemDetails({ state, showLink = true }) {
     const { item, status } = state;
     return <div className="ItemDetails">
         {status === 'error' && <p className="Party-hint">You can't see this item's details.</p>}
-        {status === 'missing' && !legacy && <p className="Party-hint">This item is no longer in the item database.</p>}
+        {status === 'missing' && <p className="Party-hint">This item is no longer in the item database.</p>}
         {item?.item_description && <div className="ItemDetails-description"><Markdown>{item.item_description}</Markdown></div>}
-        {!item && content && <div className="ItemDetails-description"><Markdown>{content}</Markdown></div>}
         {item && !item.item_description && <p className="Party-hint">No description.</p>}
-        {legacy && !content && <p className="Party-hint">No description.</p>}
         {(item?.tags || []).length > 0 && <div className="ItemList-tags">{item.tags.map(tag => <span className="ItemList-tag" key={tag}>{tag}</span>)}</div>}
         {showLink && item && <Link className="ItemDetails-link" to={'/items/' + item.id}>Open in the item database</Link>}
     </div>;
@@ -36,9 +33,8 @@ export function ItemDetails({ state, content = '', showLink = true, legacy = fal
 
 // One line of an inventory: the item's picture, its name, how many, and a way to open
 // its details. `children` are the actions for the line (Take, Remove...), shown at its
-// end. `itemId` is empty for an entry from before items existed, which is shown by its
-// `title` and `content`.
-export function ItemLine({ itemId, title, content = '', quantity = 1, children }) {
+// end. `title` is the name kept on the entry, for when the item itself can't be read.
+export function ItemLine({ itemId, title, quantity = 1, children }) {
     const state = useItem(itemId);
     const [open, setOpen] = useState(false);
     const name = itemName(state, title);
@@ -51,6 +47,6 @@ export function ItemLine({ itemId, title, content = '', quantity = 1, children }
             </button>
             {children && <div className="ItemLine-actions">{children}</div>}
         </div>
-        {open && <ItemDetails state={state} content={content} legacy={!itemId}/>}
+        {open && <ItemDetails state={state}/>}
     </div>;
 }

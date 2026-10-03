@@ -17,8 +17,8 @@ export const NO_MAP_ZONE = 'Combatants';
 //     inside its zone (see placeTokens).
 export function syncCombatTracker(storedPosts, entities, zoneNames, rects = null) {
     if (zoneNames.length === 0) return null;
-    // an old campaign can hold something that isn't a list here; that is no one placed yet
-    const posts = Array.isArray(storedPosts) ? storedPosts : [];
+    // no tracker stored yet is no one placed yet
+    const posts = storedPosts ?? [];
 
     const known = new Set(entities.map(entity => entity.id));
     const existing = new Set(posts.map(post => post.id));
@@ -48,7 +48,7 @@ export function syncCombatTracker(storedPosts, entities, zoneNames, rects = null
         }));
 
     const positioned = rects ? placeTokens([...homed, ...additions], rects) : { posts: [...homed, ...additions], changed: false };
-    if (additions.length === 0 && !moved && !positioned.changed && survivors.length === posts.length && Array.isArray(storedPosts)) return null;
+    if (additions.length === 0 && !moved && !positioned.changed && survivors.length === posts.length && Boolean(storedPosts)) return null;
     return positioned.posts;
 }
 
@@ -60,7 +60,7 @@ export function syncCombatTracker(storedPosts, entities, zoneNames, rects = null
 // director's, and would wrongly see freshly staged enemies as gone).
 export function addToTracker(storedPosts, entities, zoneNames, rects = null) {
     if (zoneNames.length === 0 || entities.length === 0) return null;
-    const posts = Array.isArray(storedPosts) ? storedPosts : [];
+    const posts = storedPosts ?? [];
     const mine = new Set(entities.map(entity => entity.id));
     const existing = new Set(posts.map(post => post.id));
 
@@ -71,7 +71,7 @@ export function addToTracker(storedPosts, entities, zoneNames, rects = null) {
 
     const placed = rects ? placeTokens(all, rects).posts : all;
     const next = placed.map((post, i) => (mine.has(post.id) ? post : all[i]));
-    const changed = next.some((post, i) => post !== all[i]) || additions.length > 0 || !Array.isArray(storedPosts);
+    const changed = next.some((post, i) => post !== all[i]) || additions.length > 0 || !storedPosts;
     return changed ? next : null;
 }
 

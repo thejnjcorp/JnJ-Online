@@ -36,9 +36,8 @@ export function validateAction(action) {
     if (!ACTION_TYPES.includes(action.actionType)) errors.actionType = 'Pick how often this can be used.';
     else if (action.actionType !== 'standard' && !isWholeNumberIn(action.actionTypeCount, { min: 1 })) errors.actionTypeCount = 'Enter how many times (1 or more).';
     if (action.category !== undefined && !ACTION_CATEGORIES.includes(action.category)) errors.category = 'Pick a category.';
-    // A feat authored before tiers existed has no `tier` at all - featTierOf
-    // treats that as tier 1 rather than an error; only a real, out-of-range
-    // value (someone typed 0 or 5) is flagged.
+    // A feat with no `tier` at all is tier 1 (see featTierOf), not an error; only a
+    // real, out-of-range value (someone typed 0 or 5) is flagged.
     if (action.category === 'feat' && action.tier !== undefined && !isWholeNumberIn(action.tier, FEAT_TIER_RANGE)) errors.tier = `Tier must be a whole number from ${FEAT_TIER_RANGE.min} to ${FEAT_TIER_RANGE.max}.`;
     if (action.usage !== undefined && !ACTION_USAGE_KEYS.includes(action.usage)) errors.usage = 'Pick where this is used.';
     Object.assign(errors, hitProblems(action));

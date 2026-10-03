@@ -1,3 +1,4 @@
+/* eslint-disable testing-library/no-node-access -- the tile's own element has no role to find it by */
 import { screen, fireEvent, within } from '@testing-library/react';
 import { EntityTile } from '../../src/components/EntityTile';
 import { enemyCombatant, enemyTiles, playerCombatant, withModifier } from '../../src/utils/combatants';
@@ -65,6 +66,26 @@ describe('EntityTile, a player', () => {
     test('a status chip with no stacks has no count', () => {
         renderTile(player({ statuses: [{ id: 'p', name: 'Prone', stacks: -1, polarity: 'debuff' }] }));
         expect(screen.getByRole('button', { name: 'Status: Prone. Click to edit.' })).toBeInTheDocument();
+    });
+});
+
+describe('the colour picked for a tile', () => {
+    test('outlines the tile in it, for a player and for an enemy', () => {
+        const { unmount } = renderTile(player({ navigation_color: '#00ff85' }));
+        const tile = screen.getByRole('button', { name: 'Open Leon details' }).closest('.Entity-tile');
+        expect(tile).toHaveClass('Entity-tile-colored');
+        expect(tile.style.getPropertyValue('--entity-color')).toBe('#00ff85');
+        unmount();
+        renderTile(foe({ color: '#ff7a1f' }));
+        const enemyTile = screen.getByRole('button', { name: 'Open Tree Sentinel details' }).closest('.Entity-tile');
+        expect(enemyTile.style.getPropertyValue('--entity-color')).toBe('#ff7a1f');
+    });
+
+    test('a tile with none is left as it was', () => {
+        renderTile(foe());
+        const tile = screen.getByRole('button', { name: 'Open Tree Sentinel details' }).closest('.Entity-tile');
+        expect(tile).not.toHaveClass('Entity-tile-colored');
+        expect(tile.style.getPropertyValue('--entity-color')).toBe('');
     });
 });
 

@@ -43,7 +43,6 @@ import { RaceListPage } from '../../src/components/RaceListPage';
 import { renderWithRouter } from '../testUtils/renderWithRouter';
 
 const defaultRace = { id: 'race-def', name: 'Kobold', author: 'Admin', isDefault: true, description: 'Small and **scaly**.', actions: [{ actionName: 'Mild Fire' }, { actionName: 'Pack Tactics' }] };
-const legacyRace = { id: 'race-old', name: 'Ancient', isDefault: true, feat: { actionName: 'Old Feat' } };
 const poolRace = { id: 'race-pool', name: 'Elf', author: 'Sam', public: true, actions: [{ actionName: 'Keen Senses' }] };
 const privateRace = { id: 'race-priv', name: 'Secret Folk', author: 'Sam', public: false, actions: [] };
 
@@ -121,13 +120,6 @@ describe('RaceListPage', () => {
             expect(screen.getByText(/by Admin/)).toBeInTheDocument();
             expect(screen.getByText(/2 racial feats/)).toBeInTheDocument();
             expect(screen.getByText('scaly').tagName).toBe('STRONG');
-        });
-
-        test('a legacy race with a single feat counts it', async () => {
-            signIn({ uid: 'user-1' }, { races: [legacyRace] });
-            renderWithRouter(<RaceListPage />);
-            await screen.findByText('Ancient');
-            expect(screen.getByText(/1 racial feat$/)).toBeInTheDocument();
         });
 
         test.each([

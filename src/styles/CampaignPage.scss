@@ -163,16 +163,6 @@
     color: var(--jnj-color-text-faint);
 }
 
-.CampaignPage-player-legacy-note {
-    flex-shrink: 0;
-    padding: var(--jnj-space-1) var(--jnj-space-3);
-    border-radius: var(--jnj-radius-pill);
-    background-color: var(--jnj-color-bg-sunken);
-    color: var(--jnj-color-text-faint);
-    font-size: var(--jnj-text-xs);
-    cursor: help;
-}
-
 .CampaignPage-kick-button {
     padding: var(--jnj-space-1) var(--jnj-space-3);
     border: 1px solid var(--jnj-color-border);

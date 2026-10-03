@@ -18,16 +18,10 @@ export const FLAW_LEVELS = [
 
 export const levelsFor = isSkill => (isSkill ? SKILL_LEVELS : FLAW_LEVELS);
 
-// An entry's level - or, for one saved before levels existed (it only has the
-// old 1-3 degree), the level that degree maps onto: 1 and 2 keep their place,
-// 3 becomes the third level (Specialized/Major). Nothing saved back then ever
-// reaches the fourth (Ultimate/PTSD) - that has to be chosen deliberately.
+// An entry's level: the one it names, or the first (General / Minor Flaw) for one that names none.
 export function levelOf(entry) {
     const levels = levelsFor(entry.isSkill);
-    const byKey = levels.find(level => level.key === entry.level);
-    if (byKey) return byKey;
-    if (Number.isInteger(entry.degree)) return levels[Math.min(Math.max(entry.degree, 1), levels.length) - 1];
-    return levels[0];
+    return levels.find(level => level.key === entry.level) || levels[0];
 }
 
 export const modifierOf = entry => levelOf(entry).modifier;

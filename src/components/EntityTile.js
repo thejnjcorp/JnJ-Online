@@ -78,14 +78,14 @@ export function EntityTile({ tile, active, api }) {
     const toggle = which => setPopover(current => (current === which ? null : which));
     const target = popover?.member ? members.find(member => member.id === popover.member) || combatant : combatant;
     const down = isGroup ? members.every(member => member.down) : combatant.down;
-    const classes = ['Entity-tile', `Entity-tile-${combatant.kind}`, active && 'Entity-tile-active', down && 'Entity-tile-down'].filter(Boolean).join(' ');
+    const classes = ['Entity-tile', `Entity-tile-${combatant.kind}`, combatant.color && 'Entity-tile-colored', active && 'Entity-tile-active', down && 'Entity-tile-down'].filter(Boolean).join(' ');
     const showDefeated = combatant.defeated && !isGroup;
     const pickPip = id => setPopover(current => (current?.member === id ? null : { member: id, kind: 'hp' }));
 
     // a group's change goes to everyone in it; a single one's, to them
     const forTargets = write => (isGroup && !popover?.member ? members.forEach(write) : write(target));
 
-    return <div className={classes}>
+    return <div className={classes} style={combatant.color ? { '--entity-color': combatant.color } : undefined}>
         <div className="Entity-tile-head">
             <span className="Entity-tile-title">
                 <button type="button" className="Entity-name" aria-label={`Open ${name} details`} onClick={() => api.openDrawer(combatant.id, isGroup ? tile.key : null)}>

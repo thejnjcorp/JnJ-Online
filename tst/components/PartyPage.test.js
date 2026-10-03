@@ -11,8 +11,6 @@ jest.mock('firebase/firestore', () => ({
     where: (...args) => ({ __where: args }),
 }));
 
-const mockEnsureParty = jest.fn();
-jest.mock('../../src/utils/party', () => ({ ensureParty: (...args) => mockEnsureParty(...args) }));
 let mockParty;
 jest.mock('../../src/utils/useParty', () => ({ useParty: () => mockParty }));
 jest.mock('../../src/utils/usePartyNotes', () => ({ usePartyNotes: jest.fn(), PARTY_NOTES_TEXT: { heading: 'Party notes', storagePrefix: 'x' } }));
@@ -60,7 +58,6 @@ function draw({ user = { uid: 'alice' }, route = '/party/camp-1', characters = [
 
 beforeEach(() => {
     mockParty = { party: { inventory: [] }, loaded: true, error: null };
-    mockEnsureParty.mockResolvedValue(undefined);
     [mockNotesProps, mockInventoryProps, mockTradesProps, mockCalendarProps].forEach(list => { list.length = 0; });
 });
 
@@ -94,21 +91,6 @@ describe('PartyPage', () => {
             expect(mockOnSnapshot).toHaveBeenCalledWith({ __doc: ['campaigns', 'camp-1'] }, expect.any(Function), expect.any(Function));
             await waitFor(() => expect(mockOnSnapshot.mock.calls.some(call => call[0].__query)).toBe(true));
             expect(JSON.stringify(mockOnSnapshot.mock.calls.find(call => call[0].__query)[0])).toContain('camp-1');
-        });
-
-        test('makes sure the campaign has a party doc, as anyone opening the campaign does', async () => {
-            draw();
-            await screen.findByRole('heading', { name: 'The Party' });
-            await waitFor(() => expect(mockEnsureParty).toHaveBeenCalledWith('camp-1'));
-        });
-
-        test('a party doc that could not be made is logged, not thrown', async () => {
-            const log = jest.spyOn(console, 'log').mockImplementation(() => {});
-            mockEnsureParty.mockRejectedValue(new Error('offline'));
-            draw();
-            await screen.findByRole('heading', { name: 'The Party' });
-            await waitFor(() => expect(log).toHaveBeenCalledWith("Couldn't create the party doc: Error: offline"));
-            log.mockRestore();
         });
     });
 

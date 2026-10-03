@@ -511,3 +511,12 @@
 .Scenes-goal-bar { position: relative; height: 0.5rem; border-radius: 999px; background: var(--jnj-color-bg-sunken); border: 1px solid var(--jnj-color-border); }
 .Scenes-goal-range { position: absolute; top: 0; bottom: 0; min-width: 0.25rem; border-radius: 999px; background: var(--jnj-color-success); opacity: 0.55; }
 .Scenes-goal-mark { position: absolute; top: -0.25rem; bottom: -0.25rem; width: 3px; margin-left: -1px; border-radius: 2px; background: var(--jnj-color-accent); }
+
+// ---- A scene's day on the party calendar ------------------------------------------------
+
+.Scenes-date-row {
+    display: flex; align-items: center; gap: var(--jnj-space-2); flex-wrap: wrap;
+    input[type="number"] { width: 4.5rem; }
+    select { flex: 1 1 8rem; min-width: 0; }
+}
+.Scenes-end-card { border-color: var(--jnj-color-accent); }

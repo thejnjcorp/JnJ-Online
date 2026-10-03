@@ -8,6 +8,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import loadingIcon from '../icons/loading.svg';
 import { deletionDate, formatDeletionDate, isArchived } from '../utils/characterArchive';
 import { characterClassName } from '../utils/characterClass';
+import { chosenColor } from '../utils/entityColor';
 
 // Firestore 'in' queries cap at 30 values per query.
 const FIRESTORE_IN_LIMIT = 30;
@@ -89,7 +90,7 @@ export function Characters() {
         return campaignNames[character.campaign] || "Unknown Campaign";
     }
 
-    // Old characters predate the `archived` field, so "not archived" includes those with none.
+    // A character with no `archived` field is not archived.
     const activeCharacters = characterList.filter(character => !isArchived(character));
     const archivedCharacters = characterList.filter(isArchived);
 
@@ -97,7 +98,7 @@ export function Characters() {
         className={('CharacterCard ' + extraClass).trim()}
         key={character.id}
         onClick={() => handleCharacterCardSelect(character)}
-        style={character.navigation_color ? {"--character-accent": character.navigation_color} : undefined}
+        style={chosenColor(character.navigation_color) ? {"--character-accent": chosenColor(character.navigation_color)} : undefined}
     >
         <div className="CharacterCard-name">{character.character_name}</div>
         <div className="CharacterCard-small-text">

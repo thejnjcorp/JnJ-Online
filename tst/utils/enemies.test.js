@@ -448,3 +448,32 @@ describe('what is saved from a bestiary enemy never holds undefined (Firestore r
         expect(hasUndefined(enemyInstance(enemy(), 'Bandit'))).toBe(false);
     });
 });
+
+describe('an enemy\'s colour', () => {
+    const base = { ...newEnemy('Goon'), enemy_name: 'Rust Bandit' };
+
+    test('a new enemy has none, and it is part of what an enemy carries from the bestiary into a fight', () => {
+        expect(newEnemy().color).toBe('');
+        expect(ENEMY_STAT_FIELDS).toContain('color');
+        expect(rosterEntry({ ...bandit, color: '#ff7a1f' }).enemy.color).toBe('#ff7a1f');
+        expect(enemyInstance({ ...bandit, color: '#ff7a1f' }, 'Rust Bandit 1').color).toBe('#ff7a1f');
+    });
+
+    test('an enemy with none is given none, not an empty one it never had', () => {
+        const { color, ...plain } = bandit;
+        expect(enemyInstance(plain, 'Plain')).not.toHaveProperty('color');
+    });
+
+    test('a colour is saved as a lower-case #rrggbb, and anything else as none', () => {
+        expect(enemyDocFields({ ...base, color: '#FF7A1F' }).color).toBe('#ff7a1f');
+        expect(enemyDocFields({ ...base, color: 'orange' }).color).toBe('');
+        expect(enemyDocFields({ ...base, color: undefined }).color).toBe('');
+    });
+
+    test('none, or a real colour, is fine; something else is explained', () => {
+        expect(validateEnemy({ ...base, color: '' }).fields.color).toBeUndefined();
+        expect(validateEnemy({ ...base, color: undefined }).fields.color).toBeUndefined();
+        expect(validateEnemy({ ...base, color: '#00ff85' }).fields.color).toBeUndefined();
+        expect(validateEnemy({ ...base, color: 'orange' }).fields.color).toMatch(/colour/);
+    });
+});

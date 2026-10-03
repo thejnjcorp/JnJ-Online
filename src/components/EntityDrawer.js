@@ -9,6 +9,7 @@ import { getActionCategory, isCombatAction } from '../utils/classActions';
 import { getGrantedActions } from '../utils/statusEffects';
 import { quantityOf } from '../utils/inventory';
 import { formatModifier, parseModifier } from '../utils/enemies';
+import { ColorField } from './ColorField';
 import { AcPopover, ApDots, HpPopover, ResourcesPopover, StatPopover, StatusPopover } from './EntityPopovers';
 import '../styles/Combat.scss';
 
@@ -42,7 +43,7 @@ function NumberField({ label, value, onCommit, width }) {
 
 // ---- An enemy's drawer ---------------------------------------------------
 
-function EnemyStats({ combatant, api, template }) {
+function EnemyStats({ combatant, members, api, template }) {
     const { hp, ap } = combatant;
     const raw = combatant.raw;
     const [adding, setAdding] = useState(false);
@@ -112,6 +113,11 @@ function EnemyStats({ combatant, api, template }) {
                 </div>
             </div>
             {popover === 'ap' && <ResourcesPopover combatant={combatant} api={api} onClose={() => setPopover(null)}/>}
+        </Section>
+
+        <Section title="Color">
+            <ColorField label="Enemy color" value={combatant.color} fallbackText="Red, like every enemy" onChange={value => (members || [combatant]).forEach(member => api.setField(member, { color: value }))}/>
+            <span className="Entity-muted">{members ? 'Outlines every one of them, on its tile and on the map.' : 'Outlines this enemy on its tile and on the map.'}</span>
         </Section>
 
         <Section title="Abilities">
@@ -266,7 +272,7 @@ export function EntityDrawer({ combatant, members, zone, api, active, template, 
 
     return <dialog className={isEnemy ? 'Drawer Drawer-right' : 'Drawer'} open aria-label={`${combatant.name} details`}>
         <div className="Drawer-head">
-            <span className={`Drawer-avatar Drawer-avatar-${combatant.kind}`}>
+            <span className={`Drawer-avatar Drawer-avatar-${combatant.kind}`} style={combatant.color ? { borderColor: combatant.color } : undefined}>
                 {combatant.portrait ? <img src={combatant.portrait} alt=""/> : initials(combatant.name)}
             </span>
             <div className="Drawer-title">
@@ -320,7 +326,7 @@ export function EntityDrawer({ combatant, members, zone, api, active, template, 
                     <button type="button" className="Entity-button" onClick={() => api.setDefeated(member, !member.defeated)}>{member.defeated ? 'Restore' : 'Defeat'}</button>
                 </div>)}
             </Section>}
-            {tab === 'stats' && <EnemyStats combatant={combatant} api={api} template={template}/>}
+            {tab === 'stats' && <EnemyStats combatant={combatant} members={members} api={api} template={template}/>}
             {tab === 'actions' && <ActionsTab combatant={combatant} api={api} userId={userId}/>}
             {tab === 'notes' && <div className="Drawer-notes-read">
                 {raw.description ? <Markdown options={{ disableParsingRawHTML: true }}>{raw.description}</Markdown> : <span className="Entity-muted">No notes on this enemy. Add tactics and what it drops in the bestiary.</span>}

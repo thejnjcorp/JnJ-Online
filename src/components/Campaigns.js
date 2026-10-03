@@ -26,7 +26,7 @@ export function Campaigns() {
     const isEncounters = location.pathname.split('/').at(3) === 'encounters';
     document.title = "Campaigns";
 
-    // Old campaigns predate the `archived` field entirely, so this filters
+    // A campaign with no `archived` field is not archived, so this filters
     // client-side rather than via a Firestore `where("archived","==",false)`
     // query - that query would silently exclude every doc where the field is
     // simply absent, not just the ones explicitly archived.

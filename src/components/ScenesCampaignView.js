@@ -1,6 +1,6 @@
 import { ScenesMinimap } from './ScenesMinimap';
 import { useSessionScroller } from '../utils/useSessionScroller';
-import { groupArcs, playedScenes, sessionStats, sessionState, sessionTitle, timelinePips } from '../utils/scenes';
+import { groupArcs, playedScenes, sessionDatesText, sessionStats, sessionState, sessionTitle, timelinePips } from '../utils/scenes';
 
 const STATE_LABEL = { played: 'Played', now: 'Now', planned: 'Planned' };
 
@@ -20,17 +20,18 @@ export function PipLegend({ upcomingLabel = 'Planned', skippedLabel = "Didn't ha
 
 // One session's card: its scenes as a row of small marks (the one being played lists them by name),
 // and a way in.
-function SessionCard({ session, scenes, onOpen, cardRef }) {
+function SessionCard({ session, scenes, calendar, onOpen, cardRef }) {
     const state = sessionState(scenes, session.id);
     const stats = sessionStats(scenes, session.id);
     const pips = timelinePips(scenes, session.id);
+    const inWorld = session.inWorldDate || sessionDatesText(scenes, session.id, calendar);
     const upcoming = playedScenes(scenes, session.id).filter(scene => scene.status !== 'completed' && scene.status !== 'skipped').length;
     return <button type="button" ref={cardRef} className={`Scenes-session-card Scenes-session-card-${state}`} onClick={() => onOpen(session.id)} aria-label={`${sessionTitle(session)}, ${STATE_LABEL[state]}`}>
         <span className="Scenes-session-card-head">
             <strong>{sessionTitle(session)}</strong>
             <span className={`Scenes-chip Scenes-chip-${state}`}>{STATE_LABEL[state]}</span>
         </span>
-        <span className="Scenes-muted">{session.inWorldDate ? `In-world ${session.inWorldDate}` : 'In-world date not set'}</span>
+        <span className="Scenes-muted">{inWorld ? `In-world ${inWorld}` : 'In-world date not set'}</span>
         {pips.length === 0 && <span className="Scenes-pips"><span className="Scenes-muted">No scenes yet</span></span>}
         {pips.length > 0 && state === 'now' && <span className="Scenes-session-card-scenes">
             {pips.map(pip => <span key={pip.key}><span className={`Scenes-pip Scenes-pip-${pip.state}`}/>{pip.label || 'Untitled scene'}</span>)}
@@ -50,7 +51,7 @@ function SessionCard({ session, scenes, onOpen, cardRef }) {
 // "Zoomed out": every session of the campaign, grouped into arcs, in one row that scrolls sideways
 // (arrows at its ends), each as a card showing its scenes as a row of small marks - and under it the
 // whole campaign on a strip, with a frame round what the row shows. Click a card to zoom in.
-export function ScenesCampaignView({ sessions, scenes, onOpenSession, onNewSession, onNewScene }) {
+export function ScenesCampaignView({ sessions, scenes, calendar, onOpenSession, onNewSession, onNewScene }) {
     const arcs = groupArcs(sessions);
     const sorted = arcs.flatMap(arc => arc.sessions);
     const current = sessions.find(session => sessionState(scenes, session.id) === 'now');
@@ -84,7 +85,7 @@ export function ScenesCampaignView({ sessions, scenes, onOpenSession, onNewSessi
                             {arc.arc ? `${arc.arc} · ` : ''}{first === last ? `Session ${first}` : `Sessions ${first}–${last}`}
                         </h3>
                         <div className="Scenes-session-cards">
-                            {arc.sessions.map(session => <SessionCard key={session.id} session={session} scenes={scenes} onOpen={onOpenSession} cardRef={register(session.id)}/>)}
+                            {arc.sessions.map(session => <SessionCard key={session.id} session={session} scenes={scenes} calendar={calendar} onOpen={onOpenSession} cardRef={register(session.id)}/>)}
                         </div>
                     </section>;
                 })}

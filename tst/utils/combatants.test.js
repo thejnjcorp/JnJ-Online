@@ -223,3 +223,12 @@ describe('abilityLabel', () => {
         expect(abilityLabel({ name: 'Strength', value: 3, base: 2, delta: 1 })).toBe('Strength +3 (base +2), edit');
     });
 });
+
+describe('the colour someone picked', () => {
+    test('is on a player (their sheet colour) and an enemy, and empty when none or not a colour', () => {
+        expect(playerCombatant(character({ navigation_color: '#00FF85' })).color).toBe('#00ff85');
+        expect(playerCombatant(character({ navigation_color: 'nope' })).color).toBe('');
+        expect(enemyCombatant(enemy({ color: '#ff7a1f' })).color).toBe('#ff7a1f');
+        expect(enemyCombatant(enemy()).color).toBe('');
+    });
+});

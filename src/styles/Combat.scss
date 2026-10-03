@@ -47,6 +47,7 @@
     background: var(--jnj-color-bg-raised); border: 1px solid var(--jnj-color-border); border-radius: 9px; padding: 0.5625rem 0.6875rem;
     button { font-family: var(--jnj-font-body); cursor: pointer; }
 }
+.Entity-tile-colored { border-color: var(--entity-color); box-shadow: 0 0 0 1px var(--entity-color); }
 .Entity-tile-active { border-color: var(--jnj-color-accent); box-shadow: 0 0 0 1px rgba(200, 162, 74, 0.35); }
 .Entity-tile-down { opacity: 0.8; }
 .Entity-tile-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; }
@@ -231,3 +232,9 @@
     .CharacterPage-status-scrim { z-index: 70; }
     .CharacterPage-status-dialog { z-index: 71; }
 }
+
+// A colour picked for someone (see ColorField): the control, and the outline it gives a tile.
+.ColorField { display: flex; align-items: center; gap: 0.625rem; }
+.ColorField-input { width: 2.5rem; height: 1.875rem; padding: 0; border: 1px solid var(--jnj-color-border-strong); border-radius: 6px; background: none; cursor: pointer; &:disabled { cursor: default; opacity: 0.6; } }
+.ColorField-value { color: var(--jnj-color-text-muted); font: 500 0.78125rem var(--jnj-font-body); }
+.ColorField-clear { background: none; border: 1px solid var(--jnj-color-border-strong); border-radius: 999px; padding: 2px 10px; color: var(--jnj-color-text-muted); font: 600 0.71875rem var(--jnj-font-body); cursor: pointer; &:hover { color: var(--jnj-color-text); } }

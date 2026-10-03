@@ -203,10 +203,9 @@ describe('NewCharacterPage', () => {
             expect(screen.getByText('Stab')).toBeInTheDocument(); // from the class actions CombatActionList
         });
 
-        test('a race with several actions lists every one of them; a legacy single-feat race still shows its feat', async () => {
+        test('a race with several actions lists every one of them', async () => {
             const twoActions = humanRace({ id: 'race-2', name: 'Kobold', actions: [{ ...adaptable, actionName: 'Pack Tactics' }, { ...adaptable, actionName: 'Sunlight Sensitivity' }] });
-            const legacy = humanRace({ id: 'race-3', name: 'Ancient', actions: undefined, feat: { ...adaptable, actionName: 'Old Feat' } });
-            await renderAt('/campaigns/camp-1/newCharacter', { classes: [fighterClass()], races: [humanRace(), twoActions, legacy] });
+            await renderAt('/campaigns/camp-1/newCharacter', { classes: [fighterClass()], races: [humanRace(), twoActions] });
             const [raceSelect, classSelect] = screen.getAllByRole('combobox');
             fireEvent.change(classSelect, { target: { name: 'class_id', value: 'class-1' } });
 
@@ -214,9 +213,6 @@ describe('NewCharacterPage', () => {
             fireEvent.click(screen.getByRole('button', { name: 'View Class Info' }));
             expect(screen.getByText('Pack Tactics')).toBeInTheDocument();
             expect(screen.getByText('Sunlight Sensitivity')).toBeInTheDocument();
-
-            fireEvent.change(raceSelect, { target: { name: 'race_id', value: 'race-3' } });
-            expect(screen.getByText('Old Feat')).toBeInTheDocument();
         });
 
         test('a race with no actions shows no race action list and does not break the preview', async () => {
@@ -320,9 +316,9 @@ describe('NewCharacterPage', () => {
             expect(payload).not.toHaveProperty('race_feat');
         });
 
-        test('a race that has never been versioned pins to version 1, and a legacy single-feat race saves its feat as an action', async () => {
-            const legacy = humanRace({ actions: undefined, feat: adaptable });
-            await renderAt('/campaigns/camp-1/newCharacter', { classes: [fighterClass()], races: [legacy] });
+        test('a race that has never been versioned pins to version 1', async () => {
+            const unversioned = humanRace({ actions: [adaptable] });
+            await renderAt('/campaigns/camp-1/newCharacter', { classes: [fighterClass()], races: [unversioned] });
             await fillRequiredFields();
 
             fireEvent.click(screen.getByRole('button', { name: 'Create Character' }));

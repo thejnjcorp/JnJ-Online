@@ -11,11 +11,10 @@ const RESIZE_STEP = 5;
 export function MapRenderer({ map, userId }) {
     const [isEditing, setIsEditing] = useState(false);
     const [mapBorderColor, setMapBorderColor] = useState(map?.borderColor || "red");
-    // Legacy zones saved before zones had a stable id get one assigned here,
-    // on load - everything below (refs, drag/resize, selection) identifies a
-    // zone by id rather than array position, so removing or reordering a
-    // zone can't scramble another zone's ref or in-progress drag.
-    const [zones, setZones] = useState((map?.zones || []).map(zone => zone.id ? zone : { ...zone, id: crypto.randomUUID() }));
+    // Everything below (refs, drag/resize, selection) identifies a zone by its
+    // id rather than array position, so removing or reordering a zone can't
+    // scramble another zone's ref or in-progress drag.
+    const [zones, setZones] = useState(map?.zones || []);
     const canEdit = map?.canWrite?.includes(userId);
     const [selectedZoneId, setSelectedZoneId] = useState(null);
 

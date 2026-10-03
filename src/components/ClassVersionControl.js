@@ -2,8 +2,7 @@ import { listClassVersions } from '../utils/classVersions';
 import { isLinkedToClass } from '../utils/characterClass';
 import { VersionControl } from './VersionControl';
 
-// Only rendered for characters linked to a class (see isLinkedToClass);
-// legacy ones just show the saved copy.
+// Only rendered for characters linked to a class (see isLinkedToClass).
 export function ClassVersionControl({ characterPage, userId, status, latestVersion }) {
     if (!isLinkedToClass(characterPage)) return null;
     return <VersionControl

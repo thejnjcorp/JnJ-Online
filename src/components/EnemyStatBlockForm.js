@@ -8,6 +8,7 @@ import { keyed } from '../utils/keyed';
 import { ClassActionEditor } from './ClassActionEditor';
 import { FieldError, invalidClass, invalidProps } from './FormErrors';
 import { PictureField } from './PictureField';
+import { ColorField } from './ColorField';
 import MarkdownEditor from './MarkdownEditor';
 import '../styles/ClassPage.scss';
 import '../styles/EnemyPage.scss';
@@ -168,6 +169,13 @@ export function EnemyStatBlockForm({ formData, setFormData, errors, readOnly = f
             <div className="ClassPage-section-title">Picture</div>
             <PictureField name={formData.enemy_name} value={formData.portrait_url || ''} readOnly={readOnly} error={errors.fields.portrait_url} onChange={value => set('portrait_url', value)}/>
             <div className="ClassPage-hint">Shown on this enemy's token on the combat map, instead of its initials.</div>
+        </div>
+
+        <div className="ClassPage-card">
+            <div className="ClassPage-section-title">Color</div>
+            <ColorField label="Enemy color" value={formData.color || ''} disabled={readOnly} fallbackText="Red, like every enemy" onChange={value => set('color', value)}/>
+            <FieldError message={errors.fields.color}/>
+            <div className="ClassPage-hint">Outlines this enemy's card and its token on the combat map, to tell it from the others. Each one in a fight can be given its own colour from its drawer.</div>
         </div>
 
         <div className="ClassPage-card">

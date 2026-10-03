@@ -132,14 +132,6 @@ describe('PartyInventoryTab', () => {
             expect(mockOps.removePartyEntry).toHaveBeenCalledWith('camp-1', 'p2');
         });
 
-        test('an entry from before items existed can be taken out but not counted or taken', () => {
-            mockUseItem.mockReturnValue({ item: null, status: 'missing' });
-            draw({ party: { inventory: [{ id: 'old', title: 'Rusty Key', content: 'Opens something.', quantity: 1 }] } });
-            expect(screen.queryByRole('button', { name: /One more/ })).not.toBeInTheDocument();
-            expect(screen.queryByRole('button', { name: 'Take' })).not.toBeInTheDocument();
-            expect(screen.getByRole('button', { name: 'Remove Rusty Key' })).toBeInTheDocument();
-        });
-
         test('a refusal is shown, and clears when something else is tried', async () => {
             mockOps.setPartyQuantity.mockRejectedValueOnce(new Error('That could not be done.'));
             draw();

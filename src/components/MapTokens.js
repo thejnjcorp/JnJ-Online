@@ -107,7 +107,7 @@ export function MapTokens({ tokens, rects, aspect, canMove = false, onMove, sele
                 key={token.id}
                 type="button"
                 className={className}
-                style={{ left: `${x * 100}%`, top: `${(y / aspect) * 100}%`, width: `${TOKEN_SIZE * 100}%` }}
+                style={{ left: `${x * 100}%`, top: `${(y / aspect) * 100}%`, width: `${TOKEN_SIZE * 100}%`, ...(token.color ? { '--token-color': token.color } : {}) }}
                 aria-label={[token.title || 'Combatant', zone, token.defeated && 'defeated'].filter(Boolean).join(', ')}
                 aria-pressed={token.selectable ? selected === token.id : undefined}
                 tabIndex={canMoveToken(token) ? 0 : -1}

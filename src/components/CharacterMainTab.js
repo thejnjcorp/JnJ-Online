@@ -255,7 +255,7 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                 />
             </div>}
             <div className="CharacterMainTab-notes CharacterMainTab-roleplay-card CharacterMainTab-roleplay-card-notes">
-                <CharacterNotes characterId={characterPage.character_id} legacyNotes={characterPage.notes} canEdit={hasWritePermissions}/>
+                <CharacterNotes characterId={characterPage.character_id}/>
             </div>
             </div>
         },

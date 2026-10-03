@@ -26,7 +26,7 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 // eslint-disable-next-line import/first
 import { AddStatusDialog } from '../../src/components/AddStatusDialog';
 
-const characterPage = { character_id: 'char-1', class: 'Fighter', campaign: 'camp-1', statuses: [] };
+const characterPage = { character_id: 'char-1', class_name: 'Fighter', campaign: 'camp-1', statuses: [] };
 
 const poisoned = {
     id: 'status-poisoned', name: 'Poisoned', polarity: 'debuff', defaultStacks: 3,
@@ -299,7 +299,7 @@ describe('AddStatusDialog', () => {
 
         test('use the character\'s class_name when it has one', async () => {
             mockGetDocs.mockResolvedValue(docsFrom([rage]));
-            render(<AddStatusDialog characterPage={{ ...characterPage, class: 'Old', class_name: 'Fighter' }} userId="user-1" onClose={jest.fn()} />);
+            render(<AddStatusDialog characterPage={{ ...characterPage, class_name: 'Fighter' }} userId="user-1" onClose={jest.fn()} />);
             await screen.findByRole('button', { name: 'Rage' });
             expect(screen.getByText('Fighter statuses')).toBeInTheDocument();
         });

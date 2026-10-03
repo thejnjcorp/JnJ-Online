@@ -3,6 +3,7 @@ import { collection, documentId, onSnapshot, query, where } from 'firebase/fires
 import { db } from './firebase';
 import { withoutArchived } from './characterArchive';
 import { imageSrc } from './imageRefs';
+import { chosenColor } from './entityColor';
 
 // An NPC's picture for its token: what is saved (an image ref, or a link) as an address to load.
 const npcImage = npc => (npc.portrait_url ? imageSrc(npc.portrait_url) : undefined);
@@ -39,14 +40,14 @@ export function useCampaignMaps(campaignInfo) {
 // zones sync against. Both DirectorsPage and CharacterMainTab need this same
 // full list - a partial list here would make the map view delete other
 // entities' combat_tracker entries as "no longer present".
-// `kind` (player, ally, enemy, neutral), `image`, `defeated` (an NPC the director has
+// `kind` (player, ally, enemy, neutral), `image`, `color` (the outline someone picked for it, or empty), `defeated` (an NPC the director has
 // marked defeated) and - for a player - `ownerIds` (who may move that character's
 // token) are for the map's tokens.
 export function useCombatEntities(characterList, campaignInfo) {
     return useMemo(() => [
-        ...withoutArchived(characterList).map((character) => ({ id: "character:" + character.character_id, title: character.character_name, kind: 'player', image: character.combat_portrait_url || character.portrait_url, ownerIds: [character.userId, ...(character.canWrite ?? [])].filter(Boolean) })),
-        ...(campaignInfo.ally_combat_npc_list ?? []).map((npc) => ({ id: "npc:" + npc.id, title: npc.enemy_name, kind: 'ally', image: npcImage(npc), defeated: Boolean(npc.defeated) })),
-        ...(campaignInfo.enemy_list ?? []).map((npc) => ({ id: "npc:" + npc.id, title: npc.enemy_name, kind: 'enemy', image: npcImage(npc), defeated: Boolean(npc.defeated) })),
-        ...(campaignInfo.neutral_combat_npc_list ?? []).map((npc) => ({ id: "npc:" + npc.id, title: npc.enemy_name, kind: 'neutral', image: npcImage(npc), defeated: Boolean(npc.defeated) })),
+        ...withoutArchived(characterList).map((character) => ({ id: "character:" + character.character_id, title: character.character_name, kind: 'player', image: character.combat_portrait_url || character.portrait_url, color: chosenColor(character.navigation_color), ownerIds: [character.userId, ...(character.canWrite ?? [])].filter(Boolean) })),
+        ...(campaignInfo.ally_combat_npc_list ?? []).map((npc) => ({ id: "npc:" + npc.id, title: npc.enemy_name, kind: 'ally', image: npcImage(npc), color: chosenColor(npc.color), defeated: Boolean(npc.defeated) })),
+        ...(campaignInfo.enemy_list ?? []).map((npc) => ({ id: "npc:" + npc.id, title: npc.enemy_name, kind: 'enemy', image: npcImage(npc), color: chosenColor(npc.color), defeated: Boolean(npc.defeated) })),
+        ...(campaignInfo.neutral_combat_npc_list ?? []).map((npc) => ({ id: "npc:" + npc.id, title: npc.enemy_name, kind: 'neutral', image: npcImage(npc), color: chosenColor(npc.color), defeated: Boolean(npc.defeated) })),
     ], [characterList, campaignInfo.ally_combat_npc_list, campaignInfo.enemy_list, campaignInfo.neutral_combat_npc_list]);
 }

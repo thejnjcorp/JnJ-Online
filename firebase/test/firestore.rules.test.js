@@ -1007,7 +1007,7 @@ async function main() {
         await assertSucceeds(getDoc(doc(testEnv.authenticatedContext('bob').firestore(), 'races', 'secret')));
     });
 
-    await check('a race with no visibility fields at all (an unmigrated legacy doc) is not readable', async () => {
+    await check('a race with no visibility fields at all is not readable', async () => {
         await testEnv.clearFirestore();
         await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
             await setDoc(doc(adminCtx.firestore(), 'races', 'kobold'), { name: 'Kobold', feat: { actionName: 'Mild Fire' } });

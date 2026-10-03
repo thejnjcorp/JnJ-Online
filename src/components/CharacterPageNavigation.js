@@ -18,14 +18,7 @@ export function CharacterPageNavigation({characterPage, userId, classInfo, raceI
     const fileInputRef = useRef(null);
     const hasWritePermissions = userId ? (characterPage.userId === userId || characterPage.canWrite?.includes(userId)) : false;
 
-    // Real character docs are inconsistent about which field actually holds
-    // the class name - some only set class_name (e.g. "Crusader Tank v3"),
-    // others only set class. Whichever is populated wins; if neither is,
-    // CharacterPageLayout.json's default template still has "class": "class"
-    // as a placeholder, so that literal value is filtered out too rather
-    // than displayed as if it were real.
-    const className = characterPage.class_name || characterPage.class;
-    const subline = [className && className !== "class" ? className : null, characterPage.player_name ? `Player: ${characterPage.player_name}` : null]
+    const subline = [characterPage.class_name || null, characterPage.player_name ? `Player: ${characterPage.player_name}` : null]
         .filter(Boolean)
         .join(" \xa0\xa0·\xa0\xa0 ");
 

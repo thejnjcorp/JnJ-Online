@@ -10,7 +10,7 @@ jest.mock('firebase/firestore', () => ({
 }));
 
 // eslint-disable-next-line import/first
-import { MAX_ROLL_REQUESTS, PARTY_DOC_ID, addTrackerPosts, clearRollRequest, ensureParty, partyDoc, removeFromTracker, requestRoll, subscribeParty, updateCombatTracker, updateParty, withRollRequests } from '../../src/utils/party';
+import { MAX_ROLL_REQUESTS, PARTY_DOC_ID, addTrackerPosts, clearRollRequest, ensureParty, partyDoc, removeFromTracker, requestRoll, setCalendarToday, subscribeParty, updateCombatTracker, updateParty, withRollRequests } from '../../src/utils/party';
 
 // A transaction over one document that holds `stored` (undefined: no document yet).
 function transactionOver(stored) {
@@ -104,7 +104,7 @@ describe('updateCombatTracker', () => {
         expect(set).not.toHaveBeenCalled();
     });
 
-    test.each([['no tracker yet', {}], ['an old tracker that is not a list', { combat_tracker: { zones: [] } }], ['no party doc', undefined]])('%s is an empty list to the change', async (_name, stored) => {
+    test.each([['no tracker yet', {}], ['no party doc', undefined]])('%s is an empty list to the change', async (_name, stored) => {
         transactionOver(stored);
         const change = jest.fn(() => null);
         await updateCombatTracker('camp-1', change);
@@ -368,5 +368,21 @@ describe('asking for a roll', () => {
         ({ set } = transactionOver({ roll_requests: [{ id: 'a' }] }));
         await clearRollRequest('camp-1', 'zzz');
         expect(set).not.toHaveBeenCalled();
+    });
+});
+
+describe('moving the calendar\'s today', () => {
+    test('sets today on the party\'s calendar, keeping the rest of it as it is', async () => {
+        const calendar = { weekdays: ['Mon'], months: [{ name: 'Jan', days: 31 }], today: { year: 1, month: 0, day: 1 }, tags: [{ name: 'Holiday', color: '#ff0000' }] };
+        const { set } = transactionOver({ calendar });
+        await setCalendarToday('camp-1', { year: 2, month: 0, day: 5, extra: 'ignored' });
+        expect(set.mock.calls[0][1]).toEqual({ calendar: { ...calendar, today: { year: 2, month: 0, day: 5 } } });
+    });
+
+    test('works on a party that has no calendar yet, from the ordinary one', async () => {
+        const { set } = transactionOver({});
+        await setCalendarToday('camp-1', { year: 1, month: 11, day: 21 });
+        expect(set.mock.calls[0][1].calendar.today).toEqual({ year: 1, month: 11, day: 21 });
+        expect(set.mock.calls[0][1].calendar.months).toHaveLength(12);
     });
 });

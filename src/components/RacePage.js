@@ -123,7 +123,6 @@ export function RacePage() {
     async function getRaceData() {
         const docRef = await getDoc(doc(db, "races", raceId));
         const data = docRef.data();
-        // Races seeded before actions existed carry a single `feat` instead.
         setFormData({ type: 'SET_FORM_DATA', payload: { ...data, actions: raceActionsOf(data), visibility: visibilityFromDoc(data) } });
         document.title = data.name;
         setViewingSnapshot(null);

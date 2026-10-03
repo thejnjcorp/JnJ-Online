@@ -6,6 +6,7 @@
 //   combat_tracker: who is in the fight, the zone each is in and where each one's
 //                   token sits on the combat map (utils/mapTokens.js)
 // and is the place for the party's inventory and notes.
+import { calendarOf } from './calendar';
 import { doc, onSnapshot, runTransaction } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -72,10 +73,9 @@ export function subscribeParty(campaignId, listener) {
 }
 
 // Make sure the campaign has a party doc: create it, empty, if it doesn't yet.
-// A new campaign gets one as it is made, and an older campaign the first time
-// anyone opens it, so the party doc is there whatever the campaign is doing - the
-// map, the inventory, the notes - instead of appearing only when one of them
-// happens to write to it first. Leaves an existing one exactly as it is.
+// A new campaign gets one as it is made, so the party doc is there whatever the
+// campaign is doing - the map, the inventory, the notes - instead of appearing only
+// when one of them happens to write to it first. Leaves an existing one exactly as it is.
 export async function ensureParty(campaignId) {
     const ref = partyDoc(campaignId);
     await runTransaction(db, async transaction => {
@@ -101,7 +101,7 @@ export function updateParty(campaignId, change) {
 // The same for the combat tracker: `change` is given its posts (a list, whatever is
 // stored) and returns the new list, or null for no change.
 export const updateCombatTracker = (campaignId, change) => updateParty(campaignId, party => {
-    const next = change(Array.isArray(party.combat_tracker) ? party.combat_tracker : []);
+    const next = change(party.combat_tracker ?? []);
     return next ? { combat_tracker: next } : null;
 });
 
@@ -144,3 +144,8 @@ export const clearRollRequest = (campaignId, requestId) => updateParty(campaignI
     const kept = existing.filter(request => request.id !== requestId);
     return kept.length === existing.length ? null : { roll_requests: kept };
 });
+
+// --- The calendar's today -----------------------------------------------------------
+// Move the party calendar's "today" to a date (the day a scene is set on). It reads the live
+// calendar at write time, so it never undoes a change someone else just made to it.
+export const setCalendarToday = (campaignId, date) => updateParty(campaignId, party => ({ calendar: { ...calendarOf(party), today: { year: date.year, month: date.month, day: date.day } } }));

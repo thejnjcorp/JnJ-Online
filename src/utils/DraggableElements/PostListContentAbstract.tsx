@@ -33,13 +33,7 @@ export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, 
   zoom?: number
 }) => {
   const { posts: rawPosts, loading: isLoading } = usePosts();
-  // A usePosts producer that reads a Firestore field directly (rather than
-  // via the CharacterPageLayout.json-defaulted merge) can hand back whatever
-  // shape happens to be stored there - e.g. the "Orto" campaign's
-  // combat_tracker is a legacy { zones: [...] } object, not a Post[] array.
-  // `?? []` alone only catches a missing field, not a wrong-shaped one, so
-  // this needs an actual type check to keep every .map/.forEach below safe.
-  const unorderedPosts: Post[] = Array.isArray(rawPosts) ? rawPosts : EMPTY_POSTS;
+  const unorderedPosts: Post[] = rawPosts ?? EMPTY_POSTS;
 
   const foundStatuses: Status[] = Array.from(
     new Set(unorderedPosts.map(post => post.status))

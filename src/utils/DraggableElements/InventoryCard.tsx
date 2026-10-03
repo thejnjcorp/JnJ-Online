@@ -2,7 +2,7 @@ import { createContext, useContext, useState } from "react";
 import { Draggable } from "@hello-pangea/dnd";
 import { ItemDetails, ItemThumb, itemName } from "../../components/ItemLine";
 import { useItem } from "../useItems";
-import { isItemEntry, quantityOf, MAX_QUANTITY } from "../inventory";
+import { quantityOf, MAX_QUANTITY } from "../inventory";
 import { putInParty, removeCharacterEntry, setCharacterQuantity } from "../partyInventory";
 import type { Post } from "./Post.ts";
 import "../../styles/Party.scss";
@@ -28,8 +28,7 @@ type EntryPost = Post & { item_id?: string; quantity?: number };
 // covered by that button) was ever draggable. A plain div isn't on that list, so the
 // library's own mousedown-then-movement-threshold still tells a real drag apart from a
 // click perfectly well here - dragging still works from anywhere on the card, clicking
-// (without dragging) opens the popup. An entry from before items existed shows the
-// text it was typed with, and can only be removed.
+// (without dragging) opens the popup.
 export const InventoryCard = ({ post, index, titleClassName, boxClassName }: { post: Post; index: number; titleClassName: string; contentClassName?: string; boxClassName: string; extraClassNames?: string[]; readOnly?: boolean }) => {
     const { characterId, canEdit, campaignId, userId } = useContext(InventoryContext);
     const entry = post as EntryPost;
@@ -39,7 +38,6 @@ export const InventoryCard = ({ post, index, titleClassName, boxClassName }: { p
     const [message, setMessage] = useState("");
     const quantity = quantityOf(entry);
     const name = itemName(state, entry.title);
-    const real = isItemEntry(entry);
 
     async function run(action: () => Promise<unknown>) {
         setMessage("");
@@ -83,14 +81,14 @@ export const InventoryCard = ({ post, index, titleClassName, boxClassName }: { p
                         <span className="InventoryCard-popup-title">{name}</span>
                         <button type="button" className="InventoryCard-popup-close" aria-label="Close details" onClick={() => setOpen(false)}>×</button>
                     </div>
-                    <ItemDetails state={state} content={(post as Post).content} legacy={!real}/>
+                    <ItemDetails state={state}/>
                     {canEdit && <div className="InventoryCard-controls">
-                        {real && <fieldset className="InventoryCard-quantity" aria-label="Quantity">
+                        <fieldset className="InventoryCard-quantity" aria-label="Quantity">
                             <button type="button" className="Party-button" aria-label="One fewer" onClick={() => run(() => setCharacterQuantity(characterId, entry.id as string, quantity - 1))}>−</button>
                             <span>{quantity}</span>
                             <button type="button" className="Party-button" aria-label="One more" disabled={quantity >= MAX_QUANTITY} onClick={() => run(() => setCharacterQuantity(characterId, entry.id as string, quantity + 1))}>+</button>
-                        </fieldset>}
-                        {real && campaignId && <div className="InventoryCard-party">
+                        </fieldset>
+                        {campaignId && <div className="InventoryCard-party">
                             <input className="Party-input Party-input-narrow" type="number" min={1} max={quantity} aria-label="How many to put in the party inventory" value={amount} onChange={(event) => setAmount(Number(event.target.value))}/>
                             <button type="button" className="Party-button" onClick={() => run(() => putInParty({ campaignId, characterId, itemId: entry.item_id, title: name, quantity: putAmount, userId }))}>Put in party inventory</button>
                         </div>}

@@ -11,6 +11,8 @@
 // see useScenes.js). Nothing here touches Firestore: this file is the shape of
 // those documents and the pure functions the director's views are built from.
 
+import { compareDates, formatDate, isValidDate, sameDate } from './calendar';
+
 export const SCENE_TYPES = [
     { key: 'roleplay', label: 'Roleplay' },
     { key: 'combat', label: 'Combat' },
@@ -74,7 +76,7 @@ export function newBeat(type = 'cue') {
 
 export function newScene(fields = {}) {
     return {
-        sessionId: '', name: '', premise: '', type: 'roleplay', status: 'draft', inWorldDate: '',
+        sessionId: '', name: '', premise: '', type: 'roleplay', status: 'draft', date: null,
         timeMin: null, timeMax: null, episode: '', order: Date.now(), branch: null, benched: false,
         beats: [], run: null,
         ...fields,
@@ -468,4 +470,45 @@ export function sceneToOpen(scenes, { sessionId = null, lastId = null, view = 'b
     const pool = inSession.length > 0 ? inSession : scenes.filter(scene => !scene.benched && !scene.branch).sort(byOrder);
     const todo = pool.find(scene => scene.status !== 'completed' && scene.status !== 'skipped' && (view === 'build' || hasBeats(scene)));
     return todo || pool[0] || scenes[0] || null;
+}
+
+
+// ---- When a scene happens, on the party's calendar --------------------------------
+
+// A scene's date: a day of the campaign's calendar (`date`: { year, month, day }), so it can be put
+// on the calendar and the calendar put to it. It is only there when the calendar has that day: a
+// calendar whose months have been changed since may not.
+export const sceneDate = (scene, calendar) => (isValidDate(calendar, scene?.date) ? scene.date : null);
+
+// The date as the views show it: the calendar's day, or nothing.
+export function sceneDateText(scene, calendar) {
+    const date = sceneDate(scene, calendar);
+    return date ? formatDate(calendar, date) : '';
+}
+
+// The days a session covers, as its scenes have them: "3 December, year 2" or "3 December, year 2 - 5 December,
+// year 2". Empty when none of its scenes has a date.
+export function sessionDatesText(scenes, sessionId, calendar) {
+    const dates = scenes.filter(scene => scene.sessionId === sessionId).map(scene => sceneDate(scene, calendar)).filter(Boolean)
+        .sort((a, b) => compareDates(calendar, a, b));
+    if (dates.length === 0) return '';
+    const first = dates[0];
+    const last = dates.at(-1);
+    return sameDate(first, last) ? formatDate(calendar, first) : `${formatDate(calendar, first)} - ${formatDate(calendar, last)}`;
+}
+
+// Whether the calendar's today is not this scene's day (there is something to move it to).
+export const calendarIsElsewhere = (scene, calendar) => {
+    const date = sceneDate(scene, calendar);
+    return Boolean(date) && !sameDate(date, calendar.today);
+};
+
+// What goes on the calendar when a scene is logged: its name, what it was about, and its day.
+export function sceneEventFields(scene, calendar) {
+    const date = sceneDate(scene, calendar);
+    if (!date) return null;
+    return {
+        title: (scene.name || 'Untitled scene').trim().slice(0, 80), description: (scene.premise || '').slice(0, 4000), category: 'Scene',
+        year: date.year, month: date.month, day: date.day, recurrence: 'none',
+    };
 }

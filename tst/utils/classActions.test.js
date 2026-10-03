@@ -1,34 +1,15 @@
 import { ACTION_USAGES, FEAT_TIER_RANGE, featTierOf, getActionCategory, getActionUsage, isCombatAction, isReactionAction, isRoleplayAction, usageBadge } from '../../src/utils/classActions';
 
 describe('getActionCategory', () => {
-    test('prefers an explicit category field over any tag-based inference', () => {
+    test('is the explicit category field, whatever the tags say', () => {
         expect(getActionCategory({ category: 'reaction', tags: [{ tagInfo: 'Feat' }] })).toBe('reaction');
+        expect(getActionCategory({ category: 'feat' })).toBe('feat');
     });
 
-    test.each([
-        ['Feat', 'feat'],
-        ['Passive', 'passive'],
-        ['Reaction', 'reaction'],
-    ])('legacy action with a %s tag and no category falls back to %s', (tagInfo, expected) => {
-        expect(getActionCategory({ tags: [{ tagInfo }] })).toBe(expected);
-    });
-
-    test('a legacy action with none of the special tags defaults to "action"', () => {
-        expect(getActionCategory({ tags: [{ tagInfo: 'Something Else' }] })).toBe('action');
-    });
-
-    test('an action with no category and no tags defaults to "action"', () => {
+    test('an action with no category (or an empty one) is an ordinary "action", tags or not', () => {
         expect(getActionCategory({})).toBe('action');
-        expect(getActionCategory({ tags: [] })).toBe('action');
-    });
-
-    test('checks tags in priority order: Feat beats Passive beats Reaction when multiple are present', () => {
-        expect(getActionCategory({ tags: [{ tagInfo: 'Reaction' }, { tagInfo: 'Passive' }, { tagInfo: 'Feat' }] })).toBe('feat');
-        expect(getActionCategory({ tags: [{ tagInfo: 'Reaction' }, { tagInfo: 'Passive' }] })).toBe('passive');
-    });
-
-    test('an explicit falsy category (empty string) is treated as absent and falls through to tag inference', () => {
-        expect(getActionCategory({ category: '', tags: [{ tagInfo: 'Feat' }] })).toBe('feat');
+        expect(getActionCategory({ category: '' })).toBe('action');
+        expect(getActionCategory({ tags: [{ tagInfo: 'Feat' }] })).toBe('action');
     });
 });
 
@@ -88,9 +69,8 @@ describe('featTierOf', () => {
 });
 
 describe('isReactionAction', () => {
-    test('is true for the reaction category, including one only marked by its legacy tag', () => {
+    test('is true for the reaction category', () => {
         expect(isReactionAction({ category: 'reaction' })).toBe(true);
-        expect(isReactionAction({ tags: [{ tagInfo: 'Reaction' }] })).toBe(true);
     });
 
     test('is false for anything else', () => {

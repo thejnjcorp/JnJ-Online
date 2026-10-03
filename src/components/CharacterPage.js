@@ -43,8 +43,8 @@ export function CharacterPage() {
 
     const docQuery = useMemo(() => doc(db, "characters", location.pathname.split("/").at(2)), [location.pathname]);
     // campaignId is "placeholder" until the character doc loads, then either a
-    // real campaign ID or null (a character with no campaign field, e.g.
-    // created before that field existed). doc()/query() below must not run for
+    // real campaign ID or null (a character with no campaign field).
+    // doc()/query() below must not run for
     // either "not loaded yet" or "confirmed none" - doc(db, "campaigns", null)
     // throws synchronously (Firestore rejects an empty path segment), which
     // would crash the whole page before a "join a campaign" prompt ever had a

@@ -6,6 +6,7 @@
 
 import { getEffectiveCharacterStats, statusDeltaFor } from './statusEffects';
 import { parseModifier } from './enemies';
+import { chosenColor } from './entityColor';
 
 export const ABILITIES = [
     { key: 'STR', stat: 'strength_stat', name: 'Strength' },
@@ -54,10 +55,10 @@ export function playerCombatant(character) {
         key: character.character_id,
         kind: 'player',
         name: character.character_name || 'Unnamed',
-        subtitle: [character.class_name || character.class, character.race_name].filter(Boolean).join(' · '),
+        subtitle: [character.class_name, character.race_name].filter(Boolean).join(' · '),
         tier: '',
         portrait: character.combat_portrait_url || character.portrait_url || '',
-        color: character.navigation_color || '',
+        color: chosenColor(character.navigation_color),
         hp: { now, max, temp: numberOr(character.temporary_health, 0), tracked: true },
         ac: numberOr(effective[AC_STAT], 0),
         acBase: numberOr(character[AC_STAT], 0),
@@ -86,7 +87,7 @@ export function enemyCombatant(enemy) {
         subtitle: '',
         tier: enemy.enemy_type || '',
         portrait: '',
-        color: '',
+        color: chosenColor(enemy.color),
         hp: { now, max, temp: numberOr(enemy.temporary_health, 0), tracked: max > 0 },
         ac: numberOr(effective[AC_STAT], 0),
         acBase: numberOr(enemy[AC_STAT], 0),

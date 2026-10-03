@@ -26,7 +26,7 @@ export function AddStatusDialog({characterPage, userId, onClose, onUpdateStatuse
     const [color, setColor] = useState('');
     const [stacks, setStacks] = useState(0);
     const [submitting, setSubmitting] = useState(false);
-    const characterClass = characterPage.class_name || characterPage.class;
+    const characterClass = characterPage.class_name;
 
     useEffect(() => {
         if (!userId) return;

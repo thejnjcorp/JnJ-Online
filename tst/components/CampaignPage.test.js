@@ -42,8 +42,6 @@ jest.mock('react-router-dom', () => ({
     useNavigate: () => mockNavigate,
 }));
 
-const mockEnsureParty = jest.fn();
-jest.mock('../../src/utils/party', () => ({ ensureParty: (...args) => mockEnsureParty(...args) }));
 
 jest.mock('../../src/components/DocAdminManager', () => ({
     DocAdminManager: ({ admins, userId }) => <div>DocAdminManager-stub:{JSON.stringify(admins)}:{userId}</div>,
@@ -56,7 +54,7 @@ import { CampaignPage } from '../../src/components/CampaignPage';
 // eslint-disable-next-line import/first
 import { renderWithRouter } from '../testUtils/renderWithRouter';
 
-const character = { id: 'char-a', character_name: 'Aria', class: 'Fighter', player_name: 'Sam' };
+const character = { id: 'char-a', character_name: 'Aria', class_name: 'Fighter', player_name: 'Sam' };
 
 const flush = () => act(async () => { await Promise.resolve(); await Promise.resolve(); });
 
@@ -94,8 +92,6 @@ beforeEach(() => {
     mockGetDocs.mockResolvedValue(docsFrom([]));
     mockGetCountFromServer.mockResolvedValue({ data: () => ({ count: 1 }) });
     mockUpdateDoc.mockResolvedValue(undefined);
-    mockEnsureParty.mockReset();
-    mockEnsureParty.mockResolvedValue(undefined);
     window.alert = jest.fn();
 });
 
@@ -123,41 +119,6 @@ describe('CampaignPage', () => {
         expect(document.title).toBe('Campaign Not Found');
     });
 
-    describe('the campaign\'s party doc', () => {
-        test('is made the first time someone opens a campaign that has none (a campaign from before it existed)', async () => {
-            signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale' });
-            renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
-            await waitFor(() => expect(mockEnsureParty).toHaveBeenCalledWith('camp-1'));
-            expect(mockEnsureParty).toHaveBeenCalledTimes(1);
-        });
-
-        test('is not touched for a campaign that isn\'t there (or that the person can\'t open)', async () => {
-            signIn({ uid: 'user-1' }, null);
-            renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
-            expect(await screen.findByText("This campaign doesn't exist, or you don't have access to it.")).toBeInTheDocument();
-            expect(mockEnsureParty).not.toHaveBeenCalled();
-        });
-
-        test('is not touched when nobody is signed in', async () => {
-            mockOnAuthStateChanged.mockImplementation((_auth, callback) => { Promise.resolve().then(() => callback(null)); return jest.fn(); });
-            renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
-            await screen.findByText('Sign in to see this campaign.');
-            expect(mockEnsureParty).not.toHaveBeenCalled();
-        });
-
-        test('a failure to make it is logged and does not get in the way of the page', async () => {
-            const log = jest.spyOn(console, 'log').mockImplementation(() => {});
-            mockEnsureParty.mockRejectedValue(new Error('permission-denied'));
-            signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale' }, [character]);
-            renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
-
-            expect(await screen.findByText('Aria')).toBeInTheDocument();
-            await waitFor(() => expect(log).toHaveBeenCalledWith("Couldn't create the party doc: Error: permission-denied"));
-            expect(window.alert).not.toHaveBeenCalled();
-            log.mockRestore();
-        });
-    });
-
     describe('once loaded', () => {
         test('sets the document title and shows a character card per character', async () => {
             signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale' }, [character]);
@@ -167,6 +128,17 @@ describe('CampaignPage', () => {
             expect(document.title).toBe('The Iron Vale');
             expect(screen.getByText(/Fighter/)).toBeInTheDocument();
             expect(screen.getByText(/Player: Sam/)).toBeInTheDocument();
+        });
+
+        test('each character card is outlined in the colour its player picked, and left alone when there is none', async () => {
+            signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale' }, [
+                { ...character, id: 'char-k', character_name: 'Kira', navigation_color: '#00ff85' },
+                { ...character, id: 'char-n', character_name: 'Nash' },
+            ]);
+            renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
+            const kira = await screen.findByRole('button', { name: /Kira/ });
+            expect(kira.style.getPropertyValue('--character-accent')).toBe('#00ff85');
+            expect(screen.getByRole('button', { name: /Nash/ }).style.getPropertyValue('--character-accent')).toBe('');
         });
 
         test('a character made since classes were reworked shows its class_name', async () => {
@@ -302,44 +274,28 @@ describe('CampaignPage', () => {
                 expect(screen.getByText('user-2')).toBeInTheDocument();
             });
 
-            test('renders a legacy bare-uid-string player as "Unknown Player"', async () => {
-                signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale', players: ['user-3'] });
-                renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
-                expect(await screen.findByText('Unknown Player')).toBeInTheDocument();
-                expect(screen.getByText('user-3')).toBeInTheDocument();
-            });
-
-            test('renders a legacy DocumentReference-shaped player using its id', async () => {
-                signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale', players: [{ id: 'user-4' }] });
-                renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
-                expect(await screen.findByText('Unknown Player')).toBeInTheDocument();
-                expect(screen.getByText('user-4')).toBeInTheDocument();
-            });
-
             describe('with write access', () => {
-                test('shows + Add a Player, a Kick button for a kickable player, and a legacy note for a non-kickable one', async () => {
+                test('shows + Add a Player, and a Kick button for each player', async () => {
                     signIn({ uid: 'user-1' }, {
                         campaign_name: 'The Iron Vale', canWrite: ['user-1'],
-                        players: [{ name: 'Sam', uid: 'user-2' }, 'user-3'],
+                        players: [{ name: 'Sam', uid: 'user-2' }],
                     });
                     renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
                     await screen.findByText('Sam');
 
                     expect(screen.getByRole('button', { name: '+ Add a Player' })).toBeInTheDocument();
                     expect(screen.getByRole('button', { name: 'Kick' })).toBeInTheDocument();
-                    expect(screen.getByText('Legacy record')).toBeInTheDocument();
                 });
             });
 
             describe('without write access', () => {
-                test('shows neither Add a Player nor any Kick/legacy affordance', async () => {
-                    signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale', players: [{ name: 'Sam', uid: 'user-2' }, 'user-3'] });
+                test('shows neither Add a Player nor any Kick affordance', async () => {
+                    signIn({ uid: 'user-1' }, { campaign_name: 'The Iron Vale', players: [{ name: 'Sam', uid: 'user-2' }] });
                     renderWithRouter(<CampaignPage />, { route: '/campaigns/camp-1' });
                     await screen.findByText('Sam');
 
                     expect(screen.queryByRole('button', { name: '+ Add a Player' })).not.toBeInTheDocument();
                     expect(screen.queryByRole('button', { name: 'Kick' })).not.toBeInTheDocument();
-                    expect(screen.queryByText('Legacy record')).not.toBeInTheDocument();
                 });
             });
         });

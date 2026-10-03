@@ -3,11 +3,14 @@ import { useSearchParams } from 'react-router-dom';
 import { addDoc, collection, deleteDoc, doc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useScenes } from '../utils/useScenes';
+import { useParty } from '../utils/useParty';
+import { calendarOf } from '../utils/calendar';
+import { addPartyEvent } from '../utils/usePartyEvents';
 import { useEncounters } from '../utils/useEncounters';
-import { addTrackerPosts, partyDoc, updateCombatTracker } from '../utils/party';
+import { addTrackerPosts, partyDoc, setCalendarToday, updateCombatTracker } from '../utils/party';
 import { stageEncounter } from '../utils/enemies';
 import {
-    SCENE_TEMPLATES, activeScene, branchLinkPatches, copyBeats, newId, orderAfter, pauseRun, sceneToOpen, settleDecision, startRun, unlinkScene,
+    SCENE_TEMPLATES, activeScene, branchLinkPatches, calendarIsElsewhere, copyBeats, newId, orderAfter, pauseRun, sceneDate, sceneEventFields, sceneToOpen, settleDecision, startRun, unlinkScene,
 } from '../utils/scenes';
 import { ScenesCampaignView } from './ScenesCampaignView';
 import { PartySpace } from './PartySpace';
@@ -46,7 +49,7 @@ async function stageCombatBeat({ campaignId, campaignInfo, maps, beat }) {
 
 // The builder or the runner for one scene - or, when there is no scene to show, what
 // to do about it.
-function SceneWorkspace({ view, scene, session, scenes, encounters, maps, renderCombat, actions, combatTurn, players, onAskRoll }) {
+function SceneWorkspace({ view, scene, session, scenes, encounters, maps, renderCombat, actions, combatTurn, players, onAskRoll, calendar }) {
     if (!scene || !session) {
         return <div className="Scenes-view"><div className="Scenes-empty">
             There are no scenes to {view === 'build' ? 'build' : 'run'} yet.{' '}
@@ -56,9 +59,9 @@ function SceneWorkspace({ view, scene, session, scenes, encounters, maps, render
     if (view === 'build') {
         return <SceneBuilder key={scene.id} scene={scene} scenes={scenes} session={session} encounters={encounters} maps={maps}
             onSave={actions.saveScene} onCreatePathScene={actions.createPathScene} onRun={actions.goRun} onBack={() => actions.goSession(session.id)} onOpenScene={actions.goBuild} onOpenMaps={actions.openMaps}
-            onOpenEncounter={actions.openEncounter} onCreateEncounter={actions.createEncounter} players={players} onSetCondition={actions.setCondition}/>;
+            onOpenEncounter={actions.openEncounter} onCreateEncounter={actions.createEncounter} players={players} onSetCondition={actions.setCondition} calendar={calendar}/>;
     }
-    return <SceneRunner key={scene.id} scene={scene} scenes={scenes} session={session}
+    return <SceneRunner key={scene.id} scene={scene} scenes={scenes} session={session} calendar={calendar} onSyncCalendar={actions.syncCalendar}
         onUpdate={actions.updateScene} onStart={actions.startScene} onEnd={actions.endScene} onSwitch={actions.switchScene}
         onDecide={actions.decide} onStartCombat={actions.startCombat} renderCombat={renderCombat} onOpenBuilder={actions.goBuild} onOpenMaps={actions.openMaps} onOpenNotes={actions.openNotes}
         combatTurn={combatTurn} players={players} onAskRoll={onAskRoll}/>;
@@ -95,6 +98,9 @@ function ScenesNav({ view, timelineSessionId, buildTarget, runTarget, live, go, 
 export function ScenesTab({ campaignId, campaignInfo, maps, renderCombat, renderMaps, renderNotes, header, renderSidebar, onSceneEnded, combatTurn = null, players = [], onAskRoll = null }) {
     const { sessions, scenes, status, createSession, updateSession, createScene, updateScene, deleteScene } = useScenes(campaignId);
     const { encounters } = useEncounters(campaignId);
+    // the party's calendar: scenes are set on its days, and it can be moved to a scene's day
+    const { party } = useParty(campaignId);
+    const calendar = useMemo(() => calendarOf(party), [party]);
     const [params, setParams] = useSearchParams();
     const [newScene, setNewScene] = useState(null);
     const [deciding, setDeciding] = useState(null);
@@ -149,11 +155,11 @@ export function ScenesTab({ campaignId, campaignInfo, maps, renderCombat, render
         } catch (error) { fail("Couldn't create the session: ")(error); }
     }
 
-    async function handleCreateScene({ name, type, sessionId, inWorldDate, timeMin, timeMax, afterSceneId, duplicateOf, templateKey }) {
+    async function handleCreateScene({ name, type, sessionId, date, timeMin, timeMax, afterSceneId, duplicateOf, templateKey }) {
         const original = duplicateOf ? scenes.find(candidate => candidate.id === duplicateOf) : null;
         const template = templateKey ? SCENE_TEMPLATES.find(candidate => candidate.key === templateKey) : null;
         const id = await createScene({
-            sessionId, name, type, inWorldDate, timeMin, timeMax,
+            sessionId, name, type, date: date || null, timeMin, timeMax,
             order: orderAfter(scenes, sessionId, afterSceneId === undefined ? mainEndId(sessionId) : afterSceneId),
             ...(original ? { premise: original.premise || '', beats: copyBeats(original.beats), episode: original.episode || '' } : {}),
             ...(template ? { beats: template.beats() } : {}),
@@ -187,7 +193,7 @@ export function ScenesTab({ campaignId, campaignInfo, maps, renderCombat, render
     function duplicateScene(scene) {
         createScene({
             sessionId: scene.sessionId, name: `${scene.name || 'Untitled scene'} (copy)`, premise: scene.premise, type: scene.type, episode: scene.episode,
-            inWorldDate: scene.inWorldDate, timeMin: scene.timeMin, timeMax: scene.timeMax, beats: copyBeats(scene.beats),
+            date: scene.date ?? null, timeMin: scene.timeMin, timeMax: scene.timeMax, beats: copyBeats(scene.beats),
             order: orderAfter(scenes, scene.sessionId, scene.id),
         }).catch(fail("Couldn't duplicate the scene: "));
     }
@@ -262,14 +268,19 @@ export function ScenesTab({ campaignId, campaignInfo, maps, renderCombat, render
 
     // ---- Running ---------------------------------------------------------
 
-    async function startScene(scene) {
+    async function startScene(scene, { moveCalendar = false } = {}) {
         const others = scenes.filter(other => other.status === 'active' && other.id !== scene.id);
         await Promise.all(others.map(other => updateScene(other.id, { status: 'ready', run: pauseRun(other.run || {}) })));
         await updateScene(scene.id, { status: 'active', run: startRun(scene) });
+        // the scene is on a different day to the calendar's today: if asked to, the calendar moves to it
+        if (moveCalendar && calendarIsElsewhere(scene, calendar)) await setCalendarToday(campaignId, sceneDate(scene, calendar));
     }
 
-    async function endScene(scene) {
-        await updateScene(scene.id, { status: 'completed', run: pauseRun(scene.run || {}) });
+    async function endScene(scene, { logOnCalendar = false } = {}) {
+        // the scene goes on the party's calendar, on its day, once (it remembers the event it made)
+        const fields = logOnCalendar && !scene.calendarEventId ? sceneEventFields(scene, calendar) : null;
+        const logged = fields ? await addPartyEvent(campaignId, fields) : null;
+        await updateScene(scene.id, { status: 'completed', run: pauseRun(scene.run || {}), ...(logged ? { calendarEventId: logged.id } : {}) });
         // what was only for the scene (a status that lasts "the rest of the scene") ends with it
         onSceneEnded?.();
         goSession(scene.sessionId);
@@ -299,22 +310,23 @@ export function ScenesTab({ campaignId, campaignInfo, maps, renderCombat, render
     else if (status === 'error') body = <div className="Scenes-view"><p role="alert">{"Couldn't load the scenes. Only the campaign's directors can see them."}</p></div>;
     else if (view === 'build' || view === 'run') {
         body = <SceneWorkspace view={view} scene={sceneForView} session={sceneSession} scenes={scenes} encounters={encounters} maps={maps}
-            renderCombat={() => renderCombat({ openPanel })} combatTurn={combatTurn} players={players} onAskRoll={onAskRoll} actions={{
+            renderCombat={() => renderCombat({ openPanel })} combatTurn={combatTurn} players={players} onAskRoll={onAskRoll} calendar={calendar} actions={{
                 saveScene, createPathScene, setCondition: (scene, choice) => setCondition(scene, choice).catch(fail("Couldn't change the path: ")), goRun, goBuild, goCampaign, goSession, newScene: () => openNewScene(),
                 updateScene: (id, patch) => updateScene(id, patch).catch(fail("Couldn't save: ")),
-                startScene: scene => startScene(scene).catch(fail("Couldn't start the scene: ")),
-                endScene: scene => endScene(scene).catch(fail("Couldn't end the scene: ")),
+                startScene: (scene, options) => startScene(scene, options).catch(fail("Couldn't start the scene: ")),
+                endScene: (scene, options) => endScene(scene, options).catch(fail("Couldn't end the scene: ")),
+                syncCalendar: date => setCalendarToday(campaignId, date).catch(fail("Couldn't change the calendar: ")),
                 switchScene: (from, toId) => switchScene(from, toId).catch(fail("Couldn't switch scenes: ")),
                 decide: (sceneId, beatId) => setDeciding({ sceneId, beatId }),
                 startCombat, openMaps: () => openPanel('maps'), openNotes: () => openPanel('notes'), openEncounter, createEncounter,
             }}/>;
     } else if (session) {
-        body = <ScenesSessionView sessions={sessions} scenes={scenes} session={session} onBack={goCampaign} onOpenSession={goSession}
+        body = <ScenesSessionView sessions={sessions} scenes={scenes} session={session} calendar={calendar} onBack={goCampaign} onOpenSession={goSession}
             onNewScene={openNewScene} onEdit={goBuild} onRun={goRun} onDecide={(sceneId, beatId) => setDeciding({ sceneId, beatId })}
             onDuplicate={duplicateScene} onBench={benchScene} onDelete={deleteSceneWithConfirm} onBringBack={bringBack} onKeepForLater={keepForLater}
             onUpdateSession={(id, patch) => updateSession(id, patch).catch(fail("Couldn't save: "))}/>;
     } else {
-        body = <ScenesCampaignView sessions={sessions} scenes={scenes} onOpenSession={goSession} onNewSession={createNewSession} onNewScene={openNewScene}/>;
+        body = <ScenesCampaignView sessions={sessions} scenes={scenes} calendar={calendar} onOpenSession={goSession} onNewSession={createNewSession} onNewScene={openNewScene}/>;
     }
 
     // from Build or Run, Timeline goes back to that scene's session
@@ -340,7 +352,7 @@ export function ScenesTab({ campaignId, campaignInfo, maps, renderCombat, render
         {panel === 'party' && <ScenesPanel title="Party" onClose={() => setPanel(null)}>
             <PartySpace campaignId={campaignId} tab={partyTab} onTab={setPartyTab}/>
         </ScenesPanel>}
-        {newScene && <NewSceneDialog sessions={sessions} scenes={scenes} defaultSessionId={newScene.sessionId} afterSceneId={newScene.afterSceneId}
+        {newScene && <NewSceneDialog sessions={sessions} scenes={scenes} calendar={calendar} defaultSessionId={newScene.sessionId} afterSceneId={newScene.afterSceneId}
             onCreate={handleCreateScene} onClose={() => setNewScene(null)}/>}
         {decidingOwner && decidingBeat && <SceneDecisionDialog owner={decidingOwner} beat={decidingBeat} scenes={scenes}
             onConfirm={confirmDecision} onAddPath={addPathOnTheFly} onClose={() => setDeciding(null)}/>}

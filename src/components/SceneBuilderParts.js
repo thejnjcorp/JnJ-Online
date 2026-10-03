@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { SCENE_TYPES, conditionChoices, newId, timeGoalText } from '../utils/scenes';
+import { SCENE_TYPES, conditionChoices, newId, sceneDate, timeGoalText } from '../utils/scenes';
+import { CalendarDatePicker } from './SceneCalendarParts';
 import { useEscapeKey } from '../utils/useEscapeKey';
 
 // The NPCs and checks attached to a beat: voiced or called along with it (a flashback with a bully
@@ -116,7 +117,7 @@ function npcsUsed(beats) {
 
 // Beside the beats: the scene's type, date, episode and time goal; who and what is in it; and where it sits
 // among the decisions (what it only runs if, and what it ends with).
-export function BuilderSide({ current, edit, estimate, beats, scenes, players, owner, ownerBeat, endsWith, onOpenScene, onSetCondition, onAddNpc }) {
+export function BuilderSide({ calendar, current, edit, estimate, beats, scenes, players, owner, ownerBeat, endsWith, onOpenScene, onSetCondition, onAddNpc }) {
     const npcs = npcsUsed(beats);
     const choices = conditionChoices(scenes, current);
     const branch = current.branch;
@@ -130,7 +131,7 @@ export function BuilderSide({ current, edit, estimate, beats, scenes, players, o
                     {SCENE_TYPES.map(type => <button type="button" key={type.key} aria-pressed={current.type === type.key} onClick={() => edit({ type: type.key })}>{type.label}</button>)}
                 </fieldset>
             </div>
-            <Field label="In-world date"><input type="text" value={current.inWorldDate || ''} onChange={event => edit({ inWorldDate: event.target.value })}/></Field>
+            <CalendarDatePicker calendar={calendar} value={sceneDate(current, calendar)} onChange={date => edit({ date })}/>
             <Field label="Episode"><input type="text" value={current.episode || ''} placeholder="Groups scenes on the timeline" onChange={event => edit({ episode: event.target.value })}/></Field>
             <div className="Scenes-beat-row">
                 <Field label="Goal from (min)"><input type="number" min="0" value={current.timeMin ?? ''} onChange={event => edit({ timeMin: Number(event.target.value) || null })}/></Field>

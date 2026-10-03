@@ -46,24 +46,18 @@ describe('CharacterPageNavigation', () => {
             expect(screen.getByText('Unnamed Character')).toBeInTheDocument();
         });
 
-        test('prefers class_name over class when both are set', () => {
-            render(<CharacterPageNavigation characterPage={{ ...characterPage, class_name: 'Crusader Tank v3', class: 'Fighter' }} userId="owner-1" />);
+        test('shows the class name', () => {
+            render(<CharacterPageNavigation characterPage={{ ...characterPage, class_name: 'Crusader Tank v3' }} userId="owner-1" />);
             expect(screen.getByText('Crusader Tank v3')).toBeInTheDocument();
-            expect(screen.queryByText('Fighter')).not.toBeInTheDocument();
         });
 
-        test('falls back to class when class_name is absent', () => {
-            render(<CharacterPageNavigation characterPage={{ ...characterPage, class: 'Fighter' }} userId="owner-1" />);
-            expect(screen.getByText('Fighter')).toBeInTheDocument();
-        });
-
-        test('the literal placeholder value "class" is treated as no class at all', () => {
-            const { container } = render(<CharacterPageNavigation characterPage={{ ...characterPage, class: 'class' }} userId="owner-1" />);
+        test('no class name shows no subline', () => {
+            const { container } = render(<CharacterPageNavigation characterPage={characterPage} userId="owner-1" />);
             expect(container.querySelector('.CharacterPage-masthead-subline')).not.toBeInTheDocument();
         });
 
         test('joins class and player name with a middot separator when both are present', () => {
-            render(<CharacterPageNavigation characterPage={{ ...characterPage, class: 'Fighter', player_name: 'Sam' }} userId="owner-1" />);
+            render(<CharacterPageNavigation characterPage={{ ...characterPage, class_name: 'Fighter', player_name: 'Sam' }} userId="owner-1" />);
             // RTL's default text matcher normalizes whitespace (including the
             // \xa0 the component actually renders) down to single spaces.
             expect(screen.getByText('Fighter · Player: Sam')).toBeInTheDocument();

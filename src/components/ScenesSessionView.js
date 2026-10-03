@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { PipLegend } from './ScenesCampaignView';
 import {
-    activeScene, beatCount, beatMinutes, buildTimeline, readiness, sessionState, sessionTitle, statusLabel, timeGoalText, typeLabel,
+    activeScene, beatCount, beatMinutes, buildTimeline, readiness, sceneDateText, sessionDatesText, sessionState, sessionTitle, statusLabel, timeGoalText, typeLabel,
 } from '../utils/scenes';
 
 const DOT = { completed: 'done', active: 'now', skipped: 'skipped' };
@@ -19,7 +19,7 @@ function SceneActions({ scene, onEdit, onRun, onMenu }) {
 // "Zoomed in": one session's scenes in the order they happen. Where the story can
 // split, a decision shows its paths side by side until the party picks one.
 export function ScenesSessionView({
-    sessions, scenes, session, onBack, onOpenSession, onNewScene, onEdit, onRun, onDecide,
+    sessions, scenes, session, calendar, onBack, onOpenSession, onNewScene, onEdit, onRun, onDecide,
     onDuplicate, onBench, onDelete, onBringBack, onKeepForLater, onUpdateSession,
 }) {
     const [menuFor, setMenuFor] = useState(null);
@@ -43,6 +43,7 @@ export function ScenesSessionView({
                 <div className="Scenes-scene-row">
                     <div className="Scenes-scene-main">
                         <strong className="Scenes-scene-name">{scene.name || 'Untitled scene'}</strong>
+                        {sceneDateText(scene, calendar) && <span className="Scenes-muted Scenes-scene-date">{sceneDateText(scene, calendar)}</span>}
                         {scene.premise && <span className="Scenes-muted Scenes-scene-premise">{scene.premise}</span>}
                     </div>
                     <span className="Scenes-chip">{typeLabel(scene.type)}</span>
@@ -135,7 +136,7 @@ export function ScenesSessionView({
             <label className="Scenes-field"><span className="Scenes-field-label">Arc</span>
                 <input type="text" defaultValue={session.arc || ''} placeholder="e.g. Arc 1" onBlur={event => event.target.value !== (session.arc || '') && onUpdateSession(session.id, { arc: event.target.value.trim() })}/></label>
             <label className="Scenes-field"><span className="Scenes-field-label">In-world date</span>
-                <input type="text" defaultValue={session.inWorldDate || ''} placeholder="e.g. Dec 21" onBlur={event => event.target.value !== (session.inWorldDate || '') && onUpdateSession(session.id, { inWorldDate: event.target.value.trim() })}/></label>
+                <input type="text" defaultValue={session.inWorldDate || ''} placeholder={sessionDatesText(scenes, session.id, calendar) || "e.g. Dec 21"} onBlur={event => event.target.value !== (session.inWorldDate || '') && onUpdateSession(session.id, { inWorldDate: event.target.value.trim() })}/></label>
         </div>}
 
         <nav className="Scenes-session-strip" aria-label="Sessions">
@@ -152,7 +153,7 @@ export function ScenesSessionView({
             <div>
                 <span className="Scenes-pip Scenes-pip-now"/>
                 <strong>{active.name}</strong>
-                <span className="Scenes-muted">{`${active.inWorldDate ? active.inWorldDate + ' · ' : ''}Live · beat ${Math.max(1, (active.beats || []).findIndex(beat => beat.id === active.run?.currentBeatId) + 1)} of ${(active.beats || []).length}`}</span>
+                <span className="Scenes-muted">{`${sceneDateText(active, calendar) ? sceneDateText(active, calendar) + ' · ' : ''}Live · beat ${Math.max(1, (active.beats || []).findIndex(beat => beat.id === active.run?.currentBeatId) + 1)} of ${(active.beats || []).length}`}</span>
             </div>
             <button type="button" className="Scenes-button Scenes-button-primary" onClick={() => onRun(active.id)}>Resume &rarr;</button>
         </div>}

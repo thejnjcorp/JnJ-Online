@@ -2,34 +2,13 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { collection, getDocs, getDoc, doc, where, query, getCountFromServer, documentId, updateDoc, arrayUnion, arrayRemove, deleteField, serverTimestamp, Timestamp } from "firebase/firestore";
 import { auth, db } from "../utils/firebase";
-import { ensureParty } from "../utils/party";
 import '../styles/CampaignPage.scss';
 import { onAuthStateChanged } from "firebase/auth";
 import loadingIcon from '../icons/loading.svg';
 import { DocAdminManager } from "./DocAdminManager";
 import { withoutArchived } from "../utils/characterArchive";
 import { characterClassName } from '../utils/characterClass';
-
-// campaigns.players holds three different shapes across live data: the
-// current { name, uid } map (e.g. PentGuard), a bare uid string, or a
-// Firestore DocumentReference (both seen on "Orto" - a legacy campaign
-// predating the { name, uid } convention). Only the map shape is something
-// handleKickPlayer's arrayRemove can reliably reverse, since arrayRemove
-// needs an exact value match - so this also flags which entries are safe to
-// offer a Kick button for.
-function resolvePlayerDisplay(rawPlayer) {
-    if (rawPlayer && typeof rawPlayer === "object" && "name" in rawPlayer && "uid" in rawPlayer) {
-        return { name: rawPlayer.name, uid: rawPlayer.uid, kickable: true };
-    }
-    if (typeof rawPlayer === "string") {
-        return { name: null, uid: rawPlayer, kickable: false };
-    }
-    if (rawPlayer?.id) {
-        // Firestore DocumentReference
-        return { name: null, uid: rawPlayer.id, kickable: false };
-    }
-    return { name: null, uid: null, kickable: false };
-}
+import { chosenColor } from '../utils/entityColor';
 
 export function CampaignPage() {
     const [characterList, setCharacterList] = useState([]);
@@ -60,9 +39,6 @@ export function CampaignPage() {
         }
         setCampaignInfo(docSnap.data());
         document.title = docSnap.data().campaign_name;
-        // A campaign made before the party doc existed gets its one the first time
-        // anyone in it opens the campaign (see ensureParty).
-        ensureParty(campaignId).catch(error => console.log("Couldn't create the party doc: " + error));
         const characters = query(collection(db, "characters"), where("campaign", "==", campaignId));
         const querySnapshot = await getDocs(characters);
         setCharacterList(withoutArchived(querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}))));
@@ -211,7 +187,8 @@ export function CampaignPage() {
 
         <div className="CampaignPage-character-grid">
             {characterList.map((character) =>
-                <button type="button" className='CharacterCard' key={character.id} onClick={() => navigate("/characters/" + character.id)}>
+                <button type="button" className='CharacterCard' key={character.id} onClick={() => navigate("/characters/" + character.id)}
+                    style={chosenColor(character.navigation_color) ? { "--character-accent": chosenColor(character.navigation_color) } : undefined}>
                     <div className="CharacterCard-name">{character.character_name}</div>
                     <div className="CharacterCard-small-text">
                         {characterClassName(character)}<br/>
@@ -254,23 +231,16 @@ export function CampaignPage() {
                 </button>}
             </div>
             {campaignInfo?.players?.length > 0 ? <div className="CampaignPage-players-list">
-                {campaignInfo.players.map((rawPlayer, index) => {
-                    const player = resolvePlayerDisplay(rawPlayer);
-                    return <div className="CampaignPage-player-row" key={player.uid || index}>
+                {campaignInfo.players.map(player => {
+                    return <div className="CampaignPage-player-row" key={player.uid}>
                         <span className="CampaignPage-player-name">{player.name || "Unknown Player"}</span>
                         <span className="CampaignPage-player-id">{player.uid || "—"}</span>
-                        {canWrite && player.kickable && <button type="button"
+                        {canWrite && <button type="button"
                             className="CampaignPage-kick-button"
                             onClick={() => { setKickTarget(player); setVisibleKickPlayerScreen(true); }}
                         >
                             Kick
                         </button>}
-                        {canWrite && !player.kickable && <span
-                            className="CampaignPage-player-legacy-note"
-                            title="This player record predates the current format and can't be removed here."
-                        >
-                            Legacy record
-                        </span>}
                     </div>
                 })}
             </div> : <p className="CampaignPage-empty-text">No players yet.</p>}

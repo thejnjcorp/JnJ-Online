@@ -182,9 +182,8 @@ service cloud.firestore {
 
     // Races follow the classes model exactly (Default / Pool / Private,
     // subscribed via campaigns.subscribedRaceIds, versioned - see the classes
-    // block above for why each rule is shaped the way it is). A race doc that
-    // predates this has no `public` field and so is unreadable until
-    // firebase/scripts/backfill-race-links.js marks it a Default.
+    // block above for why each rule is shaped the way it is). A race doc with no
+    // `public` field (or readers) is unreadable.
     match /races/{raceId} {
     	allow read: if isSignedIn() && (resource.data.public == true || uid() in canWriteField() || uid() in canReadField());
 

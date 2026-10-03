@@ -50,7 +50,7 @@ describe('useCombatEntities', () => {
     test('prefixes player characters with "character:" using character_id, titled by character_name', () => {
         const characterList = [{ character_id: 'c1', character_name: 'Aria' }];
         const { result } = renderHook(() => useCombatEntities(characterList, {}));
-        expect(result.current).toEqual([{ id: 'character:c1', title: 'Aria', kind: 'player', image: undefined, ownerIds: [] }]);
+        expect(result.current).toEqual([{ id: 'character:c1', title: 'Aria', kind: 'player', image: undefined, color: '', ownerIds: [] }]);
     });
 
     test('says who may move a character\'s token: its owner, and anyone who can write the character', () => {
@@ -82,10 +82,18 @@ describe('useCombatEntities', () => {
         };
         const { result } = renderHook(() => useCombatEntities([], campaignInfo));
         expect(result.current).toEqual([
-            { id: 'npc:a1', title: 'Ally One', kind: 'ally', image: undefined, defeated: false },
-            { id: 'npc:e1', title: 'Enemy One', kind: 'enemy', image: undefined, defeated: false },
-            { id: 'npc:n1', title: 'Neutral One', kind: 'neutral', image: undefined, defeated: false },
+            { id: 'npc:a1', title: 'Ally One', kind: 'ally', image: undefined, color: '', defeated: false },
+            { id: 'npc:e1', title: 'Enemy One', kind: 'enemy', image: undefined, color: '', defeated: false },
+            { id: 'npc:n1', title: 'Neutral One', kind: 'neutral', image: undefined, color: '', defeated: false },
         ]);
+    });
+
+    test('carries the colour picked for a character or an enemy, and nothing for one that is not a colour', () => {
+        const { result } = renderHook(() => useCombatEntities(
+            [{ character_id: 'c1', character_name: 'Kira', navigation_color: '#00FF85' }, { character_id: 'c2', character_name: 'Odd', navigation_color: 'green' }],
+            { enemy_list: [{ id: 'e1', enemy_name: 'Goon', color: '#ff7a1f' }, { id: 'e2', enemy_name: 'Plain' }] },
+        ));
+        expect(result.current.map(entity => entity.color)).toEqual(['#00ff85', '', '#ff7a1f', '']);
     });
 
     test('an NPC the director has marked defeated says so, and one with no flag is not', () => {

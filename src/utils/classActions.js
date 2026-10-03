@@ -1,20 +1,13 @@
-// Single source of truth for "what kind of action is this" - prefers the
-// explicit `category` field (added alongside Feat/Passive/Reaction/Action
-// grouping in the class editor), but falls back to the pre-existing
-// tags[].tagInfo string convention for any action authored before that
-// field existed, so every class/character created before this change keeps
-// classifying identically with zero data migration.
+// Single source of truth for "what kind of action is this": the `category` the
+// class editor sets (Feat, Passive, Reaction or Action); an action with none is
+// an ordinary action.
 export function getActionCategory(action) {
-    if (action.category) return action.category;
-    if (action.tags?.some(tag => tag.tagInfo === 'Feat')) return 'feat';
-    if (action.tags?.some(tag => tag.tagInfo === 'Passive')) return 'passive';
-    if (action.tags?.some(tag => tag.tagInfo === 'Reaction')) return 'reaction';
-    return 'action';
+    return action.category || 'action';
 }
 
 // Where an action is used: in a fight (the Combat tab, costing action points), in
-// a scene (the Roleplay tab), or both. `usage` is optional - every action
-// authored before it existed is a combat action, exactly as it was.
+// a scene (the Roleplay tab), or both. `usage` is optional: an action with none is a
+// combat action.
 export const ACTION_USAGES = [
     { key: 'combat', label: 'Combat' },
     { key: 'roleplay', label: 'Roleplay' },
@@ -37,7 +30,7 @@ export const isReactionAction = action => getActionCategory(action) === 'reactio
 
 // A feat's tier (1-3), shown as filled circles on the sheet - see FeatEntry in
 // SkillsAndFlaws.js. Authored on the feat itself in the class/race editor, so
-// every character with it sees the same tier. One saved before tiers existed
+// every character with it sees the same tier. One with no tier
 // defaults to 1 rather than showing no circles at all.
 export const FEAT_TIER_RANGE = { min: 1, max: 3 };
 

@@ -15,8 +15,7 @@ import { keyed } from '../utils/keyed';
 // One feat in the sidebar list. Exported so the class editor's action preview
 // can show a feat exactly as a character's sheet does. Its tier (1-3, see
 // featTierOf) is granted with the feat itself, the same for every character
-// who has it - shown as filled circles, the same way skills/flaws used to
-// show their degree before that became a roleplay modifier instead.
+// who has it - shown as filled circles.
 export function FeatEntry({ feat, id, open = false }) {
     const tier = featTierOf(feat);
     return <Collapsible

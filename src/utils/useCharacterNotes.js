@@ -9,11 +9,6 @@ import { sortPages } from './useDirectorNotes';
 // character doc's own current_health/statuses/etc. are, and not even the
 // campaign's director unless they also happen to be a co-writer). Same
 // page-per-document pattern as useDirectorNotes.js/usePartyNotes.js.
-//
-// createPage takes an optional starting body - used once, to carry over
-// whatever was in the character's old single-field notes into a first page
-// (see CharacterNotes.js), so nothing already written gets lost when a
-// character's notebook is opened for the first time.
 
 // status: 'loading' | 'ready' | 'error'
 export function useCharacterNotes(characterId) {
@@ -37,10 +32,10 @@ export function useCharacterNotes(characterId) {
         return () => unsubscribe();
     }, [characterId]);
 
-    const createPage = useCallback(async (title = 'New page', body = '') => {
+    const createPage = useCallback(async (title = 'New page') => {
         const ref = await addDoc(collection(db, 'characters', characterId, 'notes'), {
             title,
-            body,
+            body: '',
             order: Date.now(),
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),

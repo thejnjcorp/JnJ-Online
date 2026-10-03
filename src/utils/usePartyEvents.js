@@ -4,6 +4,16 @@ import { auth, db } from './firebase';
 import { sortEvents } from './calendar';
 import { subscribeShared } from './sharedSnapshot';
 
+const author = () => ({ uid: auth?.currentUser?.uid || '', name: auth?.currentUser?.displayName || '' });
+
+// One event onto a campaign's calendar. `fields` is what eventDocFields makes of the form.
+export function addPartyEvent(campaignId, fields) {
+    const who = author();
+    return addDoc(collection(db, 'campaigns', campaignId, 'party_events'), {
+        ...fields, created_by_uid: who.uid, created_by_name: who.name, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+    });
+}
+
 // The events on the party's calendar: one document per event in
 // campaigns/{campaignId}/party_events, for everyone in the campaign to read and
 // write (see the party_events rule in firestore.rules). `calendar` is the campaign's
@@ -34,15 +44,7 @@ export function usePartyEvents(campaignId, calendar) {
 
     const sorted = useMemo(() => sortEvents(calendar, events), [calendar, events]);
 
-    const author = () => ({ uid: auth?.currentUser?.uid || '', name: auth?.currentUser?.displayName || '' });
-
-    // `fields` is what eventDocFields makes of the form.
-    const addEvent = useCallback(fields => {
-        const who = author();
-        return addDoc(collection(db, 'campaigns', campaignId, 'party_events'), {
-            ...fields, created_by_uid: who.uid, created_by_name: who.name, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
-        });
-    }, [campaignId]);
+    const addEvent = useCallback(fields => addPartyEvent(campaignId, fields), [campaignId]);
 
     const saveEvent = useCallback((eventId, fields) => updateDoc(doc(db, 'campaigns', campaignId, 'party_events', eventId), { ...fields, updatedAt: serverTimestamp() }), [campaignId]);
 

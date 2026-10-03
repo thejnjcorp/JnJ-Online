@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ItemLine } from './ItemLine';
 import { ItemPicker } from './ItemPicker';
-import { MAX_QUANTITY, holdingsOf, isItemEntry, quantityOf } from '../utils/inventory';
+import { MAX_QUANTITY, holdingsOf, quantityOf } from '../utils/inventory';
 import { addToParty, putInParty, removePartyEntry, setPartyQuantity, takeFromParty } from '../utils/partyInventory';
 import { shareItem } from '../utils/itemAccess';
 import '../styles/Party.scss';
@@ -55,12 +55,12 @@ export function PartyInventoryTab({ campaignId, party, loaded, acting, userId, m
             {loaded && entries.length === 0 && <div className="Party-hint">Nothing here yet. Add what the party finds or buys, or give the players something as their director.</div>}
             <ul className="Party-list">
                 {entries.map(entry => <li key={entry.id} className="Party-list-item">
-                    <ItemLine itemId={isItemEntry(entry) ? entry.item_id : ''} title={entry.title} content={entry.content} quantity={quantityOf(entry)}>
-                        {acting && isItemEntry(entry) && <AmountAction label="Take" max={quantityOf(entry)} onDo={quantity => run(() => takeFromParty({ campaignId, characterId: acting.character_id, itemId: entry.item_id, title: entry.title, quantity }))}/>}
-                        {isItemEntry(entry) && <fieldset className="Party-quantity" aria-label={`Quantity of ${entry.title}`}>
+                    <ItemLine itemId={entry.item_id} title={entry.title} quantity={quantityOf(entry)}>
+                        {acting && <AmountAction label="Take" max={quantityOf(entry)} onDo={quantity => run(() => takeFromParty({ campaignId, characterId: acting.character_id, itemId: entry.item_id, title: entry.title, quantity }))}/>}
+                        <fieldset className="Party-quantity" aria-label={`Quantity of ${entry.title}`}>
                             <button type="button" className="Party-button" aria-label={`One fewer ${entry.title}`} onClick={() => run(() => setPartyQuantity(campaignId, entry.id, quantityOf(entry) - 1))}>−</button>
                             <button type="button" className="Party-button" aria-label={`One more ${entry.title}`} disabled={quantityOf(entry) >= MAX_QUANTITY} onClick={() => run(() => setPartyQuantity(campaignId, entry.id, quantityOf(entry) + 1))}>+</button>
-                        </fieldset>}
+                        </fieldset>
                         <button type="button" className="Party-button Party-button-danger" aria-label={`Remove ${entry.title}`} onClick={() => run(() => removePartyEntry(campaignId, entry.id))}>Remove</button>
                     </ItemLine>
                 </li>)}

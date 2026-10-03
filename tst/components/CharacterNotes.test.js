@@ -24,7 +24,7 @@ function setHook(overrides = {}) {
 
 function mount(props = {}, hookOverrides = {}) {
     setHook(hookOverrides);
-    return render(<CharacterNotes characterId="char-1" legacyNotes="" canEdit={true} {...props} />);
+    return render(<CharacterNotes characterId="char-1" {...props} />);
 }
 
 beforeEach(() => {
@@ -42,47 +42,5 @@ describe('CharacterNotes', () => {
         mount({}, { status: 'ready', pages: [{ id: 'a', title: 'Session 1', body: 'Met a merchant.', order: 1 }] });
         expect(screen.getByLabelText('Page title')).toHaveValue('Session 1');
         expect(screen.getByLabelText('Page notes')).toHaveValue('Met a merchant.');
-    });
-
-    describe('importing the old single-field notes', () => {
-        test('an empty notebook with old notes and edit access imports them as a first page, titled "Notes"', () => {
-            mount({ legacyNotes: 'Met a merchant.', canEdit: true }, { status: 'ready', pages: [] });
-            expect(createPage).toHaveBeenCalledWith('Notes', 'Met a merchant.');
-        });
-
-        test('does not import when the notebook already has pages', () => {
-            mount({ legacyNotes: 'Met a merchant.', canEdit: true }, { status: 'ready', pages: [{ id: 'a', title: 'X', body: '', order: 1 }] });
-            expect(createPage).not.toHaveBeenCalled();
-        });
-
-        test('does not import blank or whitespace-only old notes', () => {
-            mount({ legacyNotes: '   ', canEdit: true }, { status: 'ready', pages: [] });
-            expect(createPage).not.toHaveBeenCalled();
-        });
-
-        test('does not import for a read-only viewer', () => {
-            mount({ legacyNotes: 'Met a merchant.', canEdit: false }, { status: 'ready', pages: [] });
-            expect(createPage).not.toHaveBeenCalled();
-        });
-
-        test('does not import before the notebook has actually loaded', () => {
-            mount({ legacyNotes: 'Met a merchant.', canEdit: true }, { status: 'loading', pages: [] });
-            expect(createPage).not.toHaveBeenCalled();
-        });
-
-        test('an empty notebook with no old notes creates nothing - the normal empty state shows instead', () => {
-            mount({ legacyNotes: '', canEdit: true }, { status: 'ready', pages: [] });
-            expect(createPage).not.toHaveBeenCalled();
-            expect(screen.getByRole('button', { name: 'Create your first page' })).toBeInTheDocument();
-        });
-
-        test('only imports once, even if it rerenders while still empty (e.g. import failed)', () => {
-            setHook({ status: 'ready', pages: [] });
-            const { rerender } = render(<CharacterNotes characterId="char-1" legacyNotes="Met a merchant." canEdit={true} />);
-            expect(createPage).toHaveBeenCalledTimes(1);
-
-            rerender(<CharacterNotes characterId="char-1" legacyNotes="Met a merchant." canEdit={true} />);
-            expect(createPage).toHaveBeenCalledTimes(1);
-        });
     });
 });

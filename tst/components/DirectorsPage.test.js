@@ -69,6 +69,10 @@ jest.mock('../../src/components/MapRenderer', () => ({
 jest.mock('../../src/components/DocAdminManager', () => ({
     DocAdminManager: ({ admins, userId }) => <div>DocAdminManager-stub:{JSON.stringify(admins)}:{userId}</div>,
 }));
+// The zone chips are Draggables; here only how a chip looks matters, so a Draggable just renders what it is given.
+jest.mock('@hello-pangea/dnd', () => ({
+    Draggable: ({ children }) => children({ dragHandleProps: {}, draggableProps: {}, innerRef: () => {} }, { isDragging: false }),
+}));
 const mockLineProps = [];
 jest.mock('../../src/utils/DraggableElements/PostListCombat.tsx', () => ({
     PostListContentCombat: props => {
@@ -119,6 +123,7 @@ jest.mock('../../src/components/CombatContext', () => ({
                 <button type="button" onClick={() => removeEnemy(enemy)}>{`Remove ${enemy.enemy_name} from the fight`}</button>
                 <button type="button" onClick={() => updateEnemy(enemy.id, { defeated: true })}>{`Defeat ${enemy.enemy_name}`}</button>
             </span>)}
+            <button type="button" onClick={() => campaignInfo.enemy_list.forEach(enemy => updateEnemy(enemy.id, { color: '#ff7a1f' }))}>Colour them all</button>
             {children}
         </>;
     },
@@ -134,7 +139,7 @@ jest.mock('../../src/components/CombatBoard', () => ({
 }));
 
 // eslint-disable-next-line import/first
-import { screen, fireEvent, waitFor, act, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react';
 // eslint-disable-next-line import/first
 import { DirectorsPage } from '../../src/components/DirectorsPage';
 // eslint-disable-next-line import/first
@@ -354,6 +359,29 @@ describe('DirectorsPage', () => {
                 expect(mockProviderProps.characters.map(entry => entry.character_name)).toEqual(['Aria']);
                 fireEvent.click(screen.getByRole('button', { name: 'Defeat Goblin' }));
                 expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['campaigns', 'camp-1'] }, { enemy_list: [{ ...enemy, defeated: true }] });
+            });
+
+            test('changing several enemies at once changes every one of them, not only the last', async () => {
+                const other = { ...enemy, id: 'enemy-2', enemy_name: 'Troll' };
+                await renderReady({ campaignInfo: { ...directing, enemy_list: [enemy, other] } });
+                fireEvent.click(screen.getByRole('button', { name: 'Colour them all' }));
+                expect(mockUpdateDoc).toHaveBeenLastCalledWith({ __doc: ['campaigns', 'camp-1'] }, { enemy_list: [{ ...enemy, color: '#ff7a1f' }, { ...other, color: '#ff7a1f' }] });
+            });
+
+            test('the zone chips are outlined and tinted in the colour picked for a player or an enemy', async () => {
+                await renderReady({ campaignInfo: { ...directing, enemy_list: [{ ...enemy, color: '#ff7a1f' }] }, characters: [{ ...character, navigation_color: '#00ff85' }] });
+                goToTab('Combat');
+                // a chip watches its own width, to know when its name is cut off
+                global.ResizeObserver = class { observe() {} disconnect() {} };
+                const Card = mockLineProps.at(-1).PostCardComponent;
+                const chipOf = id => {
+                    const { container } = render(<Card post={{ id, title: 'Someone' }} index={0} titleClassName="t" boxClassName="b"/>);
+                    return container.querySelector('.b');
+                };
+                expect(chipOf('npc:enemy-1')).toHaveStyle({ borderColor: '#ff7a1f', background: 'rgba(255, 122, 31, 0.13)' });
+                expect(chipOf('character:char-1')).toHaveStyle({ borderColor: '#00ff85' });
+                expect(chipOf('npc:nobody').style.borderColor).toBe('');
+                delete global.ResizeObserver;
             });
 
             test('ending a scene tells the combat view, so what lasted only for the scene ends', async () => {

@@ -35,8 +35,8 @@ import { Characters } from '../../src/components/Characters';
 // eslint-disable-next-line import/first
 import { renderWithRouter } from '../testUtils/renderWithRouter';
 
-const aria = { id: 'char-a', character_name: 'Aria', player_name: 'Sam', class: 'Fighter', campaign: 'camp-1' };
-const finn = { id: 'char-b', character_name: 'Finn', player_name: 'Sam', class: 'Rogue' }; // no campaign
+const aria = { id: 'char-a', character_name: 'Aria', player_name: 'Sam', class_name: 'Fighter', campaign: 'camp-1' };
+const finn = { id: 'char-b', character_name: 'Finn', player_name: 'Sam', class_name: 'Rogue' }; // no campaign
 
 function docsFrom(items) {
     return { docs: items.map(item => ({ id: item.id, data: () => item })) };
@@ -147,6 +147,13 @@ describe('Characters', () => {
             expect(card.style.getPropertyValue('--character-accent')).toBe('#ff0000');
         });
 
+        test('a colour that is not a #rrggbb colour is not used', async () => {
+            signIn([{ ...aria, navigation_color: 'red', campaign: undefined }]);
+            renderWithRouter(<Characters />, { route: '/characters' });
+            const card = await screen.findByRole('button', { name: /Aria/ });
+            expect(card.style.getPropertyValue('--character-accent')).toBe('');
+        });
+
         test('a character made since classes were reworked shows its class_name', async () => {
             signIn([{ id: 'char-m', character_name: 'Kira', player_name: 'Sam', class_id: 'magus', class_name: 'Magus' }]);
             renderWithRouter(<Characters />, { route: '/characters' });
@@ -155,7 +162,7 @@ describe('Characters', () => {
         });
 
         describe('archived characters', () => {
-            const archived = { id: 'char-z', character_name: 'Zed', player_name: 'Sam', class: 'Monk', archived: true };
+            const archived = { id: 'char-z', character_name: 'Zed', player_name: 'Sam', class_name: 'Monk', archived: true };
             const doomed = { ...archived, id: 'char-d', character_name: 'Doomed', scheduledDeletionAt: { toDate: () => new Date(2026, 9, 21) } };
 
             test('are kept off the list, with a way to show them', async () => {

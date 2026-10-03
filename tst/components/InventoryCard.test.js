@@ -66,14 +66,6 @@ describe('InventoryCard', () => {
         expect(screen.getByText('Torch')).toBeInTheDocument();
     });
 
-    test('an entry from before items existed is shown by its own title, and asks for no item', () => {
-        mockUseItem.mockReturnValue({ item: null, status: 'missing' });
-        draw({ id: 'old', title: 'Rusty Key', content: 'Opens *something*.', status: '1', index: 0 });
-        expect(mockUseItem).toHaveBeenCalledWith('');
-        open('Rusty Key');
-        expect(screen.getByText('something')).toBeInTheDocument();
-    });
-
     describe('pressing the card', () => {
         test('the clickable card is a plain div (role="button"), not a native button, nested inside the real drag handle', () => {
             const { container } = draw(entry());
@@ -127,15 +119,6 @@ describe('InventoryCard', () => {
             draw(entry(), { campaignId: undefined });
             open('Torch');
             expect(screen.queryByRole('button', { name: 'Put in party inventory' })).not.toBeInTheDocument();
-        });
-
-        test('an old hand-typed entry can only be removed: no quantity, and nothing to put in the party', () => {
-            mockUseItem.mockReturnValue({ item: null, status: 'missing' });
-            draw({ id: 'old', title: 'Rusty Key', content: '', status: '1', index: 0 });
-            open('Rusty Key');
-            expect(screen.queryByRole('button', { name: 'One more' })).not.toBeInTheDocument();
-            expect(screen.queryByRole('button', { name: 'Put in party inventory' })).not.toBeInTheDocument();
-            expect(screen.getByRole('button', { name: 'Remove' })).toBeInTheDocument();
         });
     });
 

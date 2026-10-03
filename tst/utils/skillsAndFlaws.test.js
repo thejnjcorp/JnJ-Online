@@ -13,19 +13,7 @@ describe('levelOf', () => {
         expect(levelOf({ isSkill: false, level: 'ptsd' })).toEqual({ key: 'ptsd', label: 'PTSD', modifier: 5 });
     });
 
-    test('an old numeric degree maps onto the level in that position', () => {
-        expect(levelOf({ isSkill: true, degree: 1 })).toEqual(SKILL_LEVELS[0]);
-        expect(levelOf({ isSkill: true, degree: 2 })).toEqual(SKILL_LEVELS[1]);
-        expect(levelOf({ isSkill: true, degree: 3 })).toEqual(SKILL_LEVELS[2]);
-        expect(levelOf({ isSkill: false, degree: 1 })).toEqual(FLAW_LEVELS[0]);
-    });
-
-    test('an out-of-range degree is clamped rather than crashing', () => {
-        expect(levelOf({ isSkill: true, degree: 0 })).toEqual(SKILL_LEVELS[0]);
-        expect(levelOf({ isSkill: true, degree: 99 })).toEqual(SKILL_LEVELS[3]);
-    });
-
-    test('neither a level nor a degree falls back to the first level', () => {
+    test('no level falls back to the first level', () => {
         expect(levelOf({ isSkill: true })).toEqual(SKILL_LEVELS[0]);
         expect(levelOf({ isSkill: false })).toEqual(FLAW_LEVELS[0]);
     });
@@ -38,6 +26,6 @@ describe('levelOf', () => {
 describe('modifierOf', () => {
     test('is the resolved level\'s modifier', () => {
         expect(modifierOf({ isSkill: true, level: 'ultimate' })).toBe(5);
-        expect(modifierOf({ isSkill: false, degree: 2 })).toBe(3);
+        expect(modifierOf({ isSkill: false, level: 'flaw' })).toBe(3);
     });
 });

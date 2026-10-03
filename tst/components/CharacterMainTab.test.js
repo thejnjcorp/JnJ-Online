@@ -122,19 +122,6 @@ describe('CharacterMainTab', () => {
                 render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
                 expect(screen.getByText('CharacterNotes-stub:char-1')).toBeInTheDocument();
             });
-
-            test('carries over whatever was in the old single-field notes, for CharacterNotes to import as a first page', () => {
-                render(<CharacterMainTab characterPage={{ ...characterPage, notes: 'Met Mara.' }} userId="owner-1" />);
-                expect(mockCharacterNotesProps.at(-1).legacyNotes).toBe('Met Mara.');
-            });
-
-            test('only someone with write permissions can edit it', () => {
-                render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
-                expect(mockCharacterNotesProps.at(-1).canEdit).toBe(true);
-
-                render(<CharacterMainTab characterPage={characterPage} userId="stranger-1" />);
-                expect(mockCharacterNotesProps.at(-1).canEdit).toBeFalsy();
-            });
         });
 
         describe('the background', () => {

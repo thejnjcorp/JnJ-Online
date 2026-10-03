@@ -7,8 +7,8 @@
 import { BONUS_STATS, levelOf } from './levelUps';
 
 function isRealId(value) {
-    // CharacterPageLayout.json's placeholder class_id is the literal "id",
-    // which shows up on legacy characters that never had one.
+    // CharacterPageLayout.json's placeholder class_id is the literal "id", which is
+    // what a sheet has until it is given a class.
     return typeof value === 'string' && value !== '' && value !== 'id';
 }
 
@@ -21,21 +21,17 @@ export function isLinkedToRace(character) {
     return Number.isInteger(character?.race_version) && isRealId(character?.race_id);
 }
 
-// A race grants a list of actions/feats. Older race docs stored a single
-// `feat` instead, which keeps working until the race is re-saved.
+// A race grants a list of actions/feats.
 export function raceActionsOf(race) {
-    return race?.actions ?? (race?.feat ? [race.feat] : []);
+    return race?.actions ?? [];
 }
 
-// The class a character's card names. A character made since classes were reworked
-// keeps its class's name as `class_name` (with its `class_id`); one from before that
-// has the older `class` text instead.
-export const characterClassName = character => character?.class_name || character?.class || '';
+// The class a character's card names: its class's name, kept as `class_name`.
+export const characterClassName = character => character?.class_name || '';
 
-// The race's actions as saved on the character. Legacy characters have them
-// merged into `actions` already (and older ones a single race_feat).
+// The race's actions as saved on the character.
 export function savedRaceActions(character) {
-    return character?.race_actions ?? (character?.race_feat ? [character.race_feat] : []);
+    return character?.race_actions ?? [];
 }
 
 function mergeByName(actions, extras) {
@@ -55,6 +51,14 @@ const CLASS_DERIVED_FIELDS = [
     'base_armor_class',
     'base_hit_modifier',
     'base_healing_dice_type',
+    'base_melee_damage_dice',
+    'base_melee_damage_dice_type',
+    'base_melee_damage_modifier',
+    'base_melee_damage_type',
+    'base_ranged_damage_dice',
+    'base_ranged_damage_dice_type',
+    'base_ranged_damage_modifier',
+    'base_ranged_damage_type',
     'level_rewards',
 ];
 
@@ -103,7 +107,7 @@ export function resolveCharacter(character, classData, raceData) {
 function resolveLinkedData(character, classData, raceData) {
     const classLive = isLinkedToClass(character) && classData;
     const raceLive = isLinkedToRace(character) && raceData;
-    const hasSavedRace = Boolean(character?.race_feat) || (character?.race_actions?.length > 0);
+    const hasSavedRace = character?.race_actions?.length > 0;
     if (!classLive && !raceLive && !hasSavedRace) return character;
 
     const resolved = classLive ? applyClassFields(character, classData) : { ...character };

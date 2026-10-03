@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
 import { Tooltip } from 'react-tooltip';
 import 'react-tooltip/dist/react-tooltip.css';
@@ -27,6 +27,7 @@ import { useCampaignMaps, useCombatEntities } from '../utils/useCampaignCombat';
 import { withoutArchived } from '../utils/characterArchive';
 import { AddEnemyDialog } from './AddEnemyDialog';
 import { npcIdOf, removeEnemies } from '../utils/enemies';
+import { chosenColor, colorTint } from '../utils/entityColor';
 import { removeFromTracker, requestRoll, updateCombatTracker } from '../utils/party';
 import { NO_MAP_ZONE, combatantMover } from '../utils/combatTracker';
 import { zoneRects } from '../utils/mapTokens';
@@ -57,13 +58,15 @@ const lineViewClassName = {
 // the plain accent-colored name-only card. Built as a factory (called via
 // useMemo below, keyed on characterList) rather than a module-level constant
 // like lineViewClassName, since it needs to close over the live per-player info.
-function makeLineViewCard(playerInfoById, defeatedIds = []) {
+function makeLineViewCard(playerInfoById, defeatedIds = [], colorById = {}) {
     return function LineViewEntityCard({ post, index, titleClassName, boxClassName: baseBoxClassName, readOnly = false }) {
         const info = playerInfoById[post.id];
         // an enemy the director has marked defeated is dimmed and struck through
         const defeated = defeatedIds.includes(post.id);
         const boxClassName = defeated ? `${baseBoxClassName} DirectorsPage-entity-chip-defeated` : baseBoxClassName;
-        const chipStyle = info?.color ? { borderColor: info.color, background: info.color + '22' } : undefined;
+        // the colour picked for a player or an enemy outlines and tints its chip
+        const color = chosenColor(info?.color) || colorById[post.id] || '';
+        const chipStyle = color ? { borderColor: color, background: colorTint(color) } : undefined;
         // The tooltip should only appear when the name is actually cut off -
         // showing it over an already-fully-visible name is just noise (and
         // in a narrow zone, covers up real content like the zone label).
@@ -315,6 +318,7 @@ export function DirectorsPage() {
     const playerInfoKey = characterList.map(c => `${c.character_id}:${c.combat_portrait_url || c.portrait_url || ''}:${c.navigation_color || ''}`).join('|');
     const defeatedIds = (campaignInfo.enemy_list ?? []).filter(enemy => enemy.defeated).map(enemy => 'npc:' + enemy.id);
     const defeatedKey = defeatedIds.join(',');
+    const enemyColorKey = (campaignInfo.enemy_list ?? []).map(enemy => `${enemy.id}:${enemy.color || ''}`).join('|');
     const lineViewCard = useMemo(() => {
         const playerInfoById = {};
         characterList.forEach(character => {
@@ -323,9 +327,14 @@ export function DirectorsPage() {
                 color: character.navigation_color,
             };
         });
-        return makeLineViewCard(playerInfoById, defeatedIds);
+        const colorById = {};
+        (campaignInfo.enemy_list ?? []).forEach(enemy => {
+            const color = chosenColor(enemy.color);
+            if (color) colorById['npc:' + enemy.id] = color;
+        });
+        return makeLineViewCard(playerInfoById, defeatedIds, colorById);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [playerInfoKey, defeatedKey]);
+    }, [playerInfoKey, defeatedKey, enemyColorKey]);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -341,10 +350,15 @@ export function DirectorsPage() {
     // "characters", ...)), which is what Statuses.js/CombatActionList.js's
     // default write paths assume. See DIRECTORS_PAGE_HANDOFF.md's "Statuses
     // on enemies - plumbing gap" section.
+    // Each change is made to the list as the last change left it (not as this render saw it), so
+    // changing several enemies at once - everyone in a group of minions - changes every one of
+    // them rather than only the last.
+    const enemyListRef = useRef(campaignInfo.enemy_list);
+    useEffect(() => { enemyListRef.current = campaignInfo.enemy_list; }, [campaignInfo.enemy_list]);
     function updateEnemy(enemyId, patch) {
-        return updateDoc(campaignDoc, {
-            enemy_list: campaignInfo.enemy_list.map(e => e.id === enemyId ? { ...e, ...patch } : e)
-        });
+        const next = enemyListRef.current.map(e => (e.id === enemyId ? { ...e, ...patch } : e));
+        enemyListRef.current = next;
+        return updateDoc(campaignDoc, { enemy_list: next });
     }
 
     // Enemies come and go on the campaign doc. Taking one out also takes its token

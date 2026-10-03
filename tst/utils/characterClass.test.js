@@ -9,7 +9,7 @@ const classData = {
 const linked = {
     character_id: 'char-1', class_id: 'monk', class_version: 2, character_name: 'Kodi',
     class_name: 'Monk', base_armor_class: 14, base_hit_modifier: 5, current_health: 7,
-    actions: [{ actionName: 'Old action' }], race_feat: raceFeat,
+    actions: [{ actionName: 'Old action' }], race_actions: [raceFeat],
 };
 
 describe('isLinkedToClass', () => {
@@ -31,13 +31,13 @@ describe('isLinkedToClass', () => {
 });
 
 describe('savedActions', () => {
-    test('appends the race feat when it is not already among the saved actions', () => {
-        expect(savedActions({ actions: [{ actionName: 'A' }], race_feat: raceFeat })).toEqual([{ actionName: 'A' }, raceFeat]);
+    test('appends the race\'s actions when they are not already among the saved actions', () => {
+        expect(savedActions({ actions: [{ actionName: 'A' }], race_actions: [raceFeat] })).toEqual([{ actionName: 'A' }, raceFeat]);
     });
 
-    test('does not duplicate a race feat already merged into a legacy character\'s actions', () => {
+    test('does not duplicate a race action already among the saved actions', () => {
         const actions = [{ actionName: 'A' }, raceFeat];
-        expect(savedActions({ actions, race_feat: raceFeat })).toEqual(actions);
+        expect(savedActions({ actions, race_actions: [raceFeat] })).toEqual(actions);
     });
 
     test('with no actions or race feat, returns an empty list', () => {
@@ -55,6 +55,16 @@ describe('applyClassToCharacter', () => {
         expect(result.base_healing_dice_type).toBe(2);
         expect(result.class_type).toBe('Crit Hunter');
         expect(result.class_description).toBe('Live lore');
+    });
+
+    test('melee and ranged damage follow the live class too, so a newer class version reaches the sheet', () => {
+        const saved = { ...linked, base_melee_damage_dice: 1, base_melee_damage_dice_type: 2, base_melee_damage_modifier: 1, base_melee_damage_type: 'Physical', base_ranged_damage_dice: 1 };
+        const live = { ...classData, base_melee_damage_dice: 2, base_melee_damage_dice_type: 3, base_melee_damage_modifier: 3, base_melee_damage_type: 'Slashing', base_ranged_damage_modifier: 2 };
+        const result = resolveCharacter(saved, live);
+        expect([result.base_melee_damage_dice, result.base_melee_damage_dice_type, result.base_melee_damage_modifier, result.base_melee_damage_type]).toEqual([2, 3, 3, 'Slashing']);
+        expect(result.base_ranged_damage_modifier).toBe(2);
+        // a field the class does not define is left as the sheet has it
+        expect(result.base_ranged_damage_dice).toBe(1);
     });
 
     test('leaves character state and identity alone', () => {
@@ -77,9 +87,9 @@ describe('applyClassToCharacter', () => {
         expect(result.class_name).toBe('Monk');
     });
 
-    test('with no race feat, the actions are exactly the class\'s', () => {
-        const { race_feat, ...noRaceFeat } = linked;
-        expect(applyClassToCharacter(noRaceFeat, classData).actions).toEqual(classData.actions);
+    test('with no race actions, the actions are exactly the class\'s', () => {
+        const { race_actions, ...noRace } = linked;
+        expect(applyClassToCharacter(noRace, classData).actions).toEqual(classData.actions);
     });
 
     test('with no class data, returns the character unchanged', () => {
@@ -98,9 +108,9 @@ describe('resolveCharacter', () => {
         expect(result.actions).toEqual([{ actionName: 'Old action' }, raceFeat]);
     });
 
-    test('a legacy (unlinked) character is returned as-is even if class data is supplied', () => {
-        const legacy = { character_id: 'old', class_name: 'Fighter', actions: [{ actionName: 'Stab' }] };
-        expect(resolveCharacter(legacy, classData)).toBe(legacy);
+    test('a character not linked to a class is returned as-is even if class data is supplied', () => {
+        const unlinked = { character_id: 'old', class_name: 'Fighter', actions: [{ actionName: 'Stab' }] };
+        expect(resolveCharacter(unlinked, classData)).toBe(unlinked);
     });
 });
 
@@ -115,25 +125,23 @@ describe('isLinkedToRace', () => {
 });
 
 describe('raceActionsOf', () => {
-    test('uses the actions list, falling back to the older single feat, or nothing', () => {
+    test('uses the actions list, or nothing', () => {
         expect(raceActionsOf({ actions: [raceFeat] })).toEqual([raceFeat]);
-        expect(raceActionsOf({ feat: raceFeat })).toEqual([raceFeat]);
         expect(raceActionsOf({ name: 'Featless' })).toEqual([]);
         expect(raceActionsOf(null)).toEqual([]);
     });
 });
 
 describe('savedRaceActions', () => {
-    test('prefers race_actions, falls back to the legacy race_feat, or nothing', () => {
-        expect(savedRaceActions({ race_actions: [raceFeat], race_feat: { actionName: 'x' } })).toEqual([raceFeat]);
-        expect(savedRaceActions({ race_feat: raceFeat })).toEqual([raceFeat]);
+    test('is race_actions, or nothing', () => {
+        expect(savedRaceActions({ race_actions: [raceFeat] })).toEqual([raceFeat]);
         expect(savedRaceActions({})).toEqual([]);
     });
 });
 
 describe('resolveCharacter with races', () => {
     const raceData = { name: 'Kobold Prime', actions: [{ actionName: 'Pack Tactics' }, { actionName: 'Fleetfoot' }] };
-    const raced = { ...linked, race_feat: undefined, race_id: 'kobold', race_version: 1, race_name: 'Kobold', race_actions: [raceFeat] };
+    const raced = { ...linked, race_id: 'kobold', race_version: 1, race_name: 'Kobold', race_actions: [raceFeat] };
 
     test('a linked race with data loaded replaces the saved race actions and sets the race name', () => {
         const result = resolveCharacter(raced, classData, raceData);
@@ -251,8 +259,8 @@ describe('raceToCharacterFields', () => {
         });
     });
 
-    test('an old race with a single feat and no version', () => {
-        expect(raceToCharacterFields({ id: 'r1', name: 'Kobold', feat: raceFeat })).toEqual({ race_id: 'r1', race_name: 'Kobold', race_version: 1, race_actions: [raceFeat] });
+    test('a race that has never been versioned pins to version 1', () => {
+        expect(raceToCharacterFields({ id: 'r1', name: 'Kobold', actions: [raceFeat] })).toEqual({ race_id: 'r1', race_name: 'Kobold', race_version: 1, race_actions: [raceFeat] });
     });
 });
 
@@ -280,17 +288,10 @@ describe('canAdministerCharacter', () => {
 });
 
 describe('characterClassName', () => {
-    test('is the class\'s name saved on a character made since classes were reworked, which has no older `class` field', () => {
+    test('is the class\'s name saved on the character', () => {
         expect(characterClassName({ class_id: 'magus', class_name: 'Magus' })).toBe('Magus');
     });
 
-    test('is the older `class` text on a character from before that', () => {
-        expect(characterClassName({ class: 'Chef' })).toBe('Chef');
-    });
-
-    test('prefers the class\'s name when a character has both', () => {
-        expect(characterClassName({ class: 'Old Name', class_name: 'Magus' })).toBe('Magus');
-    });
 
     test('is empty, not "undefined", for a character with neither', () => {
         expect(characterClassName({})).toBe('');

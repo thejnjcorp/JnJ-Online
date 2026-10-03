@@ -241,6 +241,41 @@ describe('an enemy: Actions and Notes', () => {
     });
 });
 
+describe('an enemy\'s colour', () => {
+    test('shows its colour, and picking another changes it', () => {
+        renderDrawer(foe({ color: '#ff7a1f' }));
+        expect(screen.getByLabelText('Enemy color')).toHaveValue('#ff7a1f');
+        fireEvent.change(screen.getByLabelText('Enemy color'), { target: { value: '#00ff85' } });
+        expect(api.setField).toHaveBeenCalledWith(expect.objectContaining({ id: 'npc:e1' }), { color: '#00ff85' });
+    });
+
+    test('with none it says what that means, and a colour can be cleared', () => {
+        const { unmount } = renderDrawer(foe());
+        expect(screen.getByText('Red, like every enemy')).toBeInTheDocument();
+        unmount();
+        renderDrawer(foe({ color: '#ff7a1f' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Clear enemy color' }));
+        expect(api.setField).toHaveBeenCalledWith(expect.anything(), { color: '' });
+    });
+
+    test('for a group it colours every one of them', () => {
+        const goons = [1, 2].map(n => ({ id: `g${n}`, enemy_name: `Goober ${n}`, enemy_type: 'Regular', level: 1, current_health: 4, maximum_health: 4, action_points: 3, base_armor_class: 14,
+            strength_stat: 2, dexterity_stat: 0, intelligence_stat: 0, charisma_stat: 0, statuses: [], actions: [] }));
+        const [tile] = enemyTiles(goons);
+        renderDrawer(tile.base, { members: tile.members });
+        fireEvent.change(screen.getByLabelText('Enemy color'), { target: { value: '#00ff85' } });
+        expect(api.setField).toHaveBeenCalledTimes(2);
+        expect(api.setField).toHaveBeenCalledWith(expect.objectContaining({ id: 'npc:g1' }), { color: '#00ff85' });
+        expect(api.setField).toHaveBeenCalledWith(expect.objectContaining({ id: 'npc:g2' }), { color: '#00ff85' });
+    });
+
+    test('the avatar is outlined in it', () => {
+        renderDrawer(foe({ color: '#ff7a1f' }));
+        const avatar = screen.getByText('TS');
+        expect(avatar).toHaveStyle({ borderColor: '#ff7a1f' });
+    });
+});
+
 describe('a group of minions', () => {
     const goons = [1, 2].map(n => ({ id: `g${n}`, enemy_name: `Goober ${n}`, enemy_type: 'Regular', level: 1, current_health: 4, maximum_health: 4, action_points: 3, base_armor_class: 14,
         strength_stat: 2, dexterity_stat: 0, intelligence_stat: 0, charisma_stat: 0, statuses: [], actions: [] }));

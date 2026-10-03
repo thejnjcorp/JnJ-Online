@@ -152,7 +152,7 @@ function BeatEditor({ beat, scene, scenes, encounters, maps, onChange, onCreateP
 // Build Scene: the premise and the beats you will run, in order, plus the scene's
 // settings alongside. Everything saves as you type; the buttons underneath just
 // say what state the scene is in.
-export function SceneBuilder({ scene, scenes, session, encounters, maps, onSave, onCreatePathScene, onRun, onBack, onOpenScene, onOpenMaps, onOpenEncounter, onCreateEncounter, players = [], onSetCondition = () => {} }) {
+export function SceneBuilder({ scene, scenes, session, encounters, maps, onSave, onCreatePathScene, onRun, onBack, onOpenScene, onOpenMaps, onOpenEncounter, onCreateEncounter, players = [], onSetCondition = () => {}, calendar }) {
     const { draft, edit, flush, state } = useAutosavedDoc(scene, patch => onSave(scene, patch));
     const [addOpen, setAddOpen] = useState(false);
     const [collapsed, setCollapsed] = useState(() => new Set((scene.beats || []).filter(beat => beat.type === 'cue').map(beat => beat.id)));
@@ -279,7 +279,7 @@ export function SceneBuilder({ scene, scenes, session, encounters, maps, onSave,
             </div>
         </div>
 
-        <BuilderSide current={current} edit={edit} estimate={estimate} beats={beats} scenes={scenes} players={players} owner={owner} ownerBeat={ownerBeat} endsWith={endsWith}
+        <BuilderSide calendar={calendar} current={current} edit={edit} estimate={estimate} beats={beats} scenes={scenes} players={players} owner={owner} ownerBeat={ownerBeat} endsWith={endsWith}
             onOpenScene={onOpenScene} onSetCondition={onSetCondition} onAddNpc={() => setNewNpc(true)}/>
         {newNpc && <NewNpcDialog onClose={() => setNewNpc(false)}
             onAdd={(name, behaviors) => { setBeats([...beats, { ...newBeat('npc'), title: name, npcName: name, behaviors }]); setNewNpc(false); }}/>}

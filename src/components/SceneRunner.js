@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import {
     BEAT_TYPES, advanceRun, beatState, beatTypeLabel, blockedBeatIds, completeBeat, formatClock, jumpRun, newBeat, optionLetter, optionState, pauseRun, runElapsedMs,
-    sessionTitle, splitParagraphs, startRun, timeGoalText,
+    sceneDateText, sessionTitle, splitParagraphs, startRun, timeGoalText,
 } from '../utils/scenes';
+import { CalendarSync, EndSceneCard, MoveCalendarOption, endAsksAboutCalendar } from './SceneCalendarParts';
 import { Attachments, BeatRail, CallCheck, CheckCard, DueCues, NpcCard, PausedCombatNote, RulingCard, WaitingOn } from './SceneRunnerParts';
 const FONT_SIZES = [15, 17, 20, 24, 28];
 
@@ -79,8 +80,9 @@ function BeatView({ beat, scene, scenes, onDecide, onStartCombat, onOpenMaps, co
 }
 
 // Before a scene is running: what it is, and the button that starts it.
-function SceneStartCard({ scene, session, onStart, onOpenBuilder }) {
+function SceneStartCard({ scene, session, onStart, onOpenBuilder, calendar }) {
     const beats = scene.beats || [];
+    const [moveCalendar, setMoveCalendar] = useState(true);
     return <div className="Scenes-view">
         <div className="Scenes-card Scenes-run-start">
             <span className="Scenes-eyebrow">{sessionTitle(session)}</span>
@@ -89,11 +91,12 @@ function SceneStartCard({ scene, session, onStart, onOpenBuilder }) {
             <p className="Scenes-muted">{`${beats.length} ${beats.length === 1 ? 'beat' : 'beats'} · time goal: ${timeGoalText(scene)}`}</p>
             {scene.status === 'completed' && <p className="Scenes-muted">This scene has been run. Starting it again picks up where you left off.</p>}
             <div className="Scenes-row-actions">
-                <button type="button" className="Scenes-button Scenes-button-primary" disabled={beats.length === 0} onClick={() => onStart(scene)}>
+                <button type="button" className="Scenes-button Scenes-button-primary" disabled={beats.length === 0} onClick={() => onStart(scene, { moveCalendar })}>
                     {scene.run?.doneBeatIds?.length ? 'Resume scene' : 'Start scene'}
                 </button>
                 <button type="button" className="Scenes-button" onClick={() => onOpenBuilder(scene.id)}>Edit in Build Scene</button>
             </div>
+            {calendar && <MoveCalendarOption scene={scene} calendar={calendar} checked={moveCalendar} onChange={setMoveCalendar}/>}
             {beats.length === 0 && <p className="Scenes-muted">This scene has no beats yet. Build it first.</p>}
         </div>
     </div>;
@@ -126,19 +129,20 @@ function RunClock({ scene, run, now }) {
 // scene's beats (what is done, what is now, what is next); the middle is whatever
 // the current beat needs - read-aloud text, an NPC's behaviors, a cue, the combat
 // tracker - and the director's own scratchpad for the beat sits to the right.
-export function SceneRunner({ scene, scenes, session, onUpdate, onStart, onEnd, onSwitch, onDecide, onStartCombat, renderCombat, onOpenBuilder, onOpenMaps, onOpenNotes, combatTurn = null, players = [], onAskRoll = null }) {
+export function SceneRunner({ scene, scenes, session, calendar = null, onSyncCalendar = null, onUpdate, onStart, onEnd, onSwitch, onDecide, onStartCombat, renderCombat, onOpenBuilder, onOpenMaps, onOpenNotes, combatTurn = null, players = [], onAskRoll = null }) {
     const run = scene.run;
     const live = scene.status === 'active' && Boolean(run);
     const beats = scene.beats || [];
     const now = useNow(run?.startedAt);
     const [addOpen, setAddOpen] = useState(false);
+    const [confirmingEnd, setConfirmingEnd] = useState(false);
 
     const current = beats.find(beat => beat.id === run?.currentBeatId) || null;
     const currentIndex = current ? beats.indexOf(current) : -1;
     const [notes, setNotes] = useState(current?.notes || '');
     useEffect(() => setNotes(current?.notes || ''), [current?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    if (!live) return <SceneStartCard scene={scene} session={session} onStart={onStart} onOpenBuilder={onOpenBuilder}/>;
+    if (!live) return <SceneStartCard scene={scene} session={session} calendar={calendar} onStart={onStart} onOpenBuilder={onOpenBuilder}/>;
 
     // a combat beat brings the turn order and tracker, and the enemies for a column of their own
     const combat = current?.type === 'combat' ? renderCombat() : null;
@@ -148,6 +152,10 @@ export function SceneRunner({ scene, scenes, session, onUpdate, onStart, onEnd, 
     const skip = blockedBeatIds(scene, scenes);
     const changeBeat = (beat, patch) => update({ beats: beats.map(other => (other.id === beat.id ? { ...other, ...patch } : other)) });
     const scenePlayers = scene.playerIds ? players.filter(player => scene.playerIds.includes(player.id)) : players;
+
+    // ending a scene that has a day, and is not on the calendar yet, asks whether to put it there
+    const requestEnd = () => (calendar && endAsksAboutCalendar(scene, calendar) ? setConfirmingEnd(true) : onEnd(scene));
+    const dateText = calendar ? sceneDateText(scene, calendar) : '';
 
     function addBeatOnTheFly(type) {
         const beat = { ...newBeat(type), title: `Improvised ${beatTypeLabel(type).toLowerCase()}` };
@@ -160,7 +168,7 @@ export function SceneRunner({ scene, scenes, session, onUpdate, onStart, onEnd, 
             <div className="Scenes-run-title">
                 <h2 className="Scenes-title">{scene.name || 'Untitled scene'}</h2>
                 <span className={paused ? 'Scenes-chip' : 'Scenes-chip Scenes-chip-now'}>{`${paused ? 'Paused' : 'Live'} · Beat ${currentIndex >= 0 ? currentIndex + 1 : beats.length} of ${beats.length}`}</span>
-                <span className="Scenes-muted">{`${sessionTitle(session)}${scene.inWorldDate ? ' · ' + scene.inWorldDate : ''}`}</span>
+                <span className="Scenes-muted">{`${sessionTitle(session)}${dateText ? ' · ' + dateText : ''}`}</span>
                 <RunClock scene={scene} run={run} now={now}/>
             </div>
             <div className="Scenes-run-actions">
@@ -168,12 +176,14 @@ export function SceneRunner({ scene, scenes, session, onUpdate, onStart, onEnd, 
                     <option value="">Switch Scene ▾</option>
                     {scenes.filter(other => other.id !== scene.id && other.sessionId === scene.sessionId && !other.benched && (other.beats || []).length > 0).map(other => <option key={other.id} value={other.id}>{other.name || 'Untitled scene'}</option>)}
                 </select>
+                {calendar && onSyncCalendar && <CalendarSync scene={scene} calendar={calendar} onSync={onSyncCalendar}/>}
                 <button type="button" className="Scenes-button" onClick={onOpenNotes}>Notes</button>
                 <button type="button" className="Scenes-button" onClick={() => update({ run: paused ? startRun(scene) : pauseRun(run) })}>{paused ? 'Resume clock' : 'Pause clock'}</button>
                 <button type="button" className="Scenes-button Scenes-button-primary" disabled={!current} onClick={() => update({ run: advanceRun(scene, skip) })}>Next beat &rarr;</button>
-                <button type="button" className="Scenes-button" onClick={() => onEnd(scene)}>End Scene</button>
+                <button type="button" className="Scenes-button" onClick={requestEnd}>End Scene</button>
             </div>
         </div>
+        {confirmingEnd && <EndSceneCard scene={scene} calendar={calendar} onEnd={options => onEnd(scene, options)} onCancel={() => setConfirmingEnd(false)}/>}
 
         <div className={current?.type === 'combat' ? 'Scenes-run-body Scenes-run-body-combat' : 'Scenes-run-body'}>
             <div className="Scenes-run-left">
@@ -208,7 +218,7 @@ export function SceneRunner({ scene, scenes, session, onUpdate, onStart, onEnd, 
                     : <div className="Scenes-card">
                         <strong>Every beat is done.</strong>
                         <p className="Scenes-muted">End the scene when you're ready to move on, or pick a beat from the list to go back to it.</p>
-                        <button type="button" className="Scenes-button Scenes-button-primary" onClick={() => onEnd(scene)}>End Scene</button>
+                        <button type="button" className="Scenes-button Scenes-button-primary" onClick={requestEnd}>End Scene</button>
                     </div>}
             </div>
 

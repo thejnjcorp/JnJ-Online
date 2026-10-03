@@ -42,7 +42,7 @@ import { AccountPage } from '../../src/components/AccountPage';
 import { renderWithRouter } from '../testUtils/renderWithRouter';
 
 const authUser = { uid: 'user-1', email: 'sam@example.com', displayName: 'Sam Google', photoURL: null };
-const character = { id: 'char-a', character_name: 'Aria', class: 'Fighter', campaign: 'camp-a' };
+const character = { id: 'char-a', character_name: 'Aria', class_name: 'Fighter', campaign: 'camp-a' };
 const campaign = { id: 'camp-a', campaign_name: 'The Iron Vale', director_name: 'Sam' };
 
 function docsFrom(items) {

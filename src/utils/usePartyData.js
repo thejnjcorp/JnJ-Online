@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { collection, doc, onSnapshot, query, where } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from './firebase';
-import { ensureParty } from './party';
 import { useParty } from './useParty';
 import { withoutArchived } from './characterArchive';
 import { membersOf } from './itemAccess';
@@ -31,11 +30,6 @@ export function usePartyData(campaignId) {
         );
         return () => unsubscribe();
     }, [campaignId]);
-
-    // A campaign that predates the party doc gets its one the first time anyone opens it.
-    useEffect(() => {
-        if (campaign && userId) ensureParty(campaignId).catch(error => console.log("Couldn't create the party doc: " + error));
-    }, [campaignId, campaign, userId]);
 
     useEffect(() => {
         if (!campaignId || !campaign) return undefined;

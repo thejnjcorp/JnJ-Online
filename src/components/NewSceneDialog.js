@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { SCENE_TEMPLATES, SCENE_TYPES, mainScenes, sessionTitle } from '../utils/scenes';
 import { useEscapeKey } from '../utils/useEscapeKey';
+import { CalendarDatePicker } from './SceneCalendarParts';
 
 // What the "place on timeline" choice means to the timeline: nothing (the end), null
 // (the start), or the scene to follow.
@@ -13,14 +14,14 @@ function afterSceneIdOf(choice) {
 // in-world date and time goal, and whether to start from nothing or copy another
 // scene. Creating hands everything to `onCreate`, which makes the scene and opens it
 // in the builder.
-export function NewSceneDialog({ sessions, scenes, defaultSessionId, afterSceneId, onCreate, onClose }) {
+export function NewSceneDialog({ sessions, scenes, calendar, defaultSessionId, afterSceneId, onCreate, onClose }) {
     useEscapeKey(onClose);
     const firstSession = defaultSessionId || sessions[sessions.length - 1]?.id || '';
     const [name, setName] = useState('');
     const [type, setType] = useState('roleplay');
     const [sessionId, setSessionId] = useState(firstSession);
     const [after, setAfter] = useState(afterSceneId === undefined ? 'last' : (afterSceneId || 'first'));
-    const [inWorldDate, setInWorldDate] = useState('');
+    const [date, setDate] = useState(null);
     const [timeMin, setTimeMin] = useState('');
     const [timeMax, setTimeMax] = useState('');
     const [startFrom, setStartFrom] = useState('blank');
@@ -36,7 +37,7 @@ export function NewSceneDialog({ sessions, scenes, defaultSessionId, afterSceneI
         setBusy(true);
         try {
             await onCreate({
-                name: name.trim(), type, sessionId, inWorldDate: inWorldDate.trim(),
+                name: name.trim(), type, sessionId, date,
                 timeMin: Number(timeMin) > 0 ? Number(timeMin) : null,
                 timeMax: Number(timeMax) > 0 ? Number(timeMax) : null,
                 afterSceneId: afterSceneIdOf(after),
@@ -88,10 +89,7 @@ export function NewSceneDialog({ sessions, scenes, defaultSessionId, afterSceneI
             </div>
 
             <div className="Scenes-field-row">
-                <label className="Scenes-field">
-                    <span className="Scenes-field-label">In-world date</span>
-                    <input type="text" value={inWorldDate} placeholder="e.g. Dec 21" onChange={event => setInWorldDate(event.target.value)}/>
-                </label>
+                <CalendarDatePicker calendar={calendar} value={date} onChange={setDate}/>
                 <div className="Scenes-field-row Scenes-field-row-tight">
                     <label className="Scenes-field">
                         <span className="Scenes-field-label">Time goal (min)</span>

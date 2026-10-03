@@ -58,8 +58,7 @@ export function levelOf(experience) {
 
 const cappedLevelOf = character => Math.min(MAX_LEVEL, levelOf(character?.experience_points));
 
-// The level whose rewards have been taken. Characters that predate this have
-// taken none, so they start at 1.
+// The level whose rewards have been taken: none yet means level 1.
 export function claimedLevel(character) {
     return Number.isInteger(character?.claimed_level) ? character.claimed_level : 1;
 }

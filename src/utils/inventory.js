@@ -12,10 +12,6 @@
 // A character has two lists: `inventory` (four relic slots and eight backpack slots)
 // and `inventory_pocket` (one pocket slot). The party's inventory (on the party doc)
 // is one flat list with no slots, and each entry also says who put it there.
-//
-// Entries from before items existed have no `item_id` - just a title and a
-// description typed in by hand. They still list and drag, and count as one of
-// themselves, until the migration turns them into items.
 
 export const RELIC_SLOTS = ['Relic 1', 'Relic 2', 'Relic 3', 'Relic 4'];
 export const BACKPACK_SLOTS = ['1', '2', '3', '4', '5', '6', '7', '8'];
@@ -24,9 +20,7 @@ export const POCKET_SLOT = 'Pocket';
 export const MAX_QUANTITY = 999;
 export const MAX_PARTY_ENTRIES = 200;
 
-export const isItemEntry = entry => typeof entry?.item_id === 'string' && entry.item_id !== '';
-
-export const quantityOf = entry => (isItemEntry(entry) && Number.isInteger(entry.quantity) && entry.quantity > 0 ? Math.min(entry.quantity, MAX_QUANTITY) : 1);
+export const quantityOf = entry => (Number.isInteger(entry?.quantity) && entry.quantity > 0 ? Math.min(entry.quantity, MAX_QUANTITY) : 1);
 
 const newId = () => crypto.randomUUID();
 
@@ -82,13 +76,12 @@ export function removeFromEntries(entries, itemId, quantity) {
     return { entries: next, ok: true };
 }
 
-// Set one entry's quantity (an entry with no item - a hand-typed one - can't have
-// one); zero or less takes it out.
+// Set one entry's quantity; zero or less takes it out.
 export function setEntryQuantity(entries, entryId, quantity) {
     if (!Number.isInteger(quantity)) return entries;
     if (quantity < 1) return entries.filter(entry => entry.id !== entryId);
     const capped = Math.min(quantity, MAX_QUANTITY);
-    return entries.map(entry => (entry.id === entryId && isItemEntry(entry) ? { ...entry, quantity: capped } : entry));
+    return entries.map(entry => (entry.id === entryId ? { ...entry, quantity: capped } : entry));
 }
 
 export const removeEntry = (entries, entryId) => entries.filter(entry => entry.id !== entryId);
@@ -105,7 +98,7 @@ const listsOf = character => ({
 export function holdingsOf(character) {
     const { inventory, inventory_pocket: pocket } = listsOf(character);
     const held = new Map();
-    [...inventory, ...pocket].filter(isItemEntry).forEach(entry => {
+    [...inventory, ...pocket].forEach(entry => {
         const so_far = held.get(entry.item_id);
         held.set(entry.item_id, { item_id: entry.item_id, title: so_far?.title || entry.title || '', quantity: (so_far?.quantity || 0) + quantityOf(entry) });
     });

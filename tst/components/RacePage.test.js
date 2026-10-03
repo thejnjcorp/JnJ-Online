@@ -323,12 +323,6 @@ describe('RacePage', () => {
             expect(screen.getByText(/ActionEditor-stub:0:Mild Fire:feat/)).toBeInTheDocument();
         });
 
-        test('a legacy race with a single `feat` shows it as its one action', async () => {
-            renderExisting(raceDoc({ actions: undefined, feat: { actionName: 'Old Feat', category: 'feat' } }));
-            await screen.findByText('Kobold');
-            expect(screen.getByText(/ActionEditor-stub:0:Old Feat:feat/)).toBeInTheDocument();
-        });
-
         test('passes the race\'s admins and the signed-in user down to DocAdminManager', async () => {
             signIn({ uid: 'user-1' });
             renderExisting(raceDoc());
@@ -401,17 +395,6 @@ describe('RacePage', () => {
 
             await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalled());
             expect(mockUpdateDoc.mock.calls[0][1].description).toBe('Small, **scaly** and proud.');
-        });
-
-        test('saving a legacy race writes its feat as the actions list', async () => {
-            renderExisting(raceDoc({ actions: undefined, feat: validAction({ id: 'f1', actionName: 'Old Feat', category: 'feat', actionCost: 0 }) }));
-            await screen.findByText('Kobold');
-            fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
-
-            fireEvent.click(screen.getByRole('button', { name: 'Done Editing' }));
-
-            await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalled());
-            expect(mockUpdateDoc.mock.calls[0][1].actions.map(a => a.actionName)).toEqual(['Old Feat']);
         });
 
         test('a failed update is alerted and editing mode stays open', async () => {
@@ -508,14 +491,14 @@ describe('RacePage', () => {
                 expect(mockListRaceVersions).toHaveBeenCalledWith('race-1');
             });
 
-            test('viewing an older version is read-only, shows its content (including a legacy feat), and can return to the latest', async () => {
+            test('viewing an older version is read-only, shows its content, and can return to the latest', async () => {
                 mockListRaceVersions.mockResolvedValue([
                     { version: 2, notes: 'Renamed', publishedAt: null },
                     { version: 1, notes: '', publishedAt: null },
                 ]);
                 mockResolveRaceVersion.mockResolvedValue({
                     version: 1, latestVersion: 2,
-                    data: raceDoc({ name: 'Kobold (original)', version: 1, actions: undefined, feat: { actionName: 'Old Feat', category: 'feat' } }),
+                    data: raceDoc({ name: 'Kobold (original)', version: 1, actions: [{ actionName: 'Old Feat', category: 'feat' }] }),
                 });
                 renderExisting(raceDoc({ name: 'Kobold', version: 2 }));
                 await screen.findByText('Version history');

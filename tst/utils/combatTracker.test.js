@@ -109,14 +109,13 @@ describe('syncCombatTracker', () => {
         });
     });
 
-    describe('an old campaign whose tracker is not a list', () => {
-        test('counts as nobody placed yet, and is replaced by a proper list', () => {
-            const next = syncCombatTracker({ zones: [] }, [entity('a')], zones);
+    describe('a campaign with no tracker stored yet', () => {
+        test('counts as nobody placed yet', () => {
+            const next = syncCombatTracker(undefined, [entity('a')], zones);
             expect(next).toEqual([{ id: 'a', title: 'a', content: '', status: 'Zone 1', index: 0 }]);
         });
 
-        test('is replaced even when there is nobody to place', () => {
-            expect(syncCombatTracker({ zones: [] }, [], zones)).toEqual([]);
+        test('gets an empty list written even when there is nobody to place', () => {
             expect(syncCombatTracker(undefined, [], zones)).toEqual([]);
         });
     });
@@ -168,9 +167,8 @@ describe('addToTracker', () => {
         expect(Number.isFinite(next[0].x)).toBe(true);
     });
 
-    test('is not confused by a tracker that is not a list', () => {
+    test('works when there is no tracker stored yet', () => {
         expect(addToTracker(undefined, [entity('a')], zones)).toEqual([{ id: 'a', title: 'a', content: '', status: 'Zone 1', index: 0 }]);
-        expect(addToTracker('junk', [entity('a')], zones)).toHaveLength(1);
     });
 
     test('a combatant with no name is given an empty title, since Firestore refuses undefined', () => {

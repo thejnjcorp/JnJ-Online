@@ -44,7 +44,7 @@ import { renderWithRouter } from '../testUtils/renderWithRouter';
 const raceFeat = { actionName: 'Mild Fire', category: 'feat' };
 const savedCopy = {
     character_name: 'Kodi', skills_and_flaws: [], class_id: 'monk', class_name: 'Monk (saved)',
-    base_armor_class: 10, actions: [{ actionName: 'Saved Action', category: 'action' }], race_feat: raceFeat,
+    base_armor_class: 10, actions: [{ actionName: 'Saved Action', category: 'action' }], race_actions: [raceFeat],
 };
 const liveClass = {
     class_name: 'Monk', base_armor_class: 16,
@@ -100,7 +100,7 @@ describe('CharacterPage class resolution', () => {
     });
 
     test('a legacy character with no pinned version never reads a class and renders as before', () => {
-        const { race_feat, ...legacy } = savedCopy;
+        const { race_actions, ...legacy } = savedCopy;
 
         mount(legacy);
 
