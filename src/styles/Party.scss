@@ -788,3 +788,23 @@
         cursor: default;
     }
 }
+
+// What the director has asked a character to roll, across the top of their page.
+.RollRequests {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-2);
+    margin: 0 0 var(--jnj-space-3);
+}
+
+.RollRequests-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--jnj-space-3);
+    padding: var(--jnj-space-3) var(--jnj-space-4);
+    border: 1px solid var(--jnj-color-accent);
+    border-radius: var(--jnj-radius-lg);
+    background: var(--jnj-color-accent-soft);
+    font-weight: 600;
+}

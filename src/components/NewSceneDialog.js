@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { SCENE_TYPES, mainScenes, sessionTitle } from '../utils/scenes';
+import { SCENE_TEMPLATES, SCENE_TYPES, mainScenes, sessionTitle } from '../utils/scenes';
 import { useEscapeKey } from '../utils/useEscapeKey';
 
 // What the "place on timeline" choice means to the timeline: nothing (the end), null
@@ -25,10 +25,11 @@ export function NewSceneDialog({ sessions, scenes, defaultSessionId, afterSceneI
     const [timeMax, setTimeMax] = useState('');
     const [startFrom, setStartFrom] = useState('blank');
     const [duplicateOf, setDuplicateOf] = useState('');
+    const [templateKey, setTemplateKey] = useState('');
     const [busy, setBusy] = useState(false);
 
     const sceneOptions = sessionId ? mainScenes(scenes, sessionId) : [];
-    const canCreate = name.trim() !== '' && !busy && (startFrom !== 'duplicate' || duplicateOf !== '');
+    const canCreate = name.trim() !== '' && !busy && (startFrom !== 'duplicate' || duplicateOf !== '') && (startFrom !== 'template' || templateKey !== '');
 
     async function create() {
         if (!canCreate) return;
@@ -40,6 +41,7 @@ export function NewSceneDialog({ sessions, scenes, defaultSessionId, afterSceneI
                 timeMax: Number(timeMax) > 0 ? Number(timeMax) : null,
                 afterSceneId: afterSceneIdOf(after),
                 duplicateOf: startFrom === 'duplicate' ? duplicateOf : '',
+                templateKey: startFrom === 'template' ? templateKey : '',
             });
         } catch (error) {
             alert("Couldn't create the scene: " + error.message);
@@ -107,7 +109,12 @@ export function NewSceneDialog({ sessions, scenes, defaultSessionId, afterSceneI
                 <fieldset className="Scenes-segmented" aria-labelledby="new-scene-start">
                     <button type="button" aria-pressed={startFrom === 'blank'} onClick={() => setStartFrom('blank')}>Blank</button>
                     <button type="button" aria-pressed={startFrom === 'duplicate'} onClick={() => setStartFrom('duplicate')} disabled={scenes.length === 0}>Duplicate scene</button>
+                    <button type="button" aria-pressed={startFrom === 'template'} onClick={() => setStartFrom('template')}>Template</button>
                 </fieldset>
+                {startFrom === 'template' && <select aria-label="Template" value={templateKey} onChange={event => { setTemplateKey(event.target.value); const picked = SCENE_TEMPLATES.find(template => template.key === event.target.value); if (picked) setType(picked.type); }}>
+                    <option value="">Choose a template…</option>
+                    {SCENE_TEMPLATES.map(template => <option key={template.key} value={template.key}>{template.label}</option>)}
+                </select>}
                 {startFrom === 'duplicate' && <select aria-label="Scene to duplicate" value={duplicateOf} onChange={event => setDuplicateOf(event.target.value)}>
                     <option value="">Choose a scene…</option>
                     {scenes.filter(scene => !scene.benched).map(scene => <option key={scene.id} value={scene.id}>{scene.name || 'Untitled scene'}</option>)}

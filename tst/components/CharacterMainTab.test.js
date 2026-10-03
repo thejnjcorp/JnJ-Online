@@ -46,6 +46,7 @@ jest.mock('../../src/utils/DraggableElements/PostListCombatMap.tsx', () => ({
     PostListContentCombatMap: ({ campaignId, activeMap, entities, canEdit, toolbarsBeside }) => <div data-canedit={String(Boolean(canEdit))} data-beside={String(Boolean(toolbarsBeside))}>CombatMap-stub:{campaignId}:{activeMap?.map_id}:{entities.length}</div>,
 }));
 const mockCharacterNotesProps = [];
+jest.mock('../../src/components/RollRequests', () => ({ RollRequests: ({ characterId, canClear }) => <div>RollRequests-stub:{characterId}:{String(canClear)}</div> }));
 jest.mock('../../src/components/CharacterNotes', () => ({
     CharacterNotes: props => {
         mockCharacterNotesProps.push(props);

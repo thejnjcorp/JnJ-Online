@@ -491,3 +491,23 @@
 }
 .Scenes-minimap-numbers { display: flex; gap: 4px; font: 600 0.65625rem var(--jnj-font-body); color: var(--jnj-color-text-muted); text-align: center; > span { flex: 1; } }
 .Scenes-minimap-now { color: var(--jnj-color-accent); }
+
+// ---- Running: cues that come due, a fight set aside, rulings, calling a check ----------
+
+.Scenes-rail-item-due { border-color: var(--jnj-color-ember); .Scenes-rail-state { color: var(--jnj-color-ember); } }
+.Scenes-rail-item-paused { border-color: var(--jnj-color-arcane); .Scenes-rail-state { color: var(--jnj-color-arcane); } }
+.Scenes-rail-item-skipped { opacity: 0.5; text-decoration: line-through; }
+.Scenes-due { border-color: var(--jnj-color-ember); p { margin: 0; } }
+.Scenes-paused { flex-direction: row; align-items: center; justify-content: space-between; gap: var(--jnj-space-3); border-style: dashed; }
+.Scenes-pinned-off { opacity: 0.55; }
+.Scenes-pinned button { margin-left: auto; flex-shrink: 0; }
+.Scenes-waiting { display: flex; align-items: center; gap: var(--jnj-space-2); font-size: 0.78125rem; color: var(--jnj-color-text-muted); }
+.Scenes-chips { display: flex; flex-wrap: wrap; gap: var(--jnj-space-2); padding: 0; margin: 0; border: none; }
+
+// ---- Building: attached NPCs and checks, the time goal bar ----------------------------
+
+.Scenes-attachments { display: flex; flex-direction: column; gap: var(--jnj-space-2); }
+.Scenes-attachment { display: flex; align-items: center; gap: var(--jnj-space-2); flex-wrap: wrap; input { flex: 1 1 10rem; min-width: 0; padding: var(--jnj-space-2) var(--jnj-space-3); border: 1px solid var(--jnj-color-border); border-radius: 7px; background: var(--jnj-color-bg-sunken); color: var(--jnj-color-text); font: inherit; } }
+.Scenes-goal-bar { position: relative; height: 0.5rem; border-radius: 999px; background: var(--jnj-color-bg-sunken); border: 1px solid var(--jnj-color-border); }
+.Scenes-goal-range { position: absolute; top: 0; bottom: 0; min-width: 0.25rem; border-radius: 999px; background: var(--jnj-color-success); opacity: 0.55; }
+.Scenes-goal-mark { position: absolute; top: -0.25rem; bottom: -0.25rem; width: 3px; margin-left: -1px; border-radius: 2px; background: var(--jnj-color-accent); }

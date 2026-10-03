@@ -122,3 +122,25 @@ export const addTrackerPosts = newPosts => posts => {
     const fresh = newPosts.filter(post => !present.has(post.id));
     return fresh.length > 0 ? [...posts, ...fresh] : null;
 };
+
+// --- Asking for a roll ------------------------------------------------------------
+// The director can ask a player (or a few) to roll - "Dexterity", "Attention to detail". The ask
+// sits on the party doc, where the player's character page finds it, until they clear it. Only the
+// latest few are kept, so it never grows.
+export const MAX_ROLL_REQUESTS = 20;
+
+// The party's roll requests with one more for each of these characters.
+export function withRollRequests(party, characterIds, skill, now = Date.now()) {
+    const existing = Array.isArray(party.roll_requests) ? party.roll_requests : [];
+    const fresh = characterIds.map(characterId => ({ id: `${now}:${characterId}`, characterId, skill, askedAt: now }));
+    return [...existing, ...fresh].slice(-MAX_ROLL_REQUESTS);
+}
+
+export const requestRoll = (campaignId, characterIds, skill) => updateParty(campaignId, party => ({ roll_requests: withRollRequests(party, characterIds, skill) }));
+
+// The request with this id is dealt with: take it off (nothing changes if it isn't there).
+export const clearRollRequest = (campaignId, requestId) => updateParty(campaignId, party => {
+    const existing = Array.isArray(party.roll_requests) ? party.roll_requests : [];
+    const kept = existing.filter(request => request.id !== requestId);
+    return kept.length === existing.length ? null : { roll_requests: kept };
+});

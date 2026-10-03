@@ -1,5 +1,5 @@
 import {
-    advanceRun, beatMinutes, beatState, branchLinkPatches, buildTimeline, estimateMinutes, formatClock, groupArcs, jumpRun,
+    SCENE_TEMPLATES, advanceRun, blockedBeatIds, completeBeat, conditionChoices, conditionState, copyBeats, cueRound, isCombatPaused, isCueDue, beatMinutes, beatState, branchLinkPatches, buildTimeline, estimateMinutes, formatClock, groupArcs, jumpRun,
     newBeat, newScene, optionState, orderAfter, pauseRun, playedScenes, runElapsedMs, sessionState, sessionStats, settleDecision,
     sceneToOpen, splitParagraphs, startRun, timeGoalText, timelinePips, withoutUndefined,
 } from '../../src/utils/scenes';
@@ -257,5 +257,105 @@ describe('sceneToOpen', () => {
     test('benched scenes are not offered', () => {
         const scenes = [scene('b', { benched: true, order: 1 }), scene('m', { order: 2 })];
         expect(sceneToOpen(scenes, {}).id).toBe('m');
+    });
+});
+
+describe('cues that come due', () => {
+    test('a cue\'s round is the number after "round" in when it comes due', () => {
+        expect(cueRound({ trigger: 'Round 2' })).toBe(2);
+        expect(cueRound({ trigger: 'round 3 refresher' })).toBe(3);
+        expect(cueRound({ trigger: 'Between rounds' })).toBeNull();
+        expect(cueRound({})).toBeNull();
+        expect(cueRound(null)).toBeNull();
+    });
+
+    test('it is due once that round is here, and only a cue with a round is ever due', () => {
+        const cue = { type: 'cue', trigger: 'Round 2' };
+        expect(isCueDue(cue, 1)).toBe(false);
+        expect(isCueDue(cue, 2)).toBe(true);
+        expect(isCueDue(cue, 5)).toBe(true);
+        expect(isCueDue({ type: 'cue', trigger: '' }, 5)).toBe(false);
+        expect(isCueDue({ type: 'narration', trigger: 'Round 1' }, 5)).toBe(false);
+    });
+});
+
+describe('finishing and skipping beats', () => {
+    const run = { currentBeatId: 'a', doneBeatIds: [] };
+    const sc = { beats: [{ id: 'a' }, { id: 'b' }, { id: 'c' }], run };
+
+    test('a beat can be finished without going to it, once', () => {
+        expect(completeBeat(sc, 'b').doneBeatIds).toEqual(['b']);
+        expect(completeBeat({ ...sc, run: { ...run, doneBeatIds: ['b'] } }, 'b').doneBeatIds).toEqual(['b']);
+        expect(completeBeat({ beats: [] }, 'x').doneBeatIds).toEqual(['x']);
+    });
+
+    test('moving on passes over the beats it is told to', () => {
+        expect(advanceRun(sc, ['b']).currentBeatId).toBe('c');
+        expect(advanceRun(sc).currentBeatId).toBe('b');
+        expect(advanceRun(sc, ['b', 'c']).currentBeatId).toBe('');
+    });
+
+    test('a fight that was started and is not the beat being run is paused', () => {
+        const fight = { id: 'f', type: 'combat', started: true };
+        expect(isCombatPaused({ beats: [fight], run: { currentBeatId: 'x', doneBeatIds: [] } }, fight)).toBe(true);
+        expect(isCombatPaused({ beats: [fight], run: { currentBeatId: 'f', doneBeatIds: [] } }, fight)).toBe(false);
+        expect(isCombatPaused({ beats: [fight], run: { currentBeatId: 'x', doneBeatIds: ['f'] } }, fight)).toBe(false);
+        expect(isCombatPaused({ beats: [], run: {} }, { id: 'f', type: 'combat' })).toBe(false);
+    });
+});
+
+describe('only runs if', () => {
+    const [intro, split] = decisionScenes();
+    const scenes = [intro, split];
+    const target = scene('target', { beats: [] });
+
+    test('the choices are every option of every decision in the session, worded as the decision and the option', () => {
+        expect(conditionChoices([...scenes, target], target)).toEqual([
+            expect.objectContaining({ key: 'split:d1:oa', sceneId: 'split', beatId: 'd1', optionId: 'oa', label: 'After split = Front' }),
+            expect.objectContaining({ key: 'split:d1:ob', label: 'After split = Stage' }),
+        ]);
+        expect(conditionChoices(scenes, split)).toEqual([]);
+        expect(conditionChoices(scenes, { id: 'z', sessionId: 'elsewhere' })).toEqual([]);
+    });
+
+    test('a condition is open until its decision is made, then met or unmet', () => {
+        const condition = { sceneId: 'split', beatId: 'd1', optionId: 'oa' };
+        expect(conditionState(null, scenes)).toBe('open');
+        expect(conditionState(condition, scenes)).toBe('open');
+        expect(conditionState({ ...condition, sceneId: 'gone' }, scenes)).toBe('open');
+        const decided = chosen => scenes.map(item => (item.id === 'split' ? { ...item, beats: item.beats.map(beat => ({ ...beat, chosenOptionId: chosen })) } : item));
+        expect(conditionState(condition, decided('oa'))).toBe('met');
+        expect(conditionState(condition, decided('ob'))).toBe('unmet');
+    });
+
+    test('the beats that will not run are the ones whose path was not taken', () => {
+        const decided = scenes.map(item => (item.id === 'split' ? { ...item, beats: item.beats.map(beat => ({ ...beat, chosenOptionId: 'ob' })) } : item));
+        const beats = [
+            { id: 'x', onlyIf: { sceneId: 'split', beatId: 'd1', optionId: 'oa' } },
+            { id: 'y', onlyIf: { sceneId: 'split', beatId: 'd1', optionId: 'ob' } },
+            { id: 'z' },
+        ];
+        expect(blockedBeatIds({ beats }, decided)).toEqual(['x']);
+        expect(blockedBeatIds({ beats }, scenes)).toEqual([]);
+        expect(blockedBeatIds({}, scenes)).toEqual([]);
+    });
+});
+
+describe('templates, and copying what is attached', () => {
+    test('each template makes fresh beats every time, of the type it says', () => {
+        SCENE_TEMPLATES.forEach(template => {
+            const first = template.beats();
+            const second = template.beats();
+            expect(first.length).toBeGreaterThan(0);
+            expect(first[0].id).not.toBe(second[0].id);
+            expect(['roleplay', 'combat', 'mixed']).toContain(template.type);
+        });
+        expect(SCENE_TEMPLATES.find(template => template.key === 'combat').beats().some(beat => beat.type === 'combat')).toBe(true);
+    });
+
+    test('copied beats get new ids for what is attached to them, and keep their conditions', () => {
+        const [copy] = copyBeats([{ id: 'a', type: 'narration', onlyIf: { sceneId: 's', beatId: 'b', optionId: 'o' }, attachments: [{ id: 'att', kind: 'npc', npcName: 'Bully' }] }]);
+        expect(copy.attachments).toEqual([{ id: expect.not.stringMatching(/^att$/), kind: 'npc', npcName: 'Bully' }]);
+        expect(copy.onlyIf).toEqual({ sceneId: 's', beatId: 'b', optionId: 'o' });
     });
 });

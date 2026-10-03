@@ -7,7 +7,7 @@ import { useEncounters } from '../utils/useEncounters';
 import { addTrackerPosts, partyDoc, updateCombatTracker } from '../utils/party';
 import { stageEncounter } from '../utils/enemies';
 import {
-    activeScene, branchLinkPatches, copyBeats, newId, orderAfter, pauseRun, sceneToOpen, settleDecision, startRun, unlinkScene,
+    SCENE_TEMPLATES, activeScene, branchLinkPatches, copyBeats, newId, orderAfter, pauseRun, sceneToOpen, settleDecision, startRun, unlinkScene,
 } from '../utils/scenes';
 import { ScenesCampaignView } from './ScenesCampaignView';
 import { PartySpace } from './PartySpace';
@@ -46,7 +46,7 @@ async function stageCombatBeat({ campaignId, campaignInfo, maps, beat }) {
 
 // The builder or the runner for one scene - or, when there is no scene to show, what
 // to do about it.
-function SceneWorkspace({ view, scene, session, scenes, encounters, maps, renderCombat, actions }) {
+function SceneWorkspace({ view, scene, session, scenes, encounters, maps, renderCombat, actions, combatTurn, players, onAskRoll }) {
     if (!scene || !session) {
         return <div className="Scenes-view"><div className="Scenes-empty">
             There are no scenes to {view === 'build' ? 'build' : 'run'} yet.{' '}
@@ -56,11 +56,12 @@ function SceneWorkspace({ view, scene, session, scenes, encounters, maps, render
     if (view === 'build') {
         return <SceneBuilder key={scene.id} scene={scene} scenes={scenes} session={session} encounters={encounters} maps={maps}
             onSave={actions.saveScene} onCreatePathScene={actions.createPathScene} onRun={actions.goRun} onBack={() => actions.goSession(session.id)} onOpenScene={actions.goBuild} onOpenMaps={actions.openMaps}
-            onOpenEncounter={actions.openEncounter} onCreateEncounter={actions.createEncounter}/>;
+            onOpenEncounter={actions.openEncounter} onCreateEncounter={actions.createEncounter} players={players} onSetCondition={actions.setCondition}/>;
     }
     return <SceneRunner key={scene.id} scene={scene} scenes={scenes} session={session}
         onUpdate={actions.updateScene} onStart={actions.startScene} onEnd={actions.endScene} onSwitch={actions.switchScene}
-        onDecide={actions.decide} onStartCombat={actions.startCombat} renderCombat={renderCombat} onOpenBuilder={actions.goBuild} onOpenMaps={actions.openMaps} onOpenNotes={actions.openNotes}/>;
+        onDecide={actions.decide} onStartCombat={actions.startCombat} renderCombat={renderCombat} onOpenBuilder={actions.goBuild} onOpenMaps={actions.openMaps} onOpenNotes={actions.openNotes}
+        combatTurn={combatTurn} players={players} onAskRoll={onAskRoll}/>;
 }
 
 // Timeline / Build Scene / Run Scene. Build and Run open the scene you chose (or the
@@ -81,8 +82,8 @@ function ScenesNav({ view, timelineSessionId, buildTarget, runTarget, live, go, 
         <button type="button" className="Scenes-nav-item" onClick={() => onOpenPanel('encounters')}>Encounters</button>
         <button type="button" className="Scenes-nav-item" onClick={() => onOpenPanel('maps')}>Maps</button>
         <button type="button" className="Scenes-nav-item" onClick={() => onOpenPanel('notes')}>Notes</button>
-    </nav>;
         <button type="button" className="Scenes-nav-item" onClick={() => onOpenPanel('party')}>Party</button>
+    </nav>;
 }
 
 // The director's plan and the way to run it - the whole of the Director's page. Three zoom levels:
@@ -91,7 +92,7 @@ function ScenesNav({ view, timelineSessionId, buildTarget, runTarget, live, go, 
 //   Run Scene    one scene, a beat at a time
 // Where you are is kept in the address (?view=&session=&scene=) so reloading, or
 // going back, lands where you were.
-export function ScenesTab({ campaignId, campaignInfo, maps, renderCombat, renderMaps, renderNotes, header, renderSidebar, onSceneEnded }) {
+export function ScenesTab({ campaignId, campaignInfo, maps, renderCombat, renderMaps, renderNotes, header, renderSidebar, onSceneEnded, combatTurn = null, players = [], onAskRoll = null }) {
     const { sessions, scenes, status, createSession, updateSession, createScene, updateScene, deleteScene } = useScenes(campaignId);
     const { encounters } = useEncounters(campaignId);
     const [params, setParams] = useSearchParams();
@@ -99,9 +100,9 @@ export function ScenesTab({ campaignId, campaignInfo, maps, renderCombat, render
     const [deciding, setDeciding] = useState(null);
     // the Maps or Notes popup, if one is open
     const [panel, setPanel] = useState(null);
-    // which encounter the Encounters popup has open (none: the list)
     // which of the party's tabs (inventory, trades, notes, calendar) the Party popup is on
     const [partyTab, setPartyTab] = useState('inventory');
+    // which encounter the Encounters popup has open (none: the list)
     const [encounterId, setEncounterId] = useState(null);
 
     const view = ['build', 'run'].includes(params.get('view')) ? params.get('view') : 'scenes';
@@ -148,12 +149,14 @@ export function ScenesTab({ campaignId, campaignInfo, maps, renderCombat, render
         } catch (error) { fail("Couldn't create the session: ")(error); }
     }
 
-    async function handleCreateScene({ name, type, sessionId, inWorldDate, timeMin, timeMax, afterSceneId, duplicateOf }) {
+    async function handleCreateScene({ name, type, sessionId, inWorldDate, timeMin, timeMax, afterSceneId, duplicateOf, templateKey }) {
         const original = duplicateOf ? scenes.find(candidate => candidate.id === duplicateOf) : null;
+        const template = templateKey ? SCENE_TEMPLATES.find(candidate => candidate.key === templateKey) : null;
         const id = await createScene({
             sessionId, name, type, inWorldDate, timeMin, timeMax,
             order: orderAfter(scenes, sessionId, afterSceneId === undefined ? mainEndId(sessionId) : afterSceneId),
             ...(original ? { premise: original.premise || '', beats: copyBeats(original.beats), episode: original.episode || '' } : {}),
+            ...(template ? { beats: template.beats() } : {}),
         });
         setNewScene(null);
         goBuild(id);
@@ -187,6 +190,27 @@ export function ScenesTab({ campaignId, campaignInfo, maps, renderCombat, render
             inWorldDate: scene.inWorldDate, timeMin: scene.timeMin, timeMax: scene.timeMax, beats: copyBeats(scene.beats),
             order: orderAfter(scenes, scene.sessionId, scene.id),
         }).catch(fail("Couldn't duplicate the scene: "));
+    }
+
+    // "Only runs if": the scene becomes the path of a decision's option (or, with no choice, goes back on the
+    // main line). The decision it was a path of, if any, lets go of it first.
+    async function setCondition(scene, choice) {
+        const previous = scene.branch ? scenes.find(candidate => candidate.id === scene.branch.fromSceneId) : null;
+        const owner = choice ? scenes.find(candidate => candidate.id === choice.sceneId) : null;
+        const released = previous ? unlinkScene(previous, scene.id) : null;
+        let ownerBeats = owner?.beats;
+        if (released) {
+            if (previous.id === owner?.id) ownerBeats = released;
+            else await updateScene(previous.id, { beats: released });
+        }
+        if (!owner) {
+            await updateScene(scene.id, { branch: null });
+            return;
+        }
+        const beats = ownerBeats.map(beat => (beat.id === choice.beatId
+            ? { ...beat, options: (beat.options || []).map(option => (option.id === choice.optionId ? { ...option, sceneId: scene.id } : option)) }
+            : beat));
+        await saveScene(owner, { beats });
     }
 
     // a scene that is a path of a decision, taken off it: the decision forgets it
@@ -275,8 +299,8 @@ export function ScenesTab({ campaignId, campaignInfo, maps, renderCombat, render
     else if (status === 'error') body = <div className="Scenes-view"><p role="alert">{"Couldn't load the scenes. Only the campaign's directors can see them."}</p></div>;
     else if (view === 'build' || view === 'run') {
         body = <SceneWorkspace view={view} scene={sceneForView} session={sceneSession} scenes={scenes} encounters={encounters} maps={maps}
-            renderCombat={() => renderCombat({ openPanel })} actions={{
-                saveScene, createPathScene, goRun, goBuild, goCampaign, goSession, newScene: () => openNewScene(),
+            renderCombat={() => renderCombat({ openPanel })} combatTurn={combatTurn} players={players} onAskRoll={onAskRoll} actions={{
+                saveScene, createPathScene, setCondition: (scene, choice) => setCondition(scene, choice).catch(fail("Couldn't change the path: ")), goRun, goBuild, goCampaign, goSession, newScene: () => openNewScene(),
                 updateScene: (id, patch) => updateScene(id, patch).catch(fail("Couldn't save: ")),
                 startScene: scene => startScene(scene).catch(fail("Couldn't start the scene: ")),
                 endScene: scene => endScene(scene).catch(fail("Couldn't end the scene: ")),
@@ -313,6 +337,9 @@ export function ScenesTab({ campaignId, campaignInfo, maps, renderCombat, render
         </ScenesPanel>}
         {panel === 'maps' && <ScenesPanel title="Maps" onClose={() => setPanel(null)}>{renderMaps()}</ScenesPanel>}
         {panel === 'notes' && <ScenesPanel title="Notes" onClose={() => setPanel(null)}>{renderNotes()}</ScenesPanel>}
+        {panel === 'party' && <ScenesPanel title="Party" onClose={() => setPanel(null)}>
+            <PartySpace campaignId={campaignId} tab={partyTab} onTab={setPartyTab}/>
+        </ScenesPanel>}
         {newScene && <NewSceneDialog sessions={sessions} scenes={scenes} defaultSessionId={newScene.sessionId} afterSceneId={newScene.afterSceneId}
             onCreate={handleCreateScene} onClose={() => setNewScene(null)}/>}
         {decidingOwner && decidingBeat && <SceneDecisionDialog owner={decidingOwner} beat={decidingBeat} scenes={scenes}
@@ -320,6 +347,3 @@ export function ScenesTab({ campaignId, campaignInfo, maps, renderCombat, render
     </div>;
 }
 
-        {panel === 'party' && <ScenesPanel title="Party" onClose={() => setPanel(null)}>
-            <PartySpace campaignId={campaignId} tab={partyTab} onTab={setPartyTab}/>
-        </ScenesPanel>}

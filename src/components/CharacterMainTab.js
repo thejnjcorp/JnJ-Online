@@ -38,6 +38,7 @@ import { StatusPopup } from "./StatusPopup";
 import { useStatusEditing } from "../utils/useStatusEditing";
 import { ActionUsesReset } from "./ActionUses";
 import { CombatMapPeek } from "./CombatMapPeek";
+import { RollRequests } from "./RollRequests";
 import { PartyCombatRoster } from "./PartyCombatRoster";
 import { CharacterPortrait } from "./CharacterPortrait";
 import { isLimitedUse } from "../utils/actionUses";
@@ -514,6 +515,7 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
     ];
 
     return <>
+        {hasCampaign && <RollRequests campaignId={characterPage.campaign} characterId={characterPage.character_id} canClear={hasWritePermissions}/>}
         <TabContainer tabs={tabs}/>
         {mapOverlayOpen && <>
             <button

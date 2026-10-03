@@ -58,9 +58,10 @@ function Probe() {
 let updateEnemy;
 let removeEnemy;
 let onApi;
+let onTurn;
 function renderProvider({ characters = [character()], enemies = [enemy()], userId = 'dir' } = {}) {
     return render(<CombatProvider campaignId="camp-1" campaignInfo={{ enemy_list: enemies }} characters={characters} userId={userId}
-        updateEnemy={updateEnemy} removeEnemy={removeEnemy} onApi={onApi}><Probe/></CombatProvider>);
+        updateEnemy={updateEnemy} removeEnemy={removeEnemy} onApi={onApi} onTurn={onTurn}><Probe/></CombatProvider>);
 }
 const api = () => ctx.api;
 const player = () => ctx.players[0];
@@ -72,6 +73,7 @@ beforeEach(() => {
     updateEnemy = jest.fn().mockResolvedValue(undefined);
     removeEnemy = jest.fn();
     onApi = jest.fn();
+    onTurn = jest.fn();
     mockUpdateDoc.mockResolvedValue(undefined);
     mockSetDoc.mockResolvedValue(undefined);
     mockUpdateParty.mockResolvedValue(undefined);
@@ -112,6 +114,24 @@ describe('who is in the fight', () => {
         // and its writes still reach the page's latest functions
         act(() => { latest.removeEnemy(tree()); });
         expect(removeEnemy).toHaveBeenCalled();
+    });
+
+    test('tells the page what round it is and whose turn, by name', () => {
+        mockParty = { combat_turn: { order: ['character:c1', 'npc:e1'], active: 'npc:e1', round: 3 } };
+        renderProvider();
+        expect(onTurn).toHaveBeenLastCalledWith({ round: 3, active: 'npc:e1', activeName: 'Tree' });
+        mockParty = { combat_turn: { order: ['character:c1', 'npc:e1'], active: 'character:c1', round: 3 } };
+        renderProvider();
+        expect(onTurn).toHaveBeenLastCalledWith({ round: 3, active: 'character:c1', activeName: 'Leon' });
+        mockParty = { combat_turn: { order: ['character:c1', 'npc:e1'], active: null, round: 1 } };
+        renderProvider();
+        expect(onTurn).toHaveBeenLastCalledWith({ round: 1, active: null, activeName: '' });
+    });
+
+    test('a group of minions is named for the group', () => {
+        mockParty = { combat_turn: { order: ['character:c1', 'group:Regular:Goober'], active: 'group:Regular:Goober', round: 1 } };
+        renderProvider({ enemies: [goon(1), goon(2)] });
+        expect(onTurn.mock.calls.at(-1)[0].activeName).toMatch(/Goober ×2/);
     });
 
     test('knows the zone each combatant is in from the tracker', () => {

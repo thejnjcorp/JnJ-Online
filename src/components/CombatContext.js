@@ -7,7 +7,7 @@ import { useBestiary } from '../utils/useBestiary';
 import { ENEMY_STAT_FIELDS } from '../utils/enemies';
 import { advanceTurnStatuses } from '../utils/statusEffects';
 import { isReactionAction } from '../utils/classActions';
-import { enemyTiles, playerCombatant, withoutEnded } from '../utils/combatants';
+import { enemyTiles, groupName, playerCombatant, withoutEnded } from '../utils/combatants';
 import { moveInOrder, nextTurn, reconcileOrder, setActive, turnOf } from '../utils/turnOrder';
 import { EntityDrawer } from './EntityDrawer';
 import { AddStatusDialog } from './AddStatusDialog';
@@ -38,7 +38,7 @@ function useEntityNotes(campaignId, key) {
     return { ...state, save };
 }
 
-export function CombatProvider({ campaignId, campaignInfo, characters, userId, updateEnemy, removeEnemy, onApi, children }) {
+export function CombatProvider({ campaignId, campaignInfo, characters, userId, updateEnemy, removeEnemy, onApi, onTurn, children }) {
     const { party } = useParty(campaignId);
     const { enemies: bestiary } = useBestiary();
     const [drawer, setDrawer] = useState(null); // { id, group }
@@ -132,6 +132,16 @@ export function CombatProvider({ campaignId, campaignInfo, characters, userId, u
     }), [write, writeTurn, tileKeyOf, turn, all]);
 
     useEffect(() => { onApi?.(api); }, [api, onApi]);
+
+    // the page outside the provider hears what round it is and whose turn (a cue can come due in a round)
+    const activeName = useMemo(() => {
+        const player = players.find(candidate => candidate.id === turn.active);
+        if (player) return player.name;
+        const tile = tiles.find(candidate => candidate.key === turn.active);
+        if (!tile) return '';
+        return tile.kind === 'group' ? groupName(tile.members) : tile.member.name;
+    }, [players, tiles, turn.active]);
+    useEffect(() => { onTurn?.({ round: turn.round, active: turn.active, activeName }); }, [turn.round, turn.active, activeName, onTurn]);
 
     const zones = useMemo(() => new Map((party?.combat_tracker || []).map(post => [post.id, post.status])), [party]);
     const shown = drawer ? all.find(item => item.id === drawer.id) : null;

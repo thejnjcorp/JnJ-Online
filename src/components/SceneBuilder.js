@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useAutosavedDoc } from '../utils/useAutosavedDoc';
+import { AttachmentsEditor, BuilderSide, NewNpcDialog, OnlyIfSelect, conditionKey } from './SceneBuilderParts';
 import {
-    BEAT_TYPES, DECISION_METHODS, SCENE_TYPES, beatMinutes, beatTypeLabel, decisionBeatOf, estimateMinutes, newBeat, newId, optionLetter, sessionTitle,
-    timeGoalText, wordCount,
+    BEAT_TYPES, DECISION_METHODS, beatMinutes, beatTypeLabel, conditionChoices, decisionBeatOf, estimateMinutes, newBeat, newId, optionLetter, sessionTitle,
+    wordCount,
 } from '../utils/scenes';
 
 const SAVE_TEXT = {
@@ -142,6 +143,7 @@ function BeatEditor({ beat, scene, scenes, encounters, maps, onChange, onCreateP
                 <Field label="Note to yourself">
                     <textarea className="Scenes-textarea" rows={3} value={beat.text || ''} onChange={event => update({ text: event.target.value })}/>
                 </Field>
+                <Field label="Waiting on (optional)"><input type="text" value={beat.waitingOn || ''} placeholder="e.g. Leon's roleplay" onChange={event => update({ waitingOn: event.target.value })}/></Field>
                 <Field label="Comes due (optional)"><input type="text" value={beat.trigger || ''} placeholder="e.g. Round 2" onChange={event => update({ trigger: event.target.value })}/></Field>
             </>;
     }
@@ -150,11 +152,14 @@ function BeatEditor({ beat, scene, scenes, encounters, maps, onChange, onCreateP
 // Build Scene: the premise and the beats you will run, in order, plus the scene's
 // settings alongside. Everything saves as you type; the buttons underneath just
 // say what state the scene is in.
-export function SceneBuilder({ scene, scenes, session, encounters, maps, onSave, onCreatePathScene, onRun, onBack, onOpenScene, onOpenMaps, onOpenEncounter, onCreateEncounter }) {
+export function SceneBuilder({ scene, scenes, session, encounters, maps, onSave, onCreatePathScene, onRun, onBack, onOpenScene, onOpenMaps, onOpenEncounter, onCreateEncounter, players = [], onSetCondition = () => {} }) {
     const { draft, edit, flush, state } = useAutosavedDoc(scene, patch => onSave(scene, patch));
     const [addOpen, setAddOpen] = useState(false);
     const [collapsed, setCollapsed] = useState(() => new Set((scene.beats || []).filter(beat => beat.type === 'cue').map(beat => beat.id)));
     const [menuFor, setMenuFor] = useState(null);
+    // beats whose "only if" choice is open to set, and the New NPC popup
+    const [conditionOpen, setConditionOpen] = useState(() => new Set());
+    const [newNpc, setNewNpc] = useState(false);
     const current = draft || scene;
     const beats = current.beats || [];
     const estimate = estimateMinutes(current);
@@ -241,11 +246,13 @@ export function SceneBuilder({ scene, scenes, session, encounters, maps, onSave,
                                 : <input type="text" className="Scenes-beat-title" aria-label={beat.type === 'decision' ? 'Decision question' : 'Beat title'} value={beat.title || ''}
                                     placeholder={beat.type === 'decision' ? 'After the fight, where does the party go?' : 'Title'} onChange={event => changeBeat({ ...beat, title: event.target.value })}/>}
                             {beat.trigger && <span className="Scenes-chip">{beat.trigger}</span>}
+                            {beat.onlyIf && <span className="Scenes-chip">Only if</span>}
                             {beat.type !== 'narration' && beat.type !== 'decision' && !isCollapsed && beat.type !== 'combat' &&
                                 <input type="number" min="0" className="Scenes-beat-minutes" aria-label={`Minutes for ${label}`} value={beat.minutes || ''} placeholder="min" onChange={event => changeBeat({ ...beat, minutes: Number(event.target.value) })}/>}
                             <button type="button" className="Scenes-icon-button" aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${label}`} onClick={() => toggle(beat.id)}>{isCollapsed ? '▾' : '▴'}</button>
                             <button type="button" className="Scenes-icon-button" aria-label={`More options for ${label}`} onClick={() => setMenuFor(menuFor === beat.id ? null : beat.id)}>&bull;&bull;&bull;</button>
                             {menuFor === beat.id && <div className="Scenes-menu" role="menu">
+                                <button type="button" role="menuitem" onClick={() => { setMenuFor(null); setConditionOpen(previous => new Set(previous).add(beat.id)); }}>Only if…</button>
                                 <button type="button" role="menuitem" disabled={index === 0} onClick={() => { setMenuFor(null); move(index, -1); }}>Move up</button>
                                 <button type="button" role="menuitem" disabled={index === beats.length - 1} onClick={() => { setMenuFor(null); move(index, 1); }}>Move down</button>
                                 <button type="button" role="menuitem" onClick={() => { setMenuFor(null); const copy = { ...beat, id: newId() }; setBeats([...beats.slice(0, index + 1), copy, ...beats.slice(index + 1)]); }} disabled={beat.type === 'decision'}>Duplicate</button>
@@ -255,6 +262,9 @@ export function SceneBuilder({ scene, scenes, session, encounters, maps, onSave,
                         {!isCollapsed && <div className="Scenes-beat-body">
                             <BeatEditor beat={beat} scene={current} scenes={scenes} encounters={encounters} maps={maps} onChange={changeBeat} onOpenMaps={onOpenMaps} onOpenEncounter={onOpenEncounter} onCreateEncounter={onCreateEncounter}
                                 onCreatePathScene={(label, optionId) => onCreatePathScene(current, label, optionId)}/>
+                            {!['combat', 'decision'].includes(beat.type) && <AttachmentsEditor beat={beat} onChange={changeBeat}/>}
+                            {(beat.onlyIf || conditionOpen.has(beat.id)) && <OnlyIfSelect label="Only runs if" choices={conditionChoices(scenes, current)} value={conditionKey(beat.onlyIf)}
+                                onChange={choice => changeBeat({ ...beat, onlyIf: choice ? { sceneId: choice.sceneId, beatId: choice.beatId, optionId: choice.optionId } : null })}/>}
                         </div>}
                     </li>;
                 })}
@@ -269,48 +279,9 @@ export function SceneBuilder({ scene, scenes, session, encounters, maps, onSave,
             </div>
         </div>
 
-        <aside className="Scenes-builder-side">
-            <section className="Scenes-card">
-                <h3 className="Scenes-card-title">Scene settings</h3>
-                <div className="Scenes-field">
-                    <span className="Scenes-field-label">Type</span>
-                    <fieldset className="Scenes-segmented" aria-label="Scene type">
-                        {SCENE_TYPES.map(type => <button type="button" key={type.key} aria-pressed={current.type === type.key} onClick={() => edit({ type: type.key })}>{type.label}</button>)}
-                    </fieldset>
-                </div>
-                <Field label="In-world date"><input type="text" value={current.inWorldDate || ''} onChange={event => edit({ inWorldDate: event.target.value })}/></Field>
-                <Field label="Episode"><input type="text" value={current.episode || ''} placeholder="Groups scenes on the timeline" onChange={event => edit({ episode: event.target.value })}/></Field>
-                <div className="Scenes-beat-row">
-                    <Field label="Goal from (min)"><input type="number" min="0" value={current.timeMin ?? ''} onChange={event => edit({ timeMin: Number(event.target.value) || null })}/></Field>
-                    <Field label="to (min)"><input type="number" min="0" value={current.timeMax ?? ''} onChange={event => edit({ timeMax: Number(event.target.value) || null })}/></Field>
-                </div>
-                <div className="Scenes-time-goal">
-                    <span className="Scenes-muted">{`Time goal: ${timeGoalText(current)}`}</span>
-                    <span className="Scenes-muted">{`Beats add up to about ${estimate} min.`}</span>
-                </div>
-            </section>
-
-            <section className="Scenes-card">
-                <h3 className="Scenes-card-title">In this scene</h3>
-                <span className="Scenes-field-label">NPCs used in beats</span>
-                {beats.some(beat => beat.type === 'npc' && beat.npcName)
-                    ? <ul className="Scenes-list">{beats.map((beat, index) => beat.type === 'npc' && beat.npcName && <li key={beat.id}>{`${beat.npcName} · beat ${index + 1}`}</li>)}</ul>
-                    : <span className="Scenes-muted">None yet. Add an NPC beat.</span>}
-            </section>
-
-            <section className="Scenes-card">
-                <h3 className="Scenes-card-title">Path</h3>
-                {owner
-                    ? <>
-                        <span className="Scenes-muted">This scene is a path of a decision in</span>
-                        <button type="button" className="Scenes-link" onClick={() => onOpenScene(owner.id)}>{owner.name || 'Untitled scene'}</button>
-                        {ownerBeat && <span className="Scenes-muted">{ownerBeat.title || ownerBeat.question || ''}</span>}
-                        <span className="Scenes-muted">If the party picks a different path, this scene is marked "Didn't happen".</span>
-                    </>
-                    : <span className="Scenes-muted">This scene is on the main line of the session.</span>}
-                <span className="Scenes-field-label">Ends with</span>
-                <span className="Scenes-muted">{endsWith ? `Decision: ${endsWith.title || 'where does the party go?'}` : 'No decision. The next scene follows.'}</span>
-            </section>
-        </aside>
+        <BuilderSide current={current} edit={edit} estimate={estimate} beats={beats} scenes={scenes} players={players} owner={owner} ownerBeat={ownerBeat} endsWith={endsWith}
+            onOpenScene={onOpenScene} onSetCondition={onSetCondition} onAddNpc={() => setNewNpc(true)}/>
+        {newNpc && <NewNpcDialog onClose={() => setNewNpc(false)}
+            onAdd={(name, behaviors) => { setBeats([...beats, { ...newBeat('npc'), title: name, npcName: name, behaviors }]); setNewNpc(false); }}/>}
     </div>;
 }

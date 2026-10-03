@@ -50,9 +50,6 @@ const mockNavigate = jest.fn();
 const mockOpenPanel = jest.fn();
 jest.mock('react-router-dom', () => ({ ...jest.requireActual('react-router-dom'), useNavigate: () => mockNavigate }));
 
-jest.mock('../../src/components/SkillsAndFlaws', () => ({
-    SkillsAndFlaws: ({ characterPage }) => <div>SkillsAndFlaws-stub:{characterPage.character_name}</div>,
-}));
 jest.mock('../../src/components/Statuses', () => ({
     Statuses: ({ characterPage, hasWritePermissions }) => <div>Statuses-stub:{characterPage.character_id || characterPage.id}:{hasWritePermissions ? 'write' : 'readonly'}</div>,
 }));
@@ -247,15 +244,6 @@ describe('DirectorsPage', () => {
         expect(mockWhere).toHaveBeenCalledWith('campaign', '==', 'camp-1');
     });
 
-    test('the sidebar lists each character, with their skills & flaws a click away', async () => {
-        await renderReady();
-        expect(screen.queryByText('SkillsAndFlaws-stub:Aria')).not.toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: /Skills & flaws/ }));
-        expect(screen.getByText('SkillsAndFlaws-stub:Aria')).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: /Skills & flaws/ }));
-        expect(screen.queryByText('SkillsAndFlaws-stub:Aria')).not.toBeInTheDocument();
-    });
-
     test('the bar across the top names the campaign and its director, with a way to its settings and out', async () => {
         await renderReady();
         expect(screen.getByText('The Iron Vale')).toBeInTheDocument();
@@ -266,9 +254,9 @@ describe('DirectorsPage', () => {
         expect(mockNavigate).toHaveBeenCalledWith('/campaigns');
     });
 
-    test('while a scene is being run the party is tiles instead, with the same players behind them', async () => {
+    test('the party is the same tiles in every view - scenes, build and run - so it can be read when planning', async () => {
         await renderReady();
-        expect(screen.queryByText('PartyTiles-stub')).not.toBeInTheDocument();
+        expect(screen.getByText('PartyTiles-stub')).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: 'Run' }));
         expect(screen.getByText('PartyTiles-stub')).toBeInTheDocument();
         expect(screen.queryByText('Player Characters')).not.toBeInTheDocument();
@@ -278,19 +266,6 @@ describe('DirectorsPage', () => {
         await renderReady();
         goToTab('Combat');
         expect(screen.getByText('TurnOrder-stub')).toBeInTheDocument();
-    });
-
-    test.each([[1, 'good'], [0.5, 'hurt'], [0.2, 'low']])('a player at %s of their health has a %s bar', async (ratio, expected) => {
-        await renderReady({ characters: [{ ...character, current_health: 100 * ratio, maximum_health: 100 }] });
-        // eslint-disable-next-line testing-library/no-node-access -- the bar is a decorative element with no role or text
-        expect(document.querySelector('.Scenes-party-bar > div')).toHaveClass(`Scenes-party-bar-${expected}`);
-    });
-
-    test('the sidebar shows the party at a glance: each player\'s name, AC and health', async () => {
-        await renderReady();
-        expect(screen.getByText('Aria', { selector: '.Scenes-party-name' })).toBeInTheDocument();
-        expect(screen.getByText('AC 12')).toBeInTheDocument();
-        expect(screen.getByText('20/25', { selector: '.Scenes-party-hp span' })).toBeInTheDocument();
     });
 
     test('the party strip is left out when the campaign has no characters', async () => {

@@ -82,8 +82,8 @@ const sessions = [
     { id: 's2', number: 2, arc: 'Arc 1', order: 2 },
 ];
 
-function renderTab({ route = '/directors/camp-1', renderCombat = () => ({ main: <div>Combat-stub</div>, aside: <div>Enemies-stub</div> }), onSceneEnded, maps = [], campaignInfo = { enemy_list: [], active_map: null } } = {}) {
-    return renderWithRouter(<ScenesTab campaignId="camp-1" campaignInfo={campaignInfo} maps={maps} renderCombat={renderCombat} onSceneEnded={onSceneEnded}
+function renderTab({ route = '/directors/camp-1', renderCombat = () => ({ main: <div>Combat-stub</div>, aside: <div>Enemies-stub</div> }), onSceneEnded, maps = [], campaignInfo = { enemy_list: [], active_map: null }, players, combatTurn, onAskRoll } = {}) {
+    return renderWithRouter(<ScenesTab campaignId="camp-1" campaignInfo={campaignInfo} maps={maps} renderCombat={renderCombat} onSceneEnded={onSceneEnded} players={players} combatTurn={combatTurn} onAskRoll={onAskRoll}
         header={<div>Header-stub</div>} renderSidebar={view => <div>Sidebar-stub:{view}</div>}
         renderMaps={() => <div>Maps-stub</div>} renderNotes={() => <div>Notes-stub</div>}/>, { route });
 }
@@ -411,6 +411,19 @@ describe('ScenesTab', () => {
             expect(fields.beats[0].id).not.toBe('i1');
         });
 
+        test('starting from a template makes the scene with that template\'s beats, and its type', async () => {
+            const dialog = openDialog();
+            fireEvent.change(within(dialog).getByPlaceholderText('e.g. Aftermath'), { target: { value: 'Brawl' } });
+            fireEvent.click(within(dialog).getByRole('button', { name: 'Template' }));
+            expect(within(dialog).getByRole('button', { name: /Create/ })).toBeDisabled();
+            fireEvent.change(within(dialog).getByRole('combobox', { name: 'Template' }), { target: { value: 'combat' } });
+            fireEvent.click(within(dialog).getByRole('button', { name: /Create/ }));
+            await waitFor(() => expect(mockCreateScene).toHaveBeenCalled());
+            const fields = mockCreateScene.mock.calls[0][0];
+            expect(fields.type).toBe('combat');
+            expect(fields.beats.map(beat => beat.type)).toEqual(['narration', 'combat', 'cue', 'cue', 'decision']);
+        });
+
         test('Cancel and Escape close it without creating anything', () => {
             const dialog = openDialog();
             fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
@@ -598,6 +611,29 @@ describe('ScenesTab', () => {
             await waitFor(() => expect(mockUpdateScene).toHaveBeenCalledWith('intro', expect.objectContaining({ type: 'combat', inWorldDate: 'Dec 22', episode: 'Episode 3', timeMin: 30, timeMax: 50 })));
         });
 
+        describe('only runs if, for the scene', () => {
+            test('puts the scene on the path of a decision: the decision\'s option is pointed at it', async () => {
+                build('outro');
+                fireEvent.change(screen.getAllByLabelText('Only runs if')[0], { target: { value: 'split:d1:oa' } });
+                await waitFor(() => expect(mockUpdateScene).toHaveBeenCalledWith('split', { beats: [expect.objectContaining({ options: [
+                    { id: 'oa', label: 'Front door', sceneId: 'outro' }, { id: 'ob', label: 'Stage', sceneId: 'b' },
+                ] })] }));
+                // and the scene whose option it replaced goes back to the main line, the new one joins the path
+                await waitFor(() => expect(mockUpdateScene).toHaveBeenCalledWith('a', { branch: null }));
+                expect(mockUpdateScene).toHaveBeenCalledWith('outro', expect.objectContaining({ branch: { fromSceneId: 'split', optionId: 'oa' } }));
+            });
+
+            test('choosing Always takes it off the decision that led to it', async () => {
+                build('a');
+                expect(screen.getAllByLabelText('Only runs if')[0]).toHaveValue('split:d1:oa');
+                fireEvent.change(screen.getAllByLabelText('Only runs if')[0], { target: { value: '' } });
+                await waitFor(() => expect(mockUpdateScene).toHaveBeenCalledWith('split', { beats: [expect.objectContaining({ options: [
+                    { id: 'oa', label: 'Front door', sceneId: '' }, { id: 'ob', label: 'Stage', sceneId: 'b' },
+                ] })] }));
+                await waitFor(() => expect(mockUpdateScene).toHaveBeenCalledWith('a', { branch: null }));
+            });
+        });
+
         describe('beats', () => {
             const addBeat = name => {
                 fireEvent.click(screen.getByRole('button', { name: /Add beat/ }));
@@ -617,6 +653,33 @@ describe('ScenesTab', () => {
                 const beats = await savedBeats();
                 expect(beats).toHaveLength(1);
                 expect(beats[0].type).toBe(type);
+            });
+
+            test('a beat can have an NPC attached, a cue can wait on someone, and a beat can be set to only run on a path', async () => {
+                build('outro');
+                addBeat('Cue');
+                fireEvent.change(screen.getByLabelText('Waiting on (optional)'), { target: { value: "Leon's roleplay" } });
+                fireEvent.click(screen.getByRole('button', { name: '+ Attach NPC or check to this beat' }));
+                fireEvent.click(screen.getByRole('menuitem', { name: 'NPC' }));
+                fireEvent.change(screen.getByLabelText('Attached NPC name'), { target: { value: 'Snotty Bully' } });
+                fireEvent.click(screen.getByRole('button', { name: 'More options for beat 1' }));
+                fireEvent.click(screen.getByRole('menuitem', { name: 'Only if…' }));
+                fireEvent.change(screen.getAllByLabelText('Only runs if')[0], { target: { value: 'split:d1:oa' } });
+                const beats = await savedBeats();
+                expect(beats[0]).toMatchObject({
+                    waitingOn: "Leon's roleplay", attachments: [expect.objectContaining({ kind: 'npc', npcName: 'Snotty Bully' })],
+                    onlyIf: { sceneId: 'split', beatId: 'd1', optionId: 'oa' },
+                });
+            });
+
+            test('+ New NPC adds an NPC beat at the end', async () => {
+                build('outro');
+                fireEvent.click(screen.getByRole('button', { name: '+ New NPC' }));
+                const dialog = screen.getByRole('dialog', { name: 'New NPC' });
+                fireEvent.change(within(dialog).getByLabelText('Name'), { target: { value: 'Kal' } });
+                fireEvent.click(within(dialog).getByRole('button', { name: 'Add NPC beat' }));
+                const beats = await savedBeats();
+                expect(beats).toEqual([expect.objectContaining({ type: 'npc', npcName: 'Kal', title: 'Kal' })]);
             });
 
             test('each kind of beat can be filled in', async () => {
@@ -779,6 +842,74 @@ describe('ScenesTab', () => {
             };
         };
         const run = (id = 'run', props = {}) => renderTab({ route: `/directors/camp-1?view=run&scene=${id}`, ...props });
+
+        test('Call a check asks the scene\'s players for a roll, and is not there without a way to ask', async () => {
+            live();
+            const onAskRoll = jest.fn().mockResolvedValue(undefined);
+            run('run', { players: [{ id: 'c1', name: 'Leon' }, { id: 'c2', name: 'Floyd' }], onAskRoll });
+            fireEvent.click(within(screen.getByRole('region', { name: 'Call a check' })).getByRole('button', { name: 'Leon' }));
+            fireEvent.click(within(screen.getByRole('region', { name: 'Call a check' })).getByRole('button', { name: 'Dexterity' }));
+            await waitFor(() => expect(onAskRoll).toHaveBeenCalledWith(['c1'], 'Dexterity'));
+        });
+
+        test('a scene with only some players in it only lets the director call on those', () => {
+            live({ playerIds: ['c2'] });
+            run('run', { players: [{ id: 'c1', name: 'Leon' }, { id: 'c2', name: 'Floyd' }], onAskRoll: jest.fn() });
+            const panel = screen.getByRole('region', { name: 'Call a check' });
+            expect(within(panel).getByRole('button', { name: 'Floyd' })).toBeInTheDocument();
+            expect(within(panel).queryByRole('button', { name: 'Leon' })).not.toBeInTheDocument();
+        });
+
+        test('without a way to ask there is no Call a check panel', () => {
+            live();
+            run();
+            expect(screen.queryByRole('region', { name: 'Call a check' })).not.toBeInTheDocument();
+        });
+
+        test('a cue that waits on someone has its box, and unticking it is saved to the beat', async () => {
+            live({ beats: [beat('b2', 'cue', { title: 'Refresher', text: 'Wait', waitingOn: "Leon's roleplay" })], run: { startedAt: 1, accumulatedMs: 0, currentBeatId: 'b2', doneBeatIds: [] } });
+            run();
+            fireEvent.click(screen.getByRole('checkbox', { name: "Waiting on Leon's roleplay" }));
+            await waitFor(() => expect(mockUpdateScene).toHaveBeenCalledWith('run', { beats: [expect.objectContaining({ id: 'b2', waiting: false })] }));
+        });
+
+        test('Next beat passes over a beat whose path was not taken', async () => {
+            const decided = decisionFixture().map(item => (item.id === 'split' ? { ...item, beats: item.beats.map(b => ({ ...b, chosenOptionId: 'ob' })) } : item));
+            live({
+                beats: [beat('b1', 'narration', { text: 'x' }), beat('b2', 'cue', { title: 'Front door only', onlyIf: { sceneId: 'split', beatId: 'd1', optionId: 'oa' } }), beat('b3', 'cue', { title: 'Always' })],
+            });
+            mockState = { ...mockState, scenes: [...mockState.scenes.filter(item => item.id === 'run'), ...decided] };
+            run();
+            expect(within(screen.getByRole('navigation', { name: 'Beats' })).getByText('Not taken · Cue')).toBeInTheDocument();
+            fireEvent.click(screen.getByRole('button', { name: 'Next beat →' }));
+            await waitFor(() => expect(mockUpdateScene).toHaveBeenCalledWith('run', { run: expect.objectContaining({ currentBeatId: 'b3', doneBeatIds: ['b1'] }) }));
+        });
+
+        test('a fight\'s cue comes due by its round, shows over the fight, and can be marked done from there', async () => {
+            live({
+                beats: [beat('f', 'combat', { title: 'Fight', started: true, ruling: 'Sound system', rulingActive: true }), beat('c', 'cue', { title: 'Round 2 refresher', trigger: 'Round 2', text: 'Saph arrives' })],
+                run: { startedAt: 1, accumulatedMs: 0, currentBeatId: 'f', doneBeatIds: [] },
+            });
+            run('run', { combatTurn: { round: 2, activeName: 'Interrogator' } });
+            expect(screen.getByText('Saph arrives')).toBeInTheDocument();
+            expect(screen.getByText('Due now · Cue')).toBeInTheDocument();
+            expect(screen.getByText("Round 2, Interrogator's turn")).toBeInTheDocument();
+            fireEvent.click(screen.getByRole('button', { name: 'Mark done' }));
+            await waitFor(() => expect(mockUpdateScene).toHaveBeenCalledWith('run', { run: expect.objectContaining({ currentBeatId: 'f', doneBeatIds: ['c'] }) }));
+            fireEvent.click(screen.getByRole('button', { name: 'Active' }));
+            await waitFor(() => expect(mockUpdateScene).toHaveBeenCalledWith('run', { beats: [expect.objectContaining({ id: 'f', rulingActive: false }), expect.anything()] }));
+        });
+
+        test('away from a fight in the middle of it, the way back is there', async () => {
+            live({
+                beats: [beat('f', 'combat', { title: 'Fight', started: true }), beat('n', 'narration', { title: 'Flashback', text: 'Snow' })],
+                run: { startedAt: 1, accumulatedMs: 0, currentBeatId: 'n', doneBeatIds: [] },
+            });
+            run('run', { combatTurn: { round: 2, activeName: '' } });
+            expect(screen.getByText(/Combat is paused at Round 2/)).toBeInTheDocument();
+            fireEvent.click(screen.getByRole('button', { name: 'Return to combat' }));
+            await waitFor(() => expect(mockUpdateScene).toHaveBeenCalledWith('run', { run: expect.objectContaining({ currentBeatId: 'f' }) }));
+        });
 
         test('with no scene live, offers the next one that has beats to start', () => {
             renderTab({ route: '/directors/camp-1?view=run' });
@@ -1092,6 +1223,19 @@ describe('ScenesTab', () => {
             expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
         });
 
+        test('the Party button, next to Notes, opens the party inventory and notes in a popup, and remembers its tab', () => {
+            renderTab();
+            fireEvent.click(screen.getByRole('button', { name: 'Party' }));
+            const popup = screen.getByRole('dialog', { name: 'Party' });
+            expect(within(popup).getByText('PartySpace-stub:camp-1:inventory')).toBeInTheDocument();
+            fireEvent.click(within(popup).getByRole('button', { name: 'Go to notes' }));
+            expect(within(popup).getByText('PartySpace-stub:camp-1:notes')).toBeInTheDocument();
+            fireEvent.click(screen.getByRole('button', { name: 'Close Party' }));
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+            fireEvent.click(screen.getByRole('button', { name: 'Party' }));
+            expect(screen.getByText('PartySpace-stub:camp-1:notes')).toBeInTheDocument();
+        });
+
         test('the scrim closes the popup too, and they are there from the builder and the runner as well', () => {
             renderTab({ route: '/directors/camp-1?view=build&scene=intro' });
             fireEvent.click(screen.getByRole('button', { name: 'Notes' }));
@@ -1206,16 +1350,3 @@ describe('ScenesTab', () => {
         });
     });
 });
-        test('the Party button, next to Notes, opens the party inventory and notes in a popup, and remembers its tab', () => {
-            renderTab();
-            fireEvent.click(screen.getByRole('button', { name: 'Party' }));
-            const popup = screen.getByRole('dialog', { name: 'Party' });
-            expect(within(popup).getByText('PartySpace-stub:camp-1:inventory')).toBeInTheDocument();
-            fireEvent.click(within(popup).getByRole('button', { name: 'Go to notes' }));
-            expect(within(popup).getByText('PartySpace-stub:camp-1:notes')).toBeInTheDocument();
-            fireEvent.click(screen.getByRole('button', { name: 'Close Party' }));
-            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-            fireEvent.click(screen.getByRole('button', { name: 'Party' }));
-            expect(screen.getByText('PartySpace-stub:camp-1:notes')).toBeInTheDocument();
-        });
-

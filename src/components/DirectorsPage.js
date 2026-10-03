@@ -9,7 +9,6 @@ import '../styles/CharacterPage.scss';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { db, auth } from '../utils/firebase';
 import { doc, query, collection, where, onSnapshot, updateDoc, addDoc, deleteDoc } from 'firebase/firestore';
-import { SkillsAndFlaws } from './SkillsAndFlaws';
 import { useResolvedCharacters } from '../utils/useClassVersion';
 import characterPageLayout from '../CharacterPageLayout.json';
 import { PictureField } from './PictureField';
@@ -20,18 +19,15 @@ import { CombatProvider } from './CombatContext';
 import { EnemyTiles, PartyTiles, TurnOrder } from './CombatBoard';
 import '../styles/Combat.scss';
 import { ScenesTab } from './ScenesTab';
-import { ReactComponent as ChevronDownIcon } from '../icons/chevron_down.svg';
 import { PostListContentCombatMap } from '../utils/DraggableElements/PostListCombatMap.tsx';
 import { PostListContentCombat } from '../utils/DraggableElements/PostListCombat.tsx';
 import { MapRenderer } from './MapRenderer';
 import { DocAdminManager } from './DocAdminManager';
 import { useCampaignMaps, useCombatEntities } from '../utils/useCampaignCombat';
 import { withoutArchived } from '../utils/characterArchive';
-import { CharacterStatCalculator } from './CharacterStatCalculator';
-import { getEffectiveCharacterStats } from '../utils/statusEffects';
 import { AddEnemyDialog } from './AddEnemyDialog';
 import { npcIdOf, removeEnemies } from '../utils/enemies';
-import { removeFromTracker, updateCombatTracker } from '../utils/party';
+import { removeFromTracker, requestRoll, updateCombatTracker } from '../utils/party';
 import { NO_MAP_ZONE, combatantMover } from '../utils/combatTracker';
 import { zoneRects } from '../utils/mapTokens';
 import { isDirectorOf } from '../utils/campaignRoles';
@@ -108,56 +104,6 @@ function makeLineViewCard(playerInfoById, defeatedIds = []) {
             )}
         </Draggable>;
     };
-}
-
-// The party down the side of every scene view: each player's name, armor class and a health
-// bar, so a roleplay beat doesn't need the combat view open just to see who is hurt. A card
-// opens up to that player's skills and flaws.
-function PartyStrip({ characters }) {
-    const [expanded, setExpanded] = useState(() => new Set());
-    const toggle = id => setExpanded(previous => {
-        const next = new Set(previous);
-        if (next.has(id)) {
-            next.delete(id);
-        } else {
-            next.add(id);
-        }
-        return next;
-    });
-    if (characters.length === 0) return null;
-    return <>
-        <span className="Scenes-party-title">Player Characters</span>
-        {characters.map(character => {
-            const full = { ...characterPageLayout, ...character };
-            const effective = getEffectiveCharacterStats(full);
-            const ac = CharacterStatCalculator(
-                full.experience_points, effective.base_armor_class, effective.base_hit_modifier, effective.base_damage_modifier,
-                full.base_damage_dice, full.base_damage_dice_type, full.base_healing_dice_type,
-            ).ArmorClass;
-            const now = Number(full.current_health) || 0;
-            const max = Number(full.maximum_health) || 0;
-            const ratio = max > 0 ? Math.max(0, Math.min(1, now / max)) : 0;
-            let health = 'good';
-            if (ratio <= 0.25) health = 'low';
-            else if (ratio <= 0.6) health = 'hurt';
-            const open = expanded.has(character.character_id);
-            return <div className="Scenes-party-card" key={character.character_id}>
-                <div className="Scenes-party-line">
-                    <span className="Scenes-party-name">{character.character_name}</span>
-                    <span className="Scenes-party-ac">{`AC ${ac}`}</span>
-                </div>
-                <div className="Scenes-party-hp">
-                    <div className="Scenes-party-bar" aria-hidden="true"><div className={`Scenes-party-bar-${health}`} style={{ width: `${ratio * 100}%` }}/></div>
-                    <span>{`${now}/${max}`}</span>
-                </div>
-                <button type="button" className="Scenes-party-toggle" aria-expanded={open} onClick={() => toggle(character.character_id)}>
-                    Skills &amp; flaws
-                    <ChevronDownIcon className={open ? 'DirectorsPage-chevron DirectorsPage-chevron-open' : 'DirectorsPage-chevron'}/>
-                </button>
-                {open && <SkillsAndFlaws isOpen={true} characterPage={full}/>}
-            </div>;
-        })}
-    </>;
 }
 
 // The strip across the top of the page: which campaign this is and who directs it, with a way
@@ -241,6 +187,8 @@ export function DirectorsPage() {
     const [addEnemyOpen, setAddEnemyOpen] = useState(false);
     // the combat view's own actions (end a scene, ...), once it is up
     const [combatApi, setCombatApi] = useState(null);
+    // the round of the fight and whose turn it is, from the combat provider (cues come due by round)
+    const [combatTurn, setCombatTurn] = useState(null);
     const navigate = useNavigate();
     const [campaignInfo, setCampaignInfo] = useState({
         "campaign_name":"placeholder",
@@ -348,6 +296,8 @@ export function DirectorsPage() {
     // above stays what combat entities/chips key off.
     const resolvedCharacterList = useResolvedCharacters(characterList);
     // each player as the combat view reads them: their sheet over the layout's defaults
+    // who the director can call on (for a check) or leave out of a scene
+    const partyPlayers = useMemo(() => resolvedCharacterList.map(character => ({ id: character.character_id, name: character.character_name || 'Unnamed' })), [resolvedCharacterList]);
     const combatCharacters = useMemo(() => resolvedCharacterList.map(character => ({ ...characterPageLayout, ...character })), [resolvedCharacterList]);
     const zoneNames = activeMap?.zones?.map((zone) => zone.name) || [];
     const noZoneFallback = noMap ? [NO_MAP_ZONE] : [];
@@ -511,10 +461,11 @@ export function DirectorsPage() {
 
     return <div className="DirectorsPage">
         <CombatProvider campaignId={campaignId} campaignInfo={campaignInfo} characters={combatCharacters} userId={userId}
-            updateEnemy={updateEnemy} removeEnemy={removeEnemyFromFight} onApi={setCombatApi}>
-            <ScenesTab campaignId={campaignId} campaignInfo={campaignInfo} maps={maps}
+            updateEnemy={updateEnemy} removeEnemy={removeEnemyFromFight} onApi={setCombatApi} onTurn={setCombatTurn}>
+            <ScenesTab campaignId={campaignId} campaignInfo={campaignInfo} maps={maps} combatTurn={combatTurn} players={partyPlayers}
+                onAskRoll={(characterIds, skill) => requestRoll(campaignId, characterIds, skill)}
                 header={<CampaignBar campaignInfo={campaignInfo} onSettings={() => navigate('/campaigns/' + campaignId)} onExit={() => navigate('/campaigns')}/>}
-                renderSidebar={view => <div className={pageTheme + ' Scenes-party'}>{view === 'run' ? <PartyTiles/> : <PartyStrip characters={resolvedCharacterList}/>}</div>}
+                renderSidebar={() => <div className={pageTheme + ' Scenes-party'}><PartyTiles/></div>}
                 renderCombat={api => ({
                     main: combatMain(api.openPanel),
                     aside: <EnemyTiles onAdd={() => setAddEnemyOpen(true)} onEncounters={() => api.openPanel('encounters')} onClear={clearEnemies}/>,

@@ -275,16 +275,65 @@ export function beatState(scene, beat) {
 }
 
 // Mark the current beat done and move on to the next one that is not (null once
-// there is nothing left to run).
-export function advanceRun(scene) {
+// there is nothing left to run). Beats in `skip` (ones that only run on a path the party
+// didn't take) are passed over.
+export function advanceRun(scene, skip = []) {
     const beats = scene.beats || [];
     const run = scene.run || {};
     const done = new Set(run.doneBeatIds || []);
     if (run.currentBeatId) done.add(run.currentBeatId);
     const currentIndex = beats.findIndex(beat => beat.id === run.currentBeatId);
-    const next = [...beats.slice(currentIndex + 1), ...beats.slice(0, Math.max(currentIndex, 0))].find(beat => !done.has(beat.id));
+    const next = [...beats.slice(currentIndex + 1), ...beats.slice(0, Math.max(currentIndex, 0))].find(beat => !done.has(beat.id) && !skip.includes(beat.id));
     return { ...run, doneBeatIds: [...done], currentBeatId: next?.id || '' };
 }
+
+// A beat done without going to it (a cue that has been dealt with from wherever you are).
+export const completeBeat = (scene, beatId) => {
+    const run = scene.run || {};
+    return { ...run, doneBeatIds: [...new Set([...(run.doneBeatIds || []), beatId])] };
+};
+
+// ---- Cues that come due, and beats that only run on some path -----------------
+
+// The round a cue comes due in: "Round 2" (or "round 2 refresher") is 2. Null for a cue with no round.
+export function cueRound(beat) {
+    const match = /\bround\s*(\d{1,3})\b/i.exec(beat?.trigger || '');
+    return match ? Number(match[1]) : null;
+}
+
+// Whether a cue is due by `round` of a fight that is being run: it has a round, and that round is here.
+export const isCueDue = (beat, round) => beat?.type === 'cue' && cueRound(beat) !== null && Number(round) >= cueRound(beat);
+
+// What a beat that "only runs if" names: a decision (in any scene) and the option that has to be taken.
+// The label for the choice is the decision's question and the option's text.
+export function conditionChoices(scenes, scene) {
+    const choices = [];
+    scenes.filter(other => other.sessionId === scene.sessionId && other.id !== scene.id).forEach(other => {
+        (other.beats || []).filter(beat => beat.type === 'decision').forEach(beat => {
+            const question = beat.title || beat.question || `After ${other.name || 'a scene'}`;
+            (beat.options || []).forEach((option, index) => {
+                const answer = option.label || `Option ${optionLetter(index)}`;
+                choices.push({ key: `${other.id}:${beat.id}:${option.id}`, sceneId: other.id, beatId: beat.id, optionId: option.id, label: `${question} = ${answer}` });
+            });
+        });
+    });
+    return choices;
+}
+
+// Where a condition stands: 'open' (nothing is named, or the decision isn't made yet), 'met', or 'unmet'.
+export function conditionState(condition, scenes) {
+    if (!condition) return 'open';
+    const owner = scenes.find(other => other.id === condition.sceneId);
+    const decision = (owner?.beats || []).find(beat => beat.id === condition.beatId);
+    if (!decision?.chosenOptionId) return 'open';
+    return decision.chosenOptionId === condition.optionId ? 'met' : 'unmet';
+}
+
+// The beats of `scene` that will not run, because the path they need was not taken.
+export const blockedBeatIds = (scene, scenes) => (scene.beats || []).filter(beat => conditionState(beat.onlyIf, scenes) === 'unmet').map(beat => beat.id);
+
+// What the running of a combat beat is up to: started and not finished, so it is paused when it isn't the beat being run.
+export const isCombatPaused = (scene, beat) => beat.type === 'combat' && Boolean(beat.started) && beatState(scene, beat) === 'upcoming';
 
 export const jumpRun = (scene, beatId) => ({ ...scene.run, currentBeatId: beatId });
 
@@ -356,9 +405,41 @@ export function unlinkScene(owner, sceneId) {
 // A copy of a scene's beats for a new scene: every beat gets its own id, and a
 // decision starts with no scenes linked and nothing chosen (those belong to the
 // original).
+// Ready-made starting points for a new scene: the type it is, and the beats it comes with, to
+// change as needed. `beats()` makes fresh ones each time.
+export const SCENE_TEMPLATES = [
+    {
+        key: 'roleplay', label: 'Roleplay scene', type: 'roleplay',
+        beats: () => [
+            { ...newBeat('narration'), title: 'Setting the scene' },
+            { ...newBeat('npc'), title: 'Who they meet' },
+            { ...newBeat('cue'), title: 'Where it could go', text: '' },
+        ],
+    },
+    {
+        key: 'combat', label: 'Combat scene', type: 'combat',
+        beats: () => [
+            { ...newBeat('narration'), title: 'Setup' },
+            { ...newBeat('combat'), title: 'The fight' },
+            { ...newBeat('cue'), title: 'Round 1 refresher', trigger: 'Round 1' },
+            { ...newBeat('cue'), title: 'Round 2 refresher', trigger: 'Round 2' },
+            { ...newBeat('decision'), title: 'After the fight, where does the party go?' },
+        ],
+    },
+    {
+        key: 'investigation', label: 'Investigation', type: 'roleplay',
+        beats: () => [
+            { ...newBeat('narration'), title: 'What they find' },
+            { ...newBeat('check'), title: 'Look closer' },
+            { ...newBeat('check'), title: 'Follow the trail' },
+        ],
+    },
+];
+
 export function copyBeats(beats = []) {
     return beats.map(beat => {
         const copy = { ...beat, id: newId() };
+        if (beat.attachments) copy.attachments = beat.attachments.map(item => ({ ...item, id: newId() }));
         if (beat.type === 'decision') {
             copy.options = (beat.options || []).map(option => ({ ...option, id: newId(), sceneId: '' }));
             copy.chosenOptionId = '';

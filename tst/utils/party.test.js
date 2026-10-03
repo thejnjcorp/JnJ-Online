@@ -10,7 +10,7 @@ jest.mock('firebase/firestore', () => ({
 }));
 
 // eslint-disable-next-line import/first
-import { PARTY_DOC_ID, addTrackerPosts, ensureParty, partyDoc, removeFromTracker, subscribeParty, updateCombatTracker, updateParty } from '../../src/utils/party';
+import { MAX_ROLL_REQUESTS, PARTY_DOC_ID, addTrackerPosts, clearRollRequest, ensureParty, partyDoc, removeFromTracker, requestRoll, subscribeParty, updateCombatTracker, updateParty, withRollRequests } from '../../src/utils/party';
 
 // A transaction over one document that holds `stored` (undefined: no document yet).
 function transactionOver(stored) {
@@ -332,5 +332,41 @@ describe('addTrackerPosts', () => {
     test('is no change (null) when they are all there, or there are none', () => {
         expect(addTrackerPosts([{ id: 'npc:a' }])(posts)).toBeNull();
         expect(addTrackerPosts([])(posts)).toBeNull();
+    });
+});
+
+describe('asking for a roll', () => {
+    test('a request for each character, added after the ones already there', () => {
+        const party = { roll_requests: [{ id: 'old', characterId: 'x', skill: 'Strength', askedAt: 1 }] };
+        expect(withRollRequests(party, ['c1', 'c2'], 'Dexterity', 50)).toEqual([
+            { id: 'old', characterId: 'x', skill: 'Strength', askedAt: 1 },
+            { id: '50:c1', characterId: 'c1', skill: 'Dexterity', askedAt: 50 },
+            { id: '50:c2', characterId: 'c2', skill: 'Dexterity', askedAt: 50 },
+        ]);
+    });
+
+    test('a party with none yet (or a wrong-shaped field) starts the list, and only the latest are kept', () => {
+        expect(withRollRequests({}, ['c1'], 'Dexterity', 5)).toHaveLength(1);
+        expect(withRollRequests({ roll_requests: 'junk' }, ['c1'], 'Dexterity', 5)).toHaveLength(1);
+        const many = Array.from({ length: MAX_ROLL_REQUESTS }, (_, index) => ({ id: `r${index}` }));
+        const next = withRollRequests({ roll_requests: many }, ['c1'], 'Dexterity', 5);
+        expect(next).toHaveLength(MAX_ROLL_REQUESTS);
+        expect(next.at(-1).id).toBe('5:c1');
+        expect(next[0].id).toBe('r1');
+    });
+
+    test('requestRoll saves them on the party doc', async () => {
+        const { set } = transactionOver({});
+        await requestRoll('camp-1', ['c1'], 'Dexterity');
+        expect(set.mock.calls[0][1].roll_requests).toEqual([expect.objectContaining({ characterId: 'c1', skill: 'Dexterity' })]);
+    });
+
+    test('clearRollRequest takes one off, and leaves the doc alone when it is not there', async () => {
+        let { set } = transactionOver({ roll_requests: [{ id: 'a' }, { id: 'b' }] });
+        await clearRollRequest('camp-1', 'a');
+        expect(set.mock.calls[0][1]).toEqual({ roll_requests: [{ id: 'b' }] });
+        ({ set } = transactionOver({ roll_requests: [{ id: 'a' }] }));
+        await clearRollRequest('camp-1', 'zzz');
+        expect(set).not.toHaveBeenCalled();
     });
 });
