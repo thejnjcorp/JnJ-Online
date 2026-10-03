@@ -306,19 +306,27 @@ export function cueRound(beat) {
 // Whether a cue is due by `round` of a fight that is being run: it has a round, and that round is here.
 export const isCueDue = (beat, round) => beat?.type === 'cue' && cueRound(beat) !== null && Number(round) >= cueRound(beat);
 
-// What a beat that "only runs if" names: a decision (in any scene) and the option that has to be taken.
-// The label for the choice is the decision's question and the option's text.
-export function conditionChoices(scenes, scene) {
+// What a beat (or a scene) that "only runs if" names: a decision and the option that has to be taken.
+// The label for the choice is the decision's question and the option's text. A scene can name the
+// decisions of the other scenes in its session; a beat can also name a decision earlier in its own scene
+// (pass the beat), since what the party chose there is often what decides what happens next.
+export function conditionChoices(scenes, scene, beat = null) {
     const choices = [];
-    scenes.filter(other => other.sessionId === scene.sessionId && other.id !== scene.id).forEach(other => {
-        (other.beats || []).filter(beat => beat.type === 'decision').forEach(beat => {
-            const question = beat.title || beat.question || `After ${other.name || 'a scene'}`;
-            (beat.options || []).forEach((option, index) => {
-                const answer = option.label || `Option ${optionLetter(index)}`;
-                choices.push({ key: `${other.id}:${beat.id}:${option.id}`, sceneId: other.id, beatId: beat.id, optionId: option.id, label: `${question} = ${answer}` });
-            });
+    const addDecisions = (owner, decisions) => decisions.forEach(decision => {
+        const question = decision.title || decision.question || `After ${owner.name || 'a scene'}`;
+        (decision.options || []).forEach((option, index) => {
+            const answer = option.label || `Option ${optionLetter(index)}`;
+            choices.push({ key: `${owner.id}:${decision.id}:${option.id}`, sceneId: owner.id, beatId: decision.id, optionId: option.id, label: `${question} = ${answer}` });
         });
     });
+    const decisionsIn = beats => beats.filter(candidate => candidate.type === 'decision');
+
+    if (beat) {
+        const beats = scene.beats || [];
+        const position = beats.findIndex(candidate => candidate.id === beat.id);
+        addDecisions(scene, decisionsIn(position < 0 ? [] : beats.slice(0, position)));
+    }
+    scenes.filter(other => other.sessionId === scene.sessionId && other.id !== scene.id).forEach(other => addDecisions(other, decisionsIn(other.beats || [])));
     return choices;
 }
 

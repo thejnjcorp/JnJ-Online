@@ -160,6 +160,14 @@ describe('moveToken', () => {
         expect(next[0]).toMatchObject({ status: 'Zone 2', index: 1, x: 0.7, y: 0.3 });
     });
 
+    test('taking a token into another zone takes it out of its engagement, and the one left behind is dismissed', () => {
+        const engaged = [post('a', 'Zone 1', { index: 0, engagement: 'e' }), post('b', 'Zone 1', { index: 1, engagement: 'e' }), post('c', 'Zone 2', { index: 0 })];
+        const next = moveToken(engaged, 'a', { x: 0.7, y: 0.3 }, 'Zone 2');
+        expect(next.some(candidate => candidate.engagement)).toBe(false);
+        // moving about inside its zone is still being engaged
+        expect(moveToken(engaged, 'a', { x: 0.22, y: 0.28 }, 'Zone 1')[0].engagement).toBe('e');
+    });
+
     test('leaves every other token alone', () => {
         const next = moveToken(posts, 'a', { x: 0.7, y: 0.3 }, 'Zone 2');
         expect(next[1]).toBe(posts[1]);
@@ -441,5 +449,27 @@ describe('applyLineMove', () => {
         const current = [at('a', 'Zone 1', 0, 0.1, 0.1)];
         applyLineMove(current, [at('a', 'Zone 2', 0)], rects);
         expect(current).toEqual([at('a', 'Zone 1', 0, 0.1, 0.1)]);
+    });
+
+    describe('engagements', () => {
+        test('are taken from the line view along with the zone and place', () => {
+            const current = [at('a', 'Zone 1', 0, 0.1, 0.1), at('b', 'Zone 1', 1, 0.15, 0.1)];
+            const next = applyLineMove(current, [{ ...current[0], engagement: 'e' }, { ...current[1], engagement: 'e' }], rects);
+            expect(next.map(p => p.engagement)).toEqual(['e', 'e']);
+        });
+
+        test('are taken off someone the line view says is no longer in one', () => {
+            const current = [at('a', 'Zone 1', 0, 0.1, 0.1), { ...at('b', 'Zone 1', 1, 0.15, 0.1), engagement: 'e' }, { ...at('c', 'Zone 1', 2, 0.2, 0.1), engagement: 'e' }, { ...at('d', 'Zone 1', 3, 0.25, 0.1), engagement: 'e' }];
+            const next = applyLineMove(current, [current[0], { ...current[1], engagement: undefined }, current[2], current[3]], rects);
+            expect(next[1]).not.toHaveProperty('engagement');
+            expect(next[2].engagement).toBe('e');
+        });
+
+        test('are dismissed once the people dragged into another zone leave one alone', () => {
+            const current = [{ ...at('a', 'Zone 1', 0, 0.1, 0.1), engagement: 'e' }, { ...at('b', 'Zone 1', 1, 0.15, 0.1), engagement: 'e' }];
+            const next = applyLineMove(current, [{ ...current[0], status: 'Zone 2', index: 0, engagement: undefined }, current[1]], rects);
+            expect(next.some(p => p.engagement)).toBe(false);
+            expect(next[0].status).toBe('Zone 2');
+        });
     });
 });

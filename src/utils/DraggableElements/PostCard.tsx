@@ -13,7 +13,7 @@ export const PostCard = ({ post, index, titleClassName, contentClassName, boxCla
           {...provided.draggableProps}
           ref={provided.innerRef}
         >
-          <div className={snapshot.isDragging ? `${boxClassName} isDragging` : boxClassName}>
+          <div className={[boxClassName, snapshot.isDragging && "isDragging", snapshot.combineTargetFor && "isCombineTarget"].filter(Boolean).join(" ")}>
             <div>
               <div className={titleClassName}>
                 {post.title}

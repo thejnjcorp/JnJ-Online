@@ -50,3 +50,29 @@
         background: var(--jnj-color-bg-hover);
     }
 }
+
+// People who are engaged with each other: a tile of their own around them in the zone's list.
+.PostEngagement-default {
+    margin: 0 0 10px;
+    padding: 6px;
+    min-width: 0;
+    border: 1px dashed var(--jnj-color-accent);
+    border-radius: 8px;
+    background: var(--jnj-color-accent-soft);
+}
+
+.PostEngagement-label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--jnj-color-text-muted);
+}
+
+// The card another is being dragged over: dropping now engages the two.
+.isCombineTarget {
+    outline: 2px dashed var(--jnj-color-accent);
+    outline-offset: 1px;
+}

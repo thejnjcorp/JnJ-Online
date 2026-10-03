@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { MapTokens } from '../../src/components/MapTokens';
 import { TOKEN_SIZE, zoneRects } from '../../src/utils/mapTokens';
 
@@ -27,6 +27,35 @@ function setup(props = {}) {
 }
 
 describe('MapTokens', () => {
+    describe('engagements', () => {
+        const engaged = [
+            { id: 'a', title: 'Aria Vale', kind: 'player', x: 0.2, y: 0.2, engagement: 'e' },
+            { id: 'b', title: 'Rust Bandit', kind: 'enemy', x: 0.3, y: 0.2, engagement: 'e' },
+            { id: 'c', title: 'Cass', kind: 'player', x: 0.7, y: 0.2 },
+        ];
+
+        test('the people engaged with each other are tied together, and everyone else is left alone', () => {
+            setup({ tokens: engaged });
+            expect(screen.getAllByTestId('engagement')).toHaveLength(1);
+            expect(screen.getByRole('button', { name: 'Aria Vale, Left, engaged with Rust Bandit' })).toHaveClass('MapToken-engaged');
+            expect(screen.getByRole('button', { name: /^Cass/ })).not.toHaveClass('MapToken-engaged');
+            expect(screen.getByRole('button', { name: /^Cass/ })).toHaveAccessibleName('Cass, Right');
+        });
+
+        test('with nobody engaged there is nothing drawn', () => {
+            setup();
+            expect(screen.queryByTestId('engagement')).not.toBeInTheDocument();
+        });
+
+        test('the tie follows a token being dragged', () => {
+            const { drag } = setup({ tokens: engaged });
+            const line = () => within(screen.getByTestId('engagement')).getAllByTestId('engagement-line')[0];
+            expect(line()).toHaveAttribute('x2', '0.3');
+            drag('Rust Bandit', [300, 100], [340, 100]);
+            expect(line()).toHaveAttribute('x2', '0.34');
+        });
+    });
+
     describe('showing the tokens', () => {
         test('puts each at its spot, as a share of the map, sized in map widths', () => {
             const { token } = setup();

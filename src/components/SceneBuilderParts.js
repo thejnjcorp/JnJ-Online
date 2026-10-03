@@ -2,10 +2,39 @@ import { useState } from 'react';
 import { SCENE_TYPES, conditionChoices, newId, sceneDate, timeGoalText } from '../utils/scenes';
 import { CalendarDatePicker } from './SceneCalendarParts';
 import { useEscapeKey } from '../utils/useEscapeKey';
+import { byName, statBlockLine, statBlockOf } from '../utils/npcStatBlock';
+
+// Which of the bestiary's stat blocks an NPC is: the runner shows it with the NPC, ready for the
+// checks they may have to make. `bestiary` is the loaded bestiary (see useBestiary); `onPick` is
+// given the entry chosen, or null for none. Without a bestiary there is nothing to pick from.
+export function StatBlockSelect({ bestiary, value, label = 'Stat block', onPick }) {
+    if (!bestiary) return null;
+    const enemy = statBlockOf(bestiary.enemies, value);
+    const gone = value && !enemy && bestiary.status === 'ready';
+    return <>
+        <select aria-label={label} value={value || ''} onChange={event => onPick(statBlockOf(bestiary.enemies, event.target.value))}>
+            <option value="">{bestiary.status === 'loading' && !value ? 'Loading the bestiary…' : 'No stat block'}</option>
+            {gone && <option value={value}>A stat block that is no longer in the bestiary</option>}
+            {value && !enemy && !gone && <option value={value}>Loading…</option>}
+            {byName(bestiary.enemies).map(candidate => <option key={candidate.id} value={candidate.id}>{candidate.enemy_name || 'Unnamed enemy'}</option>)}
+        </select>
+        {enemy && <span className="Scenes-muted">{statBlockLine(enemy)}</span>}
+        {bestiary.status === 'error' && <span className="Scenes-muted" role="alert">Couldn't load the bestiary.</span>}
+        {bestiary.status === 'ready' && bestiary.enemies.length === 0 && <span className="Scenes-muted">Your bestiary is empty. Make some enemies there first.</span>}
+    </>;
+}
+
+// What picking a stat block does to an NPC (a beat, or one attached to one): it is tied to that
+// one, and takes its name if it had none yet.
+export const withStatBlock = (npc, enemy, nameField = 'npcName') => ({
+    ...npc,
+    enemyId: enemy ? enemy.id : '',
+    ...(enemy && !npc[nameField] ? { [nameField]: enemy.enemy_name || '' } : {}),
+});
 
 // The NPCs and checks attached to a beat: voiced or called along with it (a flashback with a bully
 // to play, a narration with a roll to ask for), each one editable where it is.
-export function AttachmentsEditor({ beat, onChange }) {
+export function AttachmentsEditor({ beat, onChange, bestiary = null }) {
     const [menuOpen, setMenuOpen] = useState(false);
     const attachments = beat.attachments || [];
     const set = next => onChange({ ...beat, attachments: next });
@@ -23,6 +52,7 @@ export function AttachmentsEditor({ beat, onChange }) {
                 : <>
                     <input type="text" aria-label="Attached NPC name" placeholder="NPC name" value={item.npcName || ''} onChange={event => change(item.id, { npcName: event.target.value })}/>
                     <input type="text" aria-label="Attached NPC behaviors" placeholder="Behaviors, separated by a new line" value={item.behaviors || ''} onChange={event => change(item.id, { behaviors: event.target.value })}/>
+                    <StatBlockSelect bestiary={bestiary} value={item.enemyId} label="Attached NPC stat block" onPick={enemy => change(item.id, withStatBlock(item, enemy))}/>
                 </>}
             <button type="button" className="Scenes-icon-button" aria-label={`Remove attached ${item.kind === 'check' ? 'check' : 'NPC'}`} onClick={() => set(attachments.filter(other => other.id !== item.id))}>&times;</button>
         </div>)}
@@ -37,15 +67,23 @@ export function AttachmentsEditor({ beat, onChange }) {
 }
 
 // "Only runs if": which path of which decision has to be taken for a scene (or a beat) to run.
-// Empty is always.
-export function OnlyIfSelect({ label, choices, value, onChange }) {
-    return <label className="Scenes-field">
-        <span className="Scenes-field-label">{label}</span>
-        <select value={value || ''} onChange={event => onChange(choices.find(choice => choice.key === event.target.value) || null)}>
-            <option value="">Always</option>
-            {choices.map(choice => <option key={choice.key} value={choice.key}>{choice.label}</option>)}
-        </select>
-    </label>;
+// Empty is always. A condition whose decision has since gone (or whose option was deleted) is still
+// shown, so it can be seen and changed, and with nothing to pick from it says what makes something
+// pickable. `onRemove`, when given, adds a button that takes the condition away altogether.
+export function OnlyIfSelect({ label, choices, value, onChange, onRemove = null }) {
+    const missing = value && !choices.some(choice => choice.key === value);
+    return <div className="Scenes-field">
+        <label className="Scenes-only-if">
+            <span className="Scenes-field-label">{label}</span>
+            <select value={value || ''} onChange={event => onChange(choices.find(choice => choice.key === event.target.value) || null)}>
+                <option value="">Always</option>
+                {missing && <option value={value}>A decision that is no longer there</option>}
+                {choices.map(choice => <option key={choice.key} value={choice.key}>{choice.label}</option>)}
+            </select>
+        </label>
+        {choices.length === 0 && <span className="Scenes-muted">There is nothing to depend on yet. Add a Decision beat (to this scene, or to another scene in this session) and it will be listed here.</span>}
+        {onRemove && <button type="button" className="Scenes-link" onClick={onRemove}>Remove this condition</button>}
+    </div>;
 }
 
 export const conditionKey = condition => (condition ? `${condition.sceneId}:${condition.beatId}:${condition.optionId}` : '');

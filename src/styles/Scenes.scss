@@ -130,6 +130,7 @@
 }
 
 .Scenes-field { display: flex; flex-direction: column; gap: var(--jnj-space-1); min-width: 0; flex: 1; }
+.Scenes-only-if { display: flex; flex-direction: column; gap: var(--jnj-space-1); }
 .Scenes-field-row { display: flex; gap: var(--jnj-space-3); > * { flex: 1; min-width: 0; } }
 .Scenes-field-row-tight { gap: var(--jnj-space-2); }
 .Scenes-textarea { resize: vertical; line-height: 1.5; }
@@ -506,6 +507,24 @@
 
 // ---- Building: attached NPCs and checks, the time goal bar ----------------------------
 
+.Scenes-attachment select { flex: 1 1 10rem; min-width: 0; padding: var(--jnj-space-2) var(--jnj-space-3); border: 1px solid var(--jnj-color-border); border-radius: 7px; background: var(--jnj-color-bg-sunken); color: var(--jnj-color-text); font: inherit; }
+
+// An NPC's stat block in Run Scene: the numbers in a row, a roll button for each ability, its actions.
+.Scenes-statblock-vitals { display: flex; flex-wrap: wrap; gap: var(--jnj-space-2); margin: 0;
+    > div { display: flex; flex-direction: column; align-items: center; min-width: 3.5rem; padding: var(--jnj-space-1) var(--jnj-space-3); border: 1px solid var(--jnj-color-border); border-radius: 8px; background: var(--jnj-color-bg-sunken); }
+    dt { font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--jnj-color-text-muted); }
+    dd { margin: 0; font-weight: 700; }
+}
+.Scenes-statblock-abilities { display: flex; flex-wrap: wrap; gap: var(--jnj-space-3); margin: 0; padding: 0; list-style: none;
+    li { display: flex; align-items: center; gap: var(--jnj-space-2); }
+}
+.Scenes-statblock-result { font-weight: 700; color: var(--jnj-color-accent); }
+.Scenes-statblock-notes { margin: 0; white-space: pre-wrap; color: var(--jnj-color-text-muted); }
+.Scenes-statblock-actions { display: flex; flex-direction: column; gap: var(--jnj-space-2);
+    details { border: 1px solid var(--jnj-color-border); border-radius: 8px; padding: var(--jnj-space-2) var(--jnj-space-3); }
+    summary { cursor: pointer; }
+    p { margin: var(--jnj-space-2) 0 0; white-space: pre-wrap; }
+}
 .Scenes-attachments { display: flex; flex-direction: column; gap: var(--jnj-space-2); }
 .Scenes-attachment { display: flex; align-items: center; gap: var(--jnj-space-2); flex-wrap: wrap; input { flex: 1 1 10rem; min-width: 0; padding: var(--jnj-space-2) var(--jnj-space-3); border: 1px solid var(--jnj-color-border); border-radius: 7px; background: var(--jnj-color-bg-sunken); color: var(--jnj-color-text); font: inherit; } }
 .Scenes-goal-bar { position: relative; height: 0.5rem; border-radius: 999px; background: var(--jnj-color-bg-sunken); border: 1px solid var(--jnj-color-border); }

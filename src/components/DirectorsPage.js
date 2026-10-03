@@ -42,6 +42,7 @@ const lineViewClassName = {
     postColumn: 'DirectorsPage-zone-chips',
     postColumnHeader: 'DirectorsPage-zone-title',
     postCardBox: 'DirectorsPage-entity-chip',
+    postEngagement: 'DirectorsPage-engagement',
     postCardTitle: 'DirectorsPage-entity-chip-title',
     postCardContent: 'DirectorsPage-entity-chip-content',
 };
@@ -91,7 +92,7 @@ function makeLineViewCard(playerInfoById, defeatedIds = [], colorById = {}) {
             {(provided, snapshot) => (
                 <div style={{ marginBottom: "1px" }} {...provided.dragHandleProps} {...provided.draggableProps} ref={provided.innerRef}>
                     <div
-                        className={snapshot.isDragging ? `${boxClassName} isDragging` : boxClassName}
+                        className={[boxClassName, snapshot.isDragging && 'isDragging', snapshot.combineTargetFor && 'isCombineTarget'].filter(Boolean).join(' ')}
                         style={chipStyle}
                         data-tooltip-id={isTruncated ? "DirectorsPage-line-view-tooltip" : undefined}
                         data-tooltip-content={isTruncated ? post.title : undefined}

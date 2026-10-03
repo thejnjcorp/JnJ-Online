@@ -167,6 +167,13 @@ describe('PostListContentCombatMap tokens', () => {
         expect(tokenOf('Rust Bandit')).toHaveClass('MapToken-enemy');
     });
 
+    test('people engaged with each other (as the tracker says) are tied together on the map', () => {
+        withTracker([{ ...post('a', 'Zone 1', 0), x: 0.1, y: 0.1, engagement: 'e' }, { ...post('b', 'Zone 1', 1), x: 0.15, y: 0.1, engagement: 'e' }]);
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={entities} userId="player-1" />);
+        expect(screen.getAllByTestId('engagement')).toHaveLength(1);
+        expect(tokenOf('Aria Vale')).toHaveAccessibleName('Aria Vale, Zone 1, engaged with Rust Bandit');
+    });
+
     test('someone who has not been given a place yet is not shown', () => {
         withTracker([...tracker(), post('c', 'Zone 1', 1)]);
         render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={[...entities, { id: 'c', title: 'Cass', kind: 'ally' }]} userId="player-1" />);

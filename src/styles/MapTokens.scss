@@ -7,6 +7,36 @@
     pointer-events: none;
 }
 
+// Who is engaged with whom: drawn under the tokens, so they stay the thing to press.
+.MapTokens-engagements {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+}
+
+.MapTokens-engagement-band {
+    opacity: 0.32;
+
+    line {
+        stroke: var(--jnj-color-accent);
+        stroke-linecap: round;
+    }
+}
+
+.MapTokens-engagement-line {
+    stroke: var(--jnj-color-accent);
+    stroke-width: 0.004;
+    stroke-dasharray: 0.012 0.01;
+    stroke-linecap: round;
+}
+
+.MapToken-engaged {
+    box-shadow: 0 0 0 3px var(--jnj-color-accent-soft), 0 1px 4px rgba(0, 0, 0, 0.55);
+}
+
 .MapTokens-zone-highlight {
     position: absolute;
     box-sizing: border-box;

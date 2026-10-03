@@ -121,6 +121,21 @@ describe('syncCombatTracker', () => {
     });
 });
 
+describe('syncCombatTracker and engagements', () => {
+    const zones = ['Zone 1', 'Zone 2'];
+
+    test('someone who is no longer in the fight leaves an engagement that is then dismissed', () => {
+        const stored = [{ ...post('a', 'Zone 1', 0), engagement: 'e' }, { ...post('b', 'Zone 1', 1), engagement: 'e' }, post('c', 'Zone 2', 0)];
+        const next = syncCombatTracker(stored, [entity('a'), entity('c')], zones);
+        expect(next.some(candidate => candidate.engagement)).toBe(false);
+    });
+
+    test('an engagement that is intact is left alone, so nothing is written', () => {
+        const stored = [{ ...post('a', 'Zone 1', 0), engagement: 'e' }, { ...post('b', 'Zone 1', 1), engagement: 'e' }];
+        expect(syncCombatTracker(stored, [entity('a'), entity('b')], zones)).toBeNull();
+    });
+});
+
 describe('addToTracker', () => {
     const zones = ['Zone 1', 'Zone 2'];
     const rects = zoneRects([{ name: 'Zone 1', x: 10, y: 10, width: 100, height: 80 }, { name: 'Zone 2', x: 200, y: 10, width: 100, height: 80 }]);

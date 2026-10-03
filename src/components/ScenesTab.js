@@ -63,7 +63,7 @@ function SceneWorkspace({ view, scene, session, scenes, encounters, maps, render
     }
     return <SceneRunner key={scene.id} scene={scene} scenes={scenes} session={session} calendar={calendar} onSyncCalendar={actions.syncCalendar}
         onUpdate={actions.updateScene} onStart={actions.startScene} onEnd={actions.endScene} onSwitch={actions.switchScene}
-        onDecide={actions.decide} onStartCombat={actions.startCombat} renderCombat={renderCombat} onOpenBuilder={actions.goBuild} onOpenMaps={actions.openMaps} onOpenNotes={actions.openNotes}
+        onDecide={actions.decide} onStartCombat={actions.startCombat} renderCombat={renderCombat} onOpenBuilder={actions.goBuild} onOpenMaps={actions.openMaps}
         combatTurn={combatTurn} players={players} onAskRoll={onAskRoll}/>;
 }
 
@@ -318,7 +318,7 @@ export function ScenesTab({ campaignId, campaignInfo, maps, renderCombat, render
                 syncCalendar: date => setCalendarToday(campaignId, date).catch(fail("Couldn't change the calendar: ")),
                 switchScene: (from, toId) => switchScene(from, toId).catch(fail("Couldn't switch scenes: ")),
                 decide: (sceneId, beatId) => setDeciding({ sceneId, beatId }),
-                startCombat, openMaps: () => openPanel('maps'), openNotes: () => openPanel('notes'), openEncounter, createEncounter,
+                startCombat, openMaps: () => openPanel('maps'), openEncounter, createEncounter,
             }}/>;
     } else if (session) {
         body = <ScenesSessionView sessions={sessions} scenes={scenes} session={session} calendar={calendar} onBack={goCampaign} onOpenSession={goSession}

@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { TOKEN_SIZE, tokenInitials, zoneAt } from '../utils/mapTokens';
+import { engagedGroups, engagementLinks } from '../utils/engagements';
 import '../styles/MapTokens.scss';
 
 // How far (in map widths) a keyboard arrow moves a token.
@@ -15,7 +16,10 @@ const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 // follows from where they are dropped - or nudges the focused one with the arrow
 // keys. A token dropped outside every zone goes back where it was.
 //
-// `tokens` are { id, title, kind, image, x, y } in map widths (see
+// People who are engaged with each other (see engagements.js) are tied together on the map: a
+// soft band under them, with a dashed line through, that follows a token as it is dragged.
+//
+// `tokens` are { id, title, kind, image, engagement, x, y } in map widths (see
 // utils/mapTokens.js); `rects` the zones in the same units; `aspect` the map's
 // height over its width; a token can say for itself whether it is `movable` (a
 // player moves their own, a director everyone's). `onMove(id, { x, y }, zoneName)` is
@@ -92,23 +96,37 @@ export function MapTokens({ tokens, rects, aspect, canMove = false, onMove, sele
 
     const overZone = drag && rects.find(rect => rect.name === drag.zone);
 
+    // where each token is drawn (a token being dragged is where the pointer has it), and who it is engaged with
+    const placed = tokens.map(token => (drag?.id === token.id ? { ...token, x: drag.x, y: drag.y } : token));
+    const groups = engagedGroups(placed).map(group => ({ ...group, links: engagementLinks(group.members) }));
+    const engagedWith = token => (token.engagement ? placed.filter(other => other.id !== token.id && other.engagement === token.engagement).map(other => other.title || 'Combatant') : []);
+
     return <div ref={layerRef} className="MapTokens">
         {overZone && <div
             className="MapTokens-zone-highlight"
             style={{ left: `${overZone.x * 100}%`, top: `${(overZone.y / aspect) * 100}%`, width: `${overZone.w * 100}%`, height: `${(overZone.h / aspect) * 100}%` }}
         />}
+        {groups.length > 0 && <svg className="MapTokens-engagements" viewBox={`0 0 1 ${aspect}`} preserveAspectRatio="none" aria-hidden="true">
+            {groups.map(group => <g key={group.id} data-testid="engagement">
+                <g className="MapTokens-engagement-band">
+                    {group.links.map(([from, to]) => <line key={`${from}:${to}`} x1={group.members[from].x} y1={group.members[from].y} x2={group.members[to].x} y2={group.members[to].y} strokeWidth={TOKEN_SIZE * 1.7}/>)}
+                </g>
+                {group.links.map(([from, to]) => <line key={`${from}:${to}`} className="MapTokens-engagement-line" data-testid="engagement-line" x1={group.members[from].x} y1={group.members[from].y} x2={group.members[to].x} y2={group.members[to].y}/>)}
+            </g>)}
+        </svg>}
         {tokens.map(token => {
             const dragging = drag?.id === token.id;
             const x = dragging ? drag.x : token.x;
             const y = dragging ? drag.y : token.y;
             const zone = dragging ? drag.zone : zoneAt(token, rects);
-            const className = ['MapToken', `MapToken-${token.kind || 'neutral'}`, canMoveToken(token) && 'MapToken-movable', token.defeated && 'MapToken-defeated', selected === token.id && 'MapToken-selected', dragging && 'MapToken-dragging', dragging && !zone && !drag.trashable && 'MapToken-outside'].filter(Boolean).join(' ');
+            const engaged = engagedWith(token);
+            const className = ['MapToken', `MapToken-${token.kind || 'neutral'}`, canMoveToken(token) && 'MapToken-movable', engaged.length > 0 && 'MapToken-engaged', token.defeated && 'MapToken-defeated', selected === token.id && 'MapToken-selected', dragging && 'MapToken-dragging', dragging && !zone && !drag.trashable && 'MapToken-outside'].filter(Boolean).join(' ');
             return <button
                 key={token.id}
                 type="button"
                 className={className}
                 style={{ left: `${x * 100}%`, top: `${(y / aspect) * 100}%`, width: `${TOKEN_SIZE * 100}%`, ...(token.color ? { '--token-color': token.color } : {}) }}
-                aria-label={[token.title || 'Combatant', zone, token.defeated && 'defeated'].filter(Boolean).join(', ')}
+                aria-label={[token.title || 'Combatant', zone, token.defeated && 'defeated', engaged.length > 0 && `engaged with ${engaged.join(' and ')}`].filter(Boolean).join(', ')}
                 aria-pressed={token.selectable ? selected === token.id : undefined}
                 tabIndex={canMoveToken(token) ? 0 : -1}
                 onPointerDown={event => handleDown(event, token)}

@@ -7,7 +7,8 @@ import { Post, PostListContentAbstract } from "./Post.ts";
 // lists it without letting anyone drag people between zones; `canMovePost` lets only
 // some be dragged (a player, their own characters). Dragging someone into another
 // zone puts their token in the middle of that zone - or the next free spot in it -
-// on the map, given the map's zones as `rects` (see applyLineMove).
+// on the map, given the map's zones as `rects` (see applyLineMove). Dropping someone onto someone
+// else engages them (see engagements.js).
 export function PostListContentCombat({ inputStatuses, campaignId, className, PostCardComponent, readOnly = false, canMovePost = undefined, rects = null }) {
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
@@ -35,5 +36,6 @@ export function PostListContentCombat({ inputStatuses, campaignId, className, Po
         PostCardComponent={PostCardComponent}
         readOnly={readOnly}
         canMovePost={canMovePost}
+        engagements
     />
 }

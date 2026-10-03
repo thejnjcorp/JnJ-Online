@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Post } from "./Post.ts";
 import { PostsByStatus, getPostsByStatus } from "./statuses.ts";
 import { PostColumn, PostCardComponentType } from "./PostColumn.tsx";
+import { engage, settleDrop } from "../engagements";
 
 // zones are authored in MapRenderer against an image rendered at this width
 const MAP_REFERENCE_WIDTH = 500;
@@ -12,7 +13,7 @@ const MAP_REFERENCE_WIDTH = 500;
 // data arrives, not on every render while a usePosts hook is still loading.
 const EMPTY_POSTS: Post[] = [];
 
-export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, grid=false, columnFormat=true, swappableMode=false, className={}, PostCardComponent, backgroundImage, zoneLayout, renderOverlay, readOnly = false, canMovePost, zoom = 1 }: {
+export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, grid=false, columnFormat=true, swappableMode=false, className={}, PostCardComponent, backgroundImage, zoneLayout, renderOverlay, readOnly = false, canMovePost, zoom = 1, engagements = false }: {
   inputStatuses,
   usePosts,
   updatePosts,
@@ -30,7 +31,10 @@ export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, 
   // drawn over the map image and its zones, at exactly the image's rendered size
   renderOverlay?: (size: { width: number; height: number }) => React.ReactNode,
   // how much bigger than the fitted map to draw it; past 1 the map scrolls inside its frame
-  zoom?: number
+  zoom?: number,
+  // a post dropped onto another is engaged with it (see engagements.js), and the posts that are
+  // engaged are drawn together in a tile of their own
+  engagements?: boolean
 }) => {
   const { posts: rawPosts, loading: isLoading } = usePosts();
   const unorderedPosts: Post[] = rawPosts ?? EMPTY_POSTS;
@@ -154,8 +158,20 @@ export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, 
   }
 
   const onDragEnd: OnDragEndResponder = (result) => {
-    const { destination, source } = result;
+    const { destination, source, combine } = result;
     if (readOnly) return;
+
+    if (engagements && combine) {
+      // dropped onto someone: engaged with them, and in their zone
+      const dragged = unorderedPosts.find(post => String(post.id) === result.draggableId);
+      const target = unorderedPosts.find(post => String(post.id) === combine.draggableId);
+      if (!dragged || !target || (canMovePost && !canMovePost(dragged))) return;
+      const engaged = engage(unorderedPosts, dragged.id, target.id);
+      setPostsByStatus(getPostsByStatus(engaged, statuses));
+      updatePosts(engaged);
+      setDraggingId(null);
+      return;
+    }
 
     if (!destination) {
       return;
@@ -187,18 +203,20 @@ export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, 
         postsByStatus
       );
 
+    const updated = updateUnorderedPosts(
+      unorderedPosts,
+      newPostStatus,
+      { status: sourceStatus, index: source.index },
+      { status: destinationStatus, index: destination.index }
+    );
+    // someone dropped into a zone's list is in an engagement only if dropped inside one
+    const settled = engagements && sourcePost ? settleDrop(updated, sourcePost.id) : updated;
+
     // compute local state change synchronously
-    setPostsByStatus(newPostStatus);
+    setPostsByStatus(settled === updated ? newPostStatus : getPostsByStatus(settled, statuses));
 
     // update the backend asynchronously
-    updatePosts(
-      updateUnorderedPosts(
-        unorderedPosts, 
-        newPostStatus,
-        { status: sourceStatus, index: source.index },
-        { status: destinationStatus, index: destination.index }
-      )
-    );
+    updatePosts(settled);
 
     // reset dragging id
     setDraggingId(null);
@@ -252,6 +270,7 @@ export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, 
               PostCardComponent={PostCardComponent}
               readOnly={readOnly}
               canMovePost={canMovePost}
+              combine={engagements}
               overlayHeader
             />
           ))}
@@ -276,6 +295,7 @@ export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, 
             PostCardComponent={PostCardComponent}
             readOnly={readOnly}
             canMovePost={canMovePost}
+            combine={engagements}
           />
         ))}
 

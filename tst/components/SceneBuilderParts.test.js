@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, within } from '@testing-library/react';
-import { AttachmentsEditor, BuilderSide, NewNpcDialog, OnlyIfSelect, PlayersInScene, TimeGoalBar, conditionKey } from '../../src/components/SceneBuilderParts';
+import { AttachmentsEditor, BuilderSide, NewNpcDialog, OnlyIfSelect, PlayersInScene, StatBlockSelect, TimeGoalBar, conditionKey, withStatBlock } from '../../src/components/SceneBuilderParts';
 
 describe('AttachmentsEditor', () => {
     test('attaches an NPC or a check, edits it where it is, and removes it', () => {
@@ -40,6 +40,26 @@ describe('OnlyIfSelect', () => {
         expect(onChange).toHaveBeenLastCalledWith(choices[0]);
         fireEvent.change(screen.getByLabelText('Only runs if'), { target: { value: '' } });
         expect(onChange).toHaveBeenLastCalledWith(null);
+    });
+
+    test('with no decision to depend on it says so, rather than leaving a lone Always', () => {
+        render(<OnlyIfSelect label="Only runs if" choices={[]} value="" onChange={() => {}}/>);
+        expect(screen.getByText(/nothing to depend on yet/i)).toBeInTheDocument();
+    });
+
+    test('a condition whose decision is gone is still shown, and can be removed', () => {
+        const onChange = jest.fn();
+        const onRemove = jest.fn();
+        render(<OnlyIfSelect label="Only runs if" choices={choices} value="gone:d:a" onChange={onChange} onRemove={onRemove}/>);
+        expect(screen.getByLabelText('Only runs if')).toHaveValue('gone:d:a');
+        expect(screen.getByRole('option', { name: 'A decision that is no longer there' })).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Remove this condition' }));
+        expect(onRemove).toHaveBeenCalled();
+    });
+
+    test('has no remove button unless asked for one', () => {
+        render(<OnlyIfSelect label="Only runs if" choices={choices} value="" onChange={() => {}}/>);
+        expect(screen.queryByRole('button', { name: 'Remove this condition' })).not.toBeInTheDocument();
     });
 
     test('the key of a condition is its scene, decision and option', () => {
@@ -131,5 +151,46 @@ describe('BuilderSide', () => {
         expect(screen.getByLabelText('Only runs if')).toHaveValue('split:d:oa');
         fireEvent.click(screen.getByRole('button', { name: 'Floyd' }));
         expect(p.edit).toHaveBeenCalledWith({ playerIds: [] });
+    });
+});
+
+describe('StatBlockSelect', () => {
+    const goblin = { id: 'e1', enemy_name: 'Goblin', base_armor_class: 12, maximum_health: 7, action_points: 2 };
+
+    test('lists the bestiary by name, and hands back the one chosen, or null for none', () => {
+        const onPick = jest.fn();
+        render(<StatBlockSelect bestiary={{ enemies: [{ id: 'e2', enemy_name: 'Wraith' }, goblin], status: 'ready' }} value="" onPick={onPick}/>);
+        expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual(['No stat block', 'Goblin', 'Wraith']);
+        fireEvent.change(screen.getByLabelText('Stat block'), { target: { value: 'e1' } });
+        expect(onPick).toHaveBeenLastCalledWith(goblin);
+        fireEvent.change(screen.getByLabelText('Stat block'), { target: { value: '' } });
+        expect(onPick).toHaveBeenLastCalledWith(null);
+    });
+
+    test('shows the numbers of the one chosen, and says when the bestiary could not be loaded', () => {
+        const { rerender } = render(<StatBlockSelect bestiary={{ enemies: [goblin], status: 'ready' }} value="e1" onPick={() => {}}/>);
+        expect(screen.getByText('AC 12 · 7 HP · 2 AP')).toBeInTheDocument();
+        rerender(<StatBlockSelect bestiary={{ enemies: [], status: 'error' }} value="" onPick={() => {}}/>);
+        expect(screen.getByRole('alert')).toHaveTextContent("Couldn't load the bestiary");
+    });
+
+    test('says it is loading while it is, and has nothing to show without a bestiary', () => {
+        const { container, rerender } = render(<StatBlockSelect bestiary={{ enemies: [], status: 'loading' }} value="" onPick={() => {}}/>);
+        expect(screen.getByRole('option', { name: 'Loading the bestiary…' })).toBeInTheDocument();
+        rerender(<StatBlockSelect bestiary={null} value="" onPick={() => {}}/>);
+        expect(container).toBeEmptyDOMElement();
+    });
+});
+
+describe('withStatBlock', () => {
+    const goblin = { id: 'e1', enemy_name: 'Goblin' };
+
+    test('ties an NPC to the stat block, naming it after it if it had no name', () => {
+        expect(withStatBlock({ npcName: '' }, goblin)).toEqual({ npcName: 'Goblin', enemyId: 'e1' });
+        expect(withStatBlock({ npcName: 'Snotty' }, goblin)).toEqual({ npcName: 'Snotty', enemyId: 'e1' });
+    });
+
+    test('unties it with none, and leaves the name', () => {
+        expect(withStatBlock({ npcName: 'Snotty', enemyId: 'e1' }, null)).toEqual({ npcName: 'Snotty', enemyId: '' });
     });
 });

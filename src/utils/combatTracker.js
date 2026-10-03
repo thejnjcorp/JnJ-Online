@@ -3,6 +3,7 @@
 // the fight.
 
 import { placeTokens } from './mapTokens';
+import { settleEngagements } from './engagements';
 
 // With no map selected there are no zones, so everyone shares this one column.
 export const NO_MAP_ZONE = 'Combatants';
@@ -48,8 +49,10 @@ export function syncCombatTracker(storedPosts, entities, zoneNames, rects = null
         }));
 
     const positioned = rects ? placeTokens([...homed, ...additions], rects) : { posts: [...homed, ...additions], changed: false };
-    if (additions.length === 0 && !moved && !positioned.changed && survivors.length === posts.length && Boolean(storedPosts)) return null;
-    return positioned.posts;
+    // an engagement that lost people (they left the fight, or were taken to another zone) is dismissed
+    const settled = settleEngagements(positioned.posts);
+    if (additions.length === 0 && !moved && !positioned.changed && settled === positioned.posts && survivors.length === posts.length && Boolean(storedPosts)) return null;
+    return settled;
 }
 
 // The tracker with `entities` put in it and given a place, and everyone else left

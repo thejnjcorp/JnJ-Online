@@ -319,6 +319,21 @@ describe('only runs if', () => {
         expect(conditionChoices(scenes, { id: 'z', sessionId: 'elsewhere' })).toEqual([]);
     });
 
+    test('a beat can also depend on a decision earlier in its own scene, but not one that comes after it', () => {
+        const own = scene('own', {
+            beats: [
+                { id: 'early', type: 'decision', title: 'Which door?', options: [{ id: 'l', label: 'Left' }] },
+                { id: 'gated', type: 'cue' },
+                { id: 'late', type: 'decision', title: 'Which way home?', options: [{ id: 'h', label: 'Home' }] },
+            ],
+        });
+        const gated = own.beats[1];
+        expect(conditionChoices([own], own, gated)).toEqual([expect.objectContaining({ key: 'own:early:l', label: 'Which door? = Left' })]);
+        // a scene has no beat of its own to come after, so only the other scenes' decisions are on offer to it
+        expect(conditionChoices([own], own)).toEqual([]);
+        expect(conditionChoices([own], own, { id: 'not-in-this-scene' })).toEqual([]);
+    });
+
     test('a condition is open until its decision is made, then met or unmet', () => {
         const condition = { sceneId: 'split', beatId: 'd1', optionId: 'oa' };
         expect(conditionState(null, scenes)).toBe('open');

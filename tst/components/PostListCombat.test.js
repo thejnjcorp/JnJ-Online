@@ -61,6 +61,20 @@ describe('PostListContentCombat', () => {
         expect(last().canMovePost).toBe(canMovePost);
     });
 
+    test('lets someone be dropped onto someone, to engage them', () => {
+        render(<PostListContentCombat campaignId="camp-1" inputStatuses={['Zone 1']}/>);
+        expect(last().engagements).toBe(true);
+    });
+
+    test('writes an engagement along with the move', async () => {
+        render(<PostListContentCombat campaignId="camp-1" inputStatuses={['Zone 1', 'Zone 2']} rects={rects}/>);
+        last().updatePosts([{ ...mockTracker[0], engagement: 'e' }, { ...at('b', 'Zone 1', 1, 0.7, 0.22), engagement: 'e' }]);
+        await waitFor(() => expect(mockSaveTracker).toHaveBeenCalled());
+        const saved = mockSaveTracker.mock.calls[0][1];
+        expect(saved.map(item => item.engagement)).toEqual(['e', 'e']);
+        expect(saved[1]).toMatchObject({ status: 'Zone 1' });
+    });
+
     test('is draggable by default', () => {
         render(<PostListContentCombat campaignId="camp-1" inputStatuses={[]}/>);
         expect(last().readOnly).toBe(false);

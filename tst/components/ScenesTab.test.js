@@ -57,6 +57,11 @@ jest.mock('../../src/components/PartySpace', () => ({
 let mockParty;
 jest.mock('../../src/utils/useParty', () => ({ useParty: () => ({ party: mockParty, loaded: true }) }));
 
+// The bestiary the NPCs' stat blocks come from, and whether it was asked for.
+let mockBestiary;
+const mockUseBestiary = jest.fn();
+jest.mock('../../src/utils/useBestiary', () => ({ useBestiary: enabled => { mockUseBestiary(enabled); return mockBestiary; } }));
+
 let mockEncounters;
 jest.mock('../../src/utils/useEncounters', () => ({ useEncounters: () => ({ encounters: mockEncounters, status: 'ready' }) }));
 
@@ -99,6 +104,8 @@ function renderTab({ route = '/directors/camp-1', renderCombat = () => ({ main: 
 beforeEach(() => {
     mockState = { sessions, scenes: decisionFixture(), status: 'ready' };
     mockEncounters = [];
+    mockBestiary = { enemies: [], status: 'ready' };
+    mockUseBestiary.mockClear();
     mockParty = {};
     mockSetCalendarToday.mockResolvedValue(undefined);
     mockAddPartyEvent.mockResolvedValue({ id: 'event-1' });
@@ -714,6 +721,25 @@ describe('ScenesTab', () => {
                 });
             });
 
+            test('a beat can wait on a decision made earlier in its own scene, and the condition can be taken off again', async () => {
+                build('outro');
+                addBeat('Decision');
+                fireEvent.change(screen.getByLabelText('Decision question'), { target: { value: 'Which door?' } });
+                addBeat('Cue');
+                fireEvent.click(screen.getByRole('button', { name: 'More options for beat 2' }));
+                fireEvent.click(screen.getByRole('menuitem', { name: 'Only if…' }));
+                // the beat's own comes before the scene's, in the side column
+                const select = screen.getAllByLabelText('Only runs if')[0];
+                expect(within(select).getAllByRole('option').map(option => option.textContent)).toEqual(['Always', 'Which door? = Option A', 'Which door? = Option B', 'Where now? = Front door', 'Where now? = Stage']);
+                fireEvent.change(select, { target: { value: within(select).getAllByRole('option')[1].value } });
+                expect((await savedBeats())[1].onlyIf).toMatchObject({ optionId: expect.any(String) });
+
+                fireEvent.click(screen.getByRole('button', { name: 'Remove this condition' }));
+                expect(screen.getAllByLabelText('Only runs if')).toHaveLength(1);
+                mockUpdateScene.mockClear();
+                expect((await savedBeats())[1].onlyIf).toBeNull();
+            });
+
             test('+ New NPC adds an NPC beat at the end', async () => {
                 build('outro');
                 fireEvent.click(screen.getByRole('button', { name: '+ New NPC' }));
@@ -722,6 +748,59 @@ describe('ScenesTab', () => {
                 fireEvent.click(within(dialog).getByRole('button', { name: 'Add NPC beat' }));
                 const beats = await savedBeats();
                 expect(beats).toEqual([expect.objectContaining({ type: 'npc', npcName: 'Kal', title: 'Kal' })]);
+            });
+
+            describe('tying an NPC to a stat block from the bestiary', () => {
+                const goblin = { id: 'e1', enemy_name: 'Goblin', enemy_type: 'Goon', base_armor_class: 12, maximum_health: 7, action_points: 2 };
+
+                beforeEach(() => { mockBestiary = { enemies: [goblin, { id: 'e2', enemy_name: 'Ash Warden', enemy_type: 'Elite' }], status: 'ready' }; });
+
+                test('an NPC beat offers the bestiary, and takes the name of the one chosen when it has none', async () => {
+                    build('outro');
+                    addBeat('NPC');
+                    fireEvent.change(screen.getByLabelText('NPC stat block'), { target: { value: 'e1' } });
+                    expect(screen.getByLabelText('NPC name')).toHaveValue('Goblin');
+                    expect(screen.getByText('AC 12 · 7 HP · 2 AP')).toBeInTheDocument();
+                    const beats = await savedBeats();
+                    expect(beats[0]).toMatchObject({ type: 'npc', enemyId: 'e1', npcName: 'Goblin' });
+                });
+
+                test('a name already given is kept, and "No stat block" unties it', async () => {
+                    build('outro');
+                    addBeat('NPC');
+                    fireEvent.change(screen.getByLabelText('NPC name'), { target: { value: 'Snotty' } });
+                    fireEvent.change(screen.getByLabelText('NPC stat block'), { target: { value: 'e1' } });
+                    expect(screen.getByLabelText('NPC name')).toHaveValue('Snotty');
+                    fireEvent.change(screen.getByLabelText('NPC stat block'), { target: { value: '' } });
+                    expect((await savedBeats())[0]).toMatchObject({ npcName: 'Snotty', enemyId: '' });
+                });
+
+                test('an NPC attached to a beat can be tied to one too', async () => {
+                    build('outro');
+                    addBeat('Cue');
+                    fireEvent.click(screen.getByRole('button', { name: '+ Attach NPC or check to this beat' }));
+                    fireEvent.click(screen.getByRole('menuitem', { name: 'NPC' }));
+                    fireEvent.change(screen.getByLabelText('Attached NPC stat block'), { target: { value: 'e2' } });
+                    expect(screen.getByLabelText('Attached NPC name')).toHaveValue('Ash Warden');
+                    expect((await savedBeats())[0].attachments[0]).toMatchObject({ kind: 'npc', enemyId: 'e2', npcName: 'Ash Warden' });
+                });
+
+                test('the bestiary is not fetched until there is an NPC to tie it to', () => {
+                    build('outro');
+                    expect(mockUseBestiary).toHaveBeenLastCalledWith(false);
+                    addBeat('NPC');
+                    expect(mockUseBestiary).toHaveBeenLastCalledWith(true);
+                });
+
+                test('a stat block that has left the bestiary is still shown, and an empty bestiary says so', () => {
+                    mockState = { ...mockState, scenes: [scene('outro', { beats: [beat('n1', 'npc', { enemyId: 'gone' })] })] };
+                    const { unmount } = build('outro');
+                    expect(screen.getByRole('option', { name: 'A stat block that is no longer in the bestiary' })).toBeInTheDocument();
+                    unmount();
+                    mockBestiary = { enemies: [], status: 'ready' };
+                    build('outro');
+                    expect(screen.getByText(/Your bestiary is empty/)).toBeInTheDocument();
+                });
             });
 
             test('each kind of beat can be filled in', async () => {
@@ -1058,6 +1137,55 @@ describe('ScenesTab', () => {
             expect(screen.getByText('Slips past')).toBeInTheDocument();
         });
 
+        describe('an NPC with a stat block', () => {
+            const goblin = {
+                id: 'e1', enemy_name: 'Goblin', enemy_type: 'Goon', level: 2, base_armor_class: 12, maximum_health: 7, action_points: 2, base_hit_modifier: 3,
+                base_damage_dice: 1, base_damage_dice_type: 2, base_damage_modifier: 1, strength_stat: 2, dexterity_stat: -1, intelligence_stat: 0, charisma_stat: 0,
+                Weaknesses: ['Fire 5'], actions: [{ id: 'x', actionName: 'Stab', actionCost: 1, description: 'Pokes with a knife.' }],
+            };
+            const npcBeat = fields => live({ beats: [beat('n1', 'npc', { title: 'Bully', npcName: 'Snotty', behaviors: 'Rude', enemyId: 'e1', ...fields })], run: { startedAt: 1, accumulatedMs: 0, currentBeatId: 'n1', doneBeatIds: [] } });
+
+            test('shows its stat block beside the behaviors, and rolls a check for an ability', () => {
+                mockBestiary = { enemies: [goblin], status: 'ready' };
+                npcBeat();
+                run();
+                const block = screen.getByRole('region', { name: 'Goblin stat block' });
+                expect(within(block).getByText('12')).toBeInTheDocument();
+                expect(within(block).getByText('1d6+1')).toBeInTheDocument();
+                expect(within(block).getByText('Weak to Fire 5')).toBeInTheDocument();
+                expect(within(block).getByText('Pokes with a knife.')).toBeInTheDocument();
+                const random = jest.spyOn(Math, 'random').mockReturnValue(0.5); // a 11
+                fireEvent.click(within(block).getByRole('button', { name: 'Roll Strength check' }));
+                random.mockRestore();
+                expect(within(block).getByLabelText('Strength check')).toHaveTextContent('d20 11 +2 = 13');
+            });
+
+            test('asks for the bestiary only because a stat block is tied to the beat', () => {
+                live();
+                run();
+                expect(mockUseBestiary).toHaveBeenLastCalledWith(false);
+            });
+
+            test('says so when the stat block is gone from the bestiary, or has not loaded yet', () => {
+                mockBestiary = { enemies: [], status: 'ready' };
+                npcBeat();
+                const { unmount } = run();
+                expect(screen.getByText(/no longer in the bestiary/)).toBeInTheDocument();
+                unmount();
+                mockBestiary = { enemies: [], status: 'loading' };
+                run();
+                expect(screen.getByText('Loading the stat block…')).toBeInTheDocument();
+            });
+
+            test('an NPC attached to another beat shows its stat block with it', () => {
+                mockBestiary = { enemies: [goblin], status: 'ready' };
+                live({ beats: [beat('c1', 'cue', { title: 'Hi', attachments: [{ id: 'at1', kind: 'npc', npcName: 'Guard', behaviors: '', enemyId: 'e1' }] })], run: { startedAt: 1, accumulatedMs: 0, currentBeatId: 'c1', doneBeatIds: [] } });
+                run();
+                expect(screen.getByRole('region', { name: 'Goblin stat block' })).toBeInTheDocument();
+                expect(mockUseBestiary).toHaveBeenLastCalledWith(true);
+            });
+        });
+
         test('clicking a beat in the rail jumps to it', async () => {
             live();
             run();
@@ -1385,14 +1513,15 @@ describe('ScenesTab', () => {
             expect(screen.getByRole('dialog', { name: 'Maps' })).toBeInTheDocument();
         });
 
-        test('the runner has its own Notes button, as the mockup does', () => {
+        test('the runner has just the one Notes button, the one every view has', () => {
             mockState = { ...mockState, scenes: [scene('fight', { status: 'active', beats: [beat('c1', 'cue', { title: 'Hi' })], run: { startedAt: 1, accumulatedMs: 0, currentBeatId: 'c1', doneBeatIds: [] } })] };
             renderTab({ route: '/directors/camp-1?view=run&scene=fight' });
-            fireEvent.click(screen.getAllByRole('button', { name: 'Notes' })[1]);
+            expect(screen.getAllByRole('button', { name: 'Notes' })).toHaveLength(1);
+            fireEvent.click(screen.getByRole('button', { name: 'Notes' }));
             expect(screen.getByRole('dialog', { name: 'Notes' })).toBeInTheDocument();
         });
 
-        test('and so does the combat bar while running a fight', () => {
+        test('the combat bar has a Browse maps button while running a fight', () => {
             mockState = {
                 ...mockState,
                 scenes: [scene('fight', { status: 'active', beats: [beat('c1', 'combat', { title: 'The fight' })], run: { startedAt: 1, accumulatedMs: 0, currentBeatId: 'c1', doneBeatIds: [] } })],

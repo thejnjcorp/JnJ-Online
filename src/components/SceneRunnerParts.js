@@ -1,15 +1,20 @@
 import { useState } from 'react';
 import { ABILITIES } from '../utils/combatants';
+import { LinkedStatBlock } from './NpcStatBlock';
 import { beatState, beatTypeLabel, conditionState, isCombatPaused, isCueDue } from '../utils/scenes';
 
 // An NPC's behaviors, one per line, each with a key of its own.
 const behaviorLines = (id, behaviors) => (behaviors || '').split('\n').map(line => line.trim()).filter(Boolean).map((line, position) => ({ key: `${id}:${position}`, line }));
 
-export function NpcCard({ id, npcName, behaviors }) {
-    return <div className="Scenes-card">
-        <div className="Scenes-run-npc"><span className="Scenes-chip">NPC</span><strong>{npcName || 'Unnamed NPC'}</strong></div>
-        <ul className="Scenes-list">{behaviorLines(id, behaviors).map(entry => <li key={entry.key}>{entry.line}</li>)}</ul>
-    </div>;
+// `bestiary` is the loaded bestiary (see useBestiary), for the stat block an NPC may be tied to.
+export function NpcCard({ id, npcName, behaviors, enemyId = '', bestiary = null }) {
+    return <>
+        <div className="Scenes-card">
+            <div className="Scenes-run-npc"><span className="Scenes-chip">NPC</span><strong>{npcName || 'Unnamed NPC'}</strong></div>
+            <ul className="Scenes-list">{behaviorLines(id, behaviors).map(entry => <li key={entry.key}>{entry.line}</li>)}</ul>
+        </div>
+        <LinkedStatBlock enemyId={enemyId} bestiary={bestiary}/>
+    </>;
 }
 
 export function CheckCard({ skill, dc, text }) {
@@ -20,11 +25,14 @@ export function CheckCard({ skill, dc, text }) {
 }
 
 // What was attached to a beat - an NPC to voice, a check to call - shown with it.
-export function Attachments({ beat }) {
+export function Attachments({ beat, bestiary = null }) {
     return <>{(beat.attachments || []).map(item => (item.kind === 'check'
         ? <CheckCard key={item.id} skill={item.skill} dc={item.dc} text={item.text}/>
-        : <NpcCard key={item.id} id={item.id} npcName={item.npcName} behaviors={item.behaviors}/>))}</>;
+        : <NpcCard key={item.id} id={item.id} npcName={item.npcName} behaviors={item.behaviors} enemyId={item.enemyId} bestiary={bestiary}/>))}</>;
 }
+
+// Whether a beat has a stat block tied to it - its own, or on an NPC attached to it.
+export const usesStatBlock = beat => Boolean(beat?.enemyId || (beat?.attachments || []).some(item => item.enemyId));
 
 // How a beat shows on the rail: done, now, upcoming - or one of the ways an upcoming beat can be
 // more than that: a fight that is paused, a cue that has come due, a beat on a path not taken.

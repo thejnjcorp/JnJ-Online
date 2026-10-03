@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { Droppable } from "@hello-pangea/dnd";
 import type { Post } from "./Post.ts";
 import { PostCard } from "./PostCard.tsx";
@@ -13,6 +14,20 @@ export type PostCardComponentType = React.ComponentType<{
   readOnly?: boolean;
 }>;
 
+// The posts in order, with each run of posts sharing an engagement gathered into one group.
+type PostGroup = { engagement: string; items: { post: Post; index: number }[] };
+
+export function groupByEngagement(posts: Post[]): PostGroup[] {
+  const groups: PostGroup[] = [];
+  posts.forEach((post, index) => {
+    const engagement = post.engagement || "";
+    const last = groups.at(-1);
+    if (engagement && last?.engagement === engagement) last.items.push({ post, index });
+    else groups.push({ engagement, items: [{ post, index }] });
+  });
+  return groups;
+}
+
 export const PostColumn = ({
   status,
   posts,
@@ -25,6 +40,7 @@ export const PostColumn = ({
   draggableId,
   readOnly = false,
   canMovePost,
+  combine = false,
 }: {
   status: Post["status"];
   posts: Post[];
@@ -41,6 +57,8 @@ export const PostColumn = ({
     postCardTitle?: string;
     postCardContent?: string;
     postCardBox?: string;
+    // the tile around people who are engaged with each other
+    postEngagement?: string;
     extraClassNames?: string[];
   };
   PostCardComponent?: PostCardComponentType;
@@ -50,6 +68,8 @@ export const PostColumn = ({
   readOnly?: boolean;
   // when given, only the cards this says yes to can be dragged (a player moving their own character)
   canMovePost?: (post: Post) => boolean;
+  // a card dropped onto another one, rather than between them, is handed to onDragEnd as a combine
+  combine?: boolean;
 }) => {
   const {
     postColumn = "PostColumn-default",
@@ -58,6 +78,7 @@ export const PostColumn = ({
     postCardTitle = "PostCardTitle-default",
     postCardContent = "PostCardContent-default",
     postCardBox = "PostCardBox-default",
+    postEngagement = "PostEngagement-default",
     extraClassNames = []
   } = className;
 
@@ -69,7 +90,7 @@ export const PostColumn = ({
 
   return <div className={postColumnBody} style={wrapperStyle}>
     {!overlayHeader && header}
-    <Droppable droppableId={status}>
+    <Droppable droppableId={status} isCombineEnabled={combine}>
       {(droppableProvided, snapshot) => {
         const isSourceDroppable = draggableId ? posts.some(post => String(post.id) === draggableId) : false;
         const shouldHideContent = !snapshot.isDraggingOver || (snapshot.isDraggingOver && isSourceDroppable) || !swappableMode;
@@ -80,18 +101,25 @@ export const PostColumn = ({
           style={overlayHeader ? { position: "relative", height: "100%" } : undefined}
         >
           {overlayHeader && header}
-          {shouldHideContent && posts.map((post, index) => (
-            <PostCardComponent
-              key={post.id}
-              post={post}
-              index={index}
-              titleClassName={postCardTitle}
-              contentClassName={postCardContent}
-              boxClassName={postCardBox}
-              extraClassNames={extraClassNames}
-              readOnly={readOnly || (canMovePost ? !canMovePost(post) : false)}
-            />
-          ))}
+          {shouldHideContent && groupByEngagement(posts).map(group => {
+            const cards = group.items.map(({ post, index }) => (
+              <PostCardComponent
+                key={post.id}
+                post={post}
+                index={index}
+                titleClassName={postCardTitle}
+                contentClassName={postCardContent}
+                boxClassName={postCardBox}
+                extraClassNames={extraClassNames}
+                readOnly={readOnly || (canMovePost ? !canMovePost(post) : false)}
+              />
+            ));
+            if (!group.engagement) return <Fragment key={group.items[0].post.id}>{cards}</Fragment>;
+            return <fieldset key={group.engagement} className={postEngagement} aria-label={`Engaged: ${group.items.map(({ post }) => post.title).join(", ")}`}>
+              <span className="PostEngagement-label" aria-hidden="true">Engaged</span>
+              {cards}
+            </fieldset>;
+          })}
           {droppableProvided.placeholder}
         </div>
       }}

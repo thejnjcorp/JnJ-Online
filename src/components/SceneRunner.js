@@ -4,7 +4,8 @@ import {
     sceneDateText, sessionTitle, splitParagraphs, startRun, timeGoalText,
 } from '../utils/scenes';
 import { CalendarSync, EndSceneCard, MoveCalendarOption, endAsksAboutCalendar } from './SceneCalendarParts';
-import { Attachments, BeatRail, CallCheck, CheckCard, DueCues, NpcCard, PausedCombatNote, RulingCard, WaitingOn } from './SceneRunnerParts';
+import { Attachments, BeatRail, CallCheck, CheckCard, DueCues, NpcCard, PausedCombatNote, RulingCard, WaitingOn, usesStatBlock } from './SceneRunnerParts';
+import { useBestiary } from '../utils/useBestiary';
 const FONT_SIZES = [15, 17, 20, 24, 28];
 
 // The narration beat: read-aloud text a paragraph at a time, as large as the
@@ -36,14 +37,14 @@ function NarrationView({ beat }) {
     </>;
 }
 
-function BeatView({ beat, scene, scenes, onDecide, onStartCombat, onOpenMaps, combat, onAdvance, onWaiting }) {
+function BeatView({ beat, scene, scenes, bestiary, onDecide, onStartCombat, onOpenMaps, combat, onAdvance, onWaiting }) {
     switch (beat.type) {
         case 'narration':
-            return <><NarrationView beat={beat}/><Attachments beat={beat}/></>;
+            return <><NarrationView beat={beat}/><Attachments beat={beat} bestiary={bestiary}/></>;
         case 'npc':
-            return <><NpcCard id={beat.id} npcName={beat.npcName} behaviors={beat.behaviors}/><Attachments beat={beat}/></>;
+            return <><NpcCard id={beat.id} npcName={beat.npcName} behaviors={beat.behaviors} enemyId={beat.enemyId} bestiary={bestiary}/><Attachments beat={beat} bestiary={bestiary}/></>;
         case 'check':
-            return <><CheckCard skill={beat.skill} dc={beat.dc} text={beat.text}/><Attachments beat={beat}/></>;
+            return <><CheckCard skill={beat.skill} dc={beat.dc} text={beat.text}/><Attachments beat={beat} bestiary={bestiary}/></>;
         case 'decision':
             return <div className="Scenes-card">
                 <div className="Scenes-run-npc"><span className="Scenes-chip Scenes-chip-decision">Decision</span><strong>{beat.title || 'Where does the party go?'}</strong></div>
@@ -74,7 +75,7 @@ function BeatView({ beat, scene, scenes, onDecide, onStartCombat, onOpenMaps, co
                     <WaitingOn beat={beat} onChange={onWaiting}/>
                     <button type="button" className="Scenes-button" onClick={onAdvance}>Mark done</button>
                 </div>
-                <Attachments beat={beat}/>
+                <Attachments beat={beat} bestiary={bestiary}/>
             </>;
     }
 }
@@ -129,7 +130,7 @@ function RunClock({ scene, run, now }) {
 // scene's beats (what is done, what is now, what is next); the middle is whatever
 // the current beat needs - read-aloud text, an NPC's behaviors, a cue, the combat
 // tracker - and the director's own scratchpad for the beat sits to the right.
-export function SceneRunner({ scene, scenes, session, calendar = null, onSyncCalendar = null, onUpdate, onStart, onEnd, onSwitch, onDecide, onStartCombat, renderCombat, onOpenBuilder, onOpenMaps, onOpenNotes, combatTurn = null, players = [], onAskRoll = null }) {
+export function SceneRunner({ scene, scenes, session, calendar = null, onSyncCalendar = null, onUpdate, onStart, onEnd, onSwitch, onDecide, onStartCombat, renderCombat, onOpenBuilder, onOpenMaps, combatTurn = null, players = [], onAskRoll = null }) {
     const run = scene.run;
     const live = scene.status === 'active' && Boolean(run);
     const beats = scene.beats || [];
@@ -139,6 +140,8 @@ export function SceneRunner({ scene, scenes, session, calendar = null, onSyncCal
 
     const current = beats.find(beat => beat.id === run?.currentBeatId) || null;
     const currentIndex = current ? beats.indexOf(current) : -1;
+    // the bestiary is only fetched once a beat that has a stat block tied to it comes up
+    const bestiary = useBestiary(usesStatBlock(current));
     const [notes, setNotes] = useState(current?.notes || '');
     useEffect(() => setNotes(current?.notes || ''), [current?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -177,7 +180,6 @@ export function SceneRunner({ scene, scenes, session, calendar = null, onSyncCal
                     {scenes.filter(other => other.id !== scene.id && other.sessionId === scene.sessionId && !other.benched && (other.beats || []).length > 0).map(other => <option key={other.id} value={other.id}>{other.name || 'Untitled scene'}</option>)}
                 </select>
                 {calendar && onSyncCalendar && <CalendarSync scene={scene} calendar={calendar} onSync={onSyncCalendar}/>}
-                <button type="button" className="Scenes-button" onClick={onOpenNotes}>Notes</button>
                 <button type="button" className="Scenes-button" onClick={() => update({ run: paused ? startRun(scene) : pauseRun(run) })}>{paused ? 'Resume clock' : 'Pause clock'}</button>
                 <button type="button" className="Scenes-button Scenes-button-primary" disabled={!current} onClick={() => update({ run: advanceRun(scene, skip) })}>Next beat &rarr;</button>
                 <button type="button" className="Scenes-button" onClick={requestEnd}>End Scene</button>
@@ -212,7 +214,7 @@ export function SceneRunner({ scene, scenes, session, calendar = null, onSyncCal
                         {current.type === 'combat' && current.ruling && <RulingCard beat={current} onToggle={(target, active) => changeBeat(target, { rulingActive: active })}/>}
                         {current.type === 'combat' && <DueCues scene={scene} scenes={scenes} current={current} combatTurn={combatTurn}
                             onOpen={id => update({ run: jumpRun(scene, id) })} onDone={id => update({ run: completeBeat(scene, id) })}/>}
-                        <BeatView beat={current} scene={scene} scenes={scenes} onDecide={onDecide} onStartCombat={beat => onStartCombat(scene, beat)} onOpenMaps={onOpenMaps} combat={combat}
+                        <BeatView beat={current} scene={scene} scenes={scenes} bestiary={bestiary} onDecide={onDecide} onStartCombat={beat => onStartCombat(scene, beat)} onOpenMaps={onOpenMaps} combat={combat}
                             onAdvance={() => update({ run: advanceRun(scene, skip) })} onWaiting={(target, waiting) => changeBeat(target, { waiting })}/>
                     </>
                     : <div className="Scenes-card">

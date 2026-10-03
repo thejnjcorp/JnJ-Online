@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAutosavedDoc } from '../utils/useAutosavedDoc';
-import { AttachmentsEditor, BuilderSide, NewNpcDialog, OnlyIfSelect, conditionKey } from './SceneBuilderParts';
+import { AttachmentsEditor, BuilderSide, NewNpcDialog, OnlyIfSelect, StatBlockSelect, conditionKey, withStatBlock } from './SceneBuilderParts';
+import { useBestiary } from '../utils/useBestiary';
 import {
     BEAT_TYPES, DECISION_METHODS, beatMinutes, beatTypeLabel, conditionChoices, decisionBeatOf, estimateMinutes, newBeat, newId, optionLetter, sessionTitle,
     wordCount,
@@ -26,7 +27,7 @@ function beatSummary(beat) {
     return beat.text;
 }
 
-function BeatEditor({ beat, scene, scenes, encounters, maps, onChange, onCreatePathScene, onOpenMaps, onOpenEncounter, onCreateEncounter }) {
+function BeatEditor({ beat, scene, scenes, encounters, maps, bestiary, onChange, onCreatePathScene, onOpenMaps, onOpenEncounter, onCreateEncounter }) {
     const update = patch => onChange({ ...beat, ...patch });
     switch (beat.type) {
         case 'narration':
@@ -44,6 +45,10 @@ function BeatEditor({ beat, scene, scenes, encounters, maps, onChange, onCreateP
                 <Field label="Voice and behaviors (one per line)">
                     <textarea className="Scenes-textarea" rows={4} value={beat.behaviors || ''} onChange={event => update({ behaviors: event.target.value })}/>
                 </Field>
+                {bestiary && <div className="Scenes-field">
+                    <span className="Scenes-field-label">Stat block (from the bestiary), for the checks they may make</span>
+                    <StatBlockSelect bestiary={bestiary} value={beat.enemyId} label="NPC stat block" onPick={enemy => onChange(withStatBlock(beat, enemy))}/>
+                </div>}
             </>;
         case 'check':
             return <>
@@ -162,6 +167,8 @@ export function SceneBuilder({ scene, scenes, session, encounters, maps, onSave,
     const [newNpc, setNewNpc] = useState(false);
     const current = draft || scene;
     const beats = current.beats || [];
+    // the bestiary is only fetched once there is an NPC to tie a stat block to
+    const bestiary = useBestiary(beats.some(beat => beat.type === 'npc' || (beat.attachments || []).some(item => item.kind !== 'check')));
     const estimate = estimateMinutes(current);
     const owner = current.branch ? scenes.find(candidate => candidate.id === current.branch.fromSceneId) : null;
     const ownerBeat = owner ? (owner.beats || []).find(beat => beat.type === 'decision') : null;
@@ -191,6 +198,11 @@ export function SceneBuilder({ scene, scenes, session, encounters, maps, onSave,
         setAddOpen(false);
     }
     const setStatus = async status => { edit({ status }); await flush(); };
+    const closeCondition = id => setConditionOpen(previous => {
+        const next = new Set(previous);
+        next.delete(id);
+        return next;
+    });
 
     return <div className="Scenes-builder">
         <div className="Scenes-builder-main">
@@ -260,11 +272,12 @@ export function SceneBuilder({ scene, scenes, session, encounters, maps, onSave,
                             </div>}
                         </div>
                         {!isCollapsed && <div className="Scenes-beat-body">
-                            <BeatEditor beat={beat} scene={current} scenes={scenes} encounters={encounters} maps={maps} onChange={changeBeat} onOpenMaps={onOpenMaps} onOpenEncounter={onOpenEncounter} onCreateEncounter={onCreateEncounter}
+                            <BeatEditor beat={beat} scene={current} scenes={scenes} encounters={encounters} maps={maps} bestiary={bestiary} onChange={changeBeat} onOpenMaps={onOpenMaps} onOpenEncounter={onOpenEncounter} onCreateEncounter={onCreateEncounter}
                                 onCreatePathScene={(label, optionId) => onCreatePathScene(current, label, optionId)}/>
-                            {!['combat', 'decision'].includes(beat.type) && <AttachmentsEditor beat={beat} onChange={changeBeat}/>}
-                            {(beat.onlyIf || conditionOpen.has(beat.id)) && <OnlyIfSelect label="Only runs if" choices={conditionChoices(scenes, current)} value={conditionKey(beat.onlyIf)}
-                                onChange={choice => changeBeat({ ...beat, onlyIf: choice ? { sceneId: choice.sceneId, beatId: choice.beatId, optionId: choice.optionId } : null })}/>}
+                            {!['combat', 'decision'].includes(beat.type) && <AttachmentsEditor beat={beat} onChange={changeBeat} bestiary={bestiary}/>}
+                            {(beat.onlyIf || conditionOpen.has(beat.id)) && <OnlyIfSelect label="Only runs if" choices={conditionChoices(scenes, current, beat)} value={conditionKey(beat.onlyIf)}
+                                onChange={choice => changeBeat({ ...beat, onlyIf: choice ? { sceneId: choice.sceneId, beatId: choice.beatId, optionId: choice.optionId } : null })}
+                                onRemove={() => { closeCondition(beat.id); changeBeat({ ...beat, onlyIf: null }); }}/>}
                         </div>}
                     </li>;
                 })}

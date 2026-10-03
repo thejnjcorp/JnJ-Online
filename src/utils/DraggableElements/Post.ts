@@ -9,4 +9,6 @@ export interface Post {
   content: string;
   status: string;
   index: number;
+  // who the post is engaged with: everyone in the same zone with the same id is in one engagement
+  engagement?: string;
 }

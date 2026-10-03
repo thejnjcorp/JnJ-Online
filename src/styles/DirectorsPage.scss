@@ -673,6 +673,30 @@
     min-height: 4rem;
 }
 
+// People who are engaged with each other (see engagements.js): a tile of their own
+// inside the zone, with their chips in it.
+.DirectorsPage-engagement {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    margin: 0 0 var(--jnj-space-2);
+    padding: var(--jnj-space-2);
+    border: 1px dashed var(--jnj-color-accent);
+    border-radius: var(--jnj-radius-md);
+    background: var(--jnj-color-accent-soft);
+
+    .PostEngagement-label {
+        display: block;
+        margin-bottom: var(--jnj-space-1);
+        font-size: 0.625rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--jnj-color-text-muted);
+    }
+}
+
 .DirectorsPage-entity-chip {
     // A fixed width (not max-width) tied to the zone's own actual size,
     // rather than shrink-to-fit content - content-based sizing was letting
@@ -696,6 +720,12 @@
     font-size: 0.75rem;
     font-weight: 600;
     color: var(--jnj-color-text);
+
+    // the chip another is being dragged over: dropping now engages the two
+    &.isCombineTarget {
+        outline: 2px dashed var(--jnj-color-accent);
+        outline-offset: 1px;
+    }
 }
 
 // A long name (post.title, from combatEntities' character/NPC name) stays

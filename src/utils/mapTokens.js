@@ -9,6 +9,8 @@
 // shown (the same units as the drawing, see mapDrawing.js). Zones are rectangles
 // authored against a 500px-wide map (MAP_REFERENCE_WIDTH in the map component).
 
+import { settleEngagements } from './engagements';
+
 export const REFERENCE_WIDTH = 500;
 
 // A token's diameter, in map widths.
@@ -122,7 +124,9 @@ export function moveToken(posts, id, point, zone) {
     if (!moved) return posts;
     const changedZone = moved.status !== zone;
     const index = changedZone ? posts.filter(post => post.status === zone).length : moved.index;
-    return posts.map(post => (post.id === id ? { ...post, status: zone, index, x: round(point.x), y: round(point.y) } : post));
+    const next = posts.map(post => (post.id === id ? { ...post, status: zone, index, x: round(point.x), y: round(point.y) } : post));
+    // a token taken into another zone has left the engagement it was in
+    return changedZone ? settleEngagements(next) : next;
 }
 
 // A token dropped somewhere is saved to the party doc in a transaction, and a
@@ -181,12 +185,13 @@ export function applyLineMove(current, updated, rects = null) {
     const byId = new Map(updated.map(post => [post.id, post]));
     const next = now.map(post => {
         const change = byId.get(post.id);
-        if (!change || (change.status === post.status && change.index === post.index)) return post;
-        return { ...post, status: change.status, index: change.index };
+        if (!change || (change.status === post.status && change.index === post.index && (change.engagement || '') === (post.engagement || ''))) return post;
+        const { engagement, ...rest } = { ...post, status: change.status, index: change.index, engagement: change.engagement };
+        return engagement ? { ...rest, engagement } : rest;
     });
 
     const moved = now.filter((post, i) => next[i].status !== post.status).map(post => post.id);
-    if (!rects || moved.length === 0) return next;
+    if (!rects || moved.length === 0) return settleEngagements(next);
 
     const byName = Object.fromEntries(rects.map(rect => [rect.name, rect]));
     const settled = [...next];
@@ -197,5 +202,5 @@ export function applyLineMove(current, updated, rects = null) {
         const taken = settled.filter((post, j) => j !== i && post.status === settled[i].status);
         settled[i] = { ...settled[i], ...openSpot(rect, taken) };
     });
-    return settled;
+    return settleEngagements(settled);
 }

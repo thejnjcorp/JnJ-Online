@@ -138,7 +138,7 @@ export function PostListContentCombatMap({ campaignId, activeMap, entities = [],
                 // only enemies can be marked defeated or taken out of the fight from the map
                 const isEnemy = entity.kind === "enemy";
                 return {
-                    id: post.id, title: entity.title || post.title, kind: entity.kind, image: entity.image, color: entity.color, x: post.x, y: post.y, movable,
+                    id: post.id, title: entity.title || post.title, kind: entity.kind, image: entity.image, color: entity.color, engagement: post.engagement, x: post.x, y: post.y, movable,
                     defeated: Boolean(entity.defeated),
                     selectable: npcControls && isEnemy && !drawing.drawing,
                     trashable: canEdit && Boolean(onRemoveEntity) && isEnemy && !drawing.drawing,
