@@ -16,7 +16,7 @@ export function AddEnemyDialog({ existing, onAdd, onClose }) {
             <p className="EncounterPage-dialog-help">Pick an enemy from your bestiary to add it to the fight at full health. Pick it again for more.</p>
             <EnemyPicker
                 onClose={onClose}
-                onPick={enemy => onAdd(enemyInstance(enemy, uniqueEnemyName(existing.map(other => other.enemy_name), enemy.enemy_name)))}
+                onPick={enemy => onAdd(enemyInstance(enemy, uniqueEnemyName(existing.map(other => other.enemy_name), enemy.enemy_name), enemy.id))}
             />
         </dialog>
     </>;

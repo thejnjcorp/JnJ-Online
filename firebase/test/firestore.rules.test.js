@@ -1352,6 +1352,32 @@ async function main() {
         }
     });
 
+    console.log('\nThe director\'s private notes on a character (campaigns/{id}/entity_notes), directors only:');
+
+    const seedEntityNotes = () => testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+        await testEnv.clearFirestore();
+        await setDoc(doc(adminCtx.firestore(), 'campaigns', 'camp1'), { campaign_name: 'C', director_uid: 'dir', canWrite: ['dir', 'codir'], canRead: ['dir', 'codir', 'player'], admins: ['dir'] });
+        await setDoc(doc(adminCtx.firestore(), 'campaigns', 'camp1', 'entity_notes', 'char1'), { text: 'Let him cook.' });
+    });
+
+    await check('the director and a co-director can read and write the notes on a character', async () => {
+        await seedEntityNotes();
+        for (const uid of ['dir', 'codir']) {
+            const db = testEnv.authenticatedContext(uid).firestore();
+            await assertSucceeds(getDoc(doc(db, 'campaigns', 'camp1', 'entity_notes', 'char1')));
+            await assertSucceeds(setDoc(doc(db, 'campaigns', 'camp1', 'entity_notes', 'char1'), { text: 'Changed by ' + uid }));
+        }
+    });
+
+    await check('players, strangers and signed-out visitors cannot read or write them (the notes are about the player)', async () => {
+        await seedEntityNotes();
+        for (const ctx of [testEnv.authenticatedContext('player'), testEnv.authenticatedContext('stranger'), testEnv.unauthenticatedContext()]) {
+            const db = ctx.firestore();
+            await assertFails(getDoc(doc(db, 'campaigns', 'camp1', 'entity_notes', 'char1')));
+            await assertFails(setDoc(doc(db, 'campaigns', 'camp1', 'entity_notes', 'char1'), { text: 'x' }));
+        }
+    });
+
     console.log('\nThe party doc (campaigns/{id}/party/main), shared by everyone in the campaign:');
 
     const seedParty = () => testEnv.withSecurityRulesDisabled(async (adminCtx) => {

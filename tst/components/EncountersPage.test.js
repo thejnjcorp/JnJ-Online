@@ -112,3 +112,46 @@ describe('EncountersPage', () => {
         expect(screen.getByText(/Only this campaign's directors can see them/)).toBeInTheDocument();
     });
 });
+
+describe('EncountersPage hosted inside the Director\'s page', () => {
+    function renderHosted(encounters, props = {}) {
+        mockEncounters = { encounters, status: 'ready' };
+        mockNavigate.mockClear();
+        renderWithRouter(<EncountersPage campaignId="camp-9" {...props}/>, { route: '/directors/camp-9' });
+    }
+
+    test('works on the campaign it is given, not the address', () => {
+        const onOpen = jest.fn();
+        renderHosted([ambush], { onOpen });
+        fireEvent.click(screen.getByText('Ambush'));
+        expect(onOpen).toHaveBeenCalledWith('e1');
+        expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    test('a new encounter is made in that campaign and handed to the host to open', async () => {
+        const onOpen = jest.fn();
+        renderHosted([], { onOpen });
+        fireEvent.click(screen.getByRole('button', { name: '+ New Encounter' }));
+        await waitFor(() => expect(onOpen).toHaveBeenCalledWith('new-encounter'));
+        expect(mockAddDoc.mock.calls.at(-1)[0]).toEqual({ __collection: ['campaigns', 'camp-9', 'encounters'] });
+    });
+
+    test('has no breadcrumb unless the host gives it somewhere to go back to', () => {
+        renderHosted([]);
+        expect(screen.queryByRole('button', { name: /Campaign|Back/ })).not.toBeInTheDocument();
+    });
+
+    test('and with one, goes back there instead of to the campaign page', () => {
+        const onBack = jest.fn();
+        renderHosted([], { onBack });
+        fireEvent.click(screen.getByRole('button', { name: /Back/ }));
+        expect(onBack).toHaveBeenCalled();
+        expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    test('opening one with no host handler still navigates, as on its own page', () => {
+        renderHosted([ambush]);
+        fireEvent.click(screen.getByText('Ambush'));
+        expect(mockNavigate).toHaveBeenCalledWith('/campaigns/camp-9/encounters/e1');
+    });
+});

@@ -22,7 +22,14 @@ export function syncCombatTracker(storedPosts, entities, zoneNames, rects = null
 
     const known = new Set(entities.map(entity => entity.id));
     const existing = new Set(posts.map(post => post.id));
-    const survivors = posts.filter(post => known.has(post.id));
+    // Someone is on the tracker once. A second post with the same id (two writers each adding
+    // the same newly staged enemy) is dropped - the first one stands - so it shows twice for no one.
+    const seen = new Set();
+    const survivors = posts.filter(post => {
+        if (!known.has(post.id) || seen.has(post.id)) return false;
+        seen.add(post.id);
+        return true;
+    });
 
     const taken = {};
     zoneNames.forEach(zone => { taken[zone] = survivors.filter(post => post.status === zone).length; });

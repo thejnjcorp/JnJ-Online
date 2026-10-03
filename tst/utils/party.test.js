@@ -10,7 +10,7 @@ jest.mock('firebase/firestore', () => ({
 }));
 
 // eslint-disable-next-line import/first
-import { PARTY_DOC_ID, ensureParty, partyDoc, removeFromTracker, subscribeParty, updateCombatTracker, updateParty } from '../../src/utils/party';
+import { PARTY_DOC_ID, addTrackerPosts, ensureParty, partyDoc, removeFromTracker, subscribeParty, updateCombatTracker, updateParty } from '../../src/utils/party';
 
 // A transaction over one document that holds `stored` (undefined: no document yet).
 function transactionOver(stored) {
@@ -315,5 +315,22 @@ describe('subscribeParty', () => {
             jest.advanceTimersByTime(4000);
             expect(stopFirestore).toHaveBeenCalledTimes(1);
         });
+    });
+});
+
+describe('addTrackerPosts', () => {
+    const posts = [{ id: 'npc:a' }, { id: 'character:c' }];
+
+    test('adds the posts that are not on the tracker yet, after those that are', () => {
+        expect(addTrackerPosts([{ id: 'npc:b' }, { id: 'npc:c' }])(posts)).toEqual([{ id: 'npc:a' }, { id: 'character:c' }, { id: 'npc:b' }, { id: 'npc:c' }]);
+    });
+
+    test('never adds the same enemy twice - the Director\'s page may have put it there already', () => {
+        expect(addTrackerPosts([{ id: 'npc:a' }, { id: 'npc:b' }])(posts)).toEqual([{ id: 'npc:a' }, { id: 'character:c' }, { id: 'npc:b' }]);
+    });
+
+    test('is no change (null) when they are all there, or there are none', () => {
+        expect(addTrackerPosts([{ id: 'npc:a' }])(posts)).toBeNull();
+        expect(addTrackerPosts([])(posts)).toBeNull();
     });
 });

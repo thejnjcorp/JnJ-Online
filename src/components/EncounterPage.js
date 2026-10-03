@@ -2,9 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { doc, onSnapshot, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { db } from '../utils/firebase';
-import { removeFromTracker, updateCombatTracker } from '../utils/party';
+import { addTrackerPosts, removeFromTracker, updateCombatTracker } from '../utils/party';
 import { useParty } from '../utils/useParty';
 import { useCampaignMaps } from '../utils/useCampaignCombat';
+import { withoutUndefined } from '../utils/withoutUndefined';
 import { ENEMY_TIERS, removeEnemies, rosterEntry, rosterSummary, stageEncounter, summaryText, tierOf } from '../utils/enemies';
 import { benchmarkSummary, checkEnemy, rangeText } from '../utils/encounterGuide';
 import { BalanceCheck } from './BalanceCheck';
@@ -64,10 +65,15 @@ function RosterRow({ entry, zoneNames, onChange, onRemove }) {
 // with a count and a starting zone), your notes, and a summary of how big the
 // fight is. Save it, then stage it: the enemies appear on the Director's page
 // and on the combat tracker, ready to fight.
-export function EncounterPage() {
+// On its own page (/campaigns/:id/encounters/:encounterId) it reads which encounter from the
+// address. Hosted in the Director's page it is given the campaign and encounter, and how to go back.
+export function EncounterPage({ campaignId: hostCampaignId, encounterId: hostEncounterId, onBack }) {
     const location = useLocation();
     const navigate = useNavigate();
-    const [, , campaignId, , encounterId] = location.pathname.split('/');
+    const [, , pathCampaignId, , pathEncounterId] = location.pathname.split('/');
+    const campaignId = hostCampaignId || pathCampaignId;
+    const encounterId = hostEncounterId || pathEncounterId;
+    const goBack = () => (onBack ? onBack() : navigate(`/campaigns/${campaignId}/encounters`));
     const encounterDoc = useMemo(() => doc(db, 'campaigns', campaignId, 'encounters', encounterId), [campaignId, encounterId]);
     const campaignDoc = useMemo(() => doc(db, 'campaigns', campaignId), [campaignId]);
 
@@ -85,7 +91,7 @@ export function EncounterPage() {
     const zoneNames = useMemo(() => (activeMap?.zones || []).map(zone => zone.name), [activeMap]);
 
     useEffect(() => {
-        document.title = 'Encounter';
+        if (!hostCampaignId) document.title = 'Encounter';
         const unsubscribe = onSnapshot(encounterDoc, snap => {
             if (!snap.exists()) { setLoadError(true); return; }
             const data = snap.data();
@@ -96,11 +102,11 @@ export function EncounterPage() {
                 const initial = { name: data.name || '', notes: data.notes || '', roster: data.roster || [], target: data.target || '', objective: data.objective || '' };
                 setDraft(initial);
                 setSaved(initial);
-                document.title = initial.name || 'Encounter';
+                if (!hostCampaignId) document.title = initial.name || 'Encounter';
             }
         }, error => { console.log('Failed to load the encounter: ' + error); setLoadError(true); });
         return () => unsubscribe();
-    }, [encounterDoc]);
+    }, [encounterDoc, hostCampaignId]);
 
     useEffect(() => {
         const unsubscribe = onSnapshot(campaignDoc, snap => setCampaign({ id: snap.id, ...snap.data() }));
@@ -118,7 +124,7 @@ export function EncounterPage() {
 
     async function save() {
         try {
-            await updateDoc(encounterDoc, { name: draft.name.trim() || 'Untitled encounter', notes: draft.notes, roster: draft.roster, target: draft.target, objective: draft.objective, updatedAt: serverTimestamp() });
+            await updateDoc(encounterDoc, { name: draft.name.trim() || 'Untitled encounter', notes: draft.notes, roster: withoutUndefined(draft.roster), target: draft.target, objective: draft.objective, updatedAt: serverTimestamp() });
             setSaved(draft);
             return true;
         } catch (error) {
@@ -134,7 +140,7 @@ export function EncounterPage() {
             if (dirty && !(await save())) return;
             const staged = stageEncounter(draft, campaign, zoneNames, party.combat_tracker || []);
             await updateDoc(campaignDoc, { enemy_list: staged.enemy_list });
-            if (staged.trackerPosts.length > 0) await updateCombatTracker(campaignId, posts => [...posts, ...staged.trackerPosts]);
+            if (staged.trackerPosts.length > 0) await updateCombatTracker(campaignId, addTrackerPosts(staged.trackerPosts));
             await updateDoc(encounterDoc, { stagedIds: [...stagedIds, ...staged.stagedIds], stagedAt: serverTimestamp() });
         } catch (error) {
             alert("Couldn't stage the encounter: " + error.message);
@@ -161,7 +167,7 @@ export function EncounterPage() {
 
     return <div className="ClassPage">
         <div className="ClassPage-inner">
-            <button type="button" className="ClassPage-breadcrumb" onClick={() => navigate(`/campaigns/${campaignId}/encounters`)}>&larr; Encounters</button>
+            <button type="button" className="ClassPage-breadcrumb" onClick={goBack}>&larr; Encounters</button>
 
             <div className="ClassPage-header">
                 <div className="ClassPage-header-main">

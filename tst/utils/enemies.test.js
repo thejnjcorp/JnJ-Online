@@ -413,3 +413,38 @@ describe('parseModifier edge cases', () => {
         expect(parseModifier('5 fire')).toEqual({ type: '5 fire', amount: Number.NaN });
     });
 });
+
+describe('what is saved from a bestiary enemy never holds undefined (Firestore refuses it)', () => {
+    const { rosterEntry, enemyInstance, newEnemy } = require('../../src/utils/enemies');
+    const hasUndefined = value => {
+        if (value === undefined) return true;
+        if (Array.isArray(value)) return value.some(hasUndefined);
+        if (value && typeof value === 'object') return Object.values(value).some(hasUndefined);
+        return false;
+    };
+    // a browser's structuredClone keeps a field that is undefined; the test setup's stand-in drops it
+    beforeEach(() => {
+        jest.spyOn(global, 'structuredClone').mockImplementation(function copy(value) {
+            if (Array.isArray(value)) return value.map(copy);
+            if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, copy(entry)]));
+            return value;
+        });
+    });
+    afterEach(() => global.structuredClone.mockRestore());
+    const enemy = () => ({ id: 'b1', ...newEnemy('Goon'), enemy_name: 'Bandit', actions: [{ actionName: 'Stab', range: undefined, tags: [{ id: 't', tagDescription: undefined }] }], portrait_url: undefined });
+
+    test('a roster entry has no undefined, even inside an action', () => {
+        const entry = rosterEntry(enemy());
+        expect(hasUndefined(entry)).toBe(false);
+        expect(entry.enemy.actions[0]).toEqual({ actionName: 'Stab', tags: [{ id: 't' }] });
+    });
+
+    test('a roster entry for an enemy with no id still has none', () => {
+        const { id, ...noId } = enemy();
+        expect(hasUndefined(rosterEntry(noId))).toBe(false);
+    });
+
+    test('nor does an enemy staged into the fight', () => {
+        expect(hasUndefined(enemyInstance(enemy(), 'Bandit'))).toBe(false);
+    });
+});

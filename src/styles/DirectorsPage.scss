@@ -1,95 +1,24 @@
-// Director's Page - Combat tab + Skills & Flaws sidebar. See
-// design/directors-page/handoff/DIRECTORS_PAGE_HANDOFF.md and
-// handoff/reference.html for the source mockup this file translates 1:1
-// (same --jnj-color-* values as the mockup's own :root tokens). The
-// Roleplay tab (still a placeholder) and Maps tab are explicitly out of
-// scope for this pass and keep their pre-existing plain markup/styles.
+// Director's Page - the combat view (hosted by a combat beat of the scenes framework) and
+// the maps panel. See design/directors-page/handoff/DIRECTORS_PAGE_HANDOFF.md and
+// handoff/reference.html for the source mockup of the combat cards. The page itself - the
+// campaign bar, scenes, builder, runner and the party down the side - is Scenes.scss.
 
 .DirectorsPage {
-    height: 90vh;
-    width: 100vw;
-    display: flex;
-    flex-direction: row;
+    width: 100%;
+    min-height: 90vh;
+    display: block;
     background: var(--jnj-color-bg);
     color: var(--jnj-color-text);
 }
 
 .DirectorsPage-message {
+    display: flex;
+    min-height: 50vh;
     align-items: center;
     justify-content: center;
     text-align: center;
     padding: var(--jnj-space-4);
     color: var(--jnj-color-text-muted);
-}
-
-.DirectorsPage-sidebar {
-    height: 90vh;
-    width: 280px;
-    min-width: 280px;
-    max-width: 280px;
-    box-sizing: border-box;
-    background-color: var(--jnj-color-bg-sunken);
-    overflow-y: auto;
-    overflow-x: hidden;
-    display: flex;
-    flex-direction: column;
-    padding: var(--jnj-space-4) 0;
-}
-
-.DirectorsPage-sidebar-char {
-    border-bottom: 1px solid var(--jnj-color-border);
-}
-
-.DirectorsPage-sidebar-char-trigger {
-    box-sizing: border-box;
-    width: 100%;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    gap: var(--jnj-space-2);
-    padding: var(--jnj-space-3) var(--jnj-space-4);
-    background: none;
-    border: none;
-    color: var(--jnj-color-text);
-    text-align: left;
-    cursor: pointer;
-}
-
-.DirectorsPage-sidebar-char-icon {
-    color: var(--jnj-color-accent);
-    width: 18px;
-    height: 18px;
-    flex-shrink: 0;
-}
-
-.DirectorsPage-sidebar-char-name {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-family: var(--jnj-font-display);
-    font-size: 0.90625rem;
-    font-weight: 600;
-}
-
-.DirectorsPage-sidebar-char-chevron {
-    margin-left: auto;
-}
-
-.DirectorsPage-sidebar-char-inner {
-    display: flex;
-    flex-direction: column;
-}
-
-.DirectorsPage-MainBody {
-    flex: 1;
-    min-width: 0;
-    height: 90vh;
-    display: flex;
-    padding: var(--jnj-space-5) var(--jnj-space-6) var(--jnj-space-7);
-    box-sizing: border-box;
-    overflow-y: auto;
 }
 
 .DirectorsPage-chevron {
@@ -813,107 +742,62 @@
     border: 1px solid var(--jnj-color-accent);
 }
 
-// Maps tab - a gallery of small previews (like a photo gallery) rather than
-// every map's full, always-open zone editor (MapRenderer - draggable zone
-// handles and all) stacked one after another at full width, which is what
-// made this feel so clunky and waste so much space. Each card here is just a
-// thumbnail and its two most common actions; clicking the thumbnail expands
-// that one map's full editor in place, collapsed again by default.
+// The Maps popup: add a map, then a gallery of small previews - each card is a thumbnail and
+// its two most common actions; the thumbnail opens that one map's zone editor in place.
+.DirectorsPage-maps { display: flex; flex-direction: column; gap: 24px; }
+.DirectorsPage-maps-heading { margin: 0 0 8px; font: 700 0.9375rem var(--jnj-font-display); }
+.DirectorsPage-maps-add {
+    display: flex; flex-direction: column; gap: 12px; align-items: flex-start;
+    padding: 16px 18px; border: 1px solid var(--jnj-color-border); border-radius: 10px; background: var(--jnj-color-bg-raised);
+    .DirectorsPage-maps-heading, p { margin: 0; }
+
+    // the picture field: its tile and the link/upload fields beside it
+    .EnemyPage-picture { align-self: stretch; }
+    .EnemyPage-picture-token { width: 56px; height: 56px; }
+    .EnemyPage-picture-initials { font-size: 0.75rem; }
+    .ClassPage-field-label { color: var(--jnj-color-text-muted); font: 600 0.6875rem var(--jnj-font-body); letter-spacing: 0.05em; text-transform: uppercase; }
+    input[type="url"] {
+        box-sizing: border-box; width: 100%; padding: 8px 12px;
+        color: var(--jnj-color-text); background: var(--jnj-color-bg-sunken);
+        border: 1px solid var(--jnj-color-border); border-radius: 7px; font: 400 0.8125rem var(--jnj-font-body);
+    }
+    input[type="file"] { font: 400 0.75rem var(--jnj-font-body); color: var(--jnj-color-text-muted); }
+}
+
 .DirectorsPage-maps-gallery {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
-    gap: var(--jnj-space-3);
-    margin-top: var(--jnj-space-4);
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 12px;
 }
 
 .DirectorsPage-map-card {
-    display: flex;
-    flex-direction: column;
-    border: 1px solid var(--jnj-color-border);
-    border-radius: var(--jnj-radius-md);
-    background: var(--jnj-color-bg-raised);
-    overflow: hidden;
+    display: flex; flex-direction: column;
+    border: 1px solid var(--jnj-color-border); border-radius: 10px;
+    background: var(--jnj-color-bg-raised); overflow: hidden;
 }
 
-.DirectorsPage-map-card-active {
-    border-color: var(--jnj-color-success);
-}
+.DirectorsPage-map-card-active { border-color: var(--jnj-color-success); }
 
 .DirectorsPage-map-thumb-button {
-    position: relative;
-    display: block;
-    width: 100%;
-    height: 8rem;
-    padding: 0;
-    border: none;
-    border-bottom: 1px solid var(--jnj-color-border);
-    background: var(--jnj-color-bg-sunken);
-    cursor: pointer;
+    position: relative; display: block; width: 100%; height: 120px; padding: 0;
+    border: none; border-bottom: 1px solid var(--jnj-color-border);
+    background: var(--jnj-color-bg-sunken); cursor: pointer;
 }
 
-.DirectorsPage-map-thumb {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-}
+.DirectorsPage-map-thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-.DirectorsPage-map-card .DirectorsPage-active-map-badge {
-    position: absolute;
-    bottom: var(--jnj-space-2);
-    left: var(--jnj-space-2);
-}
+.DirectorsPage-map-card .DirectorsPage-active-map-badge { position: absolute; bottom: 8px; left: 8px; }
 
-.DirectorsPage-map-card-actions {
-    display: flex;
-    gap: var(--jnj-space-1);
-    padding: var(--jnj-space-2);
-}
+.DirectorsPage-map-card-actions { display: flex; gap: 6px; padding: 8px; .Scenes-button { flex: 1; } }
 
-.DirectorsPage-set-active-map-button,
-.DirectorsPage-delete-map-button,
-.DirectorsPage-map-collapse-button {
-    flex: 1;
-    padding: 4px 8px;
-    border-radius: var(--jnj-radius-sm);
-    border: 1px solid var(--jnj-color-border-strong);
-    background: var(--jnj-color-bg-sunken);
-    color: var(--jnj-color-text);
-    font-size: 0.75rem;
-    cursor: pointer;
+.DirectorsPage-delete-map-button:hover { border-color: var(--jnj-color-danger); color: var(--jnj-color-danger); }
 
-    &:hover:not(:disabled) {
-        border-color: var(--jnj-color-accent);
-    }
+// The expanded card spans the whole gallery, so the zone editor's handles have room to work.
+.DirectorsPage-map-card-expanded { grid-column: 1 / -1; }
 
-    &:disabled {
-        opacity: 0.5;
-        cursor: default;
-    }
-}
+.DirectorsPage-map-expanded { padding: 12px; border-top: 1px solid var(--jnj-color-border); }
 
-.DirectorsPage-delete-map-button:hover {
-    border-color: var(--jnj-color-danger);
-    color: var(--jnj-color-danger);
-}
-
-// The expanded card itself spans the full gallery width (grid-column only
-// applies to a grid's own direct children, which this is - the expanded
-// content further inside it just fills that width normally), so the zone
-// editor's drag handles have real room to work with instead of being
-// squeezed into one thumbnail's column.
-.DirectorsPage-map-card-expanded {
-    grid-column: 1 / -1;
-}
-
-.DirectorsPage-map-expanded {
-    padding: var(--jnj-space-3);
-    border-top: 1px solid var(--jnj-color-border);
-}
-
-.DirectorsPage-map-collapse-button {
-    margin-top: var(--jnj-space-2);
-}
+.DirectorsPage-map-collapse-button { margin-top: 8px; }
 
 .DirectorsPage-enemy-tools {
     display: flex;
@@ -995,10 +879,11 @@
     border-radius: var(--jnj-radius-pill);
     background: var(--jnj-color-success);
     color: #fff;
-    font-size: 0.6875rem;
+    font-size: 0.625rem;
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
+    white-space: nowrap;
 }
 
 
@@ -1034,66 +919,3 @@
     }
 }
 
-// The party at a glance, above the sidebar's skills and flaws.
-.DirectorsPage-party-strip {
-    display: flex;
-    flex-direction: column;
-    gap: var(--jnj-space-2);
-    padding: 0 var(--jnj-space-4) var(--jnj-space-4);
-    border-bottom: 1px solid var(--jnj-color-border);
-}
-
-.DirectorsPage-party-strip-title {
-    color: var(--jnj-color-text-muted);
-    font-size: var(--jnj-text-xs);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: var(--jnj-tracking-caps);
-}
-
-.DirectorsPage-party-strip-row {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.DirectorsPage-party-strip-line {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--jnj-space-2);
-}
-
-.DirectorsPage-party-strip-name {
-    font-weight: 600;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.DirectorsPage-party-strip-ac {
-    color: var(--jnj-color-text-muted);
-    font-size: var(--jnj-text-xs);
-    flex-shrink: 0;
-}
-
-.DirectorsPage-party-strip-hp {
-    display: flex;
-    align-items: center;
-    gap: var(--jnj-space-2);
-    font-size: var(--jnj-text-xs);
-    color: var(--jnj-color-text-muted);
-}
-
-.DirectorsPage-party-strip-bar {
-    flex: 1;
-    height: 6px;
-    border-radius: var(--jnj-radius-pill);
-    background: var(--jnj-color-bg-raised);
-    overflow: hidden;
-
-    > div {
-        height: 100%;
-        background: var(--jnj-color-success);
-    }
-}

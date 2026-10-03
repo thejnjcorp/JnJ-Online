@@ -1,18 +1,21 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { deleteDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useScenes } from '../utils/useScenes';
 import { useEncounters } from '../utils/useEncounters';
-import { partyDoc, updateCombatTracker } from '../utils/party';
+import { addTrackerPosts, partyDoc, updateCombatTracker } from '../utils/party';
 import { stageEncounter } from '../utils/enemies';
 import {
-    activeScene, branchLinkPatches, copyBeats, newId, orderAfter, pauseRun, settleDecision, startRun, unlinkScene,
+    activeScene, branchLinkPatches, copyBeats, newId, orderAfter, pauseRun, sceneToOpen, settleDecision, startRun, unlinkScene,
 } from '../utils/scenes';
 import { ScenesCampaignView } from './ScenesCampaignView';
 import { ScenesSessionView } from './ScenesSessionView';
 import { SceneBuilder } from './SceneBuilder';
 import { SceneRunner } from './SceneRunner';
+import { ScenesPanel } from './ScenesPanel';
+import { EncountersPage } from './EncountersPage';
+import { EncounterPage } from './EncounterPage';
 import { NewSceneDialog } from './NewSceneDialog';
 import { SceneDecisionDialog } from './SceneDecisionDialog';
 import '../styles/Scenes.scss';
@@ -36,7 +39,7 @@ async function stageCombatBeat({ campaignId, campaignInfo, maps, beat }) {
     const zoneNames = maps.find(candidate => candidate.map_id === mapId)?.zones?.map(zone => zone.name) || [];
     const staged = stageEncounter(snapshot.data(), campaignInfo, zoneNames, tracker);
     await updateDoc(campaignDoc, { enemy_list: staged.enemy_list });
-    if (staged.trackerPosts.length > 0) await updateCombatTracker(campaignId, posts => [...posts, ...staged.trackerPosts]);
+    if (staged.trackerPosts.length > 0) await updateCombatTracker(campaignId, addTrackerPosts(staged.trackerPosts));
     return true;
 }
 
@@ -44,57 +47,68 @@ async function stageCombatBeat({ campaignId, campaignInfo, maps, beat }) {
 // to do about it.
 function SceneWorkspace({ view, scene, session, scenes, encounters, maps, renderCombat, actions }) {
     if (!scene || !session) {
-        const hint = view === 'build'
-            ? 'Pick a scene to build from the Scenes view.'
-            : 'No scene is running. Pick one from the Scenes view and choose Run.';
         return <div className="Scenes-view"><div className="Scenes-empty">
-            {hint} <button type="button" className="Scenes-link" onClick={actions.goCampaign}>Go to Scenes</button>
+            There are no scenes to {view === 'build' ? 'build' : 'run'} yet.{' '}
+            <button type="button" className="Scenes-link" onClick={() => actions.newScene()}>Make the first one</button>
         </div></div>;
     }
     if (view === 'build') {
         return <SceneBuilder key={scene.id} scene={scene} scenes={scenes} session={session} encounters={encounters} maps={maps}
-            onSave={actions.saveScene} onCreatePathScene={actions.createPathScene} onRun={actions.goRun} onBack={() => actions.goSession(session.id)} onOpenScene={actions.goBuild}/>;
+            onSave={actions.saveScene} onCreatePathScene={actions.createPathScene} onRun={actions.goRun} onBack={() => actions.goSession(session.id)} onOpenScene={actions.goBuild} onOpenMaps={actions.openMaps}
+            onOpenEncounter={actions.openEncounter} onCreateEncounter={actions.createEncounter}/>;
     }
     return <SceneRunner key={scene.id} scene={scene} scenes={scenes} session={session}
         onUpdate={actions.updateScene} onStart={actions.startScene} onEnd={actions.endScene} onSwitch={actions.switchScene}
-        onDecide={actions.decide} onStartCombat={actions.startCombat} renderCombat={renderCombat} onOpenBuilder={actions.goBuild}/>;
+        onDecide={actions.decide} onStartCombat={actions.startCombat} renderCombat={renderCombat} onOpenBuilder={actions.goBuild} onOpenMaps={actions.openMaps} onOpenNotes={actions.openNotes}/>;
 }
 
 // Timeline / Build Scene / Run Scene. Build and Run open the scene you chose (or the
 // live one); with none, they open to a hint on what to do.
-function ScenesNav({ view, timelineSessionId, buildTarget, runTarget, live, go }) {
+function ScenesNav({ view, timelineSessionId, buildTarget, runTarget, live, go, onOpenPanel }) {
     const item = key => ({
         className: view === key ? 'Scenes-nav-item Scenes-nav-item-active' : 'Scenes-nav-item',
         'aria-current': view === key ? 'page' : undefined,
     });
     const open = (target, goTo, key) => (target ? goTo(target.id) : go.go({ view: key }));
     return <nav className="Scenes-nav" aria-label="Scenes sections">
-        <button type="button" {...item('scenes')} onClick={() => (timelineSessionId ? go.goSession(timelineSessionId) : go.goCampaign())}>Timeline</button>
+        <button type="button" {...item('scenes')} onClick={() => (timelineSessionId ? go.goSession(timelineSessionId) : go.goCampaign())}>Scenes</button>
         <button type="button" {...item('build')} onClick={() => open(buildTarget, go.goBuild, 'build')}>Build Scene</button>
         <button type="button" {...item('run')} onClick={() => open(runTarget, go.goRun, 'run')}>
             Run Scene{live && <span className="Scenes-live-dot" aria-label="a scene is live"/>}
         </button>
+        <span className="Scenes-nav-spacer"/>
+        <button type="button" className="Scenes-nav-item" onClick={() => onOpenPanel('encounters')}>Encounters</button>
+        <button type="button" className="Scenes-nav-item" onClick={() => onOpenPanel('maps')}>Maps</button>
+        <button type="button" className="Scenes-nav-item" onClick={() => onOpenPanel('notes')}>Notes</button>
     </nav>;
 }
 
-// The director's plan and the way to run it. Three zoom levels share one tab:
-//   Timeline     every session, or - zoomed in - one session's scenes and decisions
+// The director's plan and the way to run it - the whole of the Director's page. Three zoom levels:
+//   Scenes       every session, or - zoomed in - one session's scenes and decisions
 //   Build Scene  one scene's premise and beats
 //   Run Scene    one scene, a beat at a time
 // Where you are is kept in the address (?view=&session=&scene=) so reloading, or
 // going back, lands where you were.
-export function ScenesTab({ campaignId, campaignInfo, maps, renderCombat }) {
+export function ScenesTab({ campaignId, campaignInfo, maps, renderCombat, renderMaps, renderNotes, header, renderSidebar, onSceneEnded }) {
     const { sessions, scenes, status, createSession, updateSession, createScene, updateScene, deleteScene } = useScenes(campaignId);
     const { encounters } = useEncounters(campaignId);
     const [params, setParams] = useSearchParams();
     const [newScene, setNewScene] = useState(null);
     const [deciding, setDeciding] = useState(null);
+    // the Maps or Notes popup, if one is open
+    const [panel, setPanel] = useState(null);
+    // which encounter the Encounters popup has open (none: the list)
+    const [encounterId, setEncounterId] = useState(null);
 
     const view = ['build', 'run'].includes(params.get('view')) ? params.get('view') : 'scenes';
     const session = sessions.find(candidate => candidate.id === params.get('session')) || null;
     const selected = scenes.find(candidate => candidate.id === params.get('scene')) || null;
     const active = useMemo(() => activeScene(scenes), [scenes]);
-    const sceneForView = selected || (view === 'run' ? active : null);
+    // Build and Run always have a scene to show once there is one: the one in the address, else
+    // the one you were last in, the one being run, or the next one to do (see sceneToOpen).
+    const [lastSceneId, setLastSceneId] = useState(null);
+    const toOpen = sceneToOpen(scenes, { sessionId: session?.id, lastId: lastSceneId, view });
+    const sceneForView = selected || (view === 'scenes' ? null : toOpen);
     const sceneSession = sceneForView ? sessions.find(candidate => candidate.id === sceneForView.sessionId) || null : null;
 
     const go = next => {
@@ -104,8 +118,11 @@ export function ScenesTab({ campaignId, campaignInfo, maps, renderCombat }) {
     };
     const goCampaign = () => go({});
     const goSession = id => go({ session: id });
-    const goBuild = id => go({ view: 'build', scene: id });
-    const goRun = id => go({ view: 'run', scene: id });
+    const goBuild = id => { setLastSceneId(id); go({ view: 'build', scene: id }); };
+    const goRun = id => { setLastSceneId(id); go({ view: 'run', scene: id }); };
+
+    const openPanel = name => { setEncounterId(null); setPanel(name); };
+    const openEncounter = id => { setEncounterId(id); setPanel('encounters'); };
 
     const fail = prefix => error => alert(prefix + error.message);
 
@@ -207,6 +224,14 @@ export function ScenesTab({ campaignId, campaignInfo, maps, renderCombat }) {
         return option.id;
     }
 
+    // A new, empty encounter for a combat beat; its roster is filled in from the Encounters popup.
+    async function createEncounter(name) {
+        const created = await addDoc(collection(db, 'campaigns', campaignId, 'encounters'), {
+            name: name || 'New encounter', notes: '', roster: [], stagedIds: [], createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+        });
+        return created.id;
+    }
+
     // ---- Running ---------------------------------------------------------
 
     async function startScene(scene) {
@@ -217,6 +242,8 @@ export function ScenesTab({ campaignId, campaignInfo, maps, renderCombat }) {
 
     async function endScene(scene) {
         await updateScene(scene.id, { status: 'completed', run: pauseRun(scene.run || {}) });
+        // what was only for the scene (a status that lasts "the rest of the scene") ends with it
+        onSceneEnded?.();
         goSession(scene.sessionId);
     }
 
@@ -244,14 +271,14 @@ export function ScenesTab({ campaignId, campaignInfo, maps, renderCombat }) {
     else if (status === 'error') body = <div className="Scenes-view"><p role="alert">{"Couldn't load the scenes. Only the campaign's directors can see them."}</p></div>;
     else if (view === 'build' || view === 'run') {
         body = <SceneWorkspace view={view} scene={sceneForView} session={sceneSession} scenes={scenes} encounters={encounters} maps={maps}
-            renderCombat={renderCombat} actions={{
-                saveScene, createPathScene, goRun, goBuild, goCampaign, goSession,
+            renderCombat={() => renderCombat({ openPanel })} actions={{
+                saveScene, createPathScene, goRun, goBuild, goCampaign, goSession, newScene: () => openNewScene(),
                 updateScene: (id, patch) => updateScene(id, patch).catch(fail("Couldn't save: ")),
                 startScene: scene => startScene(scene).catch(fail("Couldn't start the scene: ")),
                 endScene: scene => endScene(scene).catch(fail("Couldn't end the scene: ")),
                 switchScene: (from, toId) => switchScene(from, toId).catch(fail("Couldn't switch scenes: ")),
                 decide: (sceneId, beatId) => setDeciding({ sceneId, beatId }),
-                startCombat,
+                startCombat, openMaps: () => openPanel('maps'), openNotes: () => openPanel('notes'), openEncounter, createEncounter,
             }}/>;
     } else if (session) {
         body = <ScenesSessionView sessions={sessions} scenes={scenes} session={session} onBack={goCampaign} onOpenSession={goSession}
@@ -268,9 +295,20 @@ export function ScenesTab({ campaignId, campaignInfo, maps, renderCombat }) {
     const decidingBeat = decidingOwner?.beats?.find(candidate => candidate.id === deciding.beatId);
 
     return <div className="Scenes">
-        <ScenesNav view={view} timelineSessionId={timelineSessionId} buildTarget={selected || active} runTarget={active || selected} live={Boolean(active)}
-            go={{ go, goCampaign, goSession, goBuild, goRun }}/>
-        <div className="Scenes-body">{body}</div>
+        {header}
+        <ScenesNav view={view} timelineSessionId={timelineSessionId} buildTarget={selected || toOpen} runTarget={active || selected || toOpen} live={Boolean(active)}
+            go={{ go, goCampaign, goSession, goBuild, goRun }} onOpenPanel={openPanel}/>
+        <div className="Scenes-frame">
+            {renderSidebar && <aside className="Scenes-sidebar" aria-label="The party">{renderSidebar(view)}</aside>}
+            <div className="Scenes-body">{body}</div>
+        </div>
+        {panel === 'encounters' && <ScenesPanel title="Encounters" onClose={() => setPanel(null)}>
+            {encounterId
+                ? <EncounterPage key={encounterId} campaignId={campaignId} encounterId={encounterId} onBack={() => setEncounterId(null)}/>
+                : <EncountersPage campaignId={campaignId} onOpen={setEncounterId}/>}
+        </ScenesPanel>}
+        {panel === 'maps' && <ScenesPanel title="Maps" onClose={() => setPanel(null)}>{renderMaps()}</ScenesPanel>}
+        {panel === 'notes' && <ScenesPanel title="Notes" onClose={() => setPanel(null)}>{renderNotes()}</ScenesPanel>}
         {newScene && <NewSceneDialog sessions={sessions} scenes={scenes} defaultSessionId={newScene.sessionId} afterSceneId={newScene.afterSceneId}
             onCreate={handleCreateScene} onClose={() => setNewScene(null)}/>}
         {decidingOwner && decidingBeat && <SceneDecisionDialog owner={decidingOwner} beat={decidingBeat} scenes={scenes}

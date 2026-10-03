@@ -12,6 +12,7 @@
 
 import { actionProblems } from './classValidation';
 import { imageRef } from './imageRefs';
+import { withoutUndefined } from './withoutUndefined';
 
 export const ENEMY_TIERS = [
     { key: 'Goon', plural: 'Goons' },
@@ -138,8 +139,8 @@ export const NO_ENEMY_ERRORS = Object.freeze({ fields: {}, actions: {}, problems
 // now, with a count and a starting zone.
 export function rosterEntry(enemyDoc, zone = '') {
     const enemy = {};
-    ENEMY_STAT_FIELDS.forEach(field => { if (enemyDoc[field] !== undefined) enemy[field] = structuredClone(enemyDoc[field]); });
-    return { id: crypto.randomUUID(), templateId: enemyDoc.id, count: 1, zone, enemy };
+    ENEMY_STAT_FIELDS.forEach(field => { if (enemyDoc[field] !== undefined) enemy[field] = withoutUndefined(structuredClone(enemyDoc[field])); });
+    return withoutUndefined({ id: crypto.randomUUID(), templateId: enemyDoc.id, count: 1, zone, enemy });
 }
 
 // The names a roster entry's enemies get: the name alone for one, numbered for
@@ -152,9 +153,9 @@ export function instanceNames(entry) {
 
 // A live enemy, ready for the campaign's enemy_list: full health, full action
 // points, no statuses.
-export function enemyInstance(stats, name) {
+export function enemyInstance(stats, name, templateId) {
     const instance = {};
-    ENEMY_STAT_FIELDS.forEach(field => { if (stats[field] !== undefined) instance[field] = structuredClone(stats[field]); });
+    ENEMY_STAT_FIELDS.forEach(field => { if (stats[field] !== undefined) instance[field] = withoutUndefined(structuredClone(stats[field])); });
     return {
         ...instance,
         id: crypto.randomUUID(),
@@ -162,6 +163,10 @@ export function enemyInstance(stats, name) {
         current_health: stats.maximum_health,
         temporary_health: 0,
         action_points: stats.action_points ?? 3,
+        // what it has when rested, to show "2 of 3" and to give back at the start of its turn
+        max_action_points: stats.action_points ?? 3,
+        // which bestiary entry it came from, so enemies of one kind can be fought as a group
+        ...(templateId ? { templateId } : {}),
         statuses: [],
         experience_points: 0,
     };
@@ -182,7 +187,7 @@ export function stageEncounter(encounter, campaign, zoneNames = [], tracker = []
     (encounter.roster || []).forEach(entry => {
         const zone = zoneNames.includes(entry.zone) ? entry.zone : zoneNames[0];
         instanceNames(entry).forEach(name => {
-            const enemy = enemyInstance(entry.enemy, name);
+            const enemy = enemyInstance(entry.enemy, name, entry.templateId);
             enemies.push(enemy);
             if (zone !== undefined) posts.push({ id: `npc:${enemy.id}`, title: name, content: '', status: zone, index: nextIndex[zone]++ });
         });

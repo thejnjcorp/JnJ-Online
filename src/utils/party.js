@@ -112,3 +112,13 @@ export const removeFromTracker = ids => posts => {
     const kept = posts.filter(post => !gone.has(post.id));
     return kept.length === posts.length ? null : kept;
 };
+
+// A change for updateCombatTracker: put these posts on the tracker, except any whose id is already
+// on it. Staging an encounter puts its enemies on the campaign and on the tracker, and the
+// Director's page puts anyone it finds missing on the tracker too - so whichever writes second
+// must not add the same enemy again. Null - no change - when all of them are there already.
+export const addTrackerPosts = newPosts => posts => {
+    const present = new Set(posts.map(post => post.id));
+    const fresh = newPosts.filter(post => !present.has(post.id));
+    return fresh.length > 0 ? [...posts, ...fresh] : null;
+};

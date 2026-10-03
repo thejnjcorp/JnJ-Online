@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-    advanceRun, beatState, beatTypeLabel, formatClock, jumpRun, newBeat, optionLetter, optionState, pauseRun, runElapsedMs,
+    BEAT_TYPES, advanceRun, beatState, beatTypeLabel, formatClock, jumpRun, newBeat, optionLetter, optionState, pauseRun, runElapsedMs,
     sessionTitle, splitParagraphs, startRun, timeGoalText,
 } from '../utils/scenes';
 
@@ -39,7 +39,7 @@ function NarrationView({ beat }) {
 // An NPC's behaviors, one per line, each with a key of its own.
 const behaviorLines = beat => (beat.behaviors || '').split('\n').map(line => line.trim()).filter(Boolean).map((line, position) => ({ id: `${beat.id}:${position}`, line }));
 
-function BeatView({ beat, scene, scenes, onDecide, onStartCombat, renderCombat, onAdvance }) {
+function BeatView({ beat, scene, scenes, onDecide, onStartCombat, onOpenMaps, combat, onAdvance }) {
     switch (beat.type) {
         case 'narration':
             return <NarrationView beat={beat}/>;
@@ -70,9 +70,10 @@ function BeatView({ beat, scene, scenes, onDecide, onStartCombat, renderCombat, 
                     {(beat.encounterId || beat.mapId) && <button type="button" className="Scenes-button" onClick={() => onStartCombat(beat)}>
                         {beat.started ? 'Stage the encounter again' : 'Start combat (set the map, stage the encounter)'}
                     </button>}
+                    <button type="button" className="Scenes-button" onClick={onOpenMaps}>Browse maps</button>
                     <span className="Scenes-muted">Combat is tracked as usual. Moving to another beat pauses it without changing the tracker or the map.</span>
                 </div>
-                {renderCombat()}
+                {combat?.main}
             </>;
         default:
             return <div className="Scenes-card Scenes-cue">
@@ -108,11 +109,12 @@ function SceneStartCard({ scene, session, onStart, onOpenBuilder }) {
 // scene's beats (what is done, what is now, what is next); the middle is whatever
 // the current beat needs - read-aloud text, an NPC's behaviors, a cue, the combat
 // tracker - and the director's own scratchpad for the beat sits to the right.
-export function SceneRunner({ scene, scenes, session, onUpdate, onStart, onEnd, onSwitch, onDecide, onStartCombat, renderCombat, onOpenBuilder }) {
+export function SceneRunner({ scene, scenes, session, onUpdate, onStart, onEnd, onSwitch, onDecide, onStartCombat, renderCombat, onOpenBuilder, onOpenMaps, onOpenNotes }) {
     const run = scene.run;
     const live = scene.status === 'active' && Boolean(run);
     const beats = scene.beats || [];
     const [now, setNow] = useState(Date.now());
+    const [addOpen, setAddOpen] = useState(false);
     useEffect(() => {
         if (!run?.startedAt) return undefined;
         const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -126,6 +128,8 @@ export function SceneRunner({ scene, scenes, session, onUpdate, onStart, onEnd, 
 
     if (!live) return <SceneStartCard scene={scene} session={session} onStart={onStart} onOpenBuilder={onOpenBuilder}/>;
 
+    // a combat beat brings the turn order and tracker, and the enemies for a column of their own
+    const combat = current?.type === 'combat' ? renderCombat() : null;
     const elapsed = runElapsedMs(run, now);
     const goalMax = scene.timeMax || scene.timeMin || 0;
     const percent = goalMax ? Math.min(100, (elapsed / 60000 / goalMax) * 100) : 0;
@@ -134,8 +138,8 @@ export function SceneRunner({ scene, scenes, session, onUpdate, onStart, onEnd, 
     const paused = !run.startedAt;
     const pinned = beats.filter(beat => beat.type === 'combat' && beat.ruling && beat.id !== current?.id && beatState(scene, beat) !== 'upcoming');
 
-    function addBeatOnTheFly() {
-        const beat = { ...newBeat('cue'), title: 'Improvised beat' };
+    function addBeatOnTheFly(type) {
+        const beat = { ...newBeat(type), title: `Improvised ${beatTypeLabel(type).toLowerCase()}` };
         const index = currentIndex < 0 ? beats.length : currentIndex + 1;
         update({ beats: [...beats.slice(0, index), beat, ...beats.slice(index)], run: jumpRun(scene, beat.id) });
     }
@@ -157,13 +161,14 @@ export function SceneRunner({ scene, scenes, session, onUpdate, onStart, onEnd, 
                     <option value="">Switch Scene ▾</option>
                     {scenes.filter(other => other.id !== scene.id && other.sessionId === scene.sessionId && !other.benched && (other.beats || []).length > 0).map(other => <option key={other.id} value={other.id}>{other.name || 'Untitled scene'}</option>)}
                 </select>
+                <button type="button" className="Scenes-button" onClick={onOpenNotes}>Notes</button>
                 <button type="button" className="Scenes-button" onClick={() => update({ run: paused ? startRun(scene) : pauseRun(run) })}>{paused ? 'Resume clock' : 'Pause clock'}</button>
                 <button type="button" className="Scenes-button Scenes-button-primary" disabled={!current} onClick={() => update({ run: advanceRun(scene) })}>Next beat &rarr;</button>
                 <button type="button" className="Scenes-button" onClick={() => onEnd(scene)}>End Scene</button>
             </div>
         </div>
 
-        <div className="Scenes-run-body">
+        <div className={current?.type === 'combat' ? 'Scenes-run-body Scenes-run-body-combat' : 'Scenes-run-body'}>
             <nav className="Scenes-rail" aria-label="Beats">
                 <span className="Scenes-field-label">Beats</span>
                 {beats.map((beat, index) => {
@@ -174,7 +179,10 @@ export function SceneRunner({ scene, scenes, session, onUpdate, onStart, onEnd, 
                         <span className="Scenes-rail-title">{`${index + 1} · ${beat.title || 'Untitled beat'}`}</span>
                     </button>;
                 })}
-                <button type="button" className="Scenes-rail-add" onClick={addBeatOnTheFly}>+ Add beat on the fly</button>
+                <button type="button" className="Scenes-rail-add" aria-expanded={addOpen} onClick={() => setAddOpen(open => !open)}>+ Add beat on the fly</button>
+                {addOpen && <div className="Scenes-rail-add-menu" role="menu">
+                    {BEAT_TYPES.map(type => <button type="button" role="menuitem" key={type.key} onClick={() => { setAddOpen(false); addBeatOnTheFly(type.key); }}>{type.label}</button>)}
+                </div>}
             </nav>
 
             <div className="Scenes-run-center">
@@ -186,7 +194,7 @@ export function SceneRunner({ scene, scenes, session, onUpdate, onStart, onEnd, 
                             <h3 className="Scenes-run-beat-title">{current.title || 'Untitled beat'}</h3>
                         </div>
                         {current.type === 'combat' && current.ruling && <div className="Scenes-pinned"><span className="Scenes-field-label">Ruling</span><span>{current.ruling}</span></div>}
-                        <BeatView beat={current} scene={scene} scenes={scenes} onDecide={onDecide} onStartCombat={beat => onStartCombat(scene, beat)} renderCombat={renderCombat}
+                        <BeatView beat={current} scene={scene} scenes={scenes} onDecide={onDecide} onStartCombat={beat => onStartCombat(scene, beat)} onOpenMaps={onOpenMaps} combat={combat}
                             onAdvance={() => update({ run: advanceRun(scene) })}/>
                     </>
                     : <div className="Scenes-card">
@@ -213,6 +221,7 @@ export function SceneRunner({ scene, scenes, session, onUpdate, onStart, onEnd, 
                         : <span className="Scenes-muted">That's the last beat.</span>}
                 </section>
             </aside>
+            {combat?.aside && <aside className="Scenes-run-enemies" aria-label="Enemies">{combat.aside}</aside>}
         </div>
     </div>;
 }

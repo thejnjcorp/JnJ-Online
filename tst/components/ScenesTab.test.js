@@ -3,7 +3,11 @@ jest.mock('../../src/utils/firebase', () => ({ auth: {}, db: {} }));
 const mockGetDoc = jest.fn();
 const mockUpdateDoc = jest.fn();
 const mockDeleteDoc = jest.fn();
+const mockAddDoc = jest.fn();
 jest.mock('firebase/firestore', () => ({
+    addDoc: (...args) => mockAddDoc(...args),
+    collection: (...path) => ({ __collection: path.slice(1) }),
+    serverTimestamp: () => 'NOW',
     doc: (...path) => ({ __doc: path.slice(1) }),
     getDoc: (...args) => mockGetDoc(...args),
     updateDoc: (...args) => mockUpdateDoc(...args),
@@ -12,6 +16,7 @@ jest.mock('firebase/firestore', () => ({
 
 const mockUpdateCombatTracker = jest.fn();
 jest.mock('../../src/utils/party', () => ({
+    addTrackerPosts: jest.requireActual('../../src/utils/party').addTrackerPosts,
     partyDoc: id => ({ __party: id }),
     updateCombatTracker: (...args) => mockUpdateCombatTracker(...args),
 }));
@@ -28,6 +33,15 @@ jest.mock('../../src/utils/useScenes', () => ({
         createSession: mockCreateSession, updateSession: mockUpdateSession,
         createScene: mockCreateScene, updateScene: mockUpdateScene, deleteScene: mockDeleteScene,
     }),
+}));
+
+// The encounter list and editor are the pages they always were (EncountersPage, EncounterPage) -
+// here only the way the scenes framework hosts them matters.
+jest.mock('../../src/components/EncountersPage', () => ({
+    EncountersPage: ({ campaignId, onOpen }) => <div>EncountersPage-stub:{campaignId}<button type="button" onClick={() => onOpen('enc-9')}>Open encounter</button></div>,
+}));
+jest.mock('../../src/components/EncounterPage', () => ({
+    EncounterPage: ({ campaignId, encounterId, onBack }) => <div>EncounterPage-stub:{campaignId}:{encounterId}<button type="button" onClick={onBack}>Back to encounters</button></div>,
 }));
 
 let mockEncounters;
@@ -63,8 +77,10 @@ const sessions = [
     { id: 's2', number: 2, arc: 'Arc 1', order: 2 },
 ];
 
-function renderTab({ route = '/directors/camp-1', renderCombat = () => <div>Combat-stub</div>, maps = [], campaignInfo = { enemy_list: [], active_map: null } } = {}) {
-    return renderWithRouter(<ScenesTab campaignId="camp-1" campaignInfo={campaignInfo} maps={maps} renderCombat={renderCombat}/>, { route });
+function renderTab({ route = '/directors/camp-1', renderCombat = () => ({ main: <div>Combat-stub</div>, aside: <div>Enemies-stub</div> }), onSceneEnded, maps = [], campaignInfo = { enemy_list: [], active_map: null } } = {}) {
+    return renderWithRouter(<ScenesTab campaignId="camp-1" campaignInfo={campaignInfo} maps={maps} renderCombat={renderCombat} onSceneEnded={onSceneEnded}
+        header={<div>Header-stub</div>} renderSidebar={view => <div>Sidebar-stub:{view}</div>}
+        renderMaps={() => <div>Maps-stub</div>} renderNotes={() => <div>Notes-stub</div>}/>, { route });
 }
 
 beforeEach(() => {
@@ -146,6 +162,30 @@ describe('ScenesTab', () => {
             fireEvent.click(screen.getByRole('button', { name: 'Session 1, Planned' }));
             expect(screen.getByRole('heading', { name: 'Session 1' })).toBeInTheDocument();
             expect(screen.getByText('Intro')).toBeInTheDocument();
+        });
+    });
+
+    describe('the whole campaign and moving between sessions', () => {
+        test('the campaign view ends with a strip of every session that zooms into one', () => {
+            renderTab();
+            fireEvent.click(within(screen.getByRole('region', { name: 'Whole campaign' })).getByRole('button', { name: 'Zoom into Session 2' }));
+            expect(screen.getByRole('heading', { name: 'Session 2' })).toBeInTheDocument();
+        });
+
+        test('with one session there is no strip to show', () => {
+            mockState = { ...mockState, sessions: [sessions[0]] };
+            renderTab();
+            expect(screen.queryByRole('region', { name: 'Whole campaign' })).not.toBeInTheDocument();
+        });
+
+        test('arrows in a session\'s strip go to the session before and after it, and stop at the ends', () => {
+            renderTab({ route: '/directors/camp-1?session=s1' });
+            expect(screen.getByRole('button', { name: 'Previous sessions' })).toBeDisabled();
+            fireEvent.click(screen.getByRole('button', { name: 'Next sessions' }));
+            expect(screen.getByRole('heading', { name: 'Session 2' })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Next sessions' })).toBeDisabled();
+            fireEvent.click(screen.getByRole('button', { name: 'Previous sessions' }));
+            expect(screen.getByRole('heading', { name: 'Session 1' })).toBeInTheDocument();
         });
     });
 
@@ -459,11 +499,37 @@ describe('ScenesTab', () => {
     describe('Build Scene', () => {
         const build = (id = 'intro') => renderTab({ route: `/directors/camp-1?view=build&scene=${id}` });
 
-        test('with no scene chosen, points back to the timeline', () => {
+        test('with no scene chosen, opens the next one still to do rather than asking you to pick', () => {
             renderTab({ route: '/directors/camp-1?view=build' });
-            expect(screen.getByText(/Pick a scene to build/)).toBeInTheDocument();
-            fireEvent.click(screen.getByRole('button', { name: 'Go to Scenes' }));
-            expect(screen.getByRole('heading', { name: 'Scenes' })).toBeInTheDocument();
+            // the intro is completed, so it is the second scene (the one that ends in a decision)
+            expect(screen.getByRole('textbox', { name: 'Scene name' })).toHaveValue('Split');
+        });
+
+        test('with no scenes at all, offers to make the first', async () => {
+            mockState = { sessions: [], scenes: [], status: 'ready' };
+            mockCreateSession.mockImplementation(async () => {
+                mockState = { ...mockState, sessions: [{ id: 's1', number: 1, order: 1 }] };
+                return 's1';
+            });
+            renderTab({ route: '/directors/camp-1?view=build' });
+            expect(screen.getByText(/There are no scenes to build yet/)).toBeInTheDocument();
+            fireEvent.click(screen.getByRole('button', { name: 'Make the first one' }));
+            expect(await screen.findByRole('dialog', { name: 'New Scene' })).toBeInTheDocument();
+        });
+
+        test('Build Scene from the timeline opens the scene you were last in, even in another session', () => {
+            renderTab({ route: '/directors/camp-1?session=s1' });
+            fireEvent.click(screen.getAllByRole('button', { name: 'Edit' })[4]);
+            expect(screen.getByRole('textbox', { name: 'Scene name' })).toHaveValue('Outro');
+            fireEvent.click(screen.getByRole('button', { name: 'Session 1' }));
+            fireEvent.click(screen.getByRole('button', { name: 'Build Scene' }));
+            expect(screen.getByRole('textbox', { name: 'Scene name' })).toHaveValue('Outro');
+        });
+
+        test('Build Scene with nothing opened yet goes to the next scene to do in the session you are looking at', () => {
+            renderTab({ route: '/directors/camp-1?session=s1' });
+            fireEvent.click(screen.getByRole('button', { name: 'Build Scene' }));
+            expect(screen.getByRole('textbox', { name: 'Scene name' })).toHaveValue('Split');
         });
 
         test('shows the scene\'s name, premise, beats and settings', () => {
@@ -705,11 +771,12 @@ describe('ScenesTab', () => {
                 scenes: [scene('run', { name: 'Run me', status: 'active', timeMin: 30, timeMax: 50, beats, run: { startedAt: Date.now(), accumulatedMs: 0, currentBeatId: 'b1', doneBeatIds: [] }, ...fields }), ...decisionFixture().filter(item => item.id === 'intro')],
             };
         };
-        const run = (id = 'run') => renderTab({ route: `/directors/camp-1?view=run&scene=${id}` });
+        const run = (id = 'run', props = {}) => renderTab({ route: `/directors/camp-1?view=run&scene=${id}`, ...props });
 
-        test('with no scene live, says so', () => {
+        test('with no scene live, offers the next one that has beats to start', () => {
             renderTab({ route: '/directors/camp-1?view=run' });
-            expect(screen.getByText(/No scene is running/)).toBeInTheDocument();
+            expect(screen.getByRole('heading', { name: 'Split' })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Start scene' })).toBeInTheDocument();
         });
 
         test('with no scene chosen, opens the one that is live', () => {
@@ -819,15 +886,17 @@ describe('ScenesTab', () => {
             await waitFor(() => expect(mockUpdateScene).toHaveBeenCalledWith('run', { run: expect.objectContaining({ currentBeatId: 'b3' }) }));
         });
 
-        test('+ Add beat on the fly puts a cue right after the current beat and jumps to it', async () => {
+        test.each([['Cue', 'cue'], ['Combat', 'combat'], ['Narration', 'narration']])('+ Add beat on the fly offers a %s beat, put right after the current one, and jumps to it', async (label, type) => {
             live();
             run();
             fireEvent.click(screen.getByRole('button', { name: '+ Add beat on the fly' }));
+            fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: label }));
             await waitFor(() => expect(mockUpdateScene).toHaveBeenCalled());
             const patch = mockUpdateScene.mock.calls[0][1];
             expect(patch.beats.map(item => item.id)[0]).toBe('b1');
-            expect(patch.beats[1]).toMatchObject({ type: 'cue', title: 'Improvised beat' });
+            expect(patch.beats[1]).toMatchObject({ type, title: `Improvised ${label.toLowerCase()}` });
             expect(patch.run.currentBeatId).toBe(patch.beats[1].id);
+            expect(screen.queryByRole('menu')).not.toBeInTheDocument();
         });
 
         test('the clock can be paused and resumed', async () => {
@@ -883,6 +952,14 @@ describe('ScenesTab', () => {
             expect(await screen.findByRole('heading', { name: 'Session 1' })).toBeInTheDocument();
         });
 
+        test('ending the scene tells the page, so what lasted only for the scene can end with it', async () => {
+            const onSceneEnded = jest.fn();
+            live();
+            run('run', { onSceneEnded });
+            fireEvent.click(screen.getByRole('button', { name: 'End Scene' }));
+            await waitFor(() => expect(onSceneEnded).toHaveBeenCalledTimes(1));
+        });
+
         test('with every beat done, offers to end the scene', () => {
             live({ run: { startedAt: 1, accumulatedMs: 0, currentBeatId: '', doneBeatIds: ['b1', 'b2', 'b3'] } });
             run();
@@ -927,9 +1004,10 @@ describe('ScenesTab', () => {
                 return renderTab({ route: '/directors/camp-1?view=run&scene=run', maps: [{ map_id: 'm1', zones: [{ name: 'Gate' }, { name: 'Yard' }] }], ...extra });
             };
 
-            test('embeds the combat tracker and pins the ruling', () => {
+            test('embeds the combat tracker, puts the enemies in a column of their own, and pins the ruling', () => {
                 combatRun();
                 expect(screen.getByText('Combat-stub')).toBeInTheDocument();
+                expect(within(screen.getByRole('complementary', { name: 'Enemies' })).getByText('Enemies-stub')).toBeInTheDocument();
                 expect(screen.getByText('Sound system: -1 to all')).toBeInTheDocument();
             });
 
@@ -994,6 +1072,111 @@ describe('ScenesTab', () => {
         });
     });
 
+    describe('Maps and Notes', () => {
+        test('are one click from the timeline, and open in a popup over it that closes again', () => {
+            renderTab();
+            fireEvent.click(screen.getByRole('button', { name: 'Maps' }));
+            expect(within(screen.getByRole('dialog', { name: 'Maps' })).getByText('Maps-stub')).toBeInTheDocument();
+            fireEvent.click(screen.getByRole('button', { name: 'Close Maps' }));
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+            fireEvent.click(screen.getByRole('button', { name: 'Notes' }));
+            expect(within(screen.getByRole('dialog', { name: 'Notes' })).getByText('Notes-stub')).toBeInTheDocument();
+            fireEvent.keyDown(document.body, { key: 'Escape' });
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        });
+
+        test('the scrim closes the popup too, and they are there from the builder and the runner as well', () => {
+            renderTab({ route: '/directors/camp-1?view=build&scene=intro' });
+            fireEvent.click(screen.getByRole('button', { name: 'Notes' }));
+            fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        });
+
+        test('a combat beat in the builder opens the maps popup', () => {
+            mockState = { ...mockState, scenes: [scene('fight', { beats: [beat('c1', 'combat', { title: 'The fight' })] })] };
+            renderTab({ route: '/directors/camp-1?view=build&scene=fight' });
+            fireEvent.click(screen.getByRole('button', { name: 'Browse maps & edit zones' }));
+            expect(screen.getByRole('dialog', { name: 'Maps' })).toBeInTheDocument();
+        });
+
+        test('the runner has its own Notes button, as the mockup does', () => {
+            mockState = { ...mockState, scenes: [scene('fight', { status: 'active', beats: [beat('c1', 'cue', { title: 'Hi' })], run: { startedAt: 1, accumulatedMs: 0, currentBeatId: 'c1', doneBeatIds: [] } })] };
+            renderTab({ route: '/directors/camp-1?view=run&scene=fight' });
+            fireEvent.click(screen.getAllByRole('button', { name: 'Notes' })[1]);
+            expect(screen.getByRole('dialog', { name: 'Notes' })).toBeInTheDocument();
+        });
+
+        test('and so does the combat bar while running a fight', () => {
+            mockState = {
+                ...mockState,
+                scenes: [scene('fight', { status: 'active', beats: [beat('c1', 'combat', { title: 'The fight' })], run: { startedAt: 1, accumulatedMs: 0, currentBeatId: 'c1', doneBeatIds: [] } })],
+            };
+            renderTab({ route: '/directors/camp-1?view=run&scene=fight' });
+            fireEvent.click(screen.getByRole('button', { name: 'Browse maps' }));
+            expect(screen.getByRole('dialog', { name: 'Maps' })).toBeInTheDocument();
+        });
+    });
+
+    describe('the frame', () => {
+        test('the page\'s header goes above the nav and its sidebar beside the scenes, in every view', () => {
+            renderTab();
+            expect(screen.getByText('Header-stub')).toBeInTheDocument();
+            expect(screen.getByRole('complementary', { name: 'The party' })).toHaveTextContent('Sidebar-stub:scenes');
+            fireEvent.click(screen.getByRole('button', { name: 'Build Scene' }));
+            expect(screen.getByText('Sidebar-stub:build')).toBeInTheDocument();
+        });
+    });
+
+    describe('Encounters', () => {
+        test('open in a popup from the nav: the list first, then one encounter, and back to the list', () => {
+            renderTab();
+            fireEvent.click(screen.getByRole('button', { name: 'Encounters' }));
+            const dialog = screen.getByRole('dialog', { name: 'Encounters' });
+            expect(within(dialog).getByText('EncountersPage-stub:camp-1')).toBeInTheDocument();
+            fireEvent.click(within(dialog).getByRole('button', { name: 'Open encounter' }));
+            expect(within(dialog).getByText('EncounterPage-stub:camp-1:enc-9')).toBeInTheDocument();
+            fireEvent.click(within(dialog).getByRole('button', { name: 'Back to encounters' }));
+            expect(within(dialog).getByText('EncountersPage-stub:camp-1')).toBeInTheDocument();
+            fireEvent.click(screen.getByRole('button', { name: 'Close Encounters' }));
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        });
+
+        test('the combat view can open them too', () => {
+            mockState = {
+                ...mockState,
+                scenes: [scene('fight', { status: 'active', beats: [beat('c1', 'combat', { title: 'The fight' })], run: { startedAt: 1, accumulatedMs: 0, currentBeatId: 'c1', doneBeatIds: [] } })],
+            };
+            renderTab({ route: '/directors/camp-1?view=run&scene=fight', renderCombat: api => ({ main: <button type="button" onClick={() => api.openPanel('encounters')}>Combat-encounters</button>, aside: null }) });
+            fireEvent.click(screen.getByRole('button', { name: 'Combat-encounters' }));
+            expect(screen.getByRole('dialog', { name: 'Encounters' })).toBeInTheDocument();
+        });
+
+        describe('from a combat beat in the builder', () => {
+            const build = () => {
+                mockEncounters = [{ id: 'e1', name: 'Ambush', roster: [] }];
+                mockState = { ...mockState, scenes: [scene('fight', { beats: [beat('c1', 'combat', { title: 'The fight', encounterId: 'e1' }), beat('c2', 'combat', { title: 'Another' })] })] };
+                renderTab({ route: '/directors/camp-1?view=build&scene=fight' });
+            };
+
+            test('Edit roster opens the chosen encounter', () => {
+                build();
+                fireEvent.click(screen.getAllByRole('button', { name: 'Edit roster' })[0]);
+                expect(screen.getByText('EncounterPage-stub:camp-1:e1')).toBeInTheDocument();
+            });
+
+            test('+ New encounter makes an empty one, links it to the beat and opens it', async () => {
+                mockAddDoc.mockResolvedValue({ id: 'enc-new' });
+                build();
+                fireEvent.click(screen.getByRole('button', { name: '+ New encounter' }));
+                expect(await screen.findByText('EncounterPage-stub:camp-1:enc-new')).toBeInTheDocument();
+                expect(mockAddDoc).toHaveBeenCalledWith({ __collection: ['campaigns', 'camp-1', 'encounters'] }, expect.objectContaining({ name: 'Another', roster: [], stagedIds: [] }));
+                fireEvent.click(screen.getByRole('button', { name: 'Save Draft' }));
+                await waitFor(() => expect(mockUpdateScene).toHaveBeenCalledWith('fight', expect.objectContaining({ beats: expect.arrayContaining([expect.objectContaining({ id: 'c2', encounterId: 'enc-new' })]) })));
+            });
+        });
+    });
+
     describe('the sections', () => {
         test('Build Scene and Run Scene with nothing chosen say what to do, and a live scene is marked', () => {
             mockState = { ...mockState, scenes: decisionFixture().map(item => item.id === 'intro' ? { ...item, status: 'active', run: { startedAt: 1, accumulatedMs: 0, currentBeatId: 'i1', doneBeatIds: [] } } : item) };
@@ -1003,16 +1186,17 @@ describe('ScenesTab', () => {
             expect(screen.getByRole('heading', { name: 'Intro' })).toBeInTheDocument();
             fireEvent.click(screen.getByRole('button', { name: 'Build Scene' }));
             expect(screen.getByRole('textbox', { name: 'Scene name' })).toHaveValue('Intro');
-            fireEvent.click(screen.getByRole('button', { name: 'Timeline' }));
+            fireEvent.click(screen.getByRole('button', { name: 'Scenes' }));
             expect(screen.getByRole('heading', { name: 'Session 1' })).toBeInTheDocument();
         });
 
-        test('with nothing to open, the Build and Run sections explain themselves', () => {
+        test('with no scenes, the Build and Run sections say there is nothing to open', () => {
+            mockState = { ...mockState, scenes: [] };
             renderTab();
             fireEvent.click(screen.getByRole('button', { name: 'Build Scene' }));
-            expect(screen.getByText(/Pick a scene to build/)).toBeInTheDocument();
+            expect(screen.getByText(/There are no scenes to build yet/)).toBeInTheDocument();
             fireEvent.click(screen.getByRole('button', { name: /Run Scene/ }));
-            expect(screen.getByText(/No scene is running/)).toBeInTheDocument();
+            expect(screen.getByText(/There are no scenes to run yet/)).toBeInTheDocument();
         });
     });
 });

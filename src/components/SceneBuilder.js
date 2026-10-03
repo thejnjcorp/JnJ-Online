@@ -25,7 +25,7 @@ function beatSummary(beat) {
     return beat.text;
 }
 
-function BeatEditor({ beat, scene, scenes, encounters, maps, onChange, onCreatePathScene }) {
+function BeatEditor({ beat, scene, scenes, encounters, maps, onChange, onCreatePathScene, onOpenMaps, onOpenEncounter, onCreateEncounter }) {
     const update = patch => onChange({ ...beat, ...patch });
     switch (beat.type) {
         case 'narration':
@@ -72,6 +72,11 @@ function BeatEditor({ beat, scene, scenes, encounters, maps, onChange, onCreateP
                         </select>
                     </Field>
                     <Field label="Time (min)"><input type="number" min="0" value={beat.minutes ?? ''} onChange={event => update({ minutes: Number(event.target.value) })}/></Field>
+                    <button type="button" className="Scenes-button Scenes-button-small" onClick={onOpenMaps}>Browse maps &amp; edit zones</button>
+                    <button type="button" className="Scenes-button Scenes-button-small"
+                        onClick={async () => { if (encounter) onOpenEncounter(encounter.id); else { const id = await onCreateEncounter(beat.title); update({ encounterId: id }); onOpenEncounter(id); } }}>
+                        {encounter ? 'Edit roster' : '+ New encounter'}
+                    </button>
                 </div>
                 <div className="Scenes-beat-row Scenes-beat-columns">
                     <div>
@@ -145,7 +150,7 @@ function BeatEditor({ beat, scene, scenes, encounters, maps, onChange, onCreateP
 // Build Scene: the premise and the beats you will run, in order, plus the scene's
 // settings alongside. Everything saves as you type; the buttons underneath just
 // say what state the scene is in.
-export function SceneBuilder({ scene, scenes, session, encounters, maps, onSave, onCreatePathScene, onRun, onBack, onOpenScene }) {
+export function SceneBuilder({ scene, scenes, session, encounters, maps, onSave, onCreatePathScene, onRun, onBack, onOpenScene, onOpenMaps, onOpenEncounter, onCreateEncounter }) {
     const { draft, edit, flush, state } = useAutosavedDoc(scene, patch => onSave(scene, patch));
     const [addOpen, setAddOpen] = useState(false);
     const [collapsed, setCollapsed] = useState(() => new Set((scene.beats || []).filter(beat => beat.type === 'cue').map(beat => beat.id)));
@@ -248,7 +253,7 @@ export function SceneBuilder({ scene, scenes, session, encounters, maps, onSave,
                             </div>}
                         </div>
                         {!isCollapsed && <div className="Scenes-beat-body">
-                            <BeatEditor beat={beat} scene={current} scenes={scenes} encounters={encounters} maps={maps} onChange={changeBeat}
+                            <BeatEditor beat={beat} scene={current} scenes={scenes} encounters={encounters} maps={maps} onChange={changeBeat} onOpenMaps={onOpenMaps} onOpenEncounter={onOpenEncounter} onCreateEncounter={onCreateEncounter}
                                 onCreatePathScene={(label, optionId) => onCreatePathScene(current, label, optionId)}/>
                         </div>}
                     </li>;

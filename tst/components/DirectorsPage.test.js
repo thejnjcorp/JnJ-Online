@@ -47,6 +47,7 @@ jest.mock('../../src/utils/useCampaignCombat', () => ({
 let mockBestiary;
 jest.mock('../../src/utils/useBestiary', () => ({ useBestiary: () => mockBestiary }));
 const mockNavigate = jest.fn();
+const mockOpenPanel = jest.fn();
 jest.mock('react-router-dom', () => ({ ...jest.requireActual('react-router-dom'), useNavigate: () => mockNavigate }));
 
 jest.mock('../../src/components/SkillsAndFlaws', () => ({
@@ -85,6 +86,54 @@ jest.mock('../../src/utils/DraggableElements/PostListCombatMap.tsx', () => ({
         const { campaignId, activeMap, entities, noMap, canEdit } = props;
         return <div data-nomap={String(Boolean(noMap))} data-canedit={String(Boolean(canEdit))}>CombatMap-stub:{campaignId}:{activeMap?.map_id}:{entities.length}</div>;
     },
+}));
+
+// The scenes framework has its own tests (ScenesTab.test.js). Here it is a stand-in that
+// hosts what this page gives it - the combat view, the maps and the notes - one at a time
+// behind buttons, so each of those is tested as the page builds it.
+jest.mock('../../src/components/ScenesTab', () => {
+    const { useState } = jest.requireActual('react');
+    return {
+        ScenesTab: ({ campaignId, header, renderSidebar, renderCombat, renderMaps, renderNotes, onSceneEnded }) => {
+            const [shown, setShown] = useState(null);
+            const combat = () => { const parts = renderCombat({ openPanel: mockOpenPanel }); return <>{parts.main}{parts.aside}</>; };
+            const views = { Combat: combat, Maps: renderMaps, Notes: renderNotes, Run: () => null };
+            return <div>
+                {header}
+                {renderSidebar(shown === 'Run' ? 'run' : 'scenes')}
+                <div>ScenesTab-stub:{campaignId}</div>
+                <button type="button" onClick={onSceneEnded}>Scene ended</button>
+                {Object.keys(views).map(name => <button type="button" key={name} onClick={() => setShown(name)}>{name}</button>)}
+                {shown && views[shown]()}
+            </div>;
+        },
+    };
+});
+
+// The combat view's tiles, drawer and turn have their own tests (CombatBoard, CombatContext). Here
+// they are stand-ins that show what this page hands them.
+let mockProviderProps;
+jest.mock('../../src/components/CombatContext', () => ({
+    CombatProvider: props => {
+        mockProviderProps = props;
+        const { campaignInfo, updateEnemy, removeEnemy, children } = props;
+        return <>
+            {campaignInfo.enemy_list.map(enemy => <span key={enemy.id}>
+                <button type="button" onClick={() => removeEnemy(enemy)}>{`Remove ${enemy.enemy_name} from the fight`}</button>
+                <button type="button" onClick={() => updateEnemy(enemy.id, { defeated: true })}>{`Defeat ${enemy.enemy_name}`}</button>
+            </span>)}
+            {children}
+        </>;
+    },
+}));
+jest.mock('../../src/components/CombatBoard', () => ({
+    PartyTiles: () => <div>PartyTiles-stub</div>,
+    TurnOrder: () => <div>TurnOrder-stub</div>,
+    EnemyTiles: ({ onAdd, onEncounters, onClear }) => <div>
+        <button type="button" onClick={onAdd}>+ Add Enemy</button>
+        <button type="button" onClick={onEncounters}>Encounters</button>
+        <button type="button" onClick={onClear}>Clear all</button>
+    </div>,
 }));
 
 // eslint-disable-next-line import/first
@@ -198,17 +247,50 @@ describe('DirectorsPage', () => {
         expect(mockWhere).toHaveBeenCalledWith('campaign', '==', 'camp-1');
     });
 
-    test('the sidebar lists each character with their skills & flaws', async () => {
+    test('the sidebar lists each character, with their skills & flaws a click away', async () => {
         await renderReady();
-        expect(screen.getByText('Aria', { selector: '.DirectorsPage-sidebar-char-name' })).toBeInTheDocument();
+        expect(screen.queryByText('SkillsAndFlaws-stub:Aria')).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: /Skills & flaws/ }));
         expect(screen.getByText('SkillsAndFlaws-stub:Aria')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: /Skills & flaws/ }));
+        expect(screen.queryByText('SkillsAndFlaws-stub:Aria')).not.toBeInTheDocument();
+    });
+
+    test('the bar across the top names the campaign and its director, with a way to its settings and out', async () => {
+        await renderReady();
+        expect(screen.getByText('The Iron Vale')).toBeInTheDocument();
+        expect(screen.getByText('Directors: Sam')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Campaign settings' }));
+        expect(mockNavigate).toHaveBeenCalledWith('/campaigns/camp-1');
+        fireEvent.click(screen.getByRole('button', { name: 'Exit campaign' }));
+        expect(mockNavigate).toHaveBeenCalledWith('/campaigns');
+    });
+
+    test('while a scene is being run the party is tiles instead, with the same players behind them', async () => {
+        await renderReady();
+        expect(screen.queryByText('PartyTiles-stub')).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Run' }));
+        expect(screen.getByText('PartyTiles-stub')).toBeInTheDocument();
+        expect(screen.queryByText('Player Characters')).not.toBeInTheDocument();
+    });
+
+    test('the combat view puts the turn order above the tracker', async () => {
+        await renderReady();
+        goToTab('Combat');
+        expect(screen.getByText('TurnOrder-stub')).toBeInTheDocument();
+    });
+
+    test.each([[1, 'good'], [0.5, 'hurt'], [0.2, 'low']])('a player at %s of their health has a %s bar', async (ratio, expected) => {
+        await renderReady({ characters: [{ ...character, current_health: 100 * ratio, maximum_health: 100 }] });
+        // eslint-disable-next-line testing-library/no-node-access -- the bar is a decorative element with no role or text
+        expect(document.querySelector('.Scenes-party-bar > div')).toHaveClass(`Scenes-party-bar-${expected}`);
     });
 
     test('the sidebar shows the party at a glance: each player\'s name, AC and health', async () => {
         await renderReady();
-        expect(screen.getByText('Aria', { selector: '.DirectorsPage-party-strip-name' })).toBeInTheDocument();
+        expect(screen.getByText('Aria', { selector: '.Scenes-party-name' })).toBeInTheDocument();
         expect(screen.getByText('AC 12')).toBeInTheDocument();
-        expect(screen.getByText('20/25', { selector: '.DirectorsPage-party-strip-hp span' })).toBeInTheDocument();
+        expect(screen.getByText('20/25', { selector: '.Scenes-party-hp span' })).toBeInTheDocument();
     });
 
     test('the party strip is left out when the campaign has no characters', async () => {
@@ -216,10 +298,10 @@ describe('DirectorsPage', () => {
         expect(screen.queryByText('Player Characters')).not.toBeInTheDocument();
     });
 
-    test('the Scenes tab is the first one, and is what opens', async () => {
+    test('the page is the scenes framework for this campaign, with no tab bar of its own', async () => {
         await renderReady();
-        expect(screen.getByRole('button', { name: /Scenes$/ })).toBeInTheDocument();
-        expect(screen.getByRole('navigation', { name: 'Scenes sections' })).toBeInTheDocument();
+        expect(screen.getByText('ScenesTab-stub:camp-1')).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Roleplay$/ })).not.toBeInTheDocument();
     });
 
     describe('Director Mode access', () => {
@@ -243,7 +325,7 @@ describe('DirectorsPage', () => {
         });
     });
 
-    describe('Notes tab (directors only)', () => {
+    describe('Notes (directors only)', () => {
         test.each([
             ['the campaign\'s director', { director_uid: 'owner-1' }],
             ['a co-director in canWrite', { director_uid: 'someone-else', canWrite: ['owner-1'] }],
@@ -270,413 +352,59 @@ describe('DirectorsPage', () => {
             expect(screen.queryByRole('button', { name: /Notes$/ })).not.toBeInTheDocument();
         });
 
-        test('the other tabs are untouched', async () => {
+        test('the combat view, the maps and the notes are all handed to the scenes framework', async () => {
             await renderReady({ campaignInfo: { ...baseCampaignInfo, director_uid: 'owner-1' } });
-            ['Scenes', 'Combat', 'Maps', 'Notes'].forEach(name => expect(screen.getByRole('button', { name: new RegExp(name + '$') })).toBeInTheDocument());
-        });
-    });
-
-    describe('Combat tab: player characters', () => {
-        test('shows the character name, HP, and AC', async () => {
-            await renderReady();
-            goToTab('Combat');
-            expect(screen.getByText('Aria', { selector: '.DirectorsPage-entity-name' })).toBeInTheDocument();
-            expect(screen.getByText('20/25 HP')).toBeInTheDocument();
-            expect(screen.getByText('12')).toBeInTheDocument(); // AC
-        });
-
-        test('lists only the combat actions: a roleplay-only action is left off, one used in both stays', async () => {
-            const actions = [
-                { actionName: 'Stab', actionCost: 1 },
-                { actionName: 'Silver Tongue', actionCost: 0, usage: 'roleplay' },
-                { actionName: 'Parry', actionCost: 1, usage: 'both' },
-            ];
-            await renderReady({ characters: [{ ...character, actions }] });
-            goToTab('Combat');
-            fireEvent.click(screen.getByRole('button', { name: /Actions$/ }));
-
-            expect(screen.getByText(/CombatActionList-stub:2/)).toBeInTheDocument();
-        });
-
-        test('the owner can spend an action point, writing to the character doc', async () => {
-            await renderReady();
-            goToTab('Combat');
-            // eslint-disable-next-line testing-library/no-node-access -- the AP circle buttons only contain an empty-alt icon, with no accessible name to query by
-            const apButtons = screen.getByText('20/25 HP').closest('.DirectorsPage-entity-card').querySelectorAll('.DirectorsPage-ap-circles button');
-
-            fireEvent.click(apButtons[2]);
-
-            expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { action_points: 3 });
-        });
-
-        test('shows the player\'s ability scores too', async () => {
-            await renderReady({ characters: [{ ...character, strength_stat: 1, dexterity_stat: 2, intelligence_stat: -1, charisma_stat: 0 }] });
-            goToTab('Combat');
-            const card = screen.getByText('20/25 HP').closest('.DirectorsPage-entity-card');
-            const abilities = within(card).getByRole('group', { name: 'Ability scores' });
-            expect(within(abilities).getByText('Str')).toBeInTheDocument();
-            expect(within(abilities).getByText('1')).toBeInTheDocument();
-            expect(within(abilities).getByText('Dex')).toBeInTheDocument();
-            expect(within(abilities).getByText('2')).toBeInTheDocument();
-        });
-
-        test('a director can edit a player\'s current and temporary HP, writing to the character doc', async () => {
-            await renderReady();
-            goToTab('Combat');
-            const card = screen.getByText('20/25 HP').closest('.DirectorsPage-entity-card');
-
-            fireEvent.change(within(card).getByLabelText('Current HP'), { target: { value: '15' } });
-            expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { current_health: 15 });
-
-            fireEvent.change(within(card).getByLabelText('Temporary HP'), { target: { value: '4' } });
-            expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { temporary_health: 4 });
-        });
-
-        test('a director can grant (or take back) a player\'s hero points', async () => {
-            await renderReady({ characters: [{ ...character, hero_points: 2 }] });
-            goToTab('Combat');
-            const card = screen.getByText('20/25 HP').closest('.DirectorsPage-entity-card');
-            const heroPoints = within(card).getByRole('group', { name: 'Hero points' });
-            expect(within(heroPoints).getByText('2')).toBeInTheDocument();
-
-            fireEvent.click(within(heroPoints).getByRole('button', { name: 'Grant a hero point' }));
-            expect(mockUpdateDoc).toHaveBeenLastCalledWith({ __doc: ['characters', 'char-1'] }, { hero_points: 3 });
-
-            fireEvent.click(within(heroPoints).getByRole('button', { name: 'Remove a hero point' }));
-            expect(mockUpdateDoc).toHaveBeenLastCalledWith({ __doc: ['characters', 'char-1'] }, { hero_points: 1 });
-        });
-
-        test('a player with no hero_points field yet defaults to 1, and an enemy has no hero points at all', async () => {
-            await renderReady({ campaignInfo: { ...baseCampaignInfo, enemy_list: [enemy] } });
-            goToTab('Combat');
-            const playerCard = screen.getByText('20/25 HP').closest('.DirectorsPage-entity-card');
-            expect(within(within(playerCard).getByRole('group', { name: 'Hero points' })).getByText('1')).toBeInTheDocument();
-
-            const enemyCard = screen.getByText('Goblin').closest('.DirectorsPage-entity-card');
-            expect(within(enemyCard).queryByRole('group', { name: 'Hero points' })).not.toBeInTheDocument();
-        });
-
-        test('the director can still spend action points and advance the turn on a character they neither own nor co-write', async () => {
-            await renderReady({ characters: [{ ...character, userId: 'someone-else', canWrite: [] }] });
-            goToTab('Combat');
-            expect(screen.getByRole('button', { name: 'Next Turn' })).toBeInTheDocument();
-            // eslint-disable-next-line testing-library/no-node-access -- same as above: no accessible name on these icon-only buttons
-            const apButtons = screen.getByText('20/25 HP').closest('.DirectorsPage-entity-card').querySelectorAll('.DirectorsPage-ap-circles button');
-            apButtons.forEach(b => expect(b).not.toBeDisabled());
-        });
-
-        describe('the reaction (one per turn)', () => {
-            const card = () => screen.getByText('20/25 HP').closest('.DirectorsPage-entity-card');
-            const pip = () => within(card()).getByRole('button', { name: /^Reaction (available|used)$/ });
-
-            test('each player card shows whether the reaction is available', async () => {
-                await renderReady();
-                goToTab('Combat');
-                expect(pip()).toHaveAccessibleName('Reaction available');
-                expect(pip()).toHaveAttribute('aria-pressed', 'true');
-            });
-
-            test('and whether it has been used', async () => {
-                await renderReady({ characters: [{ ...character, reaction_used: true }] });
-                goToTab('Combat');
-                expect(pip()).toHaveAccessibleName('Reaction used');
-                expect(pip()).toHaveAttribute('aria-pressed', 'false');
-            });
-
-            test('clicking it marks the reaction used, writing to the character', async () => {
-                await renderReady();
-                goToTab('Combat');
-                fireEvent.click(pip());
-                expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { reaction_used: true });
-            });
-
-            test('and clicking a used one gives it back', async () => {
-                await renderReady({ characters: [{ ...character, reaction_used: true }] });
-                goToTab('Combat');
-                fireEvent.click(pip());
-                expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, { reaction_used: false });
-            });
-
-            test('the director can still toggle it on a character they neither own nor co-write', async () => {
-                await renderReady({ characters: [{ ...character, userId: 'someone-else', canWrite: [] }] });
-                goToTab('Combat');
-                expect(pip()).not.toBeDisabled();
-            });
-
-            test('Next Turn gives the reaction back', async () => {
-                await renderReady({ characters: [{ ...character, reaction_used: true }] });
-                goToTab('Combat');
-                fireEvent.click(screen.getByRole('button', { name: 'Next Turn' }));
-                expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, expect.objectContaining({ reaction_used: false }));
-            });
-        });
-
-        test('Next Turn writes the advanced-turn character data', async () => {
-            await renderReady();
-            goToTab('Combat');
-
-            fireEvent.click(screen.getByRole('button', { name: 'Next Turn' }));
-
-            expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['characters', 'char-1'] }, expect.any(Object));
-        });
-
-        test('Statuses receives write permission - the director can always give/remove them', async () => {
-            await renderReady();
-            goToTab('Combat');
-            expect(screen.getByText('Statuses-stub:char-1:write')).toBeInTheDocument();
-        });
-
-        test('...even on a character the director neither owns nor co-writes', async () => {
-            await renderReady({ characters: [{ ...character, userId: 'someone-else', canWrite: [] }] });
-            goToTab('Combat');
-            expect(screen.getByText('Statuses-stub:char-1:write')).toBeInTheDocument();
-        });
-
-        test('the Actions toggle reveals the combat action list', async () => {
-            await renderReady();
-            goToTab('Combat');
-            expect(screen.queryByText(/CombatActionList-stub/)).not.toBeInTheDocument();
-
-            fireEvent.click(screen.getByRole('button', { name: /Actions$/ }));
-
-            expect(screen.getByText(/CombatActionList-stub/)).toBeInTheDocument();
-        });
-
-        test('the entity card collapses and expands via its header', async () => {
-            await renderReady();
-            goToTab('Combat');
-            expect(screen.getByText('Statuses-stub:char-1:write')).toBeInTheDocument();
-
-            fireEvent.click(screen.getByRole('button', { name: /Aria.*20\/25 HP/ }));
-
-            expect(screen.queryByText('Statuses-stub:char-1:write')).not.toBeInTheDocument();
-        });
-
-        test('the Player Characters panel collapses via its own button', async () => {
-            await renderReady();
-            goToTab('Combat');
-            expect(screen.getByText('Player Characters', { selector: '.DirectorsPage-panel-title-name' })).toBeInTheDocument();
-
-            fireEvent.click(screen.getByRole('button', { name: 'Collapse Player Characters' }));
-
-            expect(screen.queryByText('Player Characters', { selector: '.DirectorsPage-panel-title-name' })).not.toBeInTheDocument();
-            expect(screen.getByRole('button', { name: 'Expand Player Characters' })).toBeInTheDocument();
+            ['Combat', 'Maps', 'Notes'].forEach(name => expect(screen.getByRole('button', { name: new RegExp(name + '$') })).toBeInTheDocument());
         });
     });
 
     describe('Combat tab: enemies', () => {
-        test('shows the enemy name, level subtitle, and weakness/resistance/immunity chips', async () => {
-            await renderReady({ campaignInfo: { ...baseCampaignInfo, enemy_list: [enemy] } });
-            goToTab('Combat');
-            expect(screen.getByText('Goblin')).toBeInTheDocument();
-            expect(screen.getByText('Lvl 2')).toBeInTheDocument();
-            expect(screen.getByText('Fire')).toBeInTheDocument();
-            expect(screen.getByText('Cold')).toBeInTheDocument();
-            expect(screen.getByText('Poison')).toBeInTheDocument();
-        });
-
-        test('shows the enemy\'s ability scores', async () => {
-            const withScores = { ...enemy, strength_stat: 3, dexterity_stat: -1, intelligence_stat: 0, charisma_stat: 2 };
-            await renderReady({ campaignInfo: { ...baseCampaignInfo, enemy_list: [withScores] } });
-            goToTab('Combat');
-            const card = screen.getByText('Goblin').closest('.DirectorsPage-entity-card');
-            const abilities = within(card).getByRole('group', { name: 'Ability scores' });
-            expect(within(abilities).getByText('Str')).toBeInTheDocument();
-            expect(within(abilities).getByText('3')).toBeInTheDocument();
-            expect(within(abilities).getByText('Dex')).toBeInTheDocument();
-            expect(within(abilities).getByText('-1')).toBeInTheDocument();
-            expect(within(abilities).getByText('Int')).toBeInTheDocument();
-            expect(within(abilities).getByText('Cha')).toBeInTheDocument();
-            expect(within(abilities).getByText('2')).toBeInTheDocument();
-        });
-
-        test('shows an enemy\'s notes (tactics, personality, what it drops) collapsed under their own toggle', async () => {
-            const withNotes = { ...enemy, description: 'Flees when alone.' };
-            await renderReady({ campaignInfo: { ...baseCampaignInfo, enemy_list: [withNotes] } });
-            goToTab('Combat');
-            const card = screen.getByText('Goblin').closest('.DirectorsPage-entity-card');
-            expect(within(card).queryByText('Flees when alone.')).not.toBeInTheDocument();
-
-            fireEvent.click(within(card).getByRole('button', { name: /Notes$/ }));
-
-            expect(within(card).getByText('Flees when alone.')).toBeInTheDocument();
-        });
-
-        test('an enemy with no notes gets no Notes toggle at all', async () => {
-            await renderReady({ campaignInfo: { ...baseCampaignInfo, enemy_list: [enemy] } });
-            goToTab('Combat');
-            const card = screen.getByText('Goblin').closest('.DirectorsPage-entity-card');
-            expect(within(card).queryByRole('button', { name: /Notes$/ })).not.toBeInTheDocument();
-        });
-
-        test('a director can edit an enemy\'s current and temporary HP, writing the whole enemy_list', async () => {
-            await renderReady({ campaignInfo: { ...baseCampaignInfo, enemy_list: [enemy] } });
-            goToTab('Combat');
-            const card = screen.getByText('Goblin').closest('.DirectorsPage-entity-card');
-
-            fireEvent.change(within(card).getByLabelText('Current HP'), { target: { value: '6' } });
-            expect(mockUpdateDoc).toHaveBeenCalledWith(
-                { __doc: ['campaigns', 'camp-1'] },
-                { enemy_list: [{ ...enemy, current_health: 6 }] },
-            );
-
-            fireEvent.change(within(card).getByLabelText('Temporary HP'), { target: { value: '2' } });
-            expect(mockUpdateDoc).toHaveBeenCalledWith(
-                { __doc: ['campaigns', 'camp-1'] },
-                { enemy_list: [{ ...enemy, temporary_health: 2 }] },
-            );
-        });
-
-        test('clicking a higher circle spends up to that many action points, writing the whole enemy_list', async () => {
-            await renderReady({ campaignInfo: { ...baseCampaignInfo, enemy_list: [enemy] } });
-            goToTab('Combat');
-            // eslint-disable-next-line testing-library/no-node-access -- icon-only AP buttons again have no accessible name
-            const apButtons = screen.getByText('Goblin').closest('.DirectorsPage-entity-card').querySelectorAll('.DirectorsPage-ap-circles button');
-
-            fireEvent.click(apButtons[2]);
-
-            await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith(
-                { __doc: ['campaigns', 'camp-1'] },
-                { enemy_list: [{ ...enemy, action_points: 3 }] },
-            ));
-        });
-
-        test('clicking the circle at the current action points again drops to one fewer, all the way to 0', async () => {
-            await renderReady({ campaignInfo: { ...baseCampaignInfo, enemy_list: [enemy] } });
-            goToTab('Combat');
-            // eslint-disable-next-line testing-library/no-node-access -- icon-only AP buttons again have no accessible name
-            const apButtons = screen.getByText('Goblin').closest('.DirectorsPage-entity-card').querySelectorAll('.DirectorsPage-ap-circles button');
-
-            fireEvent.click(apButtons[0]); // enemy starts at action_points: 1
-
-            await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith(
-                { __doc: ['campaigns', 'camp-1'] },
-                { enemy_list: [{ ...enemy, action_points: 0 }] },
-            ));
-        });
-
-        test('Statuses for an enemy always has write access, and updates route through the campaign doc', async () => {
-            await renderReady({ campaignInfo: { ...baseCampaignInfo, enemy_list: [enemy] } });
-            goToTab('Combat');
-            expect(screen.getByText('Statuses-stub:enemy-1:write')).toBeInTheDocument();
-        });
-
-        test('using an enemy action deducts its action cost', async () => {
-            await renderReady({ characters: [], campaignInfo: { ...baseCampaignInfo, enemy_list: [{ ...enemy, actions: [{ actionName: 'Bite', actionCost: 1 }] }] } });
-            goToTab('Combat');
-            fireEvent.click(screen.getByRole('button', { name: /Actions$/ }));
-
-            fireEvent.click(screen.getByRole('button', { name: 'StubUseAction' }));
-
-            await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith(
-                { __doc: ['campaigns', 'camp-1'] },
-                { enemy_list: [expect.objectContaining({ action_points: 0 })] }, // 1 - 1
-            ));
-        });
-
-        describe('the reaction (one per turn)', () => {
-            const withEnemy = (extra = {}) => ({ characters: [], campaignInfo: { ...baseCampaignInfo, enemy_list: [{ ...enemy, actions: [{ actionName: 'Parry', actionCost: 1, category: 'reaction' }], ...extra }] } });
-            const pip = () => screen.getByRole('button', { name: /^Reaction (available|used)$/ });
-
-            test('an enemy card shows its reaction, available to begin with', async () => {
-                await renderReady(withEnemy());
-                goToTab('Combat');
-                expect(pip()).toHaveAccessibleName('Reaction available');
-            });
-
-            test('clicking it marks the enemy\'s reaction used, and again gives it back', async () => {
-                await renderReady(withEnemy());
-                goToTab('Combat');
-                fireEvent.click(pip());
-                await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['campaigns', 'camp-1'] }, { enemy_list: [expect.objectContaining({ reaction_used: true })] }));
-            });
-
-            test('a used reaction is shown as used', async () => {
-                await renderReady(withEnemy({ reaction_used: true }));
-                goToTab('Combat');
-                expect(pip()).toHaveAccessibleName('Reaction used');
-            });
-
-            test('using a reaction action spends the reaction only, leaving action points untouched', async () => {
-                await renderReady(withEnemy());
-                goToTab('Combat');
-                fireEvent.click(screen.getByRole('button', { name: /Actions$/ }));
-
-                fireEvent.click(screen.getByRole('button', { name: 'StubUseReaction' }));
-
-                await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith(
-                    { __doc: ['campaigns', 'camp-1'] },
-                    { enemy_list: [expect.objectContaining({ action_points: 1, reaction_used: true })] },
-                ));
-            });
-
-            test('using an ordinary action leaves the reaction alone', async () => {
-                await renderReady(withEnemy());
-                goToTab('Combat');
-                fireEvent.click(screen.getByRole('button', { name: /Actions$/ }));
-
-                fireEvent.click(screen.getByRole('button', { name: 'StubUseAction' }));
-
-                await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalled());
-                expect(mockUpdateDoc.mock.calls.at(-1)[1].enemy_list[0].reaction_used).toBeUndefined();
-            });
-
-            test('Next Turn gives an enemy its reaction back', async () => {
-                await renderReady(withEnemy({ reaction_used: true }));
-                goToTab('Combat');
-                fireEvent.click(screen.getAllByRole('button', { name: 'Next Turn' })[0]);
-                await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['campaigns', 'camp-1'] }, { enemy_list: [expect.objectContaining({ reaction_used: false })] }));
-            });
-        });
-
-        test('shows the enemy\'s tier as a badge beside its name', async () => {
-            await renderReady({ campaignInfo: { ...baseCampaignInfo, enemy_list: [{ ...enemy, enemy_type: 'Captain' }] } });
-            goToTab('Combat');
-            expect(screen.getByText('Captain')).toHaveClass('EnemyTier-captain');
-        });
-
-        test('an enemy with no tier (from before there were tiers) has no badge', async () => {
-            await renderReady({ campaignInfo: { ...baseCampaignInfo, enemy_list: [enemy] } });
-            goToTab('Combat');
-            expect(document.querySelector('.EnemyTier')).toBeNull();
-        });
 
         describe('the director\'s tools', () => {
             const directing = { ...baseCampaignInfo, director_uid: 'owner-1' };
             const wolf = { id: 'b1', enemy_name: 'Wolf', enemy_type: 'Regular', maximum_health: 20, base_armor_class: 13, action_points: 3, actions: [] };
 
-            test('a director can add an enemy, go to encounters, and clear the fight (once there is one)', async () => {
+            test('the enemies column is given the ways to add enemies, go to encounters, and clear the fight', async () => {
                 await renderReady({ campaignInfo: { ...directing, enemy_list: [enemy] } });
                 goToTab('Combat');
-                expect(screen.getByRole('button', { name: '+ Add' })).toBeInTheDocument();
+                expect(screen.getByRole('button', { name: '+ Add Enemy' })).toBeInTheDocument();
                 expect(screen.getByRole('button', { name: 'Encounters' })).toBeInTheDocument();
                 expect(screen.getByRole('button', { name: 'Clear all' })).toBeInTheDocument();
-                expect(screen.getByRole('button', { name: 'Remove from fight' })).toBeInTheDocument();
             });
 
-            test('there is nothing to clear in an empty fight, which says how to fill it', async () => {
+            test('the combat view is handed the enemies, and how to change and remove them', async () => {
+                await renderReady({ campaignInfo: { ...directing, enemy_list: [enemy] } });
+                expect(mockProviderProps).toMatchObject({ campaignId: 'camp-1', userId: 'owner-1' });
+                expect(mockProviderProps.campaignInfo.enemy_list).toEqual([enemy]);
+                expect(mockProviderProps.characters.map(entry => entry.character_name)).toEqual(['Aria']);
+                fireEvent.click(screen.getByRole('button', { name: 'Defeat Goblin' }));
+                expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['campaigns', 'camp-1'] }, { enemy_list: [{ ...enemy, defeated: true }] });
+            });
+
+            test('ending a scene tells the combat view, so what lasted only for the scene ends', async () => {
                 await renderReady({ campaignInfo: directing });
-                goToTab('Combat');
-                expect(screen.queryByRole('button', { name: 'Clear all' })).not.toBeInTheDocument();
-                expect(screen.getByText(/No enemies in the fight/)).toBeInTheDocument();
+                const endScene = jest.fn();
+                act(() => mockProviderProps.onApi({ endScene }));
+                fireEvent.click(screen.getByRole('button', { name: 'Scene ended' }));
+                expect(endScene).toHaveBeenCalled();
             });
 
             // A non-director never sees the enemy list at all any more - that's
             // the whole point of Director Mode being planning-only (Director
             // Mode access, above) - not a read-only view of it.
 
-            test('Encounters goes to this campaign\'s encounters', async () => {
+            test('Encounters opens the scenes framework\'s Encounters popup', async () => {
                 await renderReady({ campaignInfo: directing });
                 goToTab('Combat');
                 fireEvent.click(screen.getByRole('button', { name: 'Encounters' }));
-                expect(mockNavigate).toHaveBeenCalledWith('/campaigns/camp-1/encounters');
+                expect(mockOpenPanel).toHaveBeenCalledWith('encounters');
             });
 
             test('+ Add opens the bestiary, and picking an enemy adds it to the campaign at full health', async () => {
                 mockBestiary = { enemies: [wolf], status: 'ready' };
                 await renderReady({ campaignInfo: { ...directing, enemy_list: [enemy] } });
                 goToTab('Combat');
-                fireEvent.click(screen.getByRole('button', { name: '+ Add' }));
+                fireEvent.click(screen.getByRole('button', { name: '+ Add Enemy' }));
 
                 fireEvent.click(screen.getByRole('button', { name: /Wolf/ }));
 
@@ -692,7 +420,7 @@ describe('DirectorsPage', () => {
             test('the dialog closes', async () => {
                 await renderReady({ campaignInfo: directing });
                 goToTab('Combat');
-                fireEvent.click(screen.getByRole('button', { name: '+ Add' }));
+                fireEvent.click(screen.getByRole('button', { name: '+ Add Enemy' }));
                 fireEvent.click(screen.getByRole('button', { name: 'Done' }));
                 expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
             });
@@ -700,10 +428,8 @@ describe('DirectorsPage', () => {
             test('Remove from fight takes the enemy and its tracker card off the campaign, after asking', async () => {
                 const other = { ...enemy, id: 'enemy-2', enemy_name: 'Troll' };
                 await renderReady({ campaignInfo: { ...directing, enemy_list: [enemy, other] } });
-                goToTab('Combat');
-                const card = screen.getByText('Goblin').closest('.DirectorsPage-entity-card');
 
-                fireEvent.click(within(card).getByRole('button', { name: 'Remove from fight' }));
+                fireEvent.click(screen.getByRole('button', { name: 'Remove Goblin from the fight' }));
 
                 expect(window.confirm).toHaveBeenCalledWith('Remove Goblin from the fight?');
                 await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['campaigns', 'camp-1'] }, { enemy_list: [other] }));
@@ -713,46 +439,6 @@ describe('DirectorsPage', () => {
             });
 
             describe('defeating enemies', () => {
-                const card = () => screen.getByText('Goblin').closest('.DirectorsPage-entity-card');
-
-                test('a card offers to mark an enemy defeated, and writes it to the enemy on the campaign', async () => {
-                    const other = { ...enemy, id: 'enemy-2', enemy_name: 'Troll' };
-                    await renderReady({ campaignInfo: { ...directing, enemy_list: [enemy, other] } });
-                    goToTab('Combat');
-
-                    fireEvent.click(within(card()).getByRole('button', { name: 'Mark defeated' }));
-
-                    await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['campaigns', 'camp-1'] }, { enemy_list: [{ ...enemy, defeated: true }, other] }));
-                });
-
-                test('a defeated enemy\'s card says so, is dimmed, and offers to revive it instead', async () => {
-                    await renderReady({ campaignInfo: { ...directing, enemy_list: [{ ...enemy, defeated: true }] } });
-                    goToTab('Combat');
-
-                    expect(within(card()).getByText('Defeated')).toBeInTheDocument();
-                    expect(card()).toHaveClass('DirectorsPage-entity-card-defeated');
-                    expect(within(card()).queryByRole('button', { name: 'Mark defeated' })).not.toBeInTheDocument();
-
-                    fireEvent.click(within(card()).getByRole('button', { name: 'Revive' }));
-                    await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith({ __doc: ['campaigns', 'camp-1'] }, { enemy_list: [{ ...enemy, defeated: false }] }));
-                });
-
-                test('an enemy that is not defeated has no badge and is not dimmed', async () => {
-                    await renderReady({ campaignInfo: { ...directing, enemy_list: [enemy] } });
-                    goToTab('Combat');
-                    expect(within(card()).queryByText('Defeated')).not.toBeInTheDocument();
-                    expect(card()).not.toHaveClass('DirectorsPage-entity-card-defeated');
-                });
-
-
-                test('a failed write is alerted', async () => {
-                    mockUpdateDoc.mockRejectedValue(new Error('offline'));
-                    await renderReady({ campaignInfo: { ...directing, enemy_list: [enemy] } });
-                    goToTab('Combat');
-                    fireEvent.click(within(card()).getByRole('button', { name: 'Mark defeated' }));
-                    await waitFor(() => expect(window.alert).toHaveBeenCalled());
-                });
-
                 describe('from the map', () => {
                     const lastMapProps = () => mockMapProps[mockMapProps.length - 1];
 
@@ -808,8 +494,7 @@ describe('DirectorsPage', () => {
             test('declining removes nothing', async () => {
                 window.confirm = jest.fn(() => false);
                 await renderReady({ campaignInfo: { ...directing, enemy_list: [enemy] } });
-                goToTab('Combat');
-                fireEvent.click(screen.getByRole('button', { name: 'Remove from fight' }));
+                fireEvent.click(screen.getByRole('button', { name: 'Remove Goblin from the fight' }));
                 expect(mockUpdateDoc).not.toHaveBeenCalled();
             });
 
@@ -834,23 +519,14 @@ describe('DirectorsPage', () => {
                 await waitFor(() => expect(window.alert).toHaveBeenCalled());
             });
         });
-
-        test('the Enemies panel collapses via its own button', async () => {
-            await renderReady({ campaignInfo: { ...baseCampaignInfo, enemy_list: [enemy] } });
-            goToTab('Combat');
-
-            fireEvent.click(screen.getByRole('button', { name: 'Collapse Enemies' }));
-
-            expect(screen.queryByText('Enemies')).not.toBeInTheDocument();
-            expect(screen.getByRole('button', { name: 'Expand Enemies' })).toBeInTheDocument();
-        });
     });
 
     describe('Combat Tracker', () => {
-        test('starts in Line View', async () => {
+        test('starts on the zones', async () => {
             await renderReady();
             goToTab('Combat');
-            expect(screen.getByRole('button', { name: 'Line View' })).toHaveClass('DirectorsPage-mode-btn-active');
+            expect(screen.getByRole('button', { name: 'Zones' })).toHaveAttribute('aria-pressed', 'true');
+            expect(screen.getByRole('button', { name: 'Map' })).toHaveAttribute('aria-pressed', 'false');
         });
 
         test('with no map selected, the line view is one shared column (Combatants), with no hint', async () => {
@@ -945,7 +621,7 @@ describe('DirectorsPage', () => {
             mockUseCampaignMaps.mockReturnValue({ maps: [], activeMap: { map_id: 'map-1', zones: [] } });
             await renderReady({ campaignInfo: { ...baseCampaignInfo, active_map: 'map-1' } });
             goToTab('Combat');
-            expect(screen.getByText('This map has no zones yet. Add some from the Maps tab.')).toBeInTheDocument();
+            expect(screen.getByText('This map has no zones yet. Add some from the Maps popup.')).toBeInTheDocument();
         });
 
         describe('choosing the map from the tracker', () => {
@@ -1002,7 +678,7 @@ describe('DirectorsPage', () => {
             goToTab('Combat');
             expect(screen.queryByRole('button', { name: /Open Full Map/ })).not.toBeInTheDocument();
 
-            fireEvent.click(screen.getByRole('button', { name: 'Map View' }));
+            fireEvent.click(screen.getByRole('button', { name: 'Map' }));
 
             expect(screen.getByRole('button', { name: /Open Full Map/ })).toBeInTheDocument();
         });
@@ -1010,7 +686,7 @@ describe('DirectorsPage', () => {
         test('with no map there is nothing to open full-screen', async () => {
             await renderReady();
             goToTab('Combat');
-            fireEvent.click(screen.getByRole('button', { name: 'Map View' }));
+            fireEvent.click(screen.getByRole('button', { name: 'Map' }));
             expect(screen.queryByRole('button', { name: /Open Full Map/ })).not.toBeInTheDocument();
         });
 
@@ -1020,7 +696,7 @@ describe('DirectorsPage', () => {
             goToTab('Combat');
             expect(mockMapProps.every(props => !props.toolbarsBeside)).toBe(true);
 
-            fireEvent.click(screen.getByRole('button', { name: 'Map View' }));
+            fireEvent.click(screen.getByRole('button', { name: 'Map' }));
             fireEvent.click(screen.getByRole('button', { name: /Open Full Map/ }));
 
             expect(mockMapProps[mockMapProps.length - 1].toolbarsBeside).toBe(true);
@@ -1030,7 +706,7 @@ describe('DirectorsPage', () => {
             mockUseCampaignMaps.mockReturnValue({ maps: [], activeMap: { map_id: 'map-1', zones: [{ name: 'A' }] } });
             await renderReady({ campaignInfo: { ...baseCampaignInfo, active_map: 'map-1' } });
             goToTab('Combat');
-            fireEvent.click(screen.getByRole('button', { name: 'Map View' }));
+            fireEvent.click(screen.getByRole('button', { name: 'Map' }));
             fireEvent.click(screen.getByRole('button', { name: /Open Full Map/ }));
             expect(screen.getAllByText(/CombatMap-stub/).length).toBeGreaterThan(0);
 
@@ -1040,7 +716,7 @@ describe('DirectorsPage', () => {
         });
     });
 
-    describe('Maps tab', () => {
+    describe('Maps', () => {
         test('Add Map is disabled until a link is pasted or a picture uploaded', async () => {
             await renderReady();
             goToTab('Maps');
@@ -1114,7 +790,7 @@ describe('DirectorsPage', () => {
                 await renderReady({ campaignInfo: { ...baseCampaignInfo, active_map: 'map-1' } });
                 goToTab('Maps');
                 expect(screen.getByRole('button', { name: 'Unselect Map' })).toBeEnabled();
-                expect(screen.getByText('Active on the combat tracker')).toBeInTheDocument();
+                expect(screen.getByText('Active in combat')).toBeInTheDocument();
                 expect(screen.queryByRole('button', { name: 'Set as Active' })).not.toBeInTheDocument();
                 expect(screen.queryByText('MapRenderer-stub:map-1:owner-1')).not.toBeInTheDocument();
 
@@ -1150,7 +826,7 @@ describe('DirectorsPage', () => {
                 mockUseCampaignMaps.mockReturnValue({ maps: [map], activeMap: null });
                 await renderReady();
                 goToTab('Maps');
-                expect(screen.queryByText('Active on the combat tracker')).not.toBeInTheDocument();
+                expect(screen.queryByText('Active in combat')).not.toBeInTheDocument();
             });
 
             test('passes the map\'s admins list and the signed-in user down to DocAdminManager, once its editor is open', async () => {

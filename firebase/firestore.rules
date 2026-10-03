@@ -58,6 +58,13 @@ service cloud.firestore {
         allow read, write: if isSignedIn() && isCampaignDirector(campaignId);
       }
 
+      // The director's private notes about one combatant (a player's character), one document per
+      // character: what to do with them in a scene, kept off the character sheet the player reads.
+      // Directors only, like the notes and the scenes.
+      match /entity_notes/{characterId} {
+        allow read, write: if isSignedIn() && isCampaignDirector(campaignId);
+      }
+
       // The party doc: what the whole party shares and changes together - the
       // combat tracker (who is in the fight and where each token sits on the
       // map), and the party's inventory and notes. Unlike the campaign doc, every

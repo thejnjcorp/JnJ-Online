@@ -134,6 +134,28 @@ describe('EncounterPage', () => {
             expect(screen.getByLabelText('Number of Iron Captain')).toHaveTextContent('1');
         });
 
+        test('saving an encounter whose enemy has a field with no value does not send Firestore an undefined (which it refuses)', async () => {
+            // a browser's structuredClone keeps a field that is undefined; the test setup's stand-in drops it
+            jest.spyOn(global, 'structuredClone').mockImplementation(function copy(value) {
+                if (Array.isArray(value)) return value.map(copy);
+                if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, copy(entry)]));
+                return value;
+            });
+            const sloppy = { ...captain, actions: [{ actionName: 'Slash', range: undefined, tags: [{ id: 't', tagDescription: undefined }] }], portrait_url: undefined };
+            renderPage({ encounter: { name: 'Ambush', roster: [] }, enemies: [sloppy] });
+            fireEvent.click(screen.getByRole('button', { name: '+ Add enemy' }));
+            pick('Iron Captain');
+
+            fireEvent.click(save());
+
+            await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalled());
+            const hasUndefined = value => value === undefined
+                || (Array.isArray(value) && value.some(hasUndefined))
+                || (Boolean(value) && typeof value === 'object' && Object.values(value).some(hasUndefined));
+            expect(hasUndefined(mockUpdateDoc.mock.calls[0][1])).toBe(false);
+            global.structuredClone.mockRestore();
+        });
+
         test('the same enemy can be added again, as its own entry', () => {
             renderPage({ encounter: { name: 'Ambush', roster: [] } });
             fireEvent.click(screen.getByRole('button', { name: '+ Add enemy' }));
@@ -758,5 +780,33 @@ describe('EncounterPage', () => {
             fireEvent.click(screen.getByRole('button', { name: 'Clear staged enemies' }));
             expect(mockUpdateDoc).not.toHaveBeenCalled();
         });
+    });
+});
+
+describe('EncounterPage hosted inside the Director\'s page', () => {
+    function renderHosted(props = {}) {
+        mockBestiary = { enemies: [bandit], status: 'ready' };
+        mockMaps = { activeMap: undefined };
+        mockNavigate.mockClear();
+        renderWithRouter(<EncounterPage campaignId="camp-1" encounterId="enc-1" {...props}/>, { route: '/directors/camp-1' });
+        act(() => {
+            mockListeners[ENCOUNTER].next(snap({ name: 'Ambush', notes: '', roster: [], stagedIds: [] }));
+            mockListeners[CAMPAIGN].next(snap({ enemy_list: [] }));
+        });
+    }
+
+    test('opens the encounter it is given, whatever the address says, and leaves the page title alone', () => {
+        document.title = 'The Director';
+        renderHosted();
+        expect(screen.getByDisplayValue('Ambush')).toBeInTheDocument();
+        expect(document.title).toBe('The Director');
+    });
+
+    test('its breadcrumb goes back through the host rather than to the encounters page', () => {
+        const onBack = jest.fn();
+        renderHosted({ onBack });
+        fireEvent.click(screen.getByRole('button', { name: /Encounters/ }));
+        expect(onBack).toHaveBeenCalled();
+        expect(mockNavigate).not.toHaveBeenCalled();
     });
 });

@@ -20,6 +20,11 @@ describe('syncCombatTracker', () => {
         expect(next).toEqual([post('a', 'Zone 2', 0), { id: 'b', title: 'b', content: '', status: 'Zone 1', index: 1 }]);
     });
 
+    test('someone on the tracker twice (the same newly staged enemy added by two writers) is on it once, the first one standing', () => {
+        const next = syncCombatTracker([post('a', 'Zone 1', 0), post('goon', 'Zone 1', 1), post('goon', 'Zone 2', 0)], [entity('a'), entity('goon')], zones);
+        expect(next).toEqual([post('a', 'Zone 1', 0), post('goon', 'Zone 1', 1)]);
+    });
+
     test('takes out anyone no longer in the fight, and leaves the rest where they are', () => {
         const next = syncCombatTracker([post('a', 'Zone 2', 0), post('gone', 'Zone 1', 0), post('c', 'Zone 1', 1)], [entity('a'), entity('c')], zones);
         expect(next).toEqual([post('a', 'Zone 2', 0), post('c', 'Zone 1', 1)]);

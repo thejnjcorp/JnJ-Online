@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
 import { Tooltip } from 'react-tooltip';
 import 'react-tooltip/dist/react-tooltip.css';
-import Markdown from './ColoredMarkdown';
 import '../styles/CharacterPageStyles/DefaultCharacterPage.scss';
 import '../styles/DirectorsPage.scss';
 import '../styles/CharacterMainTab.scss';
@@ -12,27 +11,14 @@ import { db, auth } from '../utils/firebase';
 import { doc, query, collection, where, onSnapshot, updateDoc, addDoc, deleteDoc } from 'firebase/firestore';
 import { SkillsAndFlaws } from './SkillsAndFlaws';
 import { useResolvedCharacters } from '../utils/useClassVersion';
-import Collapsible from 'react-collapsible';
 import characterPageLayout from '../CharacterPageLayout.json';
-import npcLayout from '../NPCLayout.json';
-import { TabContainer } from './TabContainer';
-import { CombatActionList } from './CombatActionList';
-import { Statuses } from './Statuses';
 import { PictureField } from './PictureField';
 import { onAuthStateChanged } from 'firebase/auth';
-import circleIcon from '../icons/circle.svg';
-import circleFilledIcon from '../icons/circle_filled.svg';
-import shieldIcon from '../icons/shield.svg';
 import { ReactComponent as PersonIcon } from '../icons/person.svg';
-import { ReactComponent as ScrollIcon } from '../icons/scroll.svg';
-import { ReactComponent as SwordsIcon } from '../icons/swords.svg';
-import { ReactComponent as MapIcon } from '../icons/map.svg';
-import { ReactComponent as NoteIcon } from '../icons/note.svg';
-import { ReactComponent as StrengthIcon } from '../icons/strength_line.svg';
-import { ReactComponent as DexterityIcon } from '../icons/dexterity_line.svg';
-import { ReactComponent as IntelligenceIcon } from '../icons/intelligence_line.svg';
-import { ReactComponent as CharismaIcon } from '../icons/charisma_line.svg';
 import { DirectorNotes } from './DirectorNotes';
+import { CombatProvider } from './CombatContext';
+import { EnemyTiles, PartyTiles, TurnOrder } from './CombatBoard';
+import '../styles/Combat.scss';
 import { ScenesTab } from './ScenesTab';
 import { ReactComponent as ChevronDownIcon } from '../icons/chevron_down.svg';
 import { PostListContentCombatMap } from '../utils/DraggableElements/PostListCombatMap.tsx';
@@ -41,13 +27,11 @@ import { MapRenderer } from './MapRenderer';
 import { DocAdminManager } from './DocAdminManager';
 import { useCampaignMaps, useCombatEntities } from '../utils/useCampaignCombat';
 import { withoutArchived } from '../utils/characterArchive';
-import { advanceTurnStatuses, getEffectiveCharacterStats, getGrantedActions } from '../utils/statusEffects';
 import { CharacterStatCalculator } from './CharacterStatCalculator';
+import { getEffectiveCharacterStats } from '../utils/statusEffects';
 import { AddEnemyDialog } from './AddEnemyDialog';
-import { EnemyTierBadge } from './EnemyTierBadge';
 import { npcIdOf, removeEnemies } from '../utils/enemies';
 import { removeFromTracker, updateCombatTracker } from '../utils/party';
-import { isCombatAction, isReactionAction } from '../utils/classActions';
 import { NO_MAP_ZONE, combatantMover } from '../utils/combatTracker';
 import { zoneRects } from '../utils/mapTokens';
 import { isDirectorOf } from '../utils/campaignRoles';
@@ -126,374 +110,23 @@ function makeLineViewCard(playerInfoById, defeatedIds = []) {
     };
 }
 
-// Same fields/icons/order as CharacterPageVitalsPanel's own ABILITY_SCORES.
-const ABILITY_SCORES = [
-    { name: 'strength_stat', label: 'Str', Icon: StrengthIcon },
-    { name: 'dexterity_stat', label: 'Dex', Icon: DexterityIcon },
-    { name: 'intelligence_stat', label: 'Int', Icon: IntelligenceIcon },
-    { name: 'charisma_stat', label: 'Cha', Icon: CharismaIcon },
-];
-
-// The shared vitals/status/actions card for both a player and an enemy - see
-// design/directors-page/handoff/DIRECTORS_PAGE_HANDOFF.md point 2 (matching
-// CharacterPageVitalsPanel's visual language, scaled down) and point 3a
-// (collapsible, name+HP always visible). Every write (AP, statuses, use
-// action) is handled by the caller via callbacks so this component doesn't
-// need to know whether it's looking at a real `characters` doc or an NPC
-// object embedded in the campaign doc.
-function DirectorsEntityCard({
-    kind, name, tier, subtitle, hpNow, hpMax, tempHp, onSetHp, onSetTempHp, ac, abilityScores, ap, onSetAp, heroPoints, onSetHeroPoints, reactionUsed, onToggleReaction, onRemove, defeated = false, onSetDefeated,
-    canAdvanceTurn, onNextTurn, weaknesses, resistances, immunities, notes,
-    statusEntity, onUpdateStatuses, hasStatusWrite, userId,
-    actions, experiencePoints, baseHitModifier, baseDamageModifier,
-    baseDamageDice, baseDamageDiceType, baseHealingDiceType,
-    canUseActions, onUseAction,
-}) {
-    const [open, setOpen] = useState(true);
-    const [actionsOpen, setActionsOpen] = useState(false);
-    const [notesOpen, setNotesOpen] = useState(false);
-    const hpPercent = hpMax > 0 ? Math.max(0, Math.min(100, (hpNow / hpMax) * 100)) : 0;
-    const hasTempHp = tempHp > 0;
-    const hasWeakRes = kind === 'enemy' && ((weaknesses?.length || 0) + (resistances?.length || 0) + (immunities?.length || 0) > 0);
-
-    return <div className={`DirectorsPage-entity-card DirectorsPage-entity-card-${kind}${defeated ? ' DirectorsPage-entity-card-defeated' : ''}`}>
-        <button type="button" className="DirectorsPage-entity-header" onClick={() => setOpen(o => !o)}>
-            <ChevronDownIcon className={open ? "DirectorsPage-chevron DirectorsPage-chevron-open" : "DirectorsPage-chevron"}/>
-            <span className="DirectorsPage-entity-name">{name}</span>
-            {tier && <EnemyTierBadge tier={tier}/>}
-            {defeated && <span className="DirectorsPage-defeated-badge">Defeated</span>}
-            {subtitle && <span className="DirectorsPage-entity-subtitle">{subtitle}</span>}
-            <span className="DirectorsPage-entity-hp-label">{hpNow}/{hpMax} HP</span>
-        </button>
-        {open && <div className="DirectorsPage-entity-body">
-            <div className="DirectorsPage-vitals-strip">
-                <div className="DirectorsPage-hp-track-wrap">
-                    <div className="DirectorsPage-hp-edit-row">
-                        <input
-                            type="number"
-                            className="DirectorsPage-hp-input"
-                            aria-label="Current HP"
-                            value={hpNow}
-                            disabled={!onSetHp}
-                            onChange={event => onSetHp?.(Number(event.target.value))}
-                        />
-                        <span className="DirectorsPage-hp-slash">/{hpMax}</span>
-                        {onSetTempHp && <span className="DirectorsPage-hp-temp-edit">
-                            +<input
-                                type="number"
-                                className="DirectorsPage-hp-input DirectorsPage-hp-temp-input"
-                                aria-label="Temporary HP"
-                                value={tempHp}
-                                onChange={event => onSetTempHp(Number(event.target.value))}
-                            /> temp
-                        </span>}
-                    </div>
-                    <div className="DirectorsPage-hp-track">
-                        <div className={`DirectorsPage-hp-fill DirectorsPage-hp-fill-${kind}`} style={{width: hpPercent + '%'}}/>
-                    </div>
-                    {hasTempHp && !onSetTempHp && <div className="DirectorsPage-temp-hp-label">+{tempHp} temp</div>}
-                </div>
-                <div className={`DirectorsPage-ac-shield DirectorsPage-ac-shield-${kind}`}>
-                    <img src={shieldIcon} className="DirectorsPage-ac-shield-icon" alt=""/>
-                    <span className="DirectorsPage-ac-value">{ac}</span>
-                </div>
-                <div className={`DirectorsPage-ap-circles DirectorsPage-ap-circles-${kind}`}>
-                    {[1, 2, 3, 4].map(n =>
-                        // Clicking the circle at the current AP again spends that
-                        // last point (drops to n - 1) - same as CharacterMainTab.js's
-                        // own circles - otherwise there was no way to reach 0 at all,
-                        // only ever up to whichever circle was clicked.
-                        <button type="button" key={n} disabled={!onSetAp} onClick={() => onSetAp?.(ap === n ? n - 1 : n)}>
-                            <img src={ap >= n ? circleFilledIcon : circleIcon} alt="" width={15}/>
-                        </button>
-                    )}
-                </div>
-                <div className="DirectorsPage-reaction">
-                    <button
-                        type="button"
-                        className="DirectorsPage-reaction-button"
-                        aria-label={reactionUsed ? 'Reaction used' : 'Reaction available'}
-                        aria-pressed={!reactionUsed}
-                        title={reactionTitle(reactionUsed, Boolean(onToggleReaction))}
-                        disabled={!onToggleReaction}
-                        onClick={() => onToggleReaction?.()}
-                    >
-                        <img src={reactionUsed ? circleIcon : circleFilledIcon} alt="" width={15}/>
-                    </button>
-                </div>
-                {/* Only a player has these (JnJ_Ruleset.md's "Hero Points" -
-                    "everyone is a hero", i.e. every player, not an enemy) -
-                    the director's own way to grant one for good roleplay or
-                    the hourly one, without the player having to do it
-                    themselves. */}
-                {kind === 'player' && <fieldset className="DirectorsPage-hero-points" aria-label="Hero points">
-                    <button type="button" aria-label="Remove a hero point" disabled={!onSetHeroPoints || heroPoints <= 0} onClick={() => onSetHeroPoints?.(heroPoints - 1)}>−</button>
-                    <span className="DirectorsPage-hero-points-value">{heroPoints}</span>
-                    <button type="button" aria-label="Grant a hero point" disabled={!onSetHeroPoints} onClick={() => onSetHeroPoints?.(heroPoints + 1)}>+</button>
-                </fieldset>}
-                {canAdvanceTurn && <button type="button" className={`DirectorsPage-next-turn-button DirectorsPage-next-turn-button-${kind}`} onClick={onNextTurn}>Next Turn</button>}
-            </div>
-
-            {abilityScores && <fieldset className="DirectorsPage-ability-row" aria-label="Ability scores">
-                {ABILITY_SCORES.map(({name: statName, label, Icon}) =>
-                    <span className="DirectorsPage-ability" key={statName}>
-                        <Icon className="DirectorsPage-ability-icon"/>
-                        <span className="DirectorsPage-ability-label">{label}</span>
-                        <span className="DirectorsPage-ability-value">{abilityScores[statName] ?? 0}</span>
-                    </span>
-                )}
-            </fieldset>}
-
-            {hasWeakRes && <div className="DirectorsPage-weakres-row">
-                {weaknesses.map((w, i) => <span className="DirectorsPage-weak-chip" key={"w" + i}>{w}</span>)}
-                {resistances.map((r, i) => <span className="DirectorsPage-res-chip" key={"r" + i}>{r}</span>)}
-                {immunities?.map((imm, i) => <span className="DirectorsPage-imm-chip" key={"i" + i}>{imm}</span>)}
-            </div>}
-
-            <Statuses characterPage={statusEntity} userId={userId} onUpdateStatuses={onUpdateStatuses} hasWritePermissions={hasStatusWrite}/>
-
-            <div>
-                <button type="button" className="DirectorsPage-actions-toggle" onClick={() => setActionsOpen(a => !a)}>
-                    <ChevronDownIcon className={actionsOpen ? "DirectorsPage-chevron-sm DirectorsPage-chevron-open" : "DirectorsPage-chevron-sm"}/>
-                    Actions
-                </button>
-                {actionsOpen && <CombatActionList
-                    actions={actions}
-                    experience_points={experiencePoints}
-                    baseArmorClass={ac}
-                    baseHitModifier={baseHitModifier}
-                    baseDamageModifier={baseDamageModifier}
-                    baseDamageDice={baseDamageDice}
-                    baseDamageDiceType={baseDamageDiceType}
-                    baseHealingDiceType={baseHealingDiceType}
-                    canUseActions={canUseActions}
-                    characterPage={statusEntity}
-                    userId={userId}
-                    onUseAction={onUseAction}
-                    hasWritePermissions={hasStatusWrite}
-                />}
-            </div>
-
-            {notes && <div>
-                {/* Tactics/personality/what it drops, from the bestiary - so a
-                    director running a fight doesn't have to leave the combat
-                    tracker and go find this enemy's own page just to check it. */}
-                <button type="button" className="DirectorsPage-actions-toggle" onClick={() => setNotesOpen(n => !n)}>
-                    <ChevronDownIcon className={notesOpen ? "DirectorsPage-chevron-sm DirectorsPage-chevron-open" : "DirectorsPage-chevron-sm"}/>
-                    Notes
-                </button>
-                {notesOpen && <div className="DirectorsPage-notes"><Markdown options={{ disableParsingRawHTML: true }}>{notes}</Markdown></div>}
-            </div>}
-
-            {(onSetDefeated || onRemove) && <div className="DirectorsPage-entity-footer">
-                {onSetDefeated && <button type="button" className="DirectorsPage-remove-enemy-button" onClick={() => onSetDefeated(!defeated)}>{defeated ? 'Revive' : 'Mark defeated'}</button>}
-                {onRemove && <button type="button" className="DirectorsPage-remove-enemy-button" onClick={onRemove}>Remove from fight</button>}
-            </div>}
-        </div>}
-    </div>;
-}
-
-function PlayerCombatCard({ character, userId }) {
-    const actualCharacter = { ...characterPageLayout, ...character }
-    // Reaching this code at all already means isDirector (the whole
-    // page refuses anyone else - see the guard above), and
-    // firestore.rules' isCharacterCampaignDirector() grants exactly
-    // this - statuses, action_points, reaction_used, current_health,
-    // temporary_health - on every player's character, not just one
-    // the director happens to co-write.
-    const hasWritePermissions = true;
-    function setActionPoints(actionPoints) {
-        try {
-            updateDoc(doc(db, "characters", actualCharacter.character_id), {
-                action_points: actionPoints
-            });
-        } catch (e) {
-            alert(e);
-        }
-    }
-    function setHp(current_health) {
-        try {
-            updateDoc(doc(db, "characters", actualCharacter.character_id), { current_health });
-        } catch (e) {
-            alert(e);
-        }
-    }
-    function setTempHp(temporary_health) {
-        try {
-            updateDoc(doc(db, "characters", actualCharacter.character_id), { temporary_health });
-        } catch (e) {
-            alert(e);
-        }
-    }
-    function setHeroPoints(hero_points) {
-        try {
-            updateDoc(doc(db, "characters", actualCharacter.character_id), { hero_points: Math.max(0, hero_points) });
-        } catch (e) {
-            alert(e);
-        }
-    }
-    function toggleReaction() {
-        try {
-            updateDoc(doc(db, "characters", actualCharacter.character_id), {
-                reaction_used: !actualCharacter.reaction_used
-            });
-        } catch (e) {
-            alert(e);
-        }
-    }
-    // The only turn-based automation this pass wires up: statuses
-    // with a turn_start effect (currently just action_points, e.g.
-    // Haste +1 / Slowed -1 - see statusEffects.js) apply once, then
-    // lose a stack; anything else (a passive condition like
-    // Exhaustion, or a purely descriptive one like Wounded) passes
-    // through untouched. Everything else about turn order is still
-    // the GM calling it verbally, per the ruleset - this just saves
-    // the manual math for the handful of statuses that have any.
-    function advanceTurn() {
-        try {
-            updateDoc(doc(db, "characters", actualCharacter.character_id), advanceTurnStatuses(actualCharacter));
-        } catch (e) {
-            alert(e);
-        }
-    }
-    const effectiveCharacter = getEffectiveCharacterStats(actualCharacter);
-    const grantedActions = getGrantedActions(actualCharacter);
-    const armorClass = CharacterStatCalculator(
-        actualCharacter.experience_points,
-        effectiveCharacter.base_armor_class,
-        effectiveCharacter.base_hit_modifier,
-        effectiveCharacter.base_damage_modifier,
-        actualCharacter.base_damage_dice,
-        actualCharacter.base_damage_dice_type,
-        actualCharacter.base_healing_dice_type
-    ).ArmorClass;
-    return <DirectorsEntityCard
-                kind="player"
-        name={character.character_name}
-        subtitle={actualCharacter.class_name || actualCharacter.class}
-        hpNow={actualCharacter.current_health}
-        hpMax={actualCharacter.maximum_health}
-        tempHp={actualCharacter.temporary_health}
-        onSetHp={hasWritePermissions ? setHp : undefined}
-        onSetTempHp={hasWritePermissions ? setTempHp : undefined}
-        ac={armorClass}
-        abilityScores={{
-            strength_stat: effectiveCharacter.strength_stat,
-            dexterity_stat: effectiveCharacter.dexterity_stat,
-            intelligence_stat: effectiveCharacter.intelligence_stat,
-            charisma_stat: effectiveCharacter.charisma_stat,
-        }}
-        ap={actualCharacter.action_points}
-        onSetAp={hasWritePermissions ? setActionPoints : undefined}
-        heroPoints={actualCharacter.hero_points ?? 1}
-        onSetHeroPoints={hasWritePermissions ? setHeroPoints : undefined}
-        reactionUsed={Boolean(actualCharacter.reaction_used)}
-        onToggleReaction={hasWritePermissions ? toggleReaction : undefined}
-        canAdvanceTurn={hasWritePermissions}
-        onNextTurn={advanceTurn}
-        statusEntity={actualCharacter}
-        userId={userId}
-        hasStatusWrite={hasWritePermissions}
-        actions={[...actualCharacter.actions, ...grantedActions].filter(isCombatAction)}
-        experiencePoints={actualCharacter.experience_points}
-        baseHitModifier={effectiveCharacter.base_hit_modifier}
-        baseDamageModifier={effectiveCharacter.base_damage_modifier}
-        baseDamageDice={actualCharacter.base_damage_dice}
-        baseDamageDiceType={actualCharacter.base_damage_dice_type}
-        baseHealingDiceType={actualCharacter.base_healing_dice_type}
-        canUseActions={true}
-    />
-}
-
-function EnemyCombatCard({ enemy, campaignId, userId, isDirector, updateEnemy, removeEnemyFromFight }) {
-    const actualEnemy = { ...npcLayout, ...enemy, campaign: campaignId }
-    function setActionPoints(actionPoints) {
-        updateEnemy(actualEnemy.id, { action_points: actionPoints }).catch(e => alert(e));
-    }
-    function setHp(current_health) {
-        updateEnemy(actualEnemy.id, { current_health }).catch(e => alert(e));
-    }
-    function setTempHp(temporary_health) {
-        updateEnemy(actualEnemy.id, { temporary_health }).catch(e => alert(e));
-    }
-    function advanceTurn() {
-        updateEnemy(actualEnemy.id, advanceTurnStatuses(actualEnemy)).catch(e => alert(e));
-    }
-    function updateEnemyStatuses(nextStatuses) {
-        return updateEnemy(actualEnemy.id, { statuses: nextStatuses });
-    }
-    function toggleReaction() {
-        updateEnemy(actualEnemy.id, { reaction_used: !actualEnemy.reaction_used }).catch(e => alert(e));
-    }
-    function useAction(action) {
-        // A reaction spends the reaction, not an action point - same
-        // reasoning as CombatActionList.js's own default write path.
-        updateEnemy(actualEnemy.id, isReactionAction(action)
-            ? { reaction_used: true }
-            : { action_points: actualEnemy.action_points - action.actionCost }
-        ).catch(e => alert(e));
-    }
-    const effectiveEnemy = getEffectiveCharacterStats(actualEnemy);
-    const grantedActions = getGrantedActions(actualEnemy);
-    return <DirectorsEntityCard
-        kind="enemy"
-        name={actualEnemy.enemy_name}
-        tier={enemy.enemy_type} /* not actualEnemy: the layout it is merged over has a tier of its own */
-        subtitle={"Lvl " + actualEnemy.level}
-        onRemove={isDirector ? () => removeEnemyFromFight(actualEnemy) : undefined}
-        defeated={Boolean(enemy.defeated)}
-        onSetDefeated={isDirector ? (defeated) => updateEnemy(actualEnemy.id, { defeated }).catch(e => alert(e)) : undefined}
-        hpNow={actualEnemy.current_health}
-        hpMax={actualEnemy.maximum_health}
-        tempHp={actualEnemy.temporary_health}
-        onSetHp={isDirector ? setHp : undefined}
-        onSetTempHp={isDirector ? setTempHp : undefined}
-        ac={effectiveEnemy.base_armor_class}
-        abilityScores={{
-            strength_stat: effectiveEnemy.strength_stat,
-            dexterity_stat: effectiveEnemy.dexterity_stat,
-            intelligence_stat: effectiveEnemy.intelligence_stat,
-            charisma_stat: effectiveEnemy.charisma_stat,
-        }}
-        notes={actualEnemy.description}
-        ap={actualEnemy.action_points}
-        onSetAp={setActionPoints}
-        reactionUsed={Boolean(actualEnemy.reaction_used)}
-        onToggleReaction={toggleReaction}
-        canAdvanceTurn={true}
-        onNextTurn={advanceTurn}
-        weaknesses={actualEnemy.Weaknesses}
-        resistances={actualEnemy.Resistances}
-        immunities={actualEnemy.Immunities}
-        statusEntity={actualEnemy}
-        userId={userId}
-        onUpdateStatuses={updateEnemyStatuses}
-        hasStatusWrite={true}
-        actions={[...actualEnemy.actions, ...grantedActions].filter(isCombatAction)}
-        experiencePoints={0}
-        baseHitModifier={effectiveEnemy.base_hit_modifier}
-        baseDamageModifier={effectiveEnemy.base_damage_modifier}
-        baseDamageDice={actualEnemy.base_damage_dice}
-        baseDamageDiceType={actualEnemy.base_damage_dice_type}
-        baseHealingDiceType={actualEnemy.base_healing_dice_type}
-        canUseActions={true}
-        onUseAction={useAction}
-    />
-}
-
-// The reaction button's hover text: what it shows, and what a click does if it can be clicked.
-function reactionTitle(reactionUsed, canToggle) {
-    if (!canToggle) return reactionUsed ? 'Reaction used' : 'Reaction available';
-    return reactionUsed ? 'Reaction used - click to give it back' : 'Reaction available - click to mark it used';
-}
-
-// The party at a glance, above the sidebar's skills and flaws: each player's name,
-// armor class and a health bar, so a roleplay beat doesn't need the combat tab open
-// just to see who is hurt.
+// The party down the side of every scene view: each player's name, armor class and a health
+// bar, so a roleplay beat doesn't need the combat view open just to see who is hurt. A card
+// opens up to that player's skills and flaws.
 function PartyStrip({ characters }) {
+    const [expanded, setExpanded] = useState(() => new Set());
+    const toggle = id => setExpanded(previous => {
+        const next = new Set(previous);
+        if (next.has(id)) {
+            next.delete(id);
+        } else {
+            next.add(id);
+        }
+        return next;
+    });
     if (characters.length === 0) return null;
-    return <div className="DirectorsPage-party-strip">
-        <span className="DirectorsPage-party-strip-title">Player Characters</span>
+    return <>
+        <span className="Scenes-party-title">Player Characters</span>
         {characters.map(character => {
             const full = { ...characterPageLayout, ...character };
             const effective = getEffectiveCharacterStats(full);
@@ -503,63 +136,65 @@ function PartyStrip({ characters }) {
             ).ArmorClass;
             const now = Number(full.current_health) || 0;
             const max = Number(full.maximum_health) || 0;
-            return <div className="DirectorsPage-party-strip-row" key={character.character_id}>
-                <div className="DirectorsPage-party-strip-line">
-                    <span className="DirectorsPage-party-strip-name">{character.character_name}</span>
-                    <span className="DirectorsPage-party-strip-ac">{`AC ${ac}`}</span>
+            const ratio = max > 0 ? Math.max(0, Math.min(1, now / max)) : 0;
+            let health = 'good';
+            if (ratio <= 0.25) health = 'low';
+            else if (ratio <= 0.6) health = 'hurt';
+            const open = expanded.has(character.character_id);
+            return <div className="Scenes-party-card" key={character.character_id}>
+                <div className="Scenes-party-line">
+                    <span className="Scenes-party-name">{character.character_name}</span>
+                    <span className="Scenes-party-ac">{`AC ${ac}`}</span>
                 </div>
-                <div className="DirectorsPage-party-strip-hp">
-                    <div className="DirectorsPage-party-strip-bar" aria-hidden="true"><div style={{ width: `${max > 0 ? Math.max(0, Math.min(100, (now / max) * 100)) : 0}%` }}/></div>
+                <div className="Scenes-party-hp">
+                    <div className="Scenes-party-bar" aria-hidden="true"><div className={`Scenes-party-bar-${health}`} style={{ width: `${ratio * 100}%` }}/></div>
                     <span>{`${now}/${max}`}</span>
                 </div>
+                <button type="button" className="Scenes-party-toggle" aria-expanded={open} onClick={() => toggle(character.character_id)}>
+                    Skills &amp; flaws
+                    <ChevronDownIcon className={open ? 'DirectorsPage-chevron DirectorsPage-chevron-open' : 'DirectorsPage-chevron'}/>
+                </button>
+                {open && <SkillsAndFlaws isOpen={true} characterPage={full}/>}
             </div>;
         })}
-    </div>;
+    </>;
 }
 
-// A combat column's width in the grid: a thin strip when collapsed, a share of the row otherwise.
-const columnWidth = collapsed => (collapsed ? '56px' : '1.3fr');
-
-const panelClass = collapsed => (collapsed ? 'DirectorsPage-panel DirectorsPage-panel-collapsed' : 'DirectorsPage-panel');
-
-// The title bar of a combat column: its icon and name, anything it offers (children, shown
-// while the column is open), and the button that collapses it to make room for the others.
-function PanelTitle({ icon, name, collapsed, onToggle, children }) {
-    return <div className="DirectorsPage-panel-title">
-        {icon}
-        {!collapsed && <span className="DirectorsPage-panel-title-name">{name}</span>}
-        {!collapsed && children}
-        <button type="button"
-            className="DirectorsPage-panel-collapse-button"
-            onClick={onToggle}
-            aria-label={`${collapsed ? 'Expand' : 'Collapse'} ${name}`}
-        >
-            <ChevronDownIcon className={collapsed ? "DirectorsPage-chevron" : "DirectorsPage-chevron DirectorsPage-chevron-open"}/>
-        </button>
-    </div>;
-}
-
-// Line View / Map View, which map the fight is on (for a director), and the way to open it full screen.
-function TrackerModeRow({ mode, onModeChange, maps, activeMapId, canChooseMap, onSelectMap, canOpenFullMap, onOpenFullMap }) {
-    const modeClass = key => (mode === key ? "DirectorsPage-mode-btn DirectorsPage-mode-btn-active" : "DirectorsPage-mode-btn");
-    return <div className="DirectorsPage-tracker-mode-row-wrap">
-        <div className="DirectorsPage-tracker-mode-row">
-            <button type="button" className={modeClass('line')} onClick={() => onModeChange('line')}>Line View</button>
-            <button type="button" className={modeClass('map')} onClick={() => onModeChange('map')}>Map View</button>
+// The strip across the top of the page: which campaign this is and who directs it, with a way
+// to its settings (the campaign page) and out of it.
+function CampaignBar({ campaignInfo, onSettings, onExit }) {
+    return <div className="Scenes-campaign-bar">
+        <div className="Scenes-campaign-title">
+            <span className="Scenes-campaign-name">{campaignInfo.campaign_name}</span>
+            <span className="Scenes-campaign-dot"/>
+            <span className="Scenes-campaign-directors">{`Directors: ${campaignInfo.director_name}`}</span>
         </div>
-        {canChooseMap && maps.length > 0 && <label className="DirectorsPage-map-select">
-            <span>Map</span>
-            <select aria-label="Combat map" value={activeMapId || ''} onChange={event => onSelectMap(event.target.value)}>
-                <option value="">No map</option>
-                {maps.map((map, index) => <option key={map.map_id} value={map.map_id}>{`Map ${index + 1}`}</option>)}
-            </select>
-        </label>}
-        {mode === 'map' && canOpenFullMap && <button type="button"
-            className="DirectorsPage-tracker-expand-button"
-            onClick={onOpenFullMap}
-        >
-            <MapIcon/> Open Full Map
-        </button>}
+        <div className="Scenes-campaign-actions">
+            <button type="button" className="Scenes-square-button" aria-label="Campaign settings" onClick={onSettings}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
+            <button type="button" className="Scenes-square-button" aria-label="Exit campaign" onClick={onExit}>&times;</button>
+        </div>
+    </div>;
+}
+
+// Zones / Map, which map the fight is on (for a director), and the way to open it full screen.
+function TrackerBar({ mode, onModeChange, maps, activeMapId, canChooseMap, onSelectMap, canOpenFullMap, onOpenFullMap }) {
+    return <div className="Combat-main-bar">
+        <div className="Combat-mode" role="group" aria-label="Tracker view">
+            <button type="button" aria-pressed={mode === 'line'} onClick={() => onModeChange('line')}>Zones</button>
+            <button type="button" aria-pressed={mode === 'map'} onClick={() => onModeChange('map')}>Map</button>
+        </div>
+        <div className="Combat-tools">
+            {canChooseMap && maps.length > 0 && <label className="Combat-map-select">
+                <span>Map</span>
+                <select className="Entity-select" aria-label="Combat map" value={activeMapId || ''} onChange={event => onSelectMap(event.target.value)}>
+                    <option value="">No map</option>
+                    {maps.map((map, index) => <option key={map.map_id} value={map.map_id}>{`Map ${index + 1}`}</option>)}
+                </select>
+            </label>}
+            {mode === 'map' && canOpenFullMap && <button type="button" className="Entity-button" onClick={onOpenFullMap}>Open Full Map &#10530;</button>}
+        </div>
     </div>;
 }
 
@@ -576,20 +211,20 @@ function MapCard({ map, isActive, isExpanded, userId, onToggleExpanded, onSelect
             onClick={onToggleExpanded}
         >
             <img src={map.link} alt="" className="DirectorsPage-map-thumb"/>
-            {isActive && <span className='DirectorsPage-active-map-badge'>Active on the combat tracker</span>}
+            {isActive && <span className='DirectorsPage-active-map-badge'>Active in combat</span>}
         </button>
         <div className="DirectorsPage-map-card-actions">
-            <button type="button" className='DirectorsPage-set-active-map-button' onClick={onSelect}>
+            <button type="button" className='Scenes-button Scenes-button-small DirectorsPage-set-active-map-button' onClick={onSelect}>
                 {isActive ? "Unselect Map" : "Set as Active"}
             </button>
-            <button type="button" className='DirectorsPage-delete-map-button' onClick={onDelete}>
+            <button type="button" className='Scenes-button Scenes-button-small DirectorsPage-delete-map-button' onClick={onDelete}>
                 Delete Map
             </button>
         </div>
         {isExpanded && <div className="DirectorsPage-map-expanded">
             <MapRenderer map={map} userId={userId}/>
             <DocAdminManager docRef={doc(db, "maps", map.map_id)} admins={map.admins} userId={userId}/>
-            <button type="button" className="DirectorsPage-map-collapse-button" onClick={onToggleExpanded}>Close zone editor</button>
+            <button type="button" className="Scenes-button Scenes-button-small DirectorsPage-map-collapse-button" onClick={onToggleExpanded}>Close zone editor</button>
         </div>}
     </div>;
 }
@@ -603,15 +238,10 @@ export function DirectorsPage() {
     const [userId, setUserId] = useState("");
     const [trackerMode, setTrackerMode] = useState('line');
     const [mapOverlayOpen, setMapOverlayOpen] = useState(false);
-    // Collapsing the Player Characters / Enemies columns hands their share
-    // of the 1.3fr/1fr/1.3fr grid back to the Combat Tracker column - useful
-    // when a wide map or a Line View with several zones needs more room than
-    // a fixed three-way split leaves it.
-    const [playersCollapsed, setPlayersCollapsed] = useState(false);
-    const [enemiesCollapsed, setEnemiesCollapsed] = useState(false);
     const [addEnemyOpen, setAddEnemyOpen] = useState(false);
+    // the combat view's own actions (end a scene, ...), once it is up
+    const [combatApi, setCombatApi] = useState(null);
     const navigate = useNavigate();
-    const combatGridTemplateColumns = `${columnWidth(playersCollapsed)} 1fr ${columnWidth(enemiesCollapsed)}`;
     const [campaignInfo, setCampaignInfo] = useState({
         "campaign_name":"placeholder",
         "director_name":"placeholder",
@@ -717,6 +347,8 @@ export function DirectorsPage() {
     // class version they're pinned to - see useClassVersion.js. The raw list
     // above stays what combat entities/chips key off.
     const resolvedCharacterList = useResolvedCharacters(characterList);
+    // each player as the combat view reads them: their sheet over the layout's defaults
+    const combatCharacters = useMemo(() => resolvedCharacterList.map(character => ({ ...characterPageLayout, ...character })), [resolvedCharacterList]);
     const zoneNames = activeMap?.zones?.map((zone) => zone.name) || [];
     const noZoneFallback = noMap ? [NO_MAP_ZONE] : [];
     const lineViewZones = zoneNames.length > 0 ? zoneNames : noZoneFallback;
@@ -816,115 +448,80 @@ export function DirectorsPage() {
         </div>;
     }
 
-    const combatContent = <div className='DirectorsPage-combat-grid' style={{gridTemplateColumns: combatGridTemplateColumns}}>
-        <div className={panelClass(playersCollapsed)}>
-            <PanelTitle icon={<PersonIcon className="DirectorsPage-panel-title-icon"/>} name="Player Characters" collapsed={playersCollapsed} onToggle={() => setPlayersCollapsed(c => !c)}/>
-            {!playersCollapsed && resolvedCharacterList.map(character => <PlayerCombatCard key={character.character_id} character={character} userId={userId}/>)}
+    // The Maps panel (opened from the Scenes tab's Maps button and from a combat beat): add a
+    // map, pick which one is on the combat tracker, edit its zones, and delete it.
+    const mapsHeading = maps.length > 0 ? `Your maps (${maps.length})` : 'Your maps';
+    const mapsContent = <div className="DirectorsPage-maps">
+        <section className="DirectorsPage-maps-add">
+            <h3 className="DirectorsPage-maps-heading">Add a map</h3>
+            <p className="Scenes-muted">Paste a link to an image, or upload one. Draw its zones afterwards, from the map's own card.</p>
+            <PictureField name="New map" value={mapLink} onChange={setMapLink} square/>
+            <div><button type="button" className="Scenes-button Scenes-button-primary" onClick={addNewMapToCampaign} disabled={!mapLink}>Add Map</button></div>
+        </section>
+        <section>
+            <h3 className="DirectorsPage-maps-heading">{mapsHeading}</h3>
+            {maps.length === 0 && <p className="Scenes-muted">No maps yet. A map is what a combat beat fights on.</p>}
+            <div className='DirectorsPage-maps-gallery'>
+                {maps.map(map => <MapCard key={map.map_id} map={map} isActive={campaignInfo.active_map === map.map_id} isExpanded={expandedMapId === map.map_id}
+                    userId={userId} onToggleExpanded={() => setExpandedMapId(expandedMapId === map.map_id ? null : map.map_id)}
+                    onSelect={() => selectMap(campaignInfo.active_map === map.map_id ? null : map.map_id)} onDelete={() => deleteMap(map)}/>)}
+            </div>
+        </section>
+    </div>;
+
+    // The combat beat: the turn order and the tracker in the middle (zones, or the map), the enemies
+    // down the right. The party is down the left of every scene while it is being run.
+    // `openPanel` is the scenes framework's: Encounters opens in a popup over it.
+    const combatMain = openPanel => <div className="Combat-main">
+        <TurnOrder/>
+        <TrackerBar mode={trackerMode} onModeChange={setTrackerMode} maps={maps} activeMapId={campaignInfo.active_map} canChooseMap={isDirector}
+            onSelectMap={selectMap} canOpenFullMap={Boolean(activeMap)} onOpenFullMap={() => setMapOverlayOpen(true)}/>
+        {/* Both views stay mounted at once (toggled via CSS, not unmounted) since
+            PostListContentCombatMap owns the effect that syncs combat_tracker with who's
+            actually in the fight - if the map were never mounted, a Director who only ever
+            used the zones would never see new combatants show up. */}
+        <div className={trackerMode === 'line' ? "DirectorsPage-tracker-view" : "DirectorsPage-tracker-view DirectorsPage-tracker-view-hidden"}>
+            <PostListContentCombat
+                key={activeMap?.map_id || "no-active-map"}
+                campaignId={campaignId}
+                inputStatuses={lineViewZones}
+                className={lineViewClassName}
+                PostCardComponent={lineViewCard}
+                canMovePost={canMoveCombatant}
+                rects={activeMapRects}
+            />
+            {activeMap && zoneNames.length === 0 && <div className="DirectorsPage-tracker-empty">This map has no zones yet. Add some from the Maps popup.</div>}
+            {/* One shared Tooltip, matched by data-tooltip-id on every chip (see makeLineViewCard). */}
+            <Tooltip id="DirectorsPage-line-view-tooltip" place="top"/>
         </div>
-        <div className='DirectorsPage-panel DirectorsPage-panel-tracker'>
-            <div className="DirectorsPage-panel-title">
-                <MapIcon className="DirectorsPage-panel-title-icon"/>
-                <span className="DirectorsPage-panel-title-name">Combat Tracker</span>
-            </div>
-            <TrackerModeRow mode={trackerMode} onModeChange={setTrackerMode} maps={maps} activeMapId={campaignInfo.active_map} canChooseMap={isDirector}
-                onSelectMap={selectMap} canOpenFullMap={Boolean(activeMap)} onOpenFullMap={() => setMapOverlayOpen(true)}/>
-            {/* Both views stay mounted at once (toggled via CSS, not
-                unmounted) since PostListContentCombatMap owns the
-                effect that syncs combat_tracker with who's actually in
-                the fight - if Map View were never mounted, a Director
-                who only ever used Line View would never see new
-                combatants show up. */}
-            <div className={trackerMode === 'line' ? "DirectorsPage-tracker-view" : "DirectorsPage-tracker-view DirectorsPage-tracker-view-hidden"}>
-                <PostListContentCombat
-                    key={activeMap?.map_id || "no-active-map"}
-                    campaignId={campaignId}
-                    inputStatuses={lineViewZones}
-                    className={lineViewClassName}
-                    PostCardComponent={lineViewCard}
-                    canMovePost={canMoveCombatant}
-                    rects={activeMapRects}
-                />
-                {activeMap && zoneNames.length === 0 && <div className="DirectorsPage-tracker-empty">This map has no zones yet. Add some from the Maps tab.</div>}
-                {/* One shared Tooltip, matched by data-tooltip-id on every
-                    chip (see makeLineViewCard) - react-tooltip reads each
-                    chip's own data-tooltip-content, so a single mount here
-                    covers all of them regardless of how many render. */}
-                <Tooltip id="DirectorsPage-line-view-tooltip" place="top"/>
-            </div>
-            <div className={trackerMode === 'map' ? "DirectorsPage-tracker-view DirectorsPage-tracker-view-map" : "DirectorsPage-tracker-view DirectorsPage-tracker-view-map DirectorsPage-tracker-view-hidden"}>
-                <PostListContentCombatMap
-                    key={activeMap?.map_id || "no-active-map"}
-                    campaignId={campaignId}
-                    activeMap={activeMap}
-                    entities={combatEntities}
-                    userId={userId}
-                    canEdit={isDirector}
-                    noMap={noMap}
-                    onSetDefeated={isDirector ? setEnemyDefeated : undefined}
-                    onRemoveEntity={isDirector ? removeEntityFromFight : undefined}
-                />
-            </div>
-        </div>
-        <div className={panelClass(enemiesCollapsed)}>
-            <PanelTitle icon={<SwordsIcon className="DirectorsPage-panel-title-icon"/>} name="Enemies" collapsed={enemiesCollapsed} onToggle={() => setEnemiesCollapsed(c => !c)}>
-                {isDirector && <div className="DirectorsPage-enemy-tools">
-                    <button type="button" onClick={() => setAddEnemyOpen(true)}>+ Add</button>
-                    <button type="button" onClick={() => navigate('/campaigns/' + campaignId + '/encounters')}>Encounters</button>
-                    {campaignInfo.enemy_list.length > 0 && <button type="button" onClick={clearEnemies}>Clear all</button>}
-                </div>}
-            </PanelTitle>
-            {!enemiesCollapsed && campaignInfo.enemy_list.map(enemy => <EnemyCombatCard key={enemy.id} enemy={enemy} campaignId={campaignId} userId={userId} isDirector={isDirector}
-                updateEnemy={updateEnemy} removeEnemyFromFight={removeEnemyFromFight}/>)}
-            {!enemiesCollapsed && isDirector && campaignInfo.enemy_list.length === 0 && <div className="DirectorsPage-enemies-empty">
-                No enemies in the fight. Add one from your bestiary, or stage an encounter.
-            </div>}
+        <div className={trackerMode === 'map' ? "DirectorsPage-tracker-view DirectorsPage-tracker-view-map" : "DirectorsPage-tracker-view DirectorsPage-tracker-view-map DirectorsPage-tracker-view-hidden"}>
+            <PostListContentCombatMap
+                key={activeMap?.map_id || "no-active-map"}
+                campaignId={campaignId}
+                activeMap={activeMap}
+                entities={combatEntities}
+                userId={userId}
+                canEdit={isDirector}
+                noMap={noMap}
+                onSetDefeated={isDirector ? setEnemyDefeated : undefined}
+                onRemoveEntity={isDirector ? removeEntityFromFight : undefined}
+            />
         </div>
     </div>;
 
     return <div className="DirectorsPage">
-        <div className={'DirectorsPage-sidebar ' + pageTheme}>
-            <PartyStrip characters={resolvedCharacterList}/>
-            {resolvedCharacterList.map((character) => {
-                const actualCharacter = { ...characterPageLayout, ...character }
-                return <Collapsible
-                    key={character.character_id}
-                    trigger={<>
-                        <PersonIcon className="DirectorsPage-sidebar-char-icon"/>
-                        <span className="DirectorsPage-sidebar-char-name">{character.character_name}</span>
-                        <ChevronDownIcon className="DirectorsPage-chevron DirectorsPage-chevron-open DirectorsPage-sidebar-char-chevron"/>
-                    </>}
-                    className="DirectorsPage-sidebar-char"
-                    openedClassName="DirectorsPage-sidebar-char DirectorsPage-sidebar-char-open"
-                    contentInnerClassName='DirectorsPage-sidebar-char-inner'
-                    triggerClassName='DirectorsPage-sidebar-char-trigger'
-                    triggerOpenedClassName='DirectorsPage-sidebar-char-trigger'
-                    transitionTime={100}
-                    open={true}
-                >
-                    <SkillsAndFlaws isOpen={true} characterPage={actualCharacter}/>
-                </Collapsible>
-            })}
-        </div>
-        <div className='DirectorsPage-MainBody'>
-            <TabContainer container_height={"90vh"} content_height={"90vh"} tabs={[
-                {tabName: "Scenes", icon: <ScrollIcon/>, content: <ScenesTab campaignId={campaignId} campaignInfo={campaignInfo} maps={maps} renderCombat={() => combatContent}/>},
-                {tabName: "Combat", icon: <SwordsIcon/>, content: combatContent},
-                {
-                    tabName: "Maps",
-                    icon: <MapIcon/>,
-                    content: <div>
-                        <PictureField name="New map" value={mapLink} onChange={setMapLink} square/>
-                        <button type="button" onClick={addNewMapToCampaign} disabled={!mapLink}>Add Map</button>
-                        <div className='DirectorsPage-maps-gallery'>
-                            {maps.map(map => <MapCard key={map.map_id} map={map} isActive={campaignInfo.active_map === map.map_id} isExpanded={expandedMapId === map.map_id}
-                                userId={userId} onToggleExpanded={() => setExpandedMapId(expandedMapId === map.map_id ? null : map.map_id)}
-                                onSelect={() => selectMap(campaignInfo.active_map === map.map_id ? null : map.map_id)} onDelete={() => deleteMap(map)}/>)}
-                        </div>
-                    </div>
-                },
-                ...(isDirector ? [{ tabName: "Notes", icon: <NoteIcon/>, content: <DirectorNotes campaignId={campaignId}/> }] : []),
-            ]}/>
-        </div>
+        <CombatProvider campaignId={campaignId} campaignInfo={campaignInfo} characters={combatCharacters} userId={userId}
+            updateEnemy={updateEnemy} removeEnemy={removeEnemyFromFight} onApi={setCombatApi}>
+            <ScenesTab campaignId={campaignId} campaignInfo={campaignInfo} maps={maps}
+                header={<CampaignBar campaignInfo={campaignInfo} onSettings={() => navigate('/campaigns/' + campaignId)} onExit={() => navigate('/campaigns')}/>}
+                renderSidebar={view => <div className={pageTheme + ' Scenes-party'}>{view === 'run' ? <PartyTiles/> : <PartyStrip characters={resolvedCharacterList}/>}</div>}
+                renderCombat={api => ({
+                    main: combatMain(api.openPanel),
+                    aside: <EnemyTiles onAdd={() => setAddEnemyOpen(true)} onEncounters={() => api.openPanel('encounters')} onClear={clearEnemies}/>,
+                })}
+                renderMaps={() => mapsContent} renderNotes={() => <DirectorNotes campaignId={campaignId}/>}
+                onSceneEnded={() => combatApi?.endScene()}/>
+        </CombatProvider>
         {addEnemyOpen && <AddEnemyDialog existing={campaignInfo.enemy_list} onAdd={addEnemyToFight} onClose={() => setAddEnemyOpen(false)}/>}
         {mapOverlayOpen && <>
             <button

@@ -28,6 +28,9 @@ export function ScenesSessionView({
     const active = activeScene(scenes.filter(scene => scene.sessionId === session.id));
     const bench = scenes.filter(scene => scene.benched);
     const sorted = [...sessions].sort((a, b) => (a.number ?? 0) - (b.number ?? 0));
+    const here = sorted.findIndex(candidate => candidate.id === session.id);
+    const previous = sorted[here - 1];
+    const following = sorted[here + 1];
     let lastEpisode = '';
 
     function sceneRow(scene) {
@@ -136,11 +139,13 @@ export function ScenesSessionView({
         </div>}
 
         <nav className="Scenes-session-strip" aria-label="Sessions">
+            <button type="button" className="Scenes-icon-button" aria-label="Previous sessions" disabled={!previous} onClick={() => onOpenSession(previous.id)}>&lsaquo;</button>
             {sorted.map(other => other.id === session.id
                 ? <span key={other.id} className="Scenes-session-strip-current" aria-current="page">{`${other.number} · ${{ now: 'Now', played: 'Played', planned: 'Planned' }[sessionState(scenes, other.id)]}`}</span>
                 : <button type="button" key={other.id} className="Scenes-session-strip-item" onClick={() => onOpenSession(other.id)} aria-label={sessionTitle(other)}>
                     <span className={`Scenes-pip Scenes-pip-${{ now: 'now', played: 'done', planned: 'planned' }[sessionState(scenes, other.id)]}`}/>{other.number}
                 </button>)}
+            <button type="button" className="Scenes-icon-button" aria-label="Next sessions" disabled={!following} onClick={() => onOpenSession(following.id)}>&rsaquo;</button>
         </nav>
 
         {active && <div className="Scenes-resume">

@@ -14,19 +14,23 @@ function emptyMessage(status) {
     return status === 'loading' ? 'Loading…' : 'No encounters yet.';
 }
 
-export function EncountersPage() {
+// On its own page (/campaigns/:id/encounters) it works out the campaign from the address and
+// navigates between pages. Hosted in the Director's page (the Encounters popup of the scenes
+// framework) it is given the campaign, what to do to open an encounter, and how to go back.
+export function EncountersPage({ campaignId: hostCampaignId, onOpen, onBack }) {
     const location = useLocation();
     const navigate = useNavigate();
-    const campaignId = location.pathname.split('/').at(2);
+    const campaignId = hostCampaignId || location.pathname.split('/').at(2);
     const { encounters, status } = useEncounters(campaignId);
-    document.title = 'Encounters';
+    const open = id => (onOpen ? onOpen(id) : navigate(`/campaigns/${campaignId}/encounters/${id}`));
+    if (!hostCampaignId) document.title = 'Encounters';
 
     async function createEncounter() {
         try {
             const created = await addDoc(collection(db, 'campaigns', campaignId, 'encounters'), {
                 name: 'New encounter', notes: '', roster: [], stagedIds: [], createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
             });
-            navigate(`/campaigns/${campaignId}/encounters/${created.id}`);
+            open(created.id);
         } catch (error) {
             alert("Couldn't create the encounter: " + error.message);
         }
@@ -43,7 +47,7 @@ export function EncountersPage() {
 
     return <div className="StatusListPage">
         <div className="StatusListPage-inner">
-            <button type="button" className="EncounterPage-breadcrumb" onClick={() => navigate('/campaigns/' + campaignId)}>&larr; Campaign</button>
+            {(!hostCampaignId || onBack) && <button type="button" className="EncounterPage-breadcrumb" onClick={() => (onBack ? onBack() : navigate('/campaigns/' + campaignId))}>&larr; {onBack ? 'Back' : 'Campaign'}</button>}
             <div className="StatusListPage-header">
                 <h1 className="StatusListPage-title">Encounters</h1>
                 <p className="StatusListPage-subtitle">Prepare a fight ahead of time: pick the enemies, where they start, and your notes - then stage it onto the Director's page when the party arrives.</p>
@@ -53,7 +57,7 @@ export function EncountersPage() {
                 {encounters.map(encounter => {
                     const staged = encounter.stagedIds?.length > 0;
                     return <div key={encounter.id} className="StatusListPage-card StatusListPage-card-neutral EncountersPage-card">
-                        <button type="button" className="EncountersPage-card-main" onClick={() => navigate(`/campaigns/${campaignId}/encounters/${encounter.id}`)}>
+                        <button type="button" className="EncountersPage-card-main" onClick={() => open(encounter.id)}>
                             <span className="StatusListPage-card-name">{encounter.name || 'Untitled encounter'}</span>
                             <span className="StatusListPage-card-description">{summaryText(rosterSummary(encounter.roster))}</span>
                             {staged && <span className="EncounterPage-staged-badge">Staged</span>}

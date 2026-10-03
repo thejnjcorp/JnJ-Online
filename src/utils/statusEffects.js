@@ -118,6 +118,13 @@ export function getEffectiveCharacterStats(characterPage) {
     };
 }
 
+// How much one status changes a stat: the sum of its passive effects on it, at its stack count.
+export function statusDeltaFor(status, statKey) {
+    return getEffectsArray(status)
+        .filter(effect => effect.stat === statKey && effect.trigger === 'passive')
+        .reduce((sum, effect) => sum + effectDelta(effect, status.stacks), 0);
+}
+
 // How much a single stat is currently modified by active statuses - for
 // showing "3 (+2)"-style annotations next to the raw editable base value,
 // without silently swapping what the input itself is bound to.

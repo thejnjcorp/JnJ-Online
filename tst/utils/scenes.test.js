@@ -1,7 +1,7 @@
 import {
     advanceRun, beatMinutes, beatState, branchLinkPatches, buildTimeline, estimateMinutes, formatClock, groupArcs, jumpRun,
     newBeat, newScene, optionState, orderAfter, pauseRun, playedScenes, runElapsedMs, sessionState, sessionStats, settleDecision,
-    splitParagraphs, startRun, timeGoalText, timelinePips, withoutUndefined,
+    sceneToOpen, splitParagraphs, startRun, timeGoalText, timelinePips, withoutUndefined,
 } from '../../src/utils/scenes';
 
 const scene = (id, fields = {}) => ({ ...newScene({ sessionId: 's1', name: id, order: 0, ...fields }), id });
@@ -222,4 +222,40 @@ describe('running a scene', () => {
 
 test('withoutUndefined drops undefined at every depth but keeps null and other values', () => {
     expect(withoutUndefined({ a: undefined, b: null, c: [{ d: undefined, e: 1 }], f: new Date(5) })).toEqual({ b: null, c: [{ e: 1 }], f: new Date(5) });
+});
+
+describe('sceneToOpen', () => {
+    const list = () => [
+        scene('done', { sessionId: 's1', order: 1, status: 'completed', beats: [{ ...newBeat('cue'), id: 'a' }] }),
+        scene('empty', { sessionId: 's1', order: 2 }),
+        scene('next', { sessionId: 's1', order: 3, beats: [{ ...newBeat('cue'), id: 'b' }] }),
+        scene('elsewhere', { sessionId: 's2', order: 1 }),
+    ];
+
+    test('prefers the scene you were last in, then the one being run', () => {
+        const scenes = list();
+        expect(sceneToOpen(scenes, { lastId: 'next' }).id).toBe('next');
+        scenes[3].status = 'active';
+        expect(sceneToOpen(scenes, { lastId: 'gone' }).id).toBe('elsewhere');
+        expect(sceneToOpen(scenes, { lastId: 'done' }).id).toBe('done');
+    });
+
+    test('otherwise the next one still to do in that session - to build, even an empty one; to run, one with beats', () => {
+        const scenes = list();
+        expect(sceneToOpen(scenes, { sessionId: 's1', view: 'build' }).id).toBe('empty');
+        expect(sceneToOpen(scenes, { sessionId: 's1', view: 'run' }).id).toBe('next');
+    });
+
+    test('with no session, the first scene to do anywhere; when everything is done, the first scene; none at all, null', () => {
+        const scenes = list();
+        expect(sceneToOpen(scenes, {}).id).toBe('elsewhere');
+        const finished = scenes.map(item => ({ ...item, status: 'completed' }));
+        expect(sceneToOpen(finished, { sessionId: 's1' }).id).toBe('done');
+        expect(sceneToOpen([], {})).toBeNull();
+    });
+
+    test('benched scenes are not offered', () => {
+        const scenes = [scene('b', { benched: true, order: 1 }), scene('m', { order: 2 })];
+        expect(sceneToOpen(scenes, {}).id).toBe('m');
+    });
 });

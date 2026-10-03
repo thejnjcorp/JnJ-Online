@@ -288,14 +288,7 @@ export function advanceRun(scene) {
 
 export const jumpRun = (scene, beatId) => ({ ...scene.run, currentBeatId: beatId });
 
-// Firestore refuses `undefined` anywhere in a document; drop it from a patch.
-export function withoutUndefined(value) {
-    if (Array.isArray(value)) return value.map(withoutUndefined);
-    if (value && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype) {
-        return Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined).map(([key, entry]) => [key, withoutUndefined(entry)]));
-    }
-    return value;
-}
+export { withoutUndefined } from './withoutUndefined';
 
 // ---- Branch links --------------------------------------------------------
 
@@ -380,4 +373,18 @@ export function readiness(scene) {
     if (scene.status === 'completed' || scene.status === 'active') return statusLabel(scene.status);
     if (!hasBeats(scene)) return 'Draft · no beats yet';
     return scene.status === 'ready' ? 'Ready' : 'Draft';
+}
+
+// The scene Build Scene or Run Scene should open when none was picked: the one you were last in,
+// else the one being run, else the next one still to do in the session you're looking at (for
+// running, one that has beats), else the first scene there is. Null only when there are no scenes.
+export function sceneToOpen(scenes, { sessionId = null, lastId = null, view = 'build' } = {}) {
+    const last = scenes.find(scene => scene.id === lastId);
+    if (last) return last;
+    const live = activeScene(scenes);
+    if (live) return live;
+    const inSession = sessionId ? mainScenes(scenes, sessionId) : [];
+    const pool = inSession.length > 0 ? inSession : scenes.filter(scene => !scene.benched && !scene.branch).sort(byOrder);
+    const todo = pool.find(scene => scene.status !== 'completed' && scene.status !== 'skipped' && (view === 'build' || hasBeats(scene)));
+    return todo || pool[0] || scenes[0] || null;
 }

@@ -74,5 +74,17 @@ export function ScenesCampaignView({ sessions, scenes, onOpenSession, onNewSessi
                 </div>
             </section>;
         })}
+
+        {sessions.length > 1 && <section className="Scenes-minimap" aria-label="Whole campaign">
+            <div className="Scenes-minimap-head">
+                <span className="Scenes-arc-title">Whole campaign</span>
+                <span className="Scenes-muted">{`${sessions.length} sessions. Click one to zoom in.`}</span>
+            </div>
+            <div className="Scenes-minimap-bar">
+                {[...sessions].sort((a, b) => (a.number ?? 0) - (b.number ?? 0)).map(session =>
+                    <button type="button" key={session.id} className={`Scenes-minimap-item Scenes-minimap-item-${sessionState(scenes, session.id)}`}
+                        aria-label={`Zoom into ${sessionTitle(session)}`} onClick={() => onOpenSession(session.id)}>{session.number}</button>)}
+            </div>
+        </section>}
     </div>;
 }
