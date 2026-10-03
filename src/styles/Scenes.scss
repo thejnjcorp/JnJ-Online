@@ -219,7 +219,27 @@
 
 .Scenes-arc { display: flex; flex-direction: column; gap: var(--jnj-space-3); }
 .Scenes-arc-title { margin: 0; font-family: var(--jnj-font-display); font-size: 0.8125rem; }
-.Scenes-session-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--jnj-space-3); }
+.Scenes-session-cards { display: flex; align-items: stretch; gap: var(--jnj-space-3); }
+// the sessions in one row that scrolls sideways (no bar of its own: the arrows and the strip below move it)
+.Scenes-sessions-frame { position: relative; }
+.Scenes-sessions-scroller {
+    position: relative; display: flex; align-items: flex-start; gap: var(--jnj-space-6); overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; border-radius: 12px;
+    &::-webkit-scrollbar { display: none; }
+    .Scenes-arc { flex-shrink: 0; }
+    .Scenes-arc-title { padding-bottom: 6px; border-bottom: 1px solid var(--jnj-color-border); color: var(--jnj-color-text-muted); font-size: 0.6875rem; letter-spacing: 0.08em; text-transform: uppercase; }
+    .Scenes-session-card { width: 14.5rem; flex-shrink: 0; box-sizing: border-box; min-height: 14rem; }
+}
+.Scenes-sessions-fade { position: absolute; top: 0; bottom: 0; width: 3.5rem; pointer-events: none; }
+.Scenes-sessions-fade-start { left: 0; background: linear-gradient(90deg, var(--jnj-color-bg), transparent); }
+.Scenes-sessions-fade-end { right: 0; background: linear-gradient(270deg, var(--jnj-color-bg), transparent); }
+.Scenes-sessions-arrow {
+    position: absolute; top: 50%; width: 2.25rem; height: 2.25rem; margin-top: -1.125rem; border-radius: 999px; padding: 0;
+    background: var(--jnj-color-bg-raised); color: var(--jnj-color-text); border: 1px solid var(--jnj-color-border-strong); font: 600 1.125rem var(--jnj-font-body); cursor: pointer;
+    &:disabled { opacity: 0.35; cursor: default; }
+}
+.Scenes-sessions-arrow-start { left: 0.5rem; }
+.Scenes-sessions-arrow-end { right: 0.5rem; }
+.Scenes-session-card-scenes { display: flex; flex-direction: column; gap: 0.375rem; font-size: 0.75rem; > span { display: flex; align-items: center; gap: 0.5rem; } .Scenes-pip { margin: 0; flex-shrink: 0; } }
 .Scenes-session-card {
     display: flex; flex-direction: column; gap: var(--jnj-space-2);
     text-align: left;
@@ -450,40 +470,24 @@
 // ---- The party, down the side -------------------------------------------
 
 .Scenes-party { display: flex; flex-direction: column; gap: 10px; }
-.Scenes-party-title { color: var(--jnj-color-text-faint); font: 600 0.6875rem var(--jnj-font-body); letter-spacing: 0.08em; text-transform: uppercase; }
-.Scenes-party-card {
-    display: flex; flex-direction: column; gap: 8px;
-    background: var(--jnj-color-bg-raised); border: 1px solid var(--jnj-color-border); border-radius: 9px;
-    padding: 11px 13px; box-sizing: border-box;
-}
-.Scenes-party-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.Scenes-party-name { font: 700 0.84375rem var(--jnj-font-body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.Scenes-party-ac { font: 700 0.625rem var(--jnj-font-body); color: var(--jnj-color-on-accent); background: var(--jnj-color-accent); padding: 2px 7px; border-radius: 999px; flex-shrink: 0; }
-.Scenes-party-hp { display: flex; align-items: center; gap: 6px; font: 600 0.6875rem var(--jnj-font-body); color: var(--jnj-color-text-muted); }
-.Scenes-party-bar { flex: 1; height: 7px; background: var(--jnj-color-bg-sunken); border-radius: 999px; overflow: hidden; > div { height: 100%; } }
-.Scenes-party-bar-good { background: var(--jnj-color-success); }
-.Scenes-party-bar-hurt { background: var(--jnj-color-ember); }
-.Scenes-party-bar-low { background: var(--jnj-color-danger); }
-.Scenes-party-toggle {
-    display: flex; align-items: center; justify-content: space-between;
-    background: none; border: none; padding: 0; color: var(--jnj-color-text-muted); font: 500 0.6875rem var(--jnj-font-body);
-    &:hover { color: var(--jnj-color-text); }
-}
-.Scenes-party-details { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
-.Scenes-party-ap { display: inline-flex; gap: 5px; }
-.Scenes-party-ap-dot { width: 11px; height: 11px; border-radius: 999px; box-sizing: border-box; border: 1.5px solid var(--jnj-color-text-faint); }
-.Scenes-party-ap-full { background: var(--jnj-color-accent); border-color: var(--jnj-color-accent); }
-.Scenes-party-status { font: 600 0.59375rem var(--jnj-font-body); color: #f0a070; background: #3a2418; padding: 2px 7px; border-radius: 999px; }
 
 // ---- The whole campaign, at a glance -------------------------------------
 
-.Scenes-minimap { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; background: var(--jnj-color-bg-raised); border: 1px solid var(--jnj-color-border); border-radius: 10px; }
+.Scenes-minimap { display: flex; flex-direction: column; gap: 8px; }
 .Scenes-minimap-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-.Scenes-minimap-bar { display: flex; gap: 4px; flex-wrap: wrap; }
-.Scenes-minimap-item {
-    min-width: 30px; height: 24px; padding: 0 6px; border-radius: 5px;
-    border: 1px solid var(--jnj-color-border); background: var(--jnj-color-bg-sunken); color: var(--jnj-color-text-muted); font: 600 0.6875rem var(--jnj-font-body);
-    &:hover { color: var(--jnj-color-text); border-color: var(--jnj-color-border-strong); }
+// one block for each session, with a frame round the ones the row above shows; touch-action so a drag on it is not a scroll
+.Scenes-minimap-bar { position: relative; display: flex; gap: 4px; height: 30px; touch-action: none; cursor: grab; }
+.Scenes-minimap-block {
+    flex: 1; min-width: 0; padding: 0; border-radius: 5px; box-sizing: border-box; border: none; cursor: inherit;
+    background: var(--jnj-color-bg-sunken);
 }
-.Scenes-minimap-item-played { background: rgba(79, 157, 105, 0.18); border-color: var(--jnj-color-success); color: var(--jnj-color-success); }
-.Scenes-minimap-item-now { background: var(--jnj-color-accent-soft); border-color: var(--jnj-color-accent); color: var(--jnj-color-accent); }
+.Scenes-minimap-block-played { background: var(--jnj-color-success); opacity: 0.55; }
+.Scenes-minimap-block-now { background: var(--jnj-color-accent); }
+.Scenes-minimap-block-planned { background: transparent; border: 2px solid var(--jnj-color-border-strong); }
+.Scenes-minimap-block-empty { background: transparent; border: 1.5px dashed var(--jnj-color-border-strong); opacity: 0.7; }
+.Scenes-minimap-frame {
+    position: absolute; top: -3px; bottom: -3px; box-sizing: border-box; pointer-events: none;
+    border: 2px solid var(--jnj-color-accent); border-radius: 8px; background: var(--jnj-color-accent-soft); transition: left 0.15s ease, width 0.15s ease;
+}
+.Scenes-minimap-numbers { display: flex; gap: 4px; font: 600 0.65625rem var(--jnj-font-body); color: var(--jnj-color-text-muted); text-align: center; > span { flex: 1; } }
+.Scenes-minimap-now { color: var(--jnj-color-accent); }

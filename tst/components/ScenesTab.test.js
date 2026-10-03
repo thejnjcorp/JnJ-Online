@@ -166,10 +166,12 @@ describe('ScenesTab', () => {
     });
 
     describe('the whole campaign and moving between sessions', () => {
-        test('the campaign view ends with a strip of every session that zooms into one', () => {
+        test('the campaign view ends with a strip of every session, one block each', () => {
             renderTab();
-            fireEvent.click(within(screen.getByRole('region', { name: 'Whole campaign' })).getByRole('button', { name: 'Zoom into Session 2' }));
-            expect(screen.getByRole('heading', { name: 'Session 2' })).toBeInTheDocument();
+            const strip = screen.getByRole('region', { name: 'Whole campaign' });
+            expect(within(strip).getAllByRole('button')).toHaveLength(sessions.length);
+            expect(within(strip).getByRole('button', { name: 'Show Session 2' })).toBeInTheDocument();
+            expect(within(strip).getByText(/Drag the frame to move/)).toBeInTheDocument();
         });
 
         test('with one session there is no strip to show', () => {
