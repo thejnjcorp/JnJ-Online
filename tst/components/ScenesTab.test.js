@@ -44,6 +44,11 @@ jest.mock('../../src/components/EncounterPage', () => ({
     EncounterPage: ({ campaignId, encounterId, onBack }) => <div>EncounterPage-stub:{campaignId}:{encounterId}<button type="button" onClick={onBack}>Back to encounters</button></div>,
 }));
 
+// the party's own tabs are tested with the party page; here only that the popup hosts them, on the tab it is told
+jest.mock('../../src/components/PartySpace', () => ({
+    PartySpace: ({ campaignId, tab, onTab }) => <div>PartySpace-stub:{campaignId}:{tab}<button type="button" onClick={() => onTab('notes')}>Go to notes</button></div>,
+}));
+
 let mockEncounters;
 jest.mock('../../src/utils/useEncounters', () => ({ useEncounters: () => ({ encounters: mockEncounters, status: 'ready' }) }));
 
@@ -1201,3 +1206,16 @@ describe('ScenesTab', () => {
         });
     });
 });
+        test('the Party button, next to Notes, opens the party inventory and notes in a popup, and remembers its tab', () => {
+            renderTab();
+            fireEvent.click(screen.getByRole('button', { name: 'Party' }));
+            const popup = screen.getByRole('dialog', { name: 'Party' });
+            expect(within(popup).getByText('PartySpace-stub:camp-1:inventory')).toBeInTheDocument();
+            fireEvent.click(within(popup).getByRole('button', { name: 'Go to notes' }));
+            expect(within(popup).getByText('PartySpace-stub:camp-1:notes')).toBeInTheDocument();
+            fireEvent.click(screen.getByRole('button', { name: 'Close Party' }));
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+            fireEvent.click(screen.getByRole('button', { name: 'Party' }));
+            expect(screen.getByText('PartySpace-stub:camp-1:notes')).toBeInTheDocument();
+        });
+

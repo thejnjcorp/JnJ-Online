@@ -10,6 +10,7 @@ import {
     activeScene, branchLinkPatches, copyBeats, newId, orderAfter, pauseRun, sceneToOpen, settleDecision, startRun, unlinkScene,
 } from '../utils/scenes';
 import { ScenesCampaignView } from './ScenesCampaignView';
+import { PartySpace } from './PartySpace';
 import { ScenesSessionView } from './ScenesSessionView';
 import { SceneBuilder } from './SceneBuilder';
 import { SceneRunner } from './SceneRunner';
@@ -81,6 +82,7 @@ function ScenesNav({ view, timelineSessionId, buildTarget, runTarget, live, go, 
         <button type="button" className="Scenes-nav-item" onClick={() => onOpenPanel('maps')}>Maps</button>
         <button type="button" className="Scenes-nav-item" onClick={() => onOpenPanel('notes')}>Notes</button>
     </nav>;
+        <button type="button" className="Scenes-nav-item" onClick={() => onOpenPanel('party')}>Party</button>
 }
 
 // The director's plan and the way to run it - the whole of the Director's page. Three zoom levels:
@@ -98,6 +100,8 @@ export function ScenesTab({ campaignId, campaignInfo, maps, renderCombat, render
     // the Maps or Notes popup, if one is open
     const [panel, setPanel] = useState(null);
     // which encounter the Encounters popup has open (none: the list)
+    // which of the party's tabs (inventory, trades, notes, calendar) the Party popup is on
+    const [partyTab, setPartyTab] = useState('inventory');
     const [encounterId, setEncounterId] = useState(null);
 
     const view = ['build', 'run'].includes(params.get('view')) ? params.get('view') : 'scenes';
@@ -316,3 +320,6 @@ export function ScenesTab({ campaignId, campaignInfo, maps, renderCombat, render
     </div>;
 }
 
+        {panel === 'party' && <ScenesPanel title="Party" onClose={() => setPanel(null)}>
+            <PartySpace campaignId={campaignId} tab={partyTab} onTab={setPartyTab}/>
+        </ScenesPanel>}
