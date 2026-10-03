@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useParty } from '../utils/useParty';
@@ -64,10 +64,18 @@ export function CombatProvider({ campaignId, campaignInfo, characters, userId, u
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [keys.join('|'), turn, userId]);
 
+    // The page hands these over as plain functions that are new on every render. Used as they come
+    // they would make `api` new on every render too, and the page - which keeps the api it is told
+    // of - would render again, forever; so the latest of each is read from a ref instead.
+    const updateEnemyRef = useRef(updateEnemy);
+    updateEnemyRef.current = updateEnemy;
+    const removeEnemyRef = useRef(removeEnemy);
+    removeEnemyRef.current = removeEnemy;
+
     const write = useCallback((combatant, patch) => {
         if (combatant.kind === 'player') return updateDoc(doc(db, 'characters', combatant.key), patch).catch(error => alert(error));
-        return Promise.resolve(updateEnemy(combatant.key, patch)).catch(error => alert(error));
-    }, [updateEnemy]);
+        return Promise.resolve(updateEnemyRef.current(combatant.key, patch)).catch(error => alert(error));
+    }, []);
 
     const api = useMemo(() => ({
         openDrawer: (id, group) => setDrawer({ id, group }),
@@ -90,7 +98,7 @@ export function CombatProvider({ campaignId, campaignInfo, characters, userId, u
             patch.current_health = Math.min(combatant.hp.now, template.maximum_health ?? combatant.hp.now);
             return write(combatant, patch);
         },
-        removeEnemy: combatant => removeEnemy(combatant.raw),
+        removeEnemy: combatant => removeEnemyRef.current(combatant.raw),
         setActiveTurn: combatant => writeTurn(current => setActive(current, tileKeyOf.get(combatant.id))),
         setActiveKey: key => writeTurn(current => setActive(current, key)),
         moveInOrder: (key, delta) => writeTurn(current => moveInOrder(current, key, delta)),
@@ -100,7 +108,7 @@ export function CombatProvider({ campaignId, campaignInfo, characters, userId, u
             const next = nextTurn(turn);
             if (next === turn) return;
             const ending = turn.active ? all.filter(item => tileKeyOf.get(item.id) === turn.active) : [];
-            const starting = all.filter(item => tileKeyOf.get(item.id) === next.active);
+            const starting = new Set(all.filter(item => tileKeyOf.get(item.id) === next.active));
             const newRound = next.round !== turn.round;
             await Promise.all(all.map(item => {
                 let statuses = item.statuses;
@@ -108,8 +116,8 @@ export function CombatProvider({ campaignId, campaignInfo, characters, userId, u
                 if (newRound) statuses = withoutEnded(statuses, ['round']);
                 const patch = {};
                 if (statuses.length !== item.statuses.length) patch.statuses = statuses;
-                if (starting.includes(item)) {
-                    const advanced = advanceTurnStatuses({ ...item.raw, action_points: item.ap.max, statuses });
+                if (starting.has(item)) {
+                    const advanced = advanceTurnStatuses({ ...item.raw, action_points: item.ap.refresh, statuses });
                     return write(item, { ...advanced });
                 }
                 return Object.keys(patch).length > 0 ? write(item, patch) : null;
@@ -121,7 +129,7 @@ export function CombatProvider({ campaignId, campaignInfo, characters, userId, u
             const statuses = withoutEnded(item.statuses, ['scene', 'turn', 'round']);
             return statuses.length === item.statuses.length ? null : write(item, { statuses });
         })),
-    }), [write, removeEnemy, writeTurn, tileKeyOf, turn, all]);
+    }), [write, writeTurn, tileKeyOf, turn, all]);
 
     useEffect(() => { onApi?.(api); }, [api, onApi]);
 
@@ -140,7 +148,9 @@ export function CombatProvider({ campaignId, campaignInfo, characters, userId, u
             <EntityDrawer key={drawer.group || shown.id} combatant={group ? group.base : shown} members={group?.members} zone={zones.get(shown.id)} api={api}
                 active={turn.active === tileKeyOf.get(shown.id)} template={template} notes={notes} userId={userId} onClose={() => setDrawer(null)}/>
         </>}
-        {addingFor && <AddStatusDialog characterPage={{ ...addingFor.raw, campaign: addingFor.raw.campaign || campaignId }} userId={userId} onClose={() => setAddingFor(null)}
-            onUpdateStatuses={statuses => write(addingFor, { statuses })}/>}
+        {addingFor && <div className="Combat-status-layer">
+            <AddStatusDialog characterPage={{ ...addingFor.raw, campaign: addingFor.raw.campaign || campaignId }} userId={userId} onClose={() => setAddingFor(null)}
+                onUpdateStatuses={statuses => write(addingFor, { statuses })}/>
+        </div>}
     </CombatContext.Provider>;
 }

@@ -181,10 +181,10 @@ function CampaignBar({ campaignInfo, onSettings, onExit }) {
 // Zones / Map, which map the fight is on (for a director), and the way to open it full screen.
 function TrackerBar({ mode, onModeChange, maps, activeMapId, canChooseMap, onSelectMap, canOpenFullMap, onOpenFullMap }) {
     return <div className="Combat-main-bar">
-        <div className="Combat-mode" role="group" aria-label="Tracker view">
+        <fieldset className="Combat-mode" aria-label="Tracker view">
             <button type="button" aria-pressed={mode === 'line'} onClick={() => onModeChange('line')}>Zones</button>
             <button type="button" aria-pressed={mode === 'map'} onClick={() => onModeChange('map')}>Map</button>
-        </div>
+        </fieldset>
         <div className="Combat-tools">
             {canChooseMap && maps.length > 0 && <label className="Combat-map-select">
                 <span>Map</span>

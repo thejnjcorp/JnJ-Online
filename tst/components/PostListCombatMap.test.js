@@ -150,7 +150,7 @@ describe('PostListContentCombatMap tokens', () => {
     test('each combatant with a place is a token on the map, named for them and the zone they are in', () => {
         withTracker(tracker());
         render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={entities} userId="player-1" />);
-        expect(screen.getAllByRole('button').map(button => button.getAttribute('aria-label'))).toEqual(['Aria Vale, Zone 1', 'Rust Bandit, Zone 2']);
+        expect(screen.getAllByRole('button').filter(button => button.classList.contains('MapToken')).map(button => button.getAttribute('aria-label'))).toEqual(['Aria Vale, Zone 1', 'Rust Bandit, Zone 2']);
     });
 
     test('a portrait shows if there is one, and initials if not', () => {
@@ -170,13 +170,13 @@ describe('PostListContentCombatMap tokens', () => {
     test('someone who has not been given a place yet is not shown', () => {
         withTracker([...tracker(), post('c', 'Zone 1', 1)]);
         render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={[...entities, { id: 'c', title: 'Cass', kind: 'ally' }]} userId="player-1" />);
-        expect(screen.getAllByRole('button')).toHaveLength(2);
+        expect(document.querySelectorAll('.MapToken')).toHaveLength(2);
     });
 
     test('someone in the tracker who is not in the fight is not shown, and there are no cards in the zones', () => {
         withTracker([...tracker(), { ...post('gone', 'Zone 1', 2), x: 0.1, y: 0.1 }]);
         render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={entities} userId="player-1" />);
-        expect(screen.getAllByRole('button')).toHaveLength(2);
+        expect(document.querySelectorAll('.MapToken')).toHaveLength(2);
         expect(mockAbstractProps.at(-1).usePosts().posts).toEqual([]);
     });
 
@@ -952,5 +952,47 @@ describe('PostListContentCombatMap with its tools beside it', () => {
         render(<PostListContentCombatMap campaignId="camp-1" activeMap={undefined} entities={[]} userId="director-1" canEdit toolbarsBeside />);
         expect(screen.getByText(/No active map selected/)).toBeInTheDocument();
         expect(sidebar()).not.toBeInTheDocument();
+    });
+});
+
+describe('PostListContentCombatMap zoom', () => {
+    const zoomLevel = () => mockAbstractProps.at(-1).zoom;
+
+    test('starts fitted, and the buttons make the map bigger or smaller, a step at a time', () => {
+        withTracker([]);
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={[]} userId="player-1" />);
+        expect(zoomLevel()).toBe(1);
+        expect(screen.getByRole('button', { name: 'Fit the whole map' })).toHaveTextContent('100%');
+        expect(screen.getByRole('button', { name: 'Fit the whole map' })).toBeDisabled();
+        fireEvent.click(screen.getByRole('button', { name: 'Zoom map in' }));
+        expect(zoomLevel()).toBe(1.25);
+        expect(screen.getByRole('button', { name: 'Fit the whole map' })).toHaveTextContent('125%');
+        fireEvent.click(screen.getByRole('button', { name: 'Zoom map out' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Zoom map out' }));
+        expect(zoomLevel()).toBe(0.75);
+    });
+
+    test('it stops at half size and at three times, and the percent button fits the whole map again', () => {
+        withTracker([]);
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={[]} userId="player-1" />);
+        for (let i = 0; i < 10; i++) fireEvent.click(screen.getByRole('button', { name: 'Zoom map in' }));
+        expect(zoomLevel()).toBe(3);
+        expect(screen.getByRole('button', { name: 'Zoom map in' })).toBeDisabled();
+        fireEvent.click(screen.getByRole('button', { name: 'Fit the whole map' }));
+        expect(zoomLevel()).toBe(1);
+        for (let i = 0; i < 10; i++) fireEvent.click(screen.getByRole('button', { name: 'Zoom map out' }));
+        expect(zoomLevel()).toBe(0.5);
+        expect(screen.getByRole('button', { name: 'Zoom map out' })).toBeDisabled();
+    });
+});
+
+describe('PostListContentCombatMap tools row', () => {
+    test('drawing, image tokens and zoom are in one row above the map', () => {
+        withTracker([]);
+        render(<PostListContentCombatMap campaignId="camp-1" activeMap={activeMap()} entities={[]} userId="director-1" canEdit />);
+        const row = screen.getByRole('button', { name: 'Draw on map' }).closest('.CombatMap-tools');
+        expect(row).not.toBeNull();
+        expect(within(row).getByRole('button', { name: 'Add image token' })).toBeInTheDocument();
+        expect(within(row).getByRole('button', { name: 'Zoom map in' })).toBeInTheDocument();
     });
 });

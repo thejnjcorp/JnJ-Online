@@ -231,6 +231,16 @@ describe('CharacterMainTab', () => {
             expect(screen.getByText(/2 \/ 4 available/)).toBeInTheDocument();
         });
 
+        test('the fourth circle, the extra point from haste, is drawn in a colour of its own', () => {
+            render(<CharacterMainTab characterPage={{ ...characterPage, action_points: 4 }} userId="owner-1" />);
+            goToTab('Combat');
+            const circles = screen.getAllByAltText('circleFilled').filter(img => img.className.includes('CharacterMainTab-circle'));
+            expect(circles).toHaveLength(4);
+            expect(circles.filter(img => img.className.includes('CharacterMainTab-circle-haste'))).toHaveLength(1);
+            expect(circles[3]).toHaveClass('CharacterMainTab-circle-haste');
+            expect(circles[3]).not.toHaveAttribute('src', circles[2].getAttribute('src'));
+        });
+
         test('the Combat tab lets its action points stick to the top while the actions scroll', () => {
             const { container } = render(<CharacterMainTab characterPage={characterPage} userId="owner-1" />);
             expect(container.querySelector('.TabContainer-content')).not.toHaveClass('TabContainer-content-unclipped');

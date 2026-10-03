@@ -4,6 +4,14 @@ import '../styles/PartyCombatRoster.scss';
 
 const AP_PIPS = [1, 2, 3, 4];
 
+// the fourth is the one only haste gives, in a colour of its own
+function pipClass(n, actionPoints) {
+    const classes = ['PartyCombatRoster-pip'];
+    if (n <= actionPoints) classes.push('PartyCombatRoster-pip-filled');
+    if (n === AP_PIPS.length) classes.push('PartyCombatRoster-pip-haste');
+    return classes.join(' ');
+}
+
 // A read-only roster of the whole party's vitals - HP, temp HP, hardness,
 // action points, reaction, statuses - on a character's own Combat tab. There
 // is no Directors Page equivalent a player can reach (that page is for the
@@ -42,7 +50,7 @@ export function PartyCombatRoster({ characterList = [] }) {
                         <span className="PartyCombatRoster-ap">
                             AP {actionPoints}/4
                             <span className="PartyCombatRoster-pips">
-                                {AP_PIPS.map(n => <span key={n} className={n <= actionPoints ? "PartyCombatRoster-pip PartyCombatRoster-pip-filled" : "PartyCombatRoster-pip"}/>)}
+                                {AP_PIPS.map(n => <span key={n} className={pipClass(n, actionPoints)}/>)}
                             </span>
                         </span>
                         <span className={reactionUsed ? "PartyCombatRoster-reaction PartyCombatRoster-reaction-used" : "PartyCombatRoster-reaction"}>

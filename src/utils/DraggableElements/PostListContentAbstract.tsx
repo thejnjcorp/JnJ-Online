@@ -12,7 +12,7 @@ const MAP_REFERENCE_WIDTH = 500;
 // data arrives, not on every render while a usePosts hook is still loading.
 const EMPTY_POSTS: Post[] = [];
 
-export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, grid=false, columnFormat=true, swappableMode=false, className={}, PostCardComponent, backgroundImage, zoneLayout, renderOverlay, readOnly = false, canMovePost }: {
+export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, grid=false, columnFormat=true, swappableMode=false, className={}, PostCardComponent, backgroundImage, zoneLayout, renderOverlay, readOnly = false, canMovePost, zoom = 1 }: {
   inputStatuses,
   usePosts,
   updatePosts,
@@ -28,7 +28,9 @@ export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, 
   // when given, only the posts this says yes to can be dragged
   canMovePost?: (post: Post) => boolean,
   // drawn over the map image and its zones, at exactly the image's rendered size
-  renderOverlay?: (size: { width: number; height: number }) => React.ReactNode
+  renderOverlay?: (size: { width: number; height: number }) => React.ReactNode,
+  // how much bigger than the fitted map to draw it; past 1 the map scrolls inside its frame
+  zoom?: number
 }) => {
   const { posts: rawPosts, loading: isLoading } = usePosts();
   // A usePosts producer that reads a Firestore field directly (rather than
@@ -137,11 +139,11 @@ export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, 
   const renderedSize = useMemo(() => {
     if (!naturalSize || !containerSize) return null;
     const widthConstrainedHeight = containerSize.width * (naturalSize.height / naturalSize.width);
-    if (widthConstrainedHeight <= containerSize.height) {
-      return { width: containerSize.width, height: widthConstrainedHeight };
-    }
-    return { width: containerSize.height * (naturalSize.width / naturalSize.height), height: containerSize.height };
-  }, [naturalSize, containerSize]);
+    const fitted = widthConstrainedHeight <= containerSize.height
+      ? { width: containerSize.width, height: widthConstrainedHeight }
+      : { width: containerSize.height * (naturalSize.width / naturalSize.height), height: containerSize.height };
+    return { width: fitted.width * zoom, height: fitted.height * zoom };
+  }, [naturalSize, containerSize, zoom]);
 
   useEffect(() => {
     if (unorderedPosts) {
@@ -218,7 +220,7 @@ export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, 
             block wrapper) `flex` is simply inert, so this falls back to normal
             width-driven sizing there with no behavior change (renderedSize just
             never resolves smaller than 100% width in that case). */}
-        <div ref={setMapContainerEl} style={{ width: "100%", flex: "1 1 0%", minHeight: 0, display: "flex", justifyContent: "center", alignItems: "center", overflow: "hidden" }}>
+        <div ref={setMapContainerEl} style={{ width: "100%", flex: "1 1 0%", minHeight: 0, display: "flex", overflow: zoom > 1 ? "auto" : "hidden" }}>
         {/* sized to exactly match the image's computed renderedSize (see above)
             so zone percentages below stay pixel-accurate. --map-scale lets
             zone/tile labels (see CombatMap.scss) size themselves relative to
@@ -230,6 +232,10 @@ export const PostListContentAbstract = ({ inputStatuses, usePosts, updatePosts, 
           width: renderedSize.width,
           height: renderedSize.height,
           "--map-scale": renderedSize.width / MAP_REFERENCE_WIDTH,
+          // centered while it fits (auto margins, unlike justify-content, do not cut off the
+          // start of what scrolls), and never squeezed smaller than its size
+          margin: "auto",
+          flex: "none",
         } as React.CSSProperties : { position: "relative", width: "100%" }}>
           <img
             src={backgroundImage}

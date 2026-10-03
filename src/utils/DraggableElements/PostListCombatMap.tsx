@@ -28,6 +28,10 @@ type PendingDrop = { to: Spot; from: Spot | null; skipped: Spot[] };
 
 const PENDING_DROP_MS = 8000;
 
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 3;
+const ZOOM_STEP = 0.25;
+
 const combatMapClassName = {
     postColumn: "CombatMap-zone",
     postColumnHeader: "CombatMap-zone-header",
@@ -48,6 +52,8 @@ const combatMapClassName = {
 export function PostListContentCombatMap({ campaignId, activeMap, entities = [], userId = undefined, canEdit = false, noMap = false, noActiveMapMessage = "No active map selected. Set one from the Maps tab.", onSetDefeated = undefined, onRemoveEntity = undefined, toolbarsBeside = false }) {
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
+    // 1 is the whole map fitted to its frame; more than that scrolls inside the frame
+    const [zoom, setZoom] = useState(1);
     // Tokens just dropped that the tracker hasn't caught up with yet (see settlePending).
     const [pending, setPending] = useState<Record<string, PendingDrop>>({});
     const pendingRef = useRef(pending);
@@ -199,8 +205,24 @@ export function PostListContentCombatMap({ campaignId, activeMap, entities = [],
     // (not whether one is showing right now: the layout must not change under the map as tools come and go)
     const hasToolbars = drawing.canDraw || imageTokens.canEdit || npcControls;
 
+    const changeZoom = (delta: number) => setZoom((current) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round((current + delta) * 100) / 100)));
+
+    // the tools share one row: drawing, image tokens, and how big the map is drawn
+    const tools = (
+        <div className="CombatMap-tools">
+            {toolbars}
+            <div className="CombatMap-zoom">
+                <button type="button" aria-label="Zoom map out" disabled={zoom <= ZOOM_MIN} onClick={() => changeZoom(-ZOOM_STEP)}>&minus;</button>
+                <button type="button" className="CombatMap-zoom-level" aria-label="Fit the whole map" disabled={zoom === 1} onClick={() => setZoom(1)}>{`${Math.round(zoom * 100)}%`}</button>
+                <button type="button" aria-label="Zoom map in" disabled={zoom >= ZOOM_MAX} onClick={() => changeZoom(ZOOM_STEP)}>+</button>
+            </div>
+        </div>
+    );
+
     const map = (
+        <div className="CombatMap-frame">
         <PostListContentAbstract
+            zoom={zoom}
             inputStatuses={zoneNames}
             usePosts={usePosts}
             updatePosts={updatePosts}
@@ -253,14 +275,15 @@ export function PostListContentCombatMap({ campaignId, activeMap, entities = [],
                 </>;
             }}
         />
+        </div>
     );
 
-    if (!toolbarsBeside || !hasToolbars) return <>{toolbars}{map}</>;
+    if (!toolbarsBeside || !hasToolbars) return <>{tools}{map}</>;
 
     // wide screens are wider than tall, so a map that has the room shows its tools
     // down its left side instead of pushing itself down the screen (see CombatMap.scss)
     return <div className="CombatMap-beside">
-        <aside className="CombatMap-sidebar" aria-label="Map tools">{toolbars}</aside>
+        <aside className="CombatMap-sidebar" aria-label="Map tools">{tools}</aside>
         <div className="CombatMap-beside-map">{map}</div>
     </div>;
 }

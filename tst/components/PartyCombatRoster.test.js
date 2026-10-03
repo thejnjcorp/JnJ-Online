@@ -22,6 +22,13 @@ describe('PartyCombatRoster', () => {
         expect(container).toBeEmptyDOMElement();
     });
 
+    test('the fourth action point pip, the one haste gives, has its own colour', () => {
+        render(<PartyCombatRoster characterList={[{ ...aria, action_points: 4 }]}/>);
+        const round = screen.getByLabelText(/4 of 4 action points/);
+        expect(within(round).getAllByText('', { selector: '.PartyCombatRoster-pip-haste' })).toHaveLength(1);
+        expect(within(round).getAllByText('', { selector: '.PartyCombatRoster-pip-filled' })).toHaveLength(4);
+    });
+
     test('shows every party member\'s name and HP', () => {
         render(<PartyCombatRoster characterList={[aria, bram]}/>);
         expect(screen.getByText('Aria')).toBeInTheDocument();

@@ -1,6 +1,6 @@
 import {
-    AC_STAT, DURATIONS, adjustDamage, applyHp, chipLabel, durationLabel, enemyCombatant, enemyKind, enemyTiles, groupName, hpRatio, hpTone,
-    modifierId, modifierOf, playerCombatant, signed, statName, statusContributions, withModifier, withoutEnded,
+    AC_STAT, DURATIONS, abilityLabel, adjustDamage, applyHp, chipLabel, durationLabel, enemyCombatant, enemyKind, enemyTiles, groupName, hpRatio, hpTone,
+    modifierId, modifierOf, playerCombatant, signed, statName, statusContributions, withModifier, withoutCount, withoutEnded,
 } from '../../src/utils/combatants';
 
 const character = (fields = {}) => ({
@@ -55,9 +55,10 @@ describe('enemyCombatant', () => {
         expect(goblin).toMatchObject({ id: 'npc:e1', kind: 'enemy', tier: 'Regular', weaknesses: ['Fire 5'], hero: null, ap: { now: 1, max: 4 } });
     });
 
-    test('with no recorded maximum, the most it has had (never fewer than three)', () => {
-        expect(enemyCombatant(enemy({ action_points: 1 })).ap.max).toBe(3);
+    test('an enemy has four circles like a player (it may be hasted), and gets back what it started with', () => {
+        expect(enemyCombatant(enemy({ action_points: 1, max_action_points: 3 })).ap).toEqual({ now: 1, max: 4, refresh: 3 });
         expect(enemyCombatant(enemy({ action_points: 5 })).ap.max).toBe(5);
+        expect(enemyCombatant(enemy({ action_points: 1 })).ap.refresh).toBe(3);
     });
 
     test('without hit points it is not tracked, and a defeated enemy is down', () => {
@@ -199,5 +200,26 @@ describe('durations and chips', () => {
         expect(chipLabel({ name: 'Slowed', stacks: 2 })).toBe('Slowed 2');
         expect(chipLabel({ name: 'Prone', stacks: -1 })).toBe('Prone');
         expect(chipLabel({ name: 'Rage +2', stacks: 1, modifier: true })).toBe('Rage +2');
+    });
+});
+
+describe('withoutCount', () => {
+    it('drops the number that tells copies apart', () => {
+        expect(withoutCount('Grinch Goober 3')).toBe('Grinch Goober');
+        expect(withoutCount('Goon  12')).toBe('Goon');
+    });
+
+    it('leaves names with no trailing count alone', () => {
+        expect(withoutCount('Goon')).toBe('Goon');
+        expect(withoutCount('Room101')).toBe('Room101');
+        expect(withoutCount('42')).toBe('42');
+        expect(withoutCount(undefined)).toBe('');
+    });
+});
+
+describe('abilityLabel', () => {
+    it('names the value, and the base only when it was changed', () => {
+        expect(abilityLabel({ name: 'Strength', value: 2, base: 2, delta: 0 })).toBe('Strength +2, edit');
+        expect(abilityLabel({ name: 'Strength', value: 3, base: 2, delta: 1 })).toBe('Strength +3 (base +2), edit');
     });
 });

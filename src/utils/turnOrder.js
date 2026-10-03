@@ -5,7 +5,7 @@
 
 export const NO_TURN = Object.freeze({ order: [], active: null, round: 1 });
 
-export const turnOf = party => ({ ...NO_TURN, ...(party?.combat_turn || {}) });
+export const turnOf = party => ({ ...NO_TURN, ...party?.combat_turn });
 
 // The stored order kept as it is, with anyone who has left the fight taken out and anyone new
 // put at the end. Returns the same object when nothing needed to change.

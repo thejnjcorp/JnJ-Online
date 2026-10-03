@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 import MarkdownEditor from "./MarkdownEditor";
 import circleIcon from '../icons/circle.svg';
 import circleFilledIcon from '../icons/circle_filled.svg';
+import hasteCircleIcon from '../icons/circle_haste.svg';
+import hasteCircleFilledIcon from '../icons/circle_haste_filled.svg';
 import '../styles/CharacterMainTab.scss';
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../utils/firebase";
@@ -42,8 +44,17 @@ import { isLimitedUse } from "../utils/actionUses";
 import { isDirectorOf } from '../utils/campaignRoles';
 
 // Hover text for an action point circle: clicking the one you are on spends it.
+// The fourth circle is the one only haste gives, so it is drawn in a colour of its own.
+const HASTE_CIRCLE = 4;
+
 function circleTitle(actionPoints, n) {
-    return actionPoints === n ? `Spend this point (leaves ${n - 1})` : `Set to ${n}`;
+    const text = actionPoints === n ? `Spend this point (leaves ${n - 1})` : `Set to ${n}`;
+    return n === HASTE_CIRCLE ? `${text} - the extra point from haste` : text;
+}
+
+function circleIconFor(n, filled) {
+    if (n === HASTE_CIRCLE) return filled ? hasteCircleFilledIcon : hasteCircleIcon;
+    return filled ? circleFilledIcon : circleIcon;
 }
 
 function reactionClickTitle(reactionUsed) {
@@ -269,9 +280,9 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                                 onClick={hasWritePermissions ? () => clickCircle(n) : undefined}
                             >
                                 <img
-                                    src={characterPage.action_points >= n ? circleFilledIcon : circleIcon}
+                                    src={circleIconFor(n, characterPage.action_points >= n)}
                                     alt={characterPage.action_points >= n ? 'circleFilled' : 'circle'}
-                                    className="CharacterMainTab-circle"
+                                    className={n === HASTE_CIRCLE ? 'CharacterMainTab-circle CharacterMainTab-circle-haste' : 'CharacterMainTab-circle'}
                                     width={30}
                                 />
                             </button>

@@ -609,8 +609,10 @@
 // definite height for its ResizeObserver-driven image sizing - same fix as
 // CharacterMainTab-map-overlay (see CharacterMainTab.scss).
 .DirectorsPage-tracker-view-map {
-    flex: 1;
-    min-height: 260px;
+    // a frame of its own height: the map scrolls inside it, so the tiles and the beats around it
+    // stay where they are however large the map is zoomed
+    flex: none;
+    height: clamp(20rem, 68vh, 46rem);
 }
 
 .DirectorsPage-tracker-empty {

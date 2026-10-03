@@ -109,6 +109,23 @@ describe('MapImageTokenToolbar', () => {
         });
     });
 
+    describe('the popup', () => {
+        test('is a popup, not part of the toolbar, closed by Done, the backdrop or Escape', () => {
+            setup();
+            expect(screen.queryByRole('dialog', { name: 'Add image token' })).not.toBeInTheDocument();
+            open();
+            expect(within(screen.getByRole('dialog', { name: 'Add image token' })).getByLabelText('Picture link')).toBeInTheDocument();
+            fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+            expect(screen.queryByRole('dialog', { name: 'Add image token' })).not.toBeInTheDocument();
+            open();
+            fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+            expect(screen.queryByRole('dialog', { name: 'Add image token' })).not.toBeInTheDocument();
+            open();
+            fireEvent.keyDown(document, { key: 'Escape' });
+            expect(screen.queryByRole('dialog', { name: 'Add image token' })).not.toBeInTheDocument();
+        });
+    });
+
     describe('the token library', () => {
         test('listens to the director\'s library only while the panel is open', () => {
             setup();
@@ -194,6 +211,19 @@ describe('MapImageTokenToolbar', () => {
 
             fireEvent.dragEnd(button);
             expect(onDragging).toHaveBeenLastCalledWith(false);
+        });
+
+        test('the popup steps aside while a token is dragged out of it, so the map can take the drop, and comes back after', async () => {
+            library.tokens = [libraryToken('a')];
+            setup();
+            open();
+            const popup = screen.getByRole('dialog', { name: 'Add image token' });
+            expect(popup).not.toHaveClass('MapImageTokenToolbar-aside');
+            const button = screen.getByRole('button', { name: 'Place Fire' });
+            fireEvent.dragStart(button, { dataTransfer: { setData: jest.fn(), effectAllowed: '' } });
+            await waitFor(() => expect(popup).toHaveClass('MapImageTokenToolbar-aside'));
+            fireEvent.dragEnd(button);
+            expect(popup).not.toHaveClass('MapImageTokenToolbar-aside');
         });
 
         test('says when the library is full', () => {

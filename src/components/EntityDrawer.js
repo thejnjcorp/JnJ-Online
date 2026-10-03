@@ -1,14 +1,15 @@
 import { useState } from 'react';
+import { useEscapeKey } from '../utils/useEscapeKey';
 import { Link } from 'react-router-dom';
 import Markdown from './ColoredMarkdown';
 import { CombatActionList } from './CombatActionList';
 import { CharacterStatCalculator } from './CharacterStatCalculator';
-import { chipLabel, hpRatio, hpTone, signed } from '../utils/combatants';
+import { abilityLabel, chipLabel, hpRatio, hpTone, signed, withoutCount } from '../utils/combatants';
 import { getActionCategory, isCombatAction } from '../utils/classActions';
 import { getGrantedActions } from '../utils/statusEffects';
 import { quantityOf } from '../utils/inventory';
 import { formatModifier, parseModifier } from '../utils/enemies';
-import { AcPopover, HpPopover, ResourcesPopover, StatPopover, StatusPopover } from './EntityPopovers';
+import { AcPopover, ApDots, HpPopover, ResourcesPopover, StatPopover, StatusPopover } from './EntityPopovers';
 import '../styles/Combat.scss';
 
 const initials = name => String(name || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(word => word[0]).join('').toUpperCase();
@@ -99,10 +100,8 @@ function EnemyStats({ combatant, api, template }) {
                 </div>
                 <div className="Drawer-card">
                     <span className="Drawer-card-label">Action points</span>
-                    <button type="button" className="Entity-ap Drawer-ap" aria-label={`Action points: ${ap.now} of ${ap.max}, edit`} onClick={() => setPopover(popover === 'ap' ? null : 'ap')}>
-                        {Array.from({ length: ap.max }, (_, index) => `${combatant.id}:${index}`).map((key, index) => <span key={key} className={index < ap.now ? 'Entity-dot Entity-dot-full' : 'Entity-dot'}/>)}
-                    </button>
-                    <span className="Entity-muted">{`${ap.now} of ${ap.max} · resets on turn`}</span>
+                    <ApDots combatant={combatant} api={api} className="Drawer-ap"/>
+                    <button type="button" className="Drawer-link" aria-label={`Action points: ${ap.now} of ${ap.max}, edit`} onClick={() => setPopover(popover === 'ap' ? null : 'ap')}>{`${ap.now} of ${ap.max} · resets on turn`}</button>
                 </div>
                 <div className="Drawer-card">
                     <span className="Drawer-card-label">Reaction</span>
@@ -186,9 +185,8 @@ function ActionsTab({ combatant, api, userId }) {
     return <div className="Drawer-actions">
         <div className="Drawer-ap-line">
             <span className="Entity-muted">Action points</span>
-            <span className="Drawer-ap-dots">{Array.from({ length: combatant.ap.max }, (_, index) => `${combatant.id}:${index}`).map((key, index) =>
-                <span key={key} className={index < combatant.ap.now ? 'Entity-dot Entity-dot-full' : 'Entity-dot'}/>)}</span>
-            <span className="Entity-muted Drawer-ap-hint">Using an action spends AP on the tile</span>
+            <ApDots combatant={combatant} api={api} className="Drawer-ap-dots"/>
+            <span className="Entity-muted Drawer-ap-hint">Click a circle to spend it</span>
         </div>
         {actions.length === 0
             ? <span className="Entity-muted">No combat actions.</span>
@@ -213,7 +211,7 @@ function ActionsTab({ combatant, api, userId }) {
 
 function QuickLook({ combatant, api, notes }) {
     const raw = combatant.raw;
-    const flaws = (raw.skills_and_flaws || []).filter(entry => entry && entry.isSkill === false);
+    const flaws = (raw.skills_and_flaws || []).filter(entry => entry?.isSkill === false);
     const reactions = [...(raw.actions || []), ...getGrantedActions(raw)].filter(action => getActionCategory(action) === 'reaction');
     const classDc = CharacterStatCalculator(raw.experience_points, combatant.ac, raw.base_hit_modifier, raw.base_damage_modifier, raw.base_damage_dice, raw.base_damage_dice_type, raw.base_healing_dice_type).ClassDifficultyClass;
     const items = [...(raw.inventory || []), ...(raw.inventory_pocket || [])].filter(entry => entry?.title);
@@ -253,6 +251,7 @@ export function EntityDrawer({ combatant, members, zone, api, active, template, 
     const isEnemy = combatant.kind === 'enemy';
     const [tab, setTab] = useState(isEnemy ? 'stats' : 'actions');
     const [popover, setPopover] = useState(null);
+    useEscapeKey(onClose);
     const raw = combatant.raw;
     // passives are listed with the actions, but only what can be used is counted
     const actionCount = [...(raw.actions || []), ...getGrantedActions(raw)].filter(action => isCombatAction(action) && getActionCategory(action) !== 'passive').length;
@@ -265,13 +264,13 @@ export function EntityDrawer({ combatant, members, zone, api, active, template, 
     const toggle = which => setPopover(current => (current === which ? null : which));
     const hp = combatant.hp;
 
-    return <div className="Drawer" role="dialog" aria-label={`${combatant.name} details`}>
+    return <dialog className={isEnemy ? 'Drawer Drawer-right' : 'Drawer'} open aria-label={`${combatant.name} details`}>
         <div className="Drawer-head">
             <span className={`Drawer-avatar Drawer-avatar-${combatant.kind}`}>
                 {combatant.portrait ? <img src={combatant.portrait} alt=""/> : initials(combatant.name)}
             </span>
             <div className="Drawer-title">
-                <span className="Drawer-name">{members ? `${combatant.name.replace(/\s+\d+$/, '')} ×${members.length}` : combatant.name}</span>
+                <span className="Drawer-name">{members ? `${withoutCount(combatant.name)} ×${members.length}` : combatant.name}</span>
                 <span className="Drawer-subtitle">{subtitle}</span>
             </div>
             <button type="button" className="Entity-button" aria-pressed={active} onClick={() => api.setActiveTurn(combatant)}>{active ? 'Their turn' : 'Set active turn'}</button>
@@ -288,7 +287,7 @@ export function EntityDrawer({ combatant, members, zone, api, active, template, 
             </div>
             <div className="Drawer-ability-strip">
                 {combatant.abilities.map(ability => <button type="button" key={ability.key} onClick={() => toggle(ability.key)}
-                    aria-label={`${ability.name} ${signed(ability.value)}${ability.delta === 0 ? '' : ` (base ${signed(ability.base)})`}, edit`}>
+                    aria-label={abilityLabel(ability)}>
                     <span className="Entity-ability-key">{ability.key}</span>
                     <span className={ability.delta === 0 ? 'Entity-ability-value' : 'Entity-ability-value Entity-ability-changed'}>{signed(ability.value)}</span>
                 </button>)}
@@ -328,5 +327,5 @@ export function EntityDrawer({ combatant, members, zone, api, active, template, 
             </div>}
             {tab === 'look' && <QuickLook combatant={combatant} api={api} notes={notes}/>}
         </div>
-    </div>;
+    </dialog>;
 }

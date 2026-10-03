@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useEscapeKey } from '../utils/useEscapeKey';
 import { uploadImageToImgur } from '../utils/imgurUploader';
 import { imageRef, imageSrc } from '../utils/imageRefs';
 import { DEFAULT_IMAGE_TOKEN_SIZE, IMAGE_TOKEN_SIZES, MAX_IMAGE_TOKENS, MAX_LABEL_LENGTH } from '../utils/mapImageTokens';
@@ -31,7 +32,11 @@ export function MapImageTokenToolbar({ imageTokens, userId, onDragging = () => {
     const [size, setSize] = useState(DEFAULT_IMAGE_TOKEN_SIZE);
     const [keep, setKeep] = useState(true);
     const [uploading, setUploading] = useState(false);
+    // while a token from the library is being dragged the popup steps aside (see-through, and no longer
+    // catching the mouse) so that the map under it can take the drop
+    const [dragging, setDragging] = useState(false);
     const library = useTokenLibrary(userId, adding);
+    useEscapeKey(() => adding && setAdding(false));
 
     const chosen = tokens.find(token => token.id === selected);
     const ref = imageRef(link);
@@ -66,6 +71,13 @@ export function MapImageTokenToolbar({ imageTokens, userId, onDragging = () => {
         event.dataTransfer.setData(DRAG_TYPE, dragPayload(token));
         event.dataTransfer.effectAllowed = 'copy';
         onDragging(true);
+        // a tick later: changing the page inside the dragstart itself can cancel the drag
+        setTimeout(() => setDragging(true), 0);
+    }
+
+    function endDrag() {
+        setDragging(false);
+        onDragging(false);
     }
 
     return <div className="MapImageTokenToolbar" role="toolbar" aria-label="Map image tokens">
@@ -77,7 +89,14 @@ export function MapImageTokenToolbar({ imageTokens, userId, onDragging = () => {
             <button type="button" className="MapDrawingToolbar-button" onClick={() => remove(chosen.id)}>Remove</button>
         </fieldset>}
         {full && <span className="MapDrawingToolbar-note MapDrawingToolbar-note-full" role="alert">The map has {MAX_IMAGE_TOKENS} image tokens - remove some to add more.</span>}
-        {adding && <div className="MapImageTokenToolbar-form">
+        {adding && <>
+        <button type="button" className={dragging ? 'MapImageTokenToolbar-scrim MapImageTokenToolbar-aside' : 'MapImageTokenToolbar-scrim'} aria-label="Close" onClick={() => setAdding(false)}/>
+        <dialog open className={dragging ? 'MapImageTokenToolbar-popup MapImageTokenToolbar-aside' : 'MapImageTokenToolbar-popup'} aria-label="Add image token">
+            <div className="MapImageTokenToolbar-popup-head">
+                <h3 className="MapImageTokenToolbar-popup-title">Add image token</h3>
+                <button type="button" className="MapDrawingToolbar-button" onClick={() => setAdding(false)}>Done</button>
+            </div>
+            <div className="MapImageTokenToolbar-form">
             <section className="MapImageTokenToolbar-library" aria-label="Token library">
                 <span className="MapDrawingToolbar-label">Your token library</span>
                 {library.tokens.length === 0
@@ -97,7 +116,7 @@ export function MapImageTokenToolbar({ imageTokens, userId, onDragging = () => {
                                     onClick={() => !full && placeFromLibrary(token)}
                                     onKeyDown={event => { if (!full && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); placeFromLibrary(token); } }}
                                     onDragStart={event => startDrag(event, token)}
-                                    onDragEnd={() => onDragging(false)}
+                                    onDragEnd={endDrag}
                                 >
                                     <img className="MapImageTokenToolbar-token-image" src={imageSrc(token.image)} alt="" draggable={false}/>
                                     {token.label && <span className="MapImageTokenToolbar-token-name">{token.label}</span>}
@@ -133,6 +152,8 @@ export function MapImageTokenToolbar({ imageTokens, userId, onDragging = () => {
                 {link.trim() !== '' && !ref && <span className="MapDrawingToolbar-note">That isn't a web link to a picture (it should start with https://).</span>}
                 <button type="button" className="MapDrawingToolbar-button" disabled={!ref || full || uploading} onClick={handlePlace}>Place on map</button>
             </div>
-        </div>}
+            </div>
+        </dialog>
+        </>}
     </div>;
 }

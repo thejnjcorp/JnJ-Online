@@ -39,7 +39,7 @@ export function EnemyTiles({ onAdd, onEncounters, onClear }) {
 export function TurnOrder() {
     const { players, tiles, turn, api } = useCombat();
     const names = new Map([...players.map(player => [player.id, player.name]), ...tiles.map(tile => [tile.key, tileName(tile)])]);
-    return <div className="Turn-order" role="group" aria-label="Turn order">
+    return <fieldset className="Turn-order" aria-label="Turn order">
         <span className="Turn-order-title">Turn order</span>
         {turn.order.length === 0 && <span className="Entity-muted">No one in the fight yet.</span>}
         {turn.order.map(key => <button type="button" key={key} aria-pressed={turn.active === key}
@@ -50,5 +50,5 @@ export function TurnOrder() {
         </span>}
         <span className="Turn-order-round">{`Round ${turn.round}`}</span>
         <button type="button" className="Entity-button Entity-button-primary" disabled={turn.order.length === 0} onClick={() => api.endTurn()}>{turn.active ? 'End turn →' : 'Start combat →'}</button>
-    </div>;
+    </fieldset>;
 }

@@ -73,7 +73,7 @@ describe('EntityTile, an enemy', () => {
         renderTile(foe());
         expect(screen.getByText('Elite · T2')).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /Hero points/ })).not.toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Action points: 3 of 3, edit' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Action points: 3 of 4, edit' })).toBeInTheDocument();
     });
 
     test('an enemy whose hit points are not tracked says so', () => {
@@ -356,5 +356,58 @@ describe('a group of minions', () => {
         fireEvent.click(screen.getAllByRole('button', { name: /^Status:/ })[0]);
         fireEvent.click(screen.getByRole('button', { name: 'Remove Sound' }));
         expect(api.setStatuses).toHaveBeenCalledTimes(3);
+    });
+});
+
+describe('the circles of action points', () => {
+    test('clicking one gives that many, and the last filled one spends itself, as on the character page', () => {
+        renderTile(player({ action_points: 2 }));
+        fireEvent.click(screen.getByRole('button', { name: 'Action point 4' }));
+        expect(api.setAp).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'character:c1' }), 4);
+        fireEvent.click(screen.getByRole('button', { name: 'Action point 2' }));
+        expect(api.setAp).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'character:c1' }), 1);
+        expect(screen.getByRole('button', { name: 'Action point 2' })).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.getByRole('button', { name: 'Action point 3' })).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    test('the fourth is the one haste gives, and has a colour of its own', () => {
+        renderTile(player({ action_points: 3 }));
+        expect(screen.getByRole('button', { name: 'Action point 4' }).firstChild).toHaveClass('Entity-dot-haste');
+        expect(screen.getByRole('button', { name: 'Action point 3' }).firstChild).not.toHaveClass('Entity-dot-haste');
+    });
+
+    test('an enemy has four, for the one with haste, and the label still opens the resources', () => {
+        renderTile(foe({ action_points: 3 }));
+        expect(screen.getAllByRole('button', { name: /^Action point \d$/ })).toHaveLength(4);
+        fireEvent.click(screen.getByRole('button', { name: 'Action point 3' }));
+        expect(api.setAp).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'npc:e1' }), 2);
+        fireEvent.click(screen.getByRole('button', { name: 'Action points: 3 of 4, edit' }));
+        expect(screen.getByRole('group', { name: 'Resources' })).toBeInTheDocument();
+    });
+});
+
+describe('closing a popover by clicking away', () => {
+    test('a click anywhere else closes it, and one inside it does not', () => {
+        renderTile(player());
+        fireEvent.click(screen.getByRole('button', { name: 'Strength +1, edit' }));
+        const panel = screen.getByRole('group', { name: /Strength/ });
+        fireEvent.mouseDown(within(panel).getByText(/Strength/, { selector: 'span' }));
+        expect(screen.getByRole('group', { name: /Strength/ })).toBeInTheDocument();
+        fireEvent.mouseDown(document.body);
+        expect(screen.queryByRole('group', { name: /Strength/ })).not.toBeInTheDocument();
+    });
+
+    test('a click on a button of the same tile is left to that button, so the one that opened it can close it', () => {
+        renderTile(player());
+        const strength = screen.getByRole('button', { name: 'Strength +1, edit' });
+        fireEvent.click(strength);
+        fireEvent.mouseDown(strength);
+        fireEvent.click(strength);
+        expect(screen.queryByRole('group', { name: /Strength/ })).not.toBeInTheDocument();
+        fireEvent.click(strength);
+        fireEvent.mouseDown(screen.getByRole('button', { name: 'Armor class 13, edit' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Armor class 13, edit' }));
+        expect(screen.queryByRole('group', { name: /Strength/ })).not.toBeInTheDocument();
+        expect(screen.getByRole('group', { name: /Armor class/ })).toBeInTheDocument();
     });
 });

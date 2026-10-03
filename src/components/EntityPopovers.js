@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NO_STACK_COUNT, clampStacks } from '../utils/statusEffects';
 import {
     AC_STAT, DAMAGE_TYPES, DURATIONS, adjustDamage, applyHp, modifierOf, signed, statusContributions, withModifier,
@@ -22,16 +22,38 @@ function DurationSelect({ label, value, onChange, options = DURATIONS }) {
     </select>;
 }
 
+// A click anywhere else closes a popover - except on another button of the tile or drawer it
+// belongs to, which is its own way of opening something (or the same popover, which would
+// otherwise close here and open again there).
+function useClickAway(ref, onAway) {
+    useEffect(() => {
+        if (!onAway) return undefined;
+        const onMouseDown = event => {
+            const popover = ref.current;
+            if (!popover || popover.contains(event.target)) return;
+            const owner = popover.closest('.Entity-tile, .Drawer');
+            const button = event.target.closest?.('button');
+            if (owner && button && owner.contains(button)) return;
+            onAway();
+        };
+        document.addEventListener('mousedown', onMouseDown);
+        return () => document.removeEventListener('mousedown', onMouseDown);
+    }, [ref, onAway]);
+}
+
 // The frame: what it is for, who it is for, and a way out.
-export function Popover({ title, subtitle, onClose, children, label }) {
-    return <div className="Entity-popover" role="group" aria-label={label || title}>
+// `onClose` also gives it a Done button; `onAway` is only for the click away (it falls back to onClose).
+export function Popover({ title, subtitle, onClose, onAway, children, label }) {
+    const ref = useRef(null);
+    useClickAway(ref, onAway || onClose);
+    return <fieldset ref={ref} className="Entity-popover" aria-label={label || title}>
         <div className="Entity-popover-head">
             <span className="Entity-popover-title">{title}</span>
             {subtitle && <span className="Entity-popover-subtitle">{subtitle}</span>}
         </div>
         {children}
         {onClose && <span className="Entity-popover-close"><button type="button" className="Entity-button" onClick={onClose}>Done</button></span>}
-    </div>;
+    </fieldset>;
 }
 
 // Damage, healing or temporary hit points: what the hit does, shown before it is applied.
@@ -47,11 +69,11 @@ export function HpPopover({ combatant, title, onApply, onClose }) {
     const verb = { damage: 'damage', heal: 'healing', temp: 'temp HP' }[mode];
     const note = typed ? adjustDamage(combatant, type, amount).note : null;
 
-    return <Popover title="Hit points" subtitle={`${hp.now} / ${hp.max}`} label={`Hit points: ${title || combatant.name}`}>
-        <div className="Entity-segmented" role="group" aria-label="Kind of change">
+    return <Popover title="Hit points" subtitle={`${hp.now} / ${hp.max}`} label={`Hit points: ${title || combatant.name}`} onAway={onClose}>
+        <fieldset className="Entity-segmented" aria-label="Kind of change">
             {[['damage', 'Damage'], ['heal', 'Heal'], ['temp', 'Temp HP']].map(([key, text]) =>
                 <button type="button" key={key} aria-pressed={mode === key} onClick={() => setMode(key)}>{text}</button>)}
-        </div>
+        </fieldset>
         <div className="Entity-row">
             <input className="Entity-input" type="text" inputMode="numeric" aria-label="Amount" value={amount} onChange={event => setAmount(event.target.value)}/>
             {typed && <select className="Entity-select" aria-label="Damage type" value={type} onChange={event => setType(event.target.value)}>
@@ -104,7 +126,7 @@ export function AcPopover({ combatant, onApply, onClose }) {
     const [duration, setDuration] = useState(current?.duration || 'scene');
     const [reason, setReason] = useState(current?.reason || '');
     const others = statusContributions(combatant.statuses, AC_STAT).reduce((sum, entry) => sum + entry.delta, 0);
-    return <Popover title="Armor class" subtitle={`${combatant.acBase} base`} onClose={null}>
+    return <Popover title="Armor class" subtitle={`${combatant.acBase} base`} onClose={null} onAway={onClose}>
         <div className="Entity-field-row"><span>Modifier</span><Stepper label="AC modifier" value={delta} onChange={setDelta}/></div>
         <DurationSelect label="Modifier duration" value={duration} onChange={setDuration}/>
         <input className="Entity-input Entity-input-wide" type="text" aria-label="Reason" placeholder="Reason (optional), e.g. Raised shield" value={reason} onChange={event => setReason(event.target.value)}/>
@@ -116,6 +138,27 @@ export function AcPopover({ combatant, onApply, onClose }) {
     </Popover>;
 }
 
+// The fourth circle is the one only haste gives, so it has a colour of its own.
+function dotClass(number, now) {
+    const classes = ['Entity-dot'];
+    if (now >= number) classes.push('Entity-dot-full');
+    if (number === 4) classes.push('Entity-dot-haste');
+    return classes.join(' ');
+}
+
+// The circles of action points, each one a button the way the character's own page has them:
+// click one to have that many, or the one you have is the last, to spend it.
+export function ApDots({ combatant, api, className }) {
+    const { ap } = combatant;
+    const circles = Array.from({ length: ap.max }, (_, index) => ({ key: `${combatant.id}:${index}`, number: index + 1 }));
+    return <span className={className ? `Entity-ap-dots ${className}` : 'Entity-ap-dots'}>
+        {circles.map(({ key, number }) => <button type="button" key={key} className="Entity-dot-button" aria-label={`Action point ${number}`} aria-pressed={ap.now >= number}
+            onClick={() => api.setAp(combatant, ap.now === number ? number - 1 : number)}>
+            <span className={dotClass(number, ap.now)}/>
+        </button>)}
+    </span>;
+}
+
 // Action points, the reaction, hero points - each changes the moment it is clicked.
 export function ResourcesPopover({ combatant, api, onClose }) {
     const { ap } = combatant;
@@ -125,13 +168,13 @@ export function ResourcesPopover({ combatant, api, onClose }) {
             <Stepper label="AP" value={ap.now} min={0} max={ap.max} onChange={value => api.setAp(combatant, value)}/>
         </div>
         <div className="Entity-quick Entity-quick-wide">
-            <button type="button" aria-label={`Reset action points to ${ap.max}`} onClick={() => api.setAp(combatant, ap.max)}>{`Reset to ${ap.max}`}</button>
+            <button type="button" aria-label={`Reset action points to ${ap.refresh}`} onClick={() => api.setAp(combatant, ap.refresh)}>{`Reset to ${ap.refresh}`}</button>
             <button type="button" aria-label="Spend one action point" disabled={ap.now < 1} onClick={() => api.setAp(combatant, ap.now - 1)}>Spend 1</button>
             <button type="button" aria-label="Spend two action points" disabled={ap.now < 2} onClick={() => api.setAp(combatant, ap.now - 2)}>Spend 2</button>
         </div>
         <label className="Entity-check">
             <input type="checkbox" checked={combatant.reactionReady} onChange={event => api.setReaction(combatant, event.target.checked)}/>
-            Reaction ready
+            <span>Reaction ready</span>
         </label>
         {combatant.kind === 'player' && <div className="Entity-field-row">
             <span>Hero points</span>
@@ -148,7 +191,7 @@ export function StatPopover({ combatant, ability, canEditBase, onApply, onSetBas
     const [duration, setDuration] = useState(current?.duration || 'scene');
     const contributions = statusContributions(combatant.statuses, ability.stat);
     const effective = ability.base + contributions.reduce((sum, entry) => sum + entry.delta, 0) + delta;
-    return <Popover title={ability.name} subtitle={`${signed(ability.value)} now`} onClose={null}>
+    return <Popover title={ability.name} subtitle={`${signed(ability.value)} now`} onClose={null} onAway={onClose}>
         <div className="Entity-field-row">
             <span>Base</span>
             {canEditBase

@@ -28,7 +28,13 @@
 }
 .Entity-input { width: 4.5rem; text-align: center; }
 .Entity-input-wide { width: 100%; text-align: left; font-weight: 400; font-size: 0.78125rem; }
-.Entity-select { font-size: 0.78125rem; font-weight: 500; }
+// a drawn arrow, centred on the box: the browser's own sits wherever its default padding puts it
+.Entity-select {
+    font-size: 0.78125rem; font-weight: 500; appearance: none; cursor: pointer;
+    padding-right: 1.75rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none' stroke='%239aa0a6' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 0.625rem center; background-size: 0.625rem 0.375rem;
+}
 
 .Entity-stepper { display: inline-flex; align-items: center; gap: 0.375rem; button { width: 1.5rem; height: 1.5rem; border-radius: 7px; background: var(--jnj-color-bg-hover); border: 1px solid var(--jnj-color-border-strong); color: var(--jnj-color-text); font: 600 0.9375rem var(--jnj-font-body); padding: 0; cursor: pointer; &:disabled { opacity: 0.4; cursor: not-allowed; } } }
 .Entity-stepper-value { min-width: 2rem; text-align: center; font: 700 0.9375rem var(--jnj-font-body); }
@@ -70,9 +76,13 @@
 .Entity-ability-changed { color: #f0a070; }
 .Entity-resources { display: flex; align-items: center; gap: 0.625rem; }
 .Entity-ap { display: inline-flex; align-items: center; gap: 4px; background: none; border: none; padding: 2px; }
-.Entity-ap-label { color: var(--jnj-color-text-faint); font: 700 0.59375rem var(--jnj-font-body); letter-spacing: 0.06em; margin-right: 1px; }
+.Entity-ap-label { background: none; border: none; padding: 0 2px; cursor: pointer; color: var(--jnj-color-text-faint); font: 700 0.59375rem var(--jnj-font-body); letter-spacing: 0.06em; margin-right: 1px; }
+.Entity-ap-dots { display: inline-flex; align-items: center; gap: 0; }
+.Entity-dot-button { display: inline-flex; align-items: center; justify-content: center; background: none; border: none; padding: 3px; cursor: pointer; border-radius: 999px; &:hover .Entity-dot { border-color: var(--jnj-color-accent); } }
 .Entity-dot { width: 0.6875rem; height: 0.6875rem; border-radius: 999px; box-sizing: border-box; border: 1.5px solid var(--jnj-color-text-faint); display: inline-block; }
 .Entity-dot-full { background: var(--jnj-color-accent); border-color: var(--jnj-color-accent); }
+.Entity-dot-haste { border-color: var(--jnj-color-haste); }
+.Entity-dot-haste.Entity-dot-full { background: var(--jnj-color-haste); }
 .Entity-reaction { width: 1.25rem; height: 1.25rem; border-radius: 999px; box-sizing: border-box; border: 1.5px solid var(--jnj-color-text-faint); color: var(--jnj-color-text-faint); background: transparent; font: 700 0.625rem var(--jnj-font-body); padding: 0; display: inline-flex; align-items: center; justify-content: center; }
 .Entity-reaction-ready { border-color: #b9a3ff; color: #b9a3ff; background: #2d2452; }
 .Entity-hero { display: inline-flex; align-items: center; gap: 3px; background: none; border: none; padding: 2px; color: var(--jnj-color-accent); font: 700 0.71875rem var(--jnj-font-body); }
@@ -137,14 +147,16 @@
 
 // ---- The drawer ------------------------------------------------------------------------
 
-.Drawer-scrim { position: fixed; inset: 0; z-index: 59; background: rgba(0, 0, 0, 0.4); border: none; cursor: default; }
+.Drawer-scrim { position: fixed; inset: 0; width: 100%; height: 100%; padding: 0; z-index: 59; background: rgba(0, 0, 0, 0.4); border: none; cursor: default; }
 .Drawer {
-    position: fixed; top: 0; right: 0; bottom: 0; z-index: 60; box-sizing: border-box; width: min(30rem, 100vw);
+    position: fixed; top: 0; left: 0; bottom: 0; height: 100vh; z-index: 60; box-sizing: border-box; width: min(30rem, 100vw);
     display: flex; flex-direction: column; overflow-y: auto;
-    background: var(--jnj-color-bg); color: var(--jnj-color-text); border-left: 1px solid var(--jnj-color-border-strong); box-shadow: var(--jnj-shadow-lg);
+    background: var(--jnj-color-bg); color: var(--jnj-color-text); border-right: 1px solid var(--jnj-color-border-strong); box-shadow: var(--jnj-shadow-lg);
     font: 400 0.8125rem var(--jnj-font-body); text-align: left;
     button { font-family: var(--jnj-font-body); }
 }
+// an enemy's drawer opens on the right, beside the enemies it came from; a player's on the left
+.Drawer-right { left: auto; right: 0; border-right: none; border-left: 1px solid var(--jnj-color-border-strong); }
 .Drawer-head { display: flex; align-items: center; gap: 0.75rem; padding: 1.125rem 1.25rem 0.875rem; }
 .Drawer-avatar { width: 2.75rem; height: 2.75rem; border-radius: 999px; box-sizing: border-box; flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; background: var(--jnj-color-bg-raised); font: 700 0.875rem var(--jnj-font-body); img { width: 100%; height: 100%; object-fit: cover; } }
 .Drawer-avatar-player { border: 2px solid var(--jnj-color-accent); }
@@ -183,7 +195,8 @@
 .Drawer-card-value { font: 700 1.125rem var(--jnj-font-body); }
 .Entity-quick-pair { display: inline-flex; gap: 4px; button { min-width: 2.375rem; height: 2.125rem; border-radius: 7px; background: var(--jnj-color-bg-hover); border: 1px solid var(--jnj-color-border-strong); color: var(--jnj-color-text); font: 700 0.8125rem var(--jnj-font-body); cursor: pointer; } }
 .Drawer-card-ability .Entity-quick-pair button { min-width: 1.625rem; height: 1.625rem; }
-.Drawer-ap { padding: 0.4375rem 0; .Entity-dot { width: 0.875rem; height: 0.875rem; } }
+.Drawer-ap { padding: 0.25rem 0; .Entity-dot { width: 0.875rem; height: 0.875rem; } }
+.Drawer-link { background: none; border: none; padding: 0; cursor: pointer; text-align: left; color: var(--jnj-color-text-muted); font: 500 0.75rem var(--jnj-font-body); text-decoration: underline dotted; }
 .Drawer-reaction input { width: 1.375rem; height: 1.375rem; margin: 0; accent-color: #b9a3ff; }
 .Drawer-add-row { display: flex; gap: 0.375rem; flex-wrap: wrap; align-items: center; .Entity-input { flex: 1; text-align: left; font-weight: 400; } }
 .Drawer-passive { display: flex; flex-direction: column; gap: 2px; background: var(--jnj-color-bg-raised); border: 1px solid var(--jnj-color-border); border-radius: 9px; padding: 0.625rem 0.75rem; }
@@ -210,4 +223,11 @@
 
 @media (max-width: 900px) {
     .Entity-tile { max-width: none; }
+}
+
+// The Add Status dialog opens from a drawer, so it goes over the drawer and its backdrop (59, 60)
+.Combat-status-layer {
+    display: contents;
+    .CharacterPage-status-scrim { z-index: 70; }
+    .CharacterPage-status-dialog { z-index: 71; }
 }

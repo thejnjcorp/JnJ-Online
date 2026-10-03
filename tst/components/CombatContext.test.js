@@ -33,6 +33,8 @@ jest.mock('../../src/components/AddStatusDialog', () => ({
 }));
 
 // eslint-disable-next-line import/first
+import { useState } from 'react';
+// eslint-disable-next-line import/first
 import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 // eslint-disable-next-line import/first
 import { CombatProvider, useCombat } from '../../src/components/CombatContext';
@@ -89,6 +91,27 @@ describe('who is in the fight', () => {
     test('tells the page its actions once they exist', () => {
         renderProvider();
         expect(onApi).toHaveBeenCalledWith(expect.objectContaining({ endTurn: expect.any(Function), endScene: expect.any(Function) }));
+    });
+
+    test('a page that keeps the api it is told of, and hands over new functions each render, does not render forever', () => {
+        // what the Director's page does: a plain function for each, new every render, and the api in state
+        const renders = jest.fn();
+        const fighters = [character()];
+        const foes = [enemy()];
+        let latest;
+        function Page() {
+            const [told, setTold] = useState(null);
+            renders();
+            latest = told;
+            return <CombatProvider campaignId="camp-1" campaignInfo={{ enemy_list: foes }} characters={fighters} userId="u1"
+                updateEnemy={(...args) => updateEnemy(...args)} removeEnemy={(...args) => removeEnemy(...args)} onApi={setTold}><Probe/></CombatProvider>;
+        }
+        render(<Page/>);
+        expect(renders.mock.calls.length).toBeLessThan(5);
+        expect(latest).toEqual(expect.objectContaining({ endTurn: expect.any(Function) }));
+        // and its writes still reach the page's latest functions
+        act(() => { latest.removeEnemy(tree()); });
+        expect(removeEnemy).toHaveBeenCalled();
     });
 
     test('knows the zone each combatant is in from the tracker', () => {

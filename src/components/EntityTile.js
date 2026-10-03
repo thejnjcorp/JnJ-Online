@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { AcPopover, HpPopover, ResourcesPopover, StatPopover, StatusPopover } from './EntityPopovers';
-import { chipLabel, groupName, hpRatio, hpTone, signed } from '../utils/combatants';
+import { AcPopover, ApDots, HpPopover, ResourcesPopover, StatPopover, StatusPopover } from './EntityPopovers';
+import { abilityLabel, chipLabel, groupName, hpRatio, hpTone, signed } from '../utils/combatants';
 import '../styles/Combat.scss';
 
 function ShieldIcon() {
@@ -9,10 +9,59 @@ function ShieldIcon() {
     </svg>;
 }
 
-const abilityLabel = ability => {
-    const detail = ability.delta === 0 ? '' : ` (base ${signed(ability.base)})`;
-    return `${ability.name} ${signed(ability.value)}${detail}, edit`;
-};
+// A group's hit points: a pip for each, which opens that one's hit points.
+function Pips({ members, onPick }) {
+    return <div className="Entity-pips">
+        {members.map((member, index) => {
+            const down = member.down ? ' (down)' : '';
+            return <button type="button" key={member.id}
+                className={`Entity-pip${member.down ? ' Entity-pip-down' : ''} Entity-pip-${hpTone(member.hp)}`}
+                aria-label={`${member.name}: ${member.hp.now} of ${member.hp.max} hit points${down}`}
+                onClick={() => onPick(member.id)}>
+                <span>{member.down ? '×' : member.hp.now}</span><span className="Entity-pip-index">{index + 1}</span>
+            </button>;
+        })}
+    </div>;
+}
+
+// One's hit points as a bar, or a note that an enemy's are not tracked.
+function HpReadout({ hp, onEdit }) {
+    if (!hp.tracked) return <span className="Entity-hp Entity-hp-untracked" aria-label="Hit points not tracked for this enemy">HP n/a</span>;
+    const temp = hp.temp > 0 ? `, plus ${hp.temp} temporary` : '';
+    return <button type="button" className="Entity-hp" aria-label={`Edit hit points: ${hp.now} of ${hp.max}${temp}`} onClick={onEdit}>
+        <span className="Entity-bar"><span className={`Entity-bar-${hpTone(hp)}`} style={{ width: `${hpRatio(hp) * 100}%` }}/></span>
+        <span className="Entity-hp-text">{`${hp.now}/${hp.max}`}</span>
+        {hp.temp > 0 && <span className="Entity-temp">{`+${hp.temp} temp`}</span>}
+    </button>;
+}
+
+function Resources({ combatant, api, toggle }) {
+    const reaction = combatant.reactionReady ? 'ready' : 'used';
+    return <div className="Entity-resources">
+        <span className="Entity-ap">
+            <button type="button" className="Entity-ap-label" aria-label={`Action points: ${combatant.ap.now} of ${combatant.ap.max}, edit`} onClick={() => toggle('resources')}>AP</button>
+            <ApDots combatant={combatant} api={api}/>
+        </span>
+        <button type="button" className={combatant.reactionReady ? 'Entity-reaction Entity-reaction-ready' : 'Entity-reaction'}
+            aria-label={`Reaction ${reaction}. Click to toggle.`} onClick={() => api.setReaction(combatant, !combatant.reactionReady)}>R</button>
+        {combatant.kind === 'player' && <button type="button" className="Entity-hero" aria-label={`Hero points: ${combatant.hero}`} onClick={() => toggle('resources')}>
+            <span aria-hidden="true">&#9733;</span>{combatant.hero}
+        </button>}
+    </div>;
+}
+
+// The small edit that is open, if any, beside the tile it came from.
+function TilePopovers({ popover, combatant, target, forTargets, api, onClose }) {
+    if (popover === 'hp') return <HpPopover combatant={combatant} onClose={onClose} onApply={next => { api.setHp(combatant, next); onClose(); }}/>;
+    if (popover?.kind === 'hp') return <HpPopover combatant={target} title={target.name} onClose={onClose} onApply={next => { api.setHp(target, next); onClose(); }}/>;
+    if (popover === 'status') return <StatusPopover combatant={combatant} onClose={onClose} onChange={statuses => forTargets(member => api.setStatuses(member, statuses))} onAdd={() => api.addStatus(combatant)}/>;
+    if (popover === 'ac') return <AcPopover combatant={combatant} onClose={onClose} onApply={change => forTargets(member => api.setStatuses(member, change(member.statuses)))}/>;
+    if (popover === 'resources') return <ResourcesPopover combatant={combatant} api={api} onClose={onClose}/>;
+    const ability = combatant.abilities.find(entry => entry.key === popover);
+    if (!ability) return null;
+    return <StatPopover combatant={combatant} ability={ability} canEditBase={combatant.kind === 'enemy'} onClose={onClose}
+        onSetBase={value => forTargets(member => api.setBaseStat(member, ability.stat, value))} onApply={change => forTargets(member => api.setStatuses(member, change(member.statuses)))}/>;
+}
 
 // Someone in the fight, as a tile: name, armor class, hit points, the four abilities, action
 // points, reaction, hero points and statuses - everything a director reads at a glance and most of
@@ -30,8 +79,8 @@ export function EntityTile({ tile, active, api }) {
     const target = popover?.member ? members.find(member => member.id === popover.member) || combatant : combatant;
     const down = isGroup ? members.every(member => member.down) : combatant.down;
     const classes = ['Entity-tile', `Entity-tile-${combatant.kind}`, active && 'Entity-tile-active', down && 'Entity-tile-down'].filter(Boolean).join(' ');
-    const hp = combatant.hp;
-    const tone = hpTone(hp);
+    const showDefeated = combatant.defeated && !isGroup;
+    const pickPip = id => setPopover(current => (current?.member === id ? null : { member: id, kind: 'hp' }));
 
     // a group's change goes to everyone in it; a single one's, to them
     const forTargets = write => (isGroup && !popover?.member ? members.forEach(write) : write(target));
@@ -43,7 +92,7 @@ export function EntityTile({ tile, active, api }) {
                     <span className="Entity-name-text">{name}</span><span aria-hidden="true" className="Entity-name-chevron">&rsaquo;</span>
                 </button>
                 {active && <span className="Entity-badge Entity-badge-turn">Turn</span>}
-                {down && !combatant.defeated && !isGroup && <span className="Entity-badge Entity-badge-down">Down</span>}
+                {down && !showDefeated && !isGroup && <span className="Entity-badge Entity-badge-down">Down</span>}
                 {combatant.tier && <span className="Entity-tier">{`${combatant.tier} · T${combatant.raw.level ?? 1}`}</span>}
             </span>
             <button type="button" className="Entity-ac" aria-label={`Armor class ${combatant.ac}, edit`} onClick={() => toggle('ac')}>
@@ -51,25 +100,10 @@ export function EntityTile({ tile, active, api }) {
             </button>
         </div>
 
-        {combatant.defeated && !isGroup
+        {showDefeated
             ? <div className="Entity-defeated"><span>Defeated</span><button type="button" className="Entity-button" onClick={() => api.setDefeated(combatant, false)}>Restore</button></div>
             : <>
-                {isGroup
-                    ? <div className="Entity-pips">
-                        {members.map((member, index) => <button type="button" key={member.id}
-                            className={`Entity-pip${member.down ? ' Entity-pip-down' : ''} Entity-pip-${hpTone(member.hp)}`}
-                            aria-label={`${member.name}: ${member.hp.now} of ${member.hp.max} hit points${member.down ? ' (down)' : ''}`}
-                            onClick={() => setPopover(current => (current?.member === member.id ? null : { member: member.id, kind: 'hp' }))}>
-                            <span>{member.down ? '×' : member.hp.now}</span><span className="Entity-pip-index">{index + 1}</span>
-                        </button>)}
-                    </div>
-                    : hp.tracked
-                        ? <button type="button" className="Entity-hp" aria-label={`Edit hit points: ${hp.now} of ${hp.max}${hp.temp > 0 ? `, plus ${hp.temp} temporary` : ''}`} onClick={() => toggle('hp')}>
-                            <span className="Entity-bar"><span className={`Entity-bar-${tone}`} style={{ width: `${hpRatio(hp) * 100}%` }}/></span>
-                            <span className="Entity-hp-text">{`${hp.now}/${hp.max}`}</span>
-                            {hp.temp > 0 && <span className="Entity-temp">{`+${hp.temp} temp`}</span>}
-                        </button>
-                        : <span className="Entity-hp Entity-hp-untracked" aria-label="Hit points not tracked for this enemy">HP n/a</span>}
+                {isGroup ? <Pips members={members} onPick={pickPip}/> : <HpReadout hp={combatant.hp} onEdit={() => toggle('hp')}/>}
 
                 <div className="Entity-abilities">
                     {combatant.abilities.map(ability => <button type="button" key={ability.key} aria-label={abilityLabel(ability)} onClick={() => toggle(ability.key)}>
@@ -78,18 +112,7 @@ export function EntityTile({ tile, active, api }) {
                     </button>)}
                 </div>
 
-                {!isGroup && <div className="Entity-resources">
-                    <button type="button" className="Entity-ap" aria-label={`Action points: ${combatant.ap.now} of ${combatant.ap.max}, edit`} onClick={() => toggle('resources')}>
-                        <span className="Entity-ap-label">AP</span>
-                        {Array.from({ length: combatant.ap.max }, (_, index) => `${combatant.id}:${index}`).map((key, index) =>
-                            <span key={key} className={index < combatant.ap.now ? 'Entity-dot Entity-dot-full' : 'Entity-dot'}/>)}
-                    </button>
-                    <button type="button" className={combatant.reactionReady ? 'Entity-reaction Entity-reaction-ready' : 'Entity-reaction'}
-                        aria-label={`Reaction ${combatant.reactionReady ? 'ready' : 'used'}. Click to toggle.`} onClick={() => api.setReaction(combatant, !combatant.reactionReady)}>R</button>
-                    {combatant.kind === 'player' && <button type="button" className="Entity-hero" aria-label={`Hero points: ${combatant.hero}`} onClick={() => toggle('resources')}>
-                        <span aria-hidden="true">&#9733;</span>{combatant.hero}
-                    </button>}
-                </div>}
+                {!isGroup && <Resources combatant={combatant} api={api} toggle={toggle}/>}
 
                 {combatant.statuses.length > 0 && <div className="Entity-statuses">
                     {combatant.statuses.map(status => <button type="button" key={status.id} className={`Entity-status Entity-status-${status.polarity || 'neutral'}`}
@@ -97,12 +120,6 @@ export function EntityTile({ tile, active, api }) {
                 </div>}
             </>}
 
-        {popover === 'hp' && <HpPopover combatant={combatant} onClose={close} onApply={next => { api.setHp(combatant, next); close(); }}/>}
-        {popover?.kind === 'hp' && <HpPopover combatant={target} title={target.name} onClose={close} onApply={next => { api.setHp(target, next); close(); }}/>}
-        {popover === 'status' && <StatusPopover combatant={combatant} onClose={close} onChange={statuses => forTargets(member => api.setStatuses(member, statuses))} onAdd={() => api.addStatus(combatant)}/>}
-        {popover === 'ac' && <AcPopover combatant={combatant} onClose={close} onApply={change => forTargets(member => api.setStatuses(member, change(member.statuses)))}/>}
-        {popover === 'resources' && <ResourcesPopover combatant={combatant} api={api} onClose={close}/>}
-        {combatant.abilities.map(ability => popover === ability.key && <StatPopover key={ability.key} combatant={combatant} ability={ability} canEditBase={combatant.kind === 'enemy'}
-            onClose={close} onSetBase={value => forTargets(member => api.setBaseStat(member, ability.stat, value))} onApply={change => forTargets(member => api.setStatuses(member, change(member.statuses)))}/>)}
+        <TilePopovers popover={popover} combatant={combatant} target={target} forTargets={forTargets} api={api} onClose={close}/>
     </div>;
 }

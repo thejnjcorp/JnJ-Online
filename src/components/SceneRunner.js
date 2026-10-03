@@ -105,6 +105,29 @@ function SceneStartCard({ scene, session, onStart, onOpenBuilder }) {
     </div>;
 }
 
+// The time, once a second for as long as there is something running to time.
+function useNow(startedAt) {
+    const [now, setNow] = useState(Date.now());
+    useEffect(() => {
+        if (!startedAt) return undefined;
+        const timer = setInterval(() => setNow(Date.now()), 1000);
+        return () => clearInterval(timer);
+    }, [startedAt]);
+    return now;
+}
+
+// How long the scene has run, against the time the director hoped to spend on it.
+function RunClock({ scene, run, now }) {
+    const elapsed = runElapsedMs(run, now);
+    const goalMax = scene.timeMax || scene.timeMin || 0;
+    const percent = goalMax ? Math.min(100, (elapsed / 60000 / goalMax) * 100) : 0;
+    return <div className="Scenes-run-clock">
+        {goalMax > 0 && <div className="Scenes-meter" aria-hidden="true"><div style={{ width: `${percent}%` }}/></div>}
+        <span className="Scenes-clock" aria-label="Time elapsed">{formatClock(elapsed)}</span>
+        <span className="Scenes-muted">{goalMax > 0 ? `of ${timeGoalText(scene)}` : 'no time goal'}</span>
+    </div>;
+}
+
 // Run Scene: one scene at a time, a beat at a time. The rail down the side is the
 // scene's beats (what is done, what is now, what is next); the middle is whatever
 // the current beat needs - read-aloud text, an NPC's behaviors, a cue, the combat
@@ -113,13 +136,8 @@ export function SceneRunner({ scene, scenes, session, onUpdate, onStart, onEnd, 
     const run = scene.run;
     const live = scene.status === 'active' && Boolean(run);
     const beats = scene.beats || [];
-    const [now, setNow] = useState(Date.now());
+    const now = useNow(run?.startedAt);
     const [addOpen, setAddOpen] = useState(false);
-    useEffect(() => {
-        if (!run?.startedAt) return undefined;
-        const timer = setInterval(() => setNow(Date.now()), 1000);
-        return () => clearInterval(timer);
-    }, [run?.startedAt]);
 
     const current = beats.find(beat => beat.id === run?.currentBeatId) || null;
     const currentIndex = current ? beats.indexOf(current) : -1;
@@ -130,10 +148,6 @@ export function SceneRunner({ scene, scenes, session, onUpdate, onStart, onEnd, 
 
     // a combat beat brings the turn order and tracker, and the enemies for a column of their own
     const combat = current?.type === 'combat' ? renderCombat() : null;
-    const elapsed = runElapsedMs(run, now);
-    const goalMax = scene.timeMax || scene.timeMin || 0;
-    const percent = goalMax ? Math.min(100, (elapsed / 60000 / goalMax) * 100) : 0;
-    const next = beats.slice(currentIndex + 1).find(beat => beatState(scene, beat) !== 'done');
     const update = patch => onUpdate(scene.id, patch);
     const paused = !run.startedAt;
     const pinned = beats.filter(beat => beat.type === 'combat' && beat.ruling && beat.id !== current?.id && beatState(scene, beat) !== 'upcoming');
@@ -150,11 +164,7 @@ export function SceneRunner({ scene, scenes, session, onUpdate, onStart, onEnd, 
                 <h2 className="Scenes-title">{scene.name || 'Untitled scene'}</h2>
                 <span className={paused ? 'Scenes-chip' : 'Scenes-chip Scenes-chip-now'}>{`${paused ? 'Paused' : 'Live'} · Beat ${currentIndex >= 0 ? currentIndex + 1 : beats.length} of ${beats.length}`}</span>
                 <span className="Scenes-muted">{`${sessionTitle(session)}${scene.inWorldDate ? ' · ' + scene.inWorldDate : ''}`}</span>
-                <div className="Scenes-run-clock">
-                    {goalMax > 0 && <div className="Scenes-meter" aria-hidden="true"><div style={{ width: `${percent}%` }}/></div>}
-                    <span className="Scenes-clock" aria-label="Time elapsed">{formatClock(elapsed)}</span>
-                    <span className="Scenes-muted">{goalMax > 0 ? `of ${timeGoalText(scene)}` : 'no time goal'}</span>
-                </div>
+                <RunClock scene={scene} run={run} now={now}/>
             </div>
             <div className="Scenes-run-actions">
                 <select aria-label="Switch scene" value="" onChange={event => event.target.value && onSwitch(scene, event.target.value)}>
@@ -169,6 +179,7 @@ export function SceneRunner({ scene, scenes, session, onUpdate, onStart, onEnd, 
         </div>
 
         <div className={current?.type === 'combat' ? 'Scenes-run-body Scenes-run-body-combat' : 'Scenes-run-body'}>
+            <div className="Scenes-run-left">
             <nav className="Scenes-rail" aria-label="Beats">
                 <span className="Scenes-field-label">Beats</span>
                 {beats.map((beat, index) => {
@@ -184,6 +195,15 @@ export function SceneRunner({ scene, scenes, session, onUpdate, onStart, onEnd, 
                     {BEAT_TYPES.map(type => <button type="button" role="menuitem" key={type.key} onClick={() => { setAddOpen(false); addBeatOnTheFly(type.key); }}>{type.label}</button>)}
                 </div>}
             </nav>
+            <aside className="Scenes-run-side">
+                <section className="Scenes-card">
+                    <div className="Scenes-card-head"><h3 className="Scenes-card-title">Scratchpad</h3><span className="Scenes-muted">Saved to this beat</span></div>
+                    <textarea className="Scenes-textarea" aria-label="Director scratchpad" rows={6} disabled={!current} value={notes}
+                        onChange={event => setNotes(event.target.value)}
+                        onBlur={() => current && notes !== (current.notes || '') && update({ beats: beats.map(beat => beat.id === current.id ? { ...beat, notes } : beat) })}/>
+                </section>
+            </aside>
+            </div>
 
             <div className="Scenes-run-center">
                 {pinned.map(beat => <div className="Scenes-pinned" key={beat.id}><span className="Scenes-field-label">Ruling</span><span>{beat.ruling}</span></div>)}
@@ -204,23 +224,6 @@ export function SceneRunner({ scene, scenes, session, onUpdate, onStart, onEnd, 
                     </div>}
             </div>
 
-            <aside className="Scenes-run-side">
-                <section className="Scenes-card">
-                    <div className="Scenes-card-head"><h3 className="Scenes-card-title">Scratchpad</h3><span className="Scenes-muted">Saved to this beat</span></div>
-                    <textarea className="Scenes-textarea" aria-label="Director scratchpad" rows={6} disabled={!current} value={notes}
-                        onChange={event => setNotes(event.target.value)}
-                        onBlur={() => current && notes !== (current.notes || '') && update({ beats: beats.map(beat => beat.id === current.id ? { ...beat, notes } : beat) })}/>
-                </section>
-                <section className="Scenes-card">
-                    <h3 className="Scenes-card-title">Up next</h3>
-                    {next
-                        ? <>
-                            <strong>{`${beats.indexOf(next) + 1} · ${next.title || 'Untitled beat'}`}</strong>
-                            <span className="Scenes-muted">{next.type === 'decision' ? 'Decide the path.' : (next.text || next.ruling || beatTypeLabel(next.type))}</span>
-                        </>
-                        : <span className="Scenes-muted">That's the last beat.</span>}
-                </section>
-            </aside>
             {combat?.aside && <aside className="Scenes-run-enemies" aria-label="Enemies">{combat.aside}</aside>}
         </div>
     </div>;

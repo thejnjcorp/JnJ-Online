@@ -127,10 +127,10 @@ describe('an enemy: Stats', () => {
 
     test('action points open the resources, and the reaction is a checkbox', () => {
         renderDrawer(foe());
-        expect(screen.getByText('2 of 3 · resets on turn')).toBeInTheDocument();
+        expect(screen.getByText('2 of 4 · resets on turn')).toBeInTheDocument();
         fireEvent.click(screen.getByRole('checkbox', { name: 'Reaction ready' }));
         expect(api.setReaction).toHaveBeenCalledWith(expect.anything(), false);
-        fireEvent.click(screen.getByRole('button', { name: 'Action points: 2 of 3, edit' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Action points: 2 of 4, edit' }));
         fireEvent.click(within(screen.getByRole('group', { name: 'Resources' })).getByRole('button', { name: 'Reset action points to 3' }));
         expect(api.setAp).toHaveBeenCalledWith(expect.anything(), 3);
     });
@@ -219,7 +219,7 @@ describe('an enemy: Actions and Notes', () => {
         renderDrawer(foe());
         expect(screen.getByRole('button', { name: 'Actions · 1' })).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: 'Actions · 1' }));
-        expect(screen.getByText('Using an action spends AP on the tile')).toBeInTheDocument();
+        expect(screen.getByText('Click a circle to spend it')).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: 'Use Slam' }));
         expect(api.useAction).toHaveBeenCalledWith(expect.objectContaining({ id: 'npc:e1' }), slam);
     });
@@ -336,5 +336,27 @@ describe('a player', () => {
         const box = screen.getByRole('textbox', { name: 'Director notes on Leon' });
         expect(box).toBeDisabled();
         expect(box).toHaveAttribute('placeholder', 'Notes need the updated Firestore rules.');
+    });
+});
+
+describe('which side it opens on, and getting out of it', () => {
+    test("an enemy's drawer is on the right, a player's on the left", () => {
+        const { unmount } = renderDrawer(foe());
+        expect(screen.getByRole('dialog', { name: 'Tree Sentinel details' })).toHaveClass('Drawer-right');
+        unmount();
+        renderDrawer(player());
+        expect(screen.getByRole('dialog', { name: 'Leon details' })).not.toHaveClass('Drawer-right');
+    });
+
+    test('Escape closes it', () => {
+        renderDrawer(foe());
+        fireEvent.keyDown(document, { key: 'Escape' });
+        expect(onClose).toHaveBeenCalled();
+    });
+
+    test('the circles of action points can be clicked in it', () => {
+        renderDrawer(player({ action_points: 3 }));
+        fireEvent.click(screen.getAllByRole('button', { name: 'Action point 3' })[0]);
+        expect(api.setAp).toHaveBeenCalledWith(expect.objectContaining({ id: 'character:c1' }), 2);
     });
 });

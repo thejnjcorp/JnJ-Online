@@ -214,6 +214,11 @@
     filter: invert(1);
 }
 
+// the haste circle's own icon is already coloured
+.CharacterMainTab-circle.CharacterMainTab-circle-haste {
+    filter: none;
+}
+
 .CharacterMainTab-circle-button {
     display: flex;
     align-items: center;

@@ -228,3 +228,56 @@
     font-size: 0.75rem;
     color: var(--jnj-color-text);
 }
+
+// Adding a token is a popup over the page, not a drop-down in the toolbar. It has to be able to
+// get out of the way: dragging a token from the library onto the map makes it see-through and
+// lets the mouse through (-aside), so the map underneath can take the drop.
+.MapImageTokenToolbar-scrim {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 80;
+    padding: 0;
+    border: none;
+    background: rgba(0, 0, 0, 0.55);
+    cursor: default;
+}
+
+.MapImageTokenToolbar-popup {
+    position: fixed;
+    z-index: 81;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-sizing: border-box;
+    width: min(34rem, calc(100vw - 2rem));
+    max-height: 85vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-3);
+    padding: var(--jnj-space-5);
+    text-align: left;
+    background: var(--jnj-color-bg-raised);
+    color: var(--jnj-color-text);
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-lg);
+    box-shadow: var(--jnj-shadow-lg);
+    inset-inline-end: auto;
+    height: auto;
+}
+
+.MapImageTokenToolbar-popup-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--jnj-space-3);
+}
+
+.MapImageTokenToolbar-popup-title { margin: 0; font-family: var(--jnj-font-display); font-size: 1.0625rem; }
+
+.MapImageTokenToolbar-aside {
+    opacity: 0;
+    pointer-events: none;
+}

@@ -106,6 +106,14 @@
     border-color: var(--jnj-color-accent);
 }
 
+.PartyCombatRoster-pip-haste {
+    border-color: var(--jnj-color-haste);
+}
+
+.PartyCombatRoster-pip-haste.PartyCombatRoster-pip-filled {
+    background: var(--jnj-color-haste);
+}
+
 .PartyCombatRoster-reaction .PartyCombatRoster-pip-reaction {
     border-color: var(--jnj-color-arcane);
 }

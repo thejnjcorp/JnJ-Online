@@ -870,8 +870,7 @@ describe('ScenesTab', () => {
             const { unmount } = run();
             expect(screen.getByText('Snotty')).toBeInTheDocument();
             expect(screen.getByText('Rude')).toBeInTheDocument();
-            expect(screen.getByText('Up next')).toBeInTheDocument();
-            expect(screen.getByText("That's the last beat.")).toBeInTheDocument();
+            expect(screen.queryByText('Up next')).not.toBeInTheDocument();
             unmount();
             live({ beats: [beat('c1', 'check', { title: 'Sneak', skill: 'Dex', dc: '12', text: 'Slips past' })], run: { startedAt: 1, accumulatedMs: 0, currentBeatId: 'c1', doneBeatIds: [] } });
             run();

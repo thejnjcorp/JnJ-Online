@@ -62,7 +62,7 @@ export function playerCombatant(character) {
         ac: numberOr(effective[AC_STAT], 0),
         acBase: numberOr(character[AC_STAT], 0),
         abilities: abilityEntries(character, effective),
-        ap: { now: numberOr(character.action_points, 0), max: PLAYER_MAX_AP },
+        ap: { now: numberOr(character.action_points, 0), max: PLAYER_MAX_AP, refresh: PLAYER_MAX_AP },
         reactionReady: !character.reaction_used,
         hero: numberOr(character.hero_points, 1),
         statuses: character.statuses || [],
@@ -91,7 +91,8 @@ export function enemyCombatant(enemy) {
         ac: numberOr(effective[AC_STAT], 0),
         acBase: numberOr(enemy[AC_STAT], 0),
         abilities: abilityEntries(enemy, effective),
-        ap: { now: apNow, max: numberOr(enemy.max_action_points, Math.max(apNow, DEFAULT_ENEMY_MAX_AP)) },
+        // four circles, like a player: an enemy with haste has the fourth, and gets back what it starts a turn with
+        ap: { now: apNow, max: Math.max(PLAYER_MAX_AP, apNow), refresh: numberOr(enemy.max_action_points, DEFAULT_ENEMY_MAX_AP) },
         reactionReady: !enemy.reaction_used,
         hero: null,
         statuses: enemy.statuses || [],
@@ -104,8 +105,23 @@ export function enemyCombatant(enemy) {
     };
 }
 
+// What a screen reader hears for an ability button: the modified value, and the base when it differs
+export function abilityLabel(ability) {
+    const detail = ability.delta === 0 ? '' : ` (base ${signed(ability.base)})`;
+    return `${ability.name} ${signed(ability.value)}${detail}, edit`;
+}
+
+// "Grinch Goober 3" is "Grinch Goober": the name without the number that tells copies apart
+export function withoutCount(name) {
+    const text = String(name ?? '');
+    let end = text.length;
+    while (end > 0 && text[end - 1] >= '0' && text[end - 1] <= '9') end--;
+    if (end === text.length || end === 0 || text[end - 1].trim() !== '') return text;
+    return text.slice(0, end).trimEnd();
+}
+
 // "Grinch Goober 3" and "Grinch Goober 1" are the same kind of enemy
-export const enemyKind = enemy => enemy.templateId || String(enemy.enemy_name || '').replace(/\s+\d+$/, '');
+export const enemyKind = enemy => enemy.templateId || withoutCount(enemy.enemy_name || '');
 
 // The enemy tiles: each enemy on its own, except that three Goons of one kind (or two, or
 // four) are one group tile - the fight shows "Grinch Goober x4", not four near-identical cards.
@@ -133,7 +149,7 @@ export function enemyTiles(enemies) {
 // The group's shared face: how many are still standing in its name, the first one's stats.
 export function groupName(members) {
     const standing = members.filter(member => !member.down).length;
-    const stem = String(members[0].raw.enemy_name || 'Enemy').replace(/\s+\d+$/, '');
+    const stem = withoutCount(members[0].raw.enemy_name || 'Enemy');
     return `${stem} ×${standing}`;
 }
 

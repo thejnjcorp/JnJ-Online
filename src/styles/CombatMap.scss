@@ -124,6 +124,13 @@
         border-right: 1px solid var(--jnj-color-border);
         text-align: left;
 
+        .CombatMap-tools {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .CombatMap-zoom { align-self: flex-start; margin-left: 0; }
+
         // each toolbar's controls stack in the narrow column instead of running along a row
         // (no wrapping: a column that wraps starts a second column beside the first)
         .MapDrawingToolbar,
@@ -148,3 +155,52 @@
         }
     }
 }
+
+// The map's tools in one row above it (drawing, image tokens, zoom), wrapping on a narrow screen.
+.CombatMap-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: var(--jnj-space-2) var(--jnj-space-3);
+    padding: 0 0 var(--jnj-space-2);
+
+    .MapDrawingToolbar,
+    .MapImageTokenToolbar { padding: 0; }
+}
+
+// The map's frame: it stays put on the page while the map inside scrolls.
+.CombatMap-frame {
+    position: relative;
+    display: flex;
+    flex: 1 1 0%;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+}
+
+.CombatMap-zoom {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    margin-left: auto;
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: 999px;
+    background: var(--jnj-color-bg-raised);
+
+    button {
+        min-width: 1.75rem;
+        height: 1.75rem;
+        padding: 0 0.5rem;
+        border: none;
+        border-radius: 999px;
+        background: transparent;
+        color: var(--jnj-color-text);
+        font: 700 0.875rem var(--jnj-font-body);
+        cursor: pointer;
+
+        &:hover:not(:disabled) { background: var(--jnj-color-bg-hover); }
+        &:disabled { color: var(--jnj-color-text-faint); cursor: default; }
+    }
+}
+
+.CombatMap-zoom .CombatMap-zoom-level { font-size: 0.6875rem; }
