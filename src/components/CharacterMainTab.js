@@ -34,6 +34,8 @@ import { getActionCategory, isCombatAction, isReactionAction, isRoleplayAction }
 import { filterActions, filterOptions, isFilterActive, sortActions } from "../utils/tags";
 import { ActionViewControls } from "./ActionViewControls";
 import { StatusChip } from "./StatusChip";
+import { EngagementChip } from "./EngagementChip";
+import { useEngagement } from "../utils/useEngagement";
 import { StatusPopup } from "./StatusPopup";
 import { useStatusEditing } from "../utils/useStatusEditing";
 import { ActionUsesReset } from "./ActionUses";
@@ -110,6 +112,8 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
     const hasCampaign = Boolean(characterPage.campaign);
     const { activeMap } = useCampaignMaps(campaignInfo);
     const combatEntities = useCombatEntities(characterList, campaignInfo);
+    // who this character is engaged with, if anyone, as the combat tracker has it
+    const engagement = useEngagement(characterPage, combatEntities);
     // A player's own characters put themselves on the tracker; nobody else's are touched.
     useOwnCombatTokens({ campaignId: hasCampaign ? characterPage.campaign : '', activeMap, entities: combatEntities, userId });
     // Only someone who can write the campaign (its director) moves the map's tokens.
@@ -324,7 +328,8 @@ export function CharacterMainTab({ characterPage, userId, characterList = [], ca
                     </div>
                     {/* Riding along with the action points, so the statuses in play stay in
                         view while the actions scroll; pressing one opens its details. */}
-                    {statuses.length > 0 && <fieldset className="CharacterMainTab-status-strip" aria-label="Active statuses">
+                    {(statuses.length > 0 || engagement) && <fieldset className="CharacterMainTab-status-strip" aria-label="Active statuses">
+                        {engagement && <EngagementChip engagement={engagement}/>}
                         {statuses.map(status => <StatusChip key={status.id} status={status} onClick={() => statusEditing.toggleOpen(status.id)}/>)}
                     </fieldset>}
                     {statusEditing.openStatus && <StatusPopup status={statusEditing.openStatus} canWrite={statusEditing.canWrite} onClose={statusEditing.close} onStacksChange={statusEditing.changeStacks} onRemove={statusEditing.removeStatus}/>}

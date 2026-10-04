@@ -1,4 +1,4 @@
-import { engage, engagedGroups, engagedWith, engagementLinks, settleDrop, settleEngagements } from '../../src/utils/engagements';
+import { ENGAGEMENT_STONES, engage, engagedGroups, engagedWith, engagementLinks, engagementOf, engagementStone, settleDrop, settleEngagements } from '../../src/utils/engagements';
 
 const post = (id, status, index, fields = {}) => ({ id, title: id.toUpperCase(), content: '', status, index, ...fields });
 const order = (posts, zone) => posts.filter(candidate => candidate.status === zone).sort((a, b) => a.index - b.index).map(candidate => candidate.id);
@@ -121,5 +121,40 @@ describe('engagementLinks', () => {
     test('several are tied together by the shortest lines, so a row is a chain rather than a web', () => {
         const row = [{ x: 0, y: 0 }, { x: 0.3, y: 0 }, { x: 0.1, y: 0 }, { x: 0.2, y: 0 }];
         expect(engagementLinks(row)).toEqual([[0, 2], [2, 3], [3, 1]]);
+    });
+});
+
+describe('engagementStone', () => {
+    test('is one of the stones, the same every time for the same engagement', () => {
+        expect(ENGAGEMENT_STONES).toContain(engagementStone('eng-abc'));
+        expect(engagementStone('eng-abc')).toBe(engagementStone('eng-abc'));
+    });
+
+    test('differs between engagements - every stone gets used, and none is silver or the players\' gold', () => {
+        const used = new Set(Array.from({ length: 200 }, (_, index) => engagementStone(`eng-${index}`)));
+        expect(used.size).toBe(ENGAGEMENT_STONES.length);
+        expect(ENGAGEMENT_STONES).not.toContain('#d9dde5');
+        expect(ENGAGEMENT_STONES).not.toContain('#c8a24a');
+    });
+});
+
+describe('engagementOf', () => {
+    const posts = [post('a', 'Z', 0, { engagement: 'e' }), post('b', 'Z', 1, { engagement: 'e' }), post('c', 'Z', 2, { engagement: 'e' }), post('d', 'Z', 3)];
+
+    test('tells who someone is engaged with, and the stone they all share', () => {
+        const mine = engagementOf(posts, 'a');
+        expect(mine).toEqual({ id: 'e', stone: engagementStone('e'), others: [{ id: 'b', title: 'B' }, { id: 'c', title: 'C' }] });
+        expect(engagementOf(posts, 'c').stone).toBe(mine.stone);
+    });
+
+    test('prefers the names it is given', () => {
+        expect(engagementOf(posts, 'a', { b: 'Bram the Bold' }).others[0].title).toBe('Bram the Bold');
+    });
+
+    test('is nothing for someone not engaged, not there, or alone in an engagement, or with no tracker', () => {
+        expect(engagementOf(posts, 'd')).toBeNull();
+        expect(engagementOf(posts, 'nobody')).toBeNull();
+        expect(engagementOf([post('a', 'Z', 0, { engagement: 'e' })], 'a')).toBeNull();
+        expect(engagementOf(undefined, 'a')).toBeNull();
     });
 });

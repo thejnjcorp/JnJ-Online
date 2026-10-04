@@ -18,23 +18,25 @@
 }
 
 .MapTokens-engagement-band {
-    opacity: 0.32;
+    opacity: 0.5;
 
     line {
-        stroke: var(--jnj-color-accent);
+        stroke: var(--jnj-color-engagement);
         stroke-linecap: round;
     }
 }
 
 .MapTokens-engagement-line {
-    stroke: var(--jnj-color-accent);
+    stroke: var(--jnj-color-engagement);
     stroke-width: 0.004;
     stroke-dasharray: 0.012 0.01;
     stroke-linecap: round;
+    // a thin shadow keeps the silver readable on a pale map
+    filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.75));
 }
 
 .MapToken-engaged {
-    box-shadow: 0 0 0 3px var(--jnj-color-accent-soft), 0 1px 4px rgba(0, 0, 0, 0.55);
+    box-shadow: 0 0 0 3px var(--jnj-color-engagement), 0 1px 4px rgba(0, 0, 0, 0.55);
 }
 
 .MapTokens-zone-highlight {

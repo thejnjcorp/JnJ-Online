@@ -133,3 +133,28 @@ export function engagementLinks(points) {
     }
     return links;
 }
+
+// ---- Telling someone they are engaged ----------------------------------------
+
+// The stones an engagement can be marked with. Each engagement has one, which everyone in it
+// shares: it is worked out from the engagement's id, so it is the same on every screen and
+// every visit without being stored anywhere (and never silver, which is the engagement's own
+// colour on the map, or the gold of the players' tokens).
+export const ENGAGEMENT_STONES = ['#e0457b', '#3d8bfd', '#2fbf71', '#a15cf0', '#19b5c9', '#ff6b4a', '#8bd13f', '#ff5fa8'];
+
+export function engagementStone(engagementId) {
+    let hash = 0;
+    Array.from(String(engagementId)).forEach(character => { hash = (hash * 31 + character.codePointAt(0)) >>> 0; });
+    return ENGAGEMENT_STONES[hash % ENGAGEMENT_STONES.length];
+}
+
+// What to tell the combatant `id` about the engagement it is in: null when it is in none, else
+// { id, stone, others: [{ id, title }] } - who it is engaged with, and the stone they all share.
+// `titles` (id -> name) is for names that are better known than the tracker's own copy.
+export function engagementOf(posts, id, titles = {}) {
+    const mine = (Array.isArray(posts) ? posts : []).find(post => post.id === id);
+    if (!idOf(mine)) return null;
+    const others = posts.filter(post => post.id !== id && post.status === mine.status && idOf(post) === idOf(mine));
+    if (others.length === 0) return null;
+    return { id: idOf(mine), stone: engagementStone(idOf(mine)), others: others.map(post => ({ id: post.id, title: titles[post.id] || post.title || 'Someone' })) };
+}

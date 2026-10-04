@@ -19,6 +19,9 @@ jest.mock('../../src/utils/useCampaignCombat', () => ({
     useCombatEntities: (...args) => mockUseCombatEntities(...args),
 }));
 
+let mockParty = {};
+jest.mock('../../src/utils/useParty', () => ({ useParty: () => ({ party: mockParty, loaded: true }) }));
+
 const mockInventoryProps = [];
 jest.mock('../../src/utils/DraggableElements/PostListInventory.tsx', () => ({
     PostListContentInventory: props => {
@@ -61,6 +64,8 @@ import { screen, fireEvent, within } from '@testing-library/react';
 import { CharacterMainTab } from '../../src/components/CharacterMainTab';
 // eslint-disable-next-line import/first
 import { renderWithRouter as render } from '../testUtils/renderWithRouter';
+// eslint-disable-next-line import/first
+import { engagementStone } from '../../src/utils/engagements';
 
 const characterPage = {
     character_id: 'char-1', userId: 'owner-1', campaign: 'camp-1',
@@ -90,6 +95,7 @@ beforeEach(() => {
     mockUseIsMobile.mockReturnValue(false);
     mockUseCampaignMaps.mockReturnValue({ activeMap: null });
     mockUseCombatEntities.mockReturnValue([]);
+    mockParty = {};
     mockCharacterNotesProps.length = 0;
     window.alert = jest.fn();
 });
@@ -305,6 +311,44 @@ describe('CharacterMainTab', () => {
 
                 const dialog = screen.getByRole('dialog', { name: 'Haste details' });
                 expect(within(dialog).queryByRole('button', { name: 'Remove' })).not.toBeInTheDocument();
+            });
+
+            describe('engagement', () => {
+                const tracker = [
+                    { id: 'character:char-1', title: 'Aria', content: '', status: 'Zone 1', index: 0, engagement: 'eng-1' },
+                    { id: 'npc:g', title: 'Goblin', content: '', status: 'Zone 1', index: 1, engagement: 'eng-1' },
+                    { id: 'character:char-2', title: 'Bram', content: '', status: 'Zone 1', index: 2 },
+                ];
+
+                test('a character who is engaged has a ring in the strip, saying with whom, even with no other status', () => {
+                    mockParty = { combat_tracker: tracker };
+                    mockUseCombatEntities.mockReturnValue([{ id: 'npc:g', title: 'Grub the Goblin' }]);
+                    render(<CharacterMainTab characterPage={{ ...characterPage, statuses: [] }} userId="owner-1" />);
+                    goToTab('Combat');
+                    const strip = screen.getByRole('group', { name: 'Active statuses' });
+                    expect(within(strip).getByText('Engaged with Grub the Goblin')).toBeInTheDocument();
+                });
+
+                test('sits beside the other statuses, in the colour of the engagement', () => {
+                    mockParty = { combat_tracker: tracker };
+                    render(<CharacterMainTab characterPage={{ ...characterPage, statuses }} userId="owner-1" />);
+                    goToTab('Combat');
+                    const strip = screen.getByRole('group', { name: 'Active statuses' });
+                    expect(within(strip).getByText('Haste')).toBeInTheDocument();
+                    expect(within(strip).getByText('Engaged with Goblin').closest('.CharacterPage-status-chip').style.getPropertyValue('--status-color')).toBe(engagementStone('eng-1'));
+                });
+
+                test('a character who is not engaged has none, and a tracker that cannot be read is fine', () => {
+                    mockParty = { combat_tracker: tracker };
+                    const { unmount } = render(<CharacterMainTab characterPage={{ ...characterPage, character_id: 'char-2', statuses: [] }} userId="owner-1" />);
+                    goToTab('Combat');
+                    expect(screen.queryByText(/^Engaged with/)).not.toBeInTheDocument();
+                    unmount();
+                    mockParty = {};
+                    render(<CharacterMainTab characterPage={{ ...characterPage, statuses: [] }} userId="owner-1" />);
+                    goToTab('Combat');
+                    expect(screen.queryByText(/^Engaged with/)).not.toBeInTheDocument();
+                });
             });
 
             test('leave the bar exactly as it was for a character with none', () => {

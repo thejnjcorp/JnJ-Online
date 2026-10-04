@@ -12,6 +12,8 @@ import '../styles/CharacterPageStyles/DefaultCharacterPage.scss';
 import '../styles/CharacterPageStyles/AlternativeCharacterPage.scss';
 import { useLocation } from 'react-router-dom';
 import { CharacterMainTab } from './CharacterMainTab';
+import { MusicDock } from './MusicDock';
+import { isDirectorOf } from '../utils/campaignRoles';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useIsMobile } from '../utils/useIsMobile';
 import { ReactComponent as ChevronDownIcon } from '../icons/chevron_down.svg';
@@ -135,6 +137,7 @@ export function CharacterPage() {
                 <DocAdminManager docRef={docQuery} admins={characterPage.admins} userId={userId}/>
                 <CharacterDangerZone character={characterPage} userId={userId}/>
             </div>
+            {characterPage.campaign && <MusicDock campaignId={characterPage.campaign} isDirector={isDirectorOf(campaignInfo, userId)}/>}
             {/* Mobile only: Skills & Flaws content is unchanged, just moved into a
                 slide-up drawer instead of the persistent sidebar - see
                 design/character-page-v2 section 9. */}

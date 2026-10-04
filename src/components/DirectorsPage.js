@@ -15,6 +15,7 @@ import { PictureField } from './PictureField';
 import { onAuthStateChanged } from 'firebase/auth';
 import { ReactComponent as PersonIcon } from '../icons/person.svg';
 import { DirectorNotes } from './DirectorNotes';
+import { MusicDock } from './MusicDock';
 import { CombatProvider } from './CombatContext';
 import { EnemyTiles, PartyTiles, TurnOrder } from './CombatBoard';
 import '../styles/Combat.scss';
@@ -488,6 +489,7 @@ export function DirectorsPage() {
                 renderMaps={() => mapsContent} renderNotes={() => <DirectorNotes campaignId={campaignId}/>}
                 onSceneEnded={() => combatApi?.endScene()}/>
         </CombatProvider>
+        <MusicDock campaignId={campaignId} isDirector={isDirector}/>
         {addEnemyOpen && <AddEnemyDialog existing={campaignInfo.enemy_list} onAdd={addEnemyToFight} onClose={() => setAddEnemyOpen(false)}/>}
         {mapOverlayOpen && <>
             <button

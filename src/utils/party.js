@@ -149,3 +149,13 @@ export const clearRollRequest = (campaignId, requestId) => updateParty(campaignI
 // Move the party calendar's "today" to a date (the day a scene is set on). It reads the live
 // calendar at write time, so it never undoes a change someone else just made to it.
 export const setCalendarToday = (campaignId, date) => updateParty(campaignId, party => ({ calendar: { ...calendarOf(party), today: { year: date.year, month: date.month, day: date.day } } }));
+
+// --- Music ---------------------------------------------------------------------------
+// What the whole party is listening to (see music.js). `change` is given the music as it is
+// right now (or null) and returns what it becomes - null for stopped, the same music (or
+// undefined) for no change - so pausing and resuming work from the live song, not a stale copy.
+export const changeMusic = (campaignId, change) => updateParty(campaignId, party => {
+    const current = party.music ?? null;
+    const next = change(current);
+    return next === undefined || next === current ? null : { music: next };
+});

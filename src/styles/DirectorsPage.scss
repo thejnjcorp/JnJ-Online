@@ -682,9 +682,9 @@
     box-sizing: border-box;
     margin: 0 0 var(--jnj-space-2);
     padding: var(--jnj-space-2);
-    border: 1px dashed var(--jnj-color-accent);
+    border: 1px dashed var(--jnj-color-engagement);
     border-radius: var(--jnj-radius-md);
-    background: var(--jnj-color-accent-soft);
+    background: var(--jnj-color-engagement-soft);
 
     .PostEngagement-label {
         display: block;
@@ -723,7 +723,7 @@
 
     // the chip another is being dragged over: dropping now engages the two
     &.isCombineTarget {
-        outline: 2px dashed var(--jnj-color-accent);
+        outline: 2px dashed var(--jnj-color-engagement);
         outline-offset: 1px;
     }
 }

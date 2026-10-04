@@ -1,0 +1,68 @@
+// The party's music (MusicDock.js, MusicPlayer.js): a card in the corner of the screen, with
+// YouTube's player in it - kept in view, as YouTube asks.
+.MusicDock-open {
+    position: fixed;
+    right: var(--jnj-space-4);
+    bottom: var(--jnj-space-4);
+    z-index: 60;
+    padding: var(--jnj-space-2) var(--jnj-space-4);
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-pill);
+    background: var(--jnj-color-bg-raised);
+    color: var(--jnj-color-text);
+    font: inherit;
+    cursor: pointer;
+}
+
+.MusicDock {
+    position: fixed;
+    right: var(--jnj-space-4);
+    bottom: var(--jnj-space-4);
+    z-index: 60;
+    box-sizing: border-box;
+    width: min(17rem, calc(100vw - 2 * var(--jnj-space-4)));
+    display: flex;
+    flex-direction: column;
+    gap: var(--jnj-space-2);
+    padding: var(--jnj-space-3);
+    border: 1px solid var(--jnj-color-border-strong);
+    border-radius: var(--jnj-radius-md);
+    background: var(--jnj-color-bg-raised);
+    color: var(--jnj-color-text);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+}
+
+.MusicDock-head { display: flex; align-items: center; gap: var(--jnj-space-2); min-width: 0; }
+.MusicDock-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.MusicDock-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--jnj-space-2); input[type='range'] { flex: 1 1 5rem; min-width: 0; } }
+.MusicDock-director { display: flex; flex-direction: column; gap: var(--jnj-space-2); padding-top: var(--jnj-space-2); border-top: 1px solid var(--jnj-color-border); }
+.MusicDock-form { display: flex; gap: var(--jnj-space-2); input { flex: 1; min-width: 0; padding: var(--jnj-space-2) var(--jnj-space-3); border: 1px solid var(--jnj-color-border); border-radius: 7px; background: var(--jnj-color-bg-sunken); color: var(--jnj-color-text); font: inherit; } }
+.MusicDock-loop { display: flex; align-items: center; gap: var(--jnj-space-1); margin-left: auto; font-size: 0.8125rem; }
+.MusicDock-problem { margin: 0; color: var(--jnj-color-danger); font-size: 0.8125rem; }
+
+.MusicPlayer { position: relative; }
+
+// YouTube asks that its player is at least 200 x 200
+.MusicPlayer-frame {
+    width: 100%;
+    height: 12.5rem;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #000;
+
+    iframe { width: 100%; height: 100%; border: 0; display: block; }
+}
+
+.MusicPlayer-join {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.72);
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.MusicPlayer-error { margin: var(--jnj-space-2) 0 0; color: var(--jnj-color-danger); font-size: 0.8125rem; }
