@@ -7,7 +7,8 @@ import { useParty } from '../utils/useParty';
 import { calendarOf } from '../utils/calendar';
 import { addPartyEvent } from '../utils/usePartyEvents';
 import { useEncounters } from '../utils/useEncounters';
-import { addTrackerPosts, partyDoc, setCalendarToday, updateCombatTracker } from '../utils/party';
+import { addTrackerPosts, changeMusic, partyDoc, setCalendarToday, updateCombatTracker } from '../utils/party';
+import { musicForCue } from '../utils/music';
 import { stageEncounter } from '../utils/enemies';
 import {
     SCENE_TEMPLATES, activeScene, branchLinkPatches, calendarIsElsewhere, copyBeats, newId, orderAfter, pauseRun, sceneDate, sceneEventFields, sceneToOpen, settleDecision, startRun, unlinkScene,
@@ -64,7 +65,7 @@ function SceneWorkspace({ view, scene, session, scenes, encounters, maps, render
     return <SceneRunner key={scene.id} scene={scene} scenes={scenes} session={session} calendar={calendar} onSyncCalendar={actions.syncCalendar}
         onUpdate={actions.updateScene} onStart={actions.startScene} onEnd={actions.endScene} onSwitch={actions.switchScene}
         onDecide={actions.decide} onStartCombat={actions.startCombat} renderCombat={renderCombat} onOpenBuilder={actions.goBuild} onOpenMaps={actions.openMaps}
-        combatTurn={combatTurn} players={players} onAskRoll={onAskRoll}/>;
+        combatTurn={combatTurn} players={players} onAskRoll={onAskRoll} onMusicCue={actions.playMusicCue}/>;
 }
 
 // Timeline / Build Scene / Run Scene. Build and Run open the scene you chose (or the
@@ -319,6 +320,7 @@ export function ScenesTab({ campaignId, campaignInfo, maps, renderCombat, render
                 switchScene: (from, toId) => switchScene(from, toId).catch(fail("Couldn't switch scenes: ")),
                 decide: (sceneId, beatId) => setDeciding({ sceneId, beatId }),
                 startCombat, openMaps: () => openPanel('maps'), openEncounter, createEncounter,
+                playMusicCue: cue => changeMusic(campaignId, current => musicForCue(cue, current)).catch(fail("Couldn't change the music: ")),
             }}/>;
     } else if (session) {
         body = <ScenesSessionView sessions={sessions} scenes={scenes} session={session} calendar={calendar} onBack={goCampaign} onOpenSession={goSession}

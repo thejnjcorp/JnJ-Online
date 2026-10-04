@@ -3,6 +3,7 @@ import { SCENE_TYPES, conditionChoices, newId, sceneDate, timeGoalText } from '.
 import { CalendarDatePicker } from './SceneCalendarParts';
 import { useEscapeKey } from '../utils/useEscapeKey';
 import { byName, statBlockLine, statBlockOf } from '../utils/npcStatBlock';
+import { MUSIC_CUE_ACTIONS, cueLink, newMusicCue, parseVideoId } from '../utils/music';
 
 // Which of the bestiary's stat blocks an NPC is: the runner shows it with the NPC, ready for the
 // checks they may have to make. `bestiary` is the loaded bestiary (see useBestiary); `onPick` is
@@ -63,6 +64,49 @@ export function AttachmentsEditor({ beat, onChange, bestiary = null }) {
                 <button type="button" role="menuitem" onClick={() => add('check')}>Check</button>
             </div>}
         </div>
+    </div>;
+}
+
+// A beat's music cue: a song to play (a YouTube link) or the music to stop when the beat begins, by
+// itself unless told not to.
+export function MusicCueEditor({ beat, onChange }) {
+    const cue = beat.music || null;
+    const [text, setText] = useState(cueLink(cue));
+    const set = patch => onChange({ ...beat, music: { ...cue, ...patch } });
+    function choose(action) {
+        setText('');
+        if (action) {
+            onChange({ ...beat, music: newMusicCue(action) });
+            return;
+        }
+        const { music, ...rest } = beat;
+        onChange(rest);
+    }
+    const type = value => {
+        setText(value);
+        set({ videoId: parseVideoId(value) || '' });
+    };
+    const notALink = cue?.action === 'play' && text.trim() !== '' && !cue.videoId;
+    return <div className="Scenes-music-cue">
+        <label className="Scenes-field">
+            <span className="Scenes-field-label">Music when this beat begins</span>
+            <select aria-label="Music cue" value={cue?.action || ''} onChange={event => choose(event.target.value)}>
+                <option value="">No change</option>
+                {MUSIC_CUE_ACTIONS.map(action => <option key={action.key} value={action.key}>{action.label}</option>)}
+            </select>
+        </label>
+        {cue?.action === 'play' && <>
+            <input type="text" aria-label="Music cue YouTube link" placeholder="Paste a YouTube link" value={text} onChange={event => type(event.target.value)}/>
+            {notALink && <span className="Scenes-muted" role="alert">{"That doesn't look like a YouTube link."}</span>}
+            <label className="Scenes-music-cue-check">
+                <input type="checkbox" checked={cue.loop !== false} onChange={event => set({ loop: event.target.checked })}/>
+                <span>Loop</span>
+            </label>
+        </>}
+        {cue && <label className="Scenes-music-cue-check">
+            <input type="checkbox" checked={cue.auto !== false} onChange={event => set({ auto: event.target.checked })}/>
+            <span>Start it by itself when the beat begins</span>
+        </label>}
     </div>;
 }
 

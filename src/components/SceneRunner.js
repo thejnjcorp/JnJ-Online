@@ -4,7 +4,8 @@ import {
     sceneDateText, sessionTitle, splitParagraphs, startRun, timeGoalText,
 } from '../utils/scenes';
 import { CalendarSync, EndSceneCard, MoveCalendarOption, endAsksAboutCalendar } from './SceneCalendarParts';
-import { Attachments, BeatRail, CallCheck, CheckCard, DueCues, NpcCard, PausedCombatNote, RulingCard, WaitingOn, usesStatBlock } from './SceneRunnerParts';
+import { Attachments, BeatRail, CallCheck, CheckCard, DueCues, NpcCard, PausedCombatNote, RulingCard, WaitingOn, MusicCueCard, usesStatBlock } from './SceneRunnerParts';
+import { useBeatMusic } from '../utils/useBeatMusic';
 import { useBestiary } from '../utils/useBestiary';
 const FONT_SIZES = [15, 17, 20, 24, 28];
 
@@ -130,7 +131,7 @@ function RunClock({ scene, run, now }) {
 // scene's beats (what is done, what is now, what is next); the middle is whatever
 // the current beat needs - read-aloud text, an NPC's behaviors, a cue, the combat
 // tracker - and the director's own scratchpad for the beat sits to the right.
-export function SceneRunner({ scene, scenes, session, calendar = null, onSyncCalendar = null, onUpdate, onStart, onEnd, onSwitch, onDecide, onStartCombat, renderCombat, onOpenBuilder, onOpenMaps, combatTurn = null, players = [], onAskRoll = null }) {
+export function SceneRunner({ scene, scenes, session, calendar = null, onSyncCalendar = null, onUpdate, onStart, onEnd, onSwitch, onDecide, onStartCombat, renderCombat, onOpenBuilder, onOpenMaps, combatTurn = null, players = [], onAskRoll = null, onMusicCue = null }) {
     const run = scene.run;
     const live = scene.status === 'active' && Boolean(run);
     const beats = scene.beats || [];
@@ -140,6 +141,8 @@ export function SceneRunner({ scene, scenes, session, calendar = null, onSyncCal
 
     const current = beats.find(beat => beat.id === run?.currentBeatId) || null;
     const currentIndex = current ? beats.indexOf(current) : -1;
+    // a beat's music plays as it begins
+    useBeatMusic(live, current, onMusicCue);
     // the bestiary is only fetched once a beat that has a stat block tied to it comes up
     const bestiary = useBestiary(usesStatBlock(current));
     const [notes, setNotes] = useState(current?.notes || '');
@@ -211,6 +214,7 @@ export function SceneRunner({ scene, scenes, session, calendar = null, onSyncCal
                             <span className={`Scenes-chip Scenes-chip-beat-${current.type}`}>{beatTypeLabel(current.type)}</span>
                             <h3 className="Scenes-run-beat-title">{current.title || 'Untitled beat'}</h3>
                         </div>
+                        {current.music && onMusicCue && <MusicCueCard cue={current.music} onPlay={onMusicCue}/>}
                         {current.type === 'combat' && current.ruling && <RulingCard beat={current} onToggle={(target, active) => changeBeat(target, { rulingActive: active })}/>}
                         {current.type === 'combat' && <DueCues scene={scene} scenes={scenes} current={current} combatTurn={combatTurn}
                             onOpen={id => update({ run: jumpRun(scene, id) })} onDone={id => update({ run: completeBeat(scene, id) })}/>}

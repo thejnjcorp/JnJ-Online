@@ -15,10 +15,12 @@ jest.mock('firebase/firestore', () => ({
 }));
 
 const mockUpdateCombatTracker = jest.fn();
+const mockChangeMusic = jest.fn();
 jest.mock('../../src/utils/party', () => ({
     addTrackerPosts: jest.requireActual('../../src/utils/party').addTrackerPosts,
     partyDoc: id => ({ __party: id }),
     updateCombatTracker: (...args) => mockUpdateCombatTracker(...args),
+    changeMusic: (...args) => mockChangeMusic(...args),
     setCalendarToday: (...args) => mockSetCalendarToday(...args),
 }));
 const mockSetCalendarToday = jest.fn();
@@ -106,6 +108,8 @@ beforeEach(() => {
     mockEncounters = [];
     mockBestiary = { enemies: [], status: 'ready' };
     mockUseBestiary.mockClear();
+    mockChangeMusic.mockReset();
+    mockChangeMusic.mockResolvedValue(undefined);
     mockParty = {};
     mockSetCalendarToday.mockResolvedValue(undefined);
     mockAddPartyEvent.mockResolvedValue({ id: 'event-1' });
@@ -750,6 +754,23 @@ describe('ScenesTab', () => {
                 expect(beats).toEqual([expect.objectContaining({ type: 'npc', npcName: 'Kal', title: 'Kal' })]);
             });
 
+            test('a beat can have music: a song to play when it begins, saved with the beat', async () => {
+                build('outro');
+                addBeat('Narration');
+                fireEvent.change(screen.getByLabelText('Music cue'), { target: { value: 'play' } });
+                fireEvent.change(screen.getByLabelText('Music cue YouTube link'), { target: { value: 'https://youtu.be/dQw4w9WgXcQ' } });
+                expect(screen.getByRole('img', { name: 'Has a music cue' })).toBeInTheDocument();
+                const beats = await savedBeats();
+                expect(beats[0].music).toEqual({ action: 'play', videoId: 'dQw4w9WgXcQ', loop: true, auto: true });
+            });
+
+            test('and the music can be taken off the beat again, leaving none saved', async () => {
+                mockState = { ...mockState, scenes: [scene('outro', { beats: [beat('n1', 'narration', { music: { action: 'stop', auto: true } })] })] };
+                build('outro');
+                fireEvent.change(screen.getByLabelText('Music cue'), { target: { value: '' } });
+                expect((await savedBeats())[0]).not.toHaveProperty('music');
+            });
+
             describe('tying an NPC to a stat block from the bestiary', () => {
                 const goblin = { id: 'e1', enemy_name: 'Goblin', enemy_type: 'Goon', base_armor_class: 12, maximum_health: 7, action_points: 2 };
 
@@ -1183,6 +1204,54 @@ describe('ScenesTab', () => {
                 run();
                 expect(screen.getByRole('region', { name: 'Goblin stat block' })).toBeInTheDocument();
                 expect(mockUseBestiary).toHaveBeenLastCalledWith(true);
+            });
+        });
+
+        describe('music on a beat', () => {
+            const song = { action: 'play', videoId: 'dQw4w9WgXcQ', loop: true, auto: true };
+            const withMusic = (music, current = 'b1') => live({
+                beats: [beat('b1', 'narration', { title: 'Setup', text: 'Hello' }), beat('b2', 'narration', { title: 'Tavern', text: 'Inside', music })],
+                run: { startedAt: 1, accumulatedMs: 0, currentBeatId: current, doneBeatIds: [] },
+            });
+            const played = () => mockChangeMusic.mock.calls.map(call => call[1](null));
+
+            // (that it plays by itself as a beat begins is in useBeatMusic.test.js: a scene here does not move on its own)
+            test('does not play by itself for the beat the page opens on - the song is still going from when it began', () => {
+                withMusic(song, 'b2');
+                run();
+                expect(mockChangeMusic).not.toHaveBeenCalled();
+            });
+
+            test('the beat that is up shows its cue, and Play now plays it', () => {
+                withMusic(song, 'b2');
+                run();
+                expect(screen.getByText('Play a song')).toBeInTheDocument();
+                fireEvent.click(screen.getByRole('button', { name: 'Play now' }));
+                expect(mockChangeMusic).toHaveBeenCalledWith('camp-1', expect.any(Function));
+                expect(played()[0]).toMatchObject({ videoId: 'dQw4w9WgXcQ', state: 'playing', position: 0, loop: true });
+            });
+
+            test('a stop cue stops the music, and a cue that waits for the director does not play by itself', () => {
+                withMusic({ action: 'stop', auto: false }, 'b2');
+                run();
+                expect(mockChangeMusic).not.toHaveBeenCalled();
+                fireEvent.click(screen.getByRole('button', { name: 'Stop now' }));
+                expect(played()).toEqual([null]);
+            });
+
+            test('a beat with no music shows no card for it', () => {
+                withMusic(undefined, 'b2');
+                run();
+                expect(screen.queryByText('Play a song')).not.toBeInTheDocument();
+            });
+
+            test('says so when the music cannot be changed', async () => {
+                mockChangeMusic.mockRejectedValue(new Error('offline'));
+                window.alert = jest.fn();
+                withMusic(song, 'b2');
+                run();
+                fireEvent.click(screen.getByRole('button', { name: 'Play now' }));
+                await waitFor(() => expect(window.alert).toHaveBeenCalledWith("Couldn't change the music: offline"));
             });
         });
 

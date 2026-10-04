@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
-import { Attachments, BeatRail, CallCheck, DueCues, PausedCombatNote, RulingCard, WaitingOn, railState } from '../../src/components/SceneRunnerParts';
+import { Attachments, BeatRail, CallCheck, DueCues, MusicCueCard, PausedCombatNote, RulingCard, WaitingOn, railState } from '../../src/components/SceneRunnerParts';
 import { BEAT_TYPES } from '../../src/utils/scenes';
 
 const beat = (id, type, fields = {}) => ({ id, type, title: id, ...fields });
@@ -167,5 +167,38 @@ describe('CallCheck', () => {
         rerender(<CallCheck players={[]} onAsk={onAsk}/>);
         expect(container).toBeEmptyDOMElement();
         delete window.alert;
+    });
+});
+
+describe('MusicCueCard', () => {
+    const cue = { action: 'play', videoId: 'abcdefghijk', loop: true, auto: true };
+
+    test('says what it plays, that it happens by itself, and plays it now when asked', () => {
+        const onPlay = jest.fn();
+        render(<MusicCueCard cue={cue} onPlay={onPlay}/>);
+        expect(screen.getByText('Play a song')).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'https://youtu.be/abcdefghijk' })).toHaveAttribute('href', 'https://youtu.be/abcdefghijk');
+        expect(screen.getByText('Happens when the beat begins.')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Play now' }));
+        expect(onPlay).toHaveBeenCalledWith(cue);
+    });
+
+    test('one that waits for the director says so', () => {
+        render(<MusicCueCard cue={{ ...cue, auto: false }} onPlay={() => {}}/>);
+        expect(screen.getByText('Waits for you.')).toBeInTheDocument();
+    });
+
+    test('a stop cue stops the music', () => {
+        const onPlay = jest.fn();
+        render(<MusicCueCard cue={{ action: 'stop', auto: true }} onPlay={onPlay}/>);
+        expect(screen.getByText('Stop the music')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Stop now' }));
+        expect(onPlay).toHaveBeenCalledWith({ action: 'stop', auto: true });
+    });
+
+    test('with no song chosen yet there is nothing to play', () => {
+        render(<MusicCueCard cue={{ action: 'play', videoId: '', auto: true }} onPlay={() => {}}/>);
+        expect(screen.getByText(/No song chosen yet/)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Play now' })).toBeDisabled();
     });
 });

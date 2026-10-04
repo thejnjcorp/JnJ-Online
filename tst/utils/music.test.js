@@ -1,4 +1,4 @@
-import { SEEK_COOLDOWN_MS, SYNC_TOLERANCE, correction, expectedPosition, parseVideoId, pausedMusic, resumedMusic, startedMusic, withLoop } from '../../src/utils/music';
+import { SEEK_COOLDOWN_MS, SYNC_TOLERANCE, correction, cueLink, cueRunsItself, expectedPosition, musicForCue, newMusicCue, parseVideoId, pausedMusic, resumedMusic, startedMusic, withLoop } from '../../src/utils/music';
 
 const ID = 'dQw4w9WgXcQ';
 
@@ -92,5 +92,53 @@ describe('correction', () => {
     test('is nothing when either position is not known yet', () => {
         expect(correction({ expected: 60, actual: undefined, now })).toBeNull();
         expect(correction({ expected: NaN, actual: 5, now })).toBeNull();
+    });
+});
+
+describe('music cues on a beat', () => {
+    const play = { action: 'play', videoId: ID, loop: true, auto: true };
+
+    test('a new cue plays a song, looping, by itself - or stops the music, by itself', () => {
+        expect(newMusicCue('play')).toEqual({ action: 'play', videoId: '', loop: true, auto: true });
+        expect(newMusicCue('stop')).toEqual({ action: 'stop', auto: true });
+    });
+
+    test('the link of a cue is that of its song, and nothing before there is one', () => {
+        expect(cueLink(play)).toBe(`https://youtu.be/${ID}`);
+        expect(cueLink({ action: 'play', videoId: '' })).toBe('');
+        expect(cueLink(undefined)).toBe('');
+        expect(parseVideoId(cueLink(play))).toBe(ID);
+    });
+
+    test('a cue runs itself unless told not to, and there is nothing to run without one', () => {
+        expect(cueRunsItself(play)).toBe(true);
+        expect(cueRunsItself({ action: 'stop' })).toBe(true);
+        expect(cueRunsItself({ ...play, auto: false })).toBe(false);
+        expect(cueRunsItself(undefined)).toBe(false);
+    });
+
+    test('playing starts the song from the start, looping unless the cue says not to', () => {
+        expect(musicForCue(play, null, 5)).toEqual({ videoId: ID, state: 'playing', position: 0, anchorAt: 5, loop: true });
+        expect(musicForCue({ ...play, loop: false }, null, 5).loop).toBe(false);
+    });
+
+    test('playing replaces another song, and starts one that was paused over', () => {
+        expect(musicForCue(play, { videoId: 'zzzzzzzzzzz', state: 'playing' }, 5).videoId).toBe(ID);
+        expect(musicForCue(play, { videoId: ID, state: 'paused', position: 40 }, 5)).toMatchObject({ state: 'playing', position: 0 });
+    });
+
+    test('playing the song that is already playing leaves it going, rather than starting it over', () => {
+        const going = { videoId: ID, state: 'playing', position: 0, anchorAt: 1, loop: true };
+        expect(musicForCue(play, going, 5)).toBe(going);
+    });
+
+    test('stopping stops whatever is playing', () => {
+        expect(musicForCue({ action: 'stop' }, { videoId: ID, state: 'playing' }, 5)).toBeNull();
+    });
+
+    test('a cue with no song chosen changes nothing', () => {
+        const going = { videoId: ID, state: 'playing' };
+        expect(musicForCue({ action: 'play', videoId: '' }, going, 5)).toBe(going);
+        expect(musicForCue({ action: 'play', videoId: '' }, undefined, 5)).toBeNull();
     });
 });

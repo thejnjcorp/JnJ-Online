@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ABILITIES } from '../utils/combatants';
 import { LinkedStatBlock } from './NpcStatBlock';
+import { cueLink, cueRunsItself } from '../utils/music';
 import { beatState, beatTypeLabel, conditionState, isCombatPaused, isCueDue } from '../utils/scenes';
 
 // An NPC's behaviors, one per line, each with a key of its own.
@@ -33,6 +34,19 @@ export function Attachments({ beat, bestiary = null }) {
 
 // Whether a beat has a stat block tied to it - its own, or on an NPC attached to it.
 export const usesStatBlock = beat => Boolean(beat?.enemyId || (beat?.attachments || []).some(item => item.enemyId));
+
+// The beat's music cue: what it will play (or that it stops the music), and a button to do it
+// now - for a cue that does not play by itself, or to play it again.
+export function MusicCueCard({ cue, onPlay }) {
+    const stop = cue.action === 'stop';
+    const song = cueLink(cue);
+    return <div className="Scenes-card Scenes-music-cue-card">
+        <div className="Scenes-run-npc"><span className="Scenes-chip">&#9834; Music</span><strong>{stop ? 'Stop the music' : 'Play a song'}</strong></div>
+        {!stop && <span className="Scenes-muted">{song ? <a href={song} target="_blank" rel="noreferrer">{song}</a> : 'No song chosen yet. Pick one in Build Scene.'}</span>}
+        <span className="Scenes-muted">{cueRunsItself(cue) ? 'Happens when the beat begins.' : 'Waits for you.'}</span>
+        <div><button type="button" className="Scenes-button Scenes-button-small" disabled={!stop && !cue.videoId} onClick={() => onPlay(cue)}>{stop ? 'Stop now' : 'Play now'}</button></div>
+    </div>;
+}
 
 // How a beat shows on the rail: done, now, upcoming - or one of the ways an upcoming beat can be
 // more than that: a fight that is paused, a cue that has come due, a beat on a path not taken.

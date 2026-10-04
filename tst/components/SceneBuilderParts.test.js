@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { render, screen, fireEvent, within } from '@testing-library/react';
-import { AttachmentsEditor, BuilderSide, NewNpcDialog, OnlyIfSelect, PlayersInScene, StatBlockSelect, TimeGoalBar, conditionKey, withStatBlock } from '../../src/components/SceneBuilderParts';
+import { AttachmentsEditor, BuilderSide, MusicCueEditor, NewNpcDialog, OnlyIfSelect, PlayersInScene, StatBlockSelect, TimeGoalBar, conditionKey, withStatBlock } from '../../src/components/SceneBuilderParts';
 
 describe('AttachmentsEditor', () => {
     test('attaches an NPC or a check, edits it where it is, and removes it', () => {
@@ -192,5 +193,77 @@ describe('withStatBlock', () => {
 
     test('unties it with none, and leaves the name', () => {
         expect(withStatBlock({ npcName: 'Snotty', enemyId: 'e1' }, null)).toEqual({ npcName: 'Snotty', enemyId: '' });
+    });
+});
+
+describe('MusicCueEditor', () => {
+    const beat = { id: 'b1', type: 'cue', title: 'Tavern' };
+    const ID = 'dQw4w9WgXcQ';
+
+    test('has no cue until one is chosen', () => {
+        render(<MusicCueEditor beat={beat} onChange={() => {}}/>);
+        expect(screen.getByLabelText('Music cue')).toHaveValue('');
+        expect(screen.queryByLabelText('Music cue YouTube link')).not.toBeInTheDocument();
+    });
+
+    test('choosing to play a song gives the beat a cue that plays by itself, looping', () => {
+        const onChange = jest.fn();
+        render(<MusicCueEditor beat={beat} onChange={onChange}/>);
+        fireEvent.change(screen.getByLabelText('Music cue'), { target: { value: 'play' } });
+        expect(onChange).toHaveBeenCalledWith({ ...beat, music: { action: 'play', videoId: '', loop: true, auto: true } });
+    });
+
+    test('choosing to stop the music gives it a stop cue', () => {
+        const onChange = jest.fn();
+        render(<MusicCueEditor beat={beat} onChange={onChange}/>);
+        fireEvent.change(screen.getByLabelText('Music cue'), { target: { value: 'stop' } });
+        expect(onChange).toHaveBeenCalledWith({ ...beat, music: { action: 'stop', auto: true } });
+    });
+
+    test('a pasted link becomes the song, whatever kind of link it is', () => {
+        const onChange = jest.fn();
+        const withCue = { ...beat, music: { action: 'play', videoId: '', loop: true, auto: true } };
+        render(<MusicCueEditor beat={withCue} onChange={onChange}/>);
+        fireEvent.change(screen.getByLabelText('Music cue YouTube link'), { target: { value: `https://music.youtube.com/watch?v=${ID}&si=x` } });
+        expect(onChange).toHaveBeenLastCalledWith({ ...beat, music: { action: 'play', videoId: ID, loop: true, auto: true } });
+    });
+
+    test('something that is not a YouTube link says so, and leaves no song', () => {
+        const onChange = jest.fn();
+        const withCue = { ...beat, music: { action: 'play', videoId: ID, loop: true, auto: true } };
+        render(<MusicCueEditor beat={withCue} onChange={onChange}/>);
+        expect(screen.getByLabelText('Music cue YouTube link')).toHaveValue(`https://youtu.be/${ID}`);
+        fireEvent.change(screen.getByLabelText('Music cue YouTube link'), { target: { value: 'not a link' } });
+        expect(onChange).toHaveBeenLastCalledWith({ ...beat, music: expect.objectContaining({ videoId: '' }) });
+    });
+
+    test('says so as the link is typed that is not one', () => {
+        function Harness() {
+            const [current, setCurrent] = useState({ ...beat, music: { action: 'play', videoId: '', loop: true, auto: true } });
+            return <MusicCueEditor beat={current} onChange={setCurrent}/>;
+        }
+        render(<Harness/>);
+        fireEvent.change(screen.getByLabelText('Music cue YouTube link'), { target: { value: 'nope' } });
+        expect(screen.getByRole('alert')).toHaveTextContent("doesn't look like a YouTube link");
+        fireEvent.change(screen.getByLabelText('Music cue YouTube link'), { target: { value: ID } });
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    test('looping and starting by itself can each be switched off', () => {
+        const onChange = jest.fn();
+        const withCue = { ...beat, music: { action: 'play', videoId: ID, loop: true, auto: true } };
+        render(<MusicCueEditor beat={withCue} onChange={onChange}/>);
+        fireEvent.click(screen.getByRole('checkbox', { name: 'Loop' }));
+        expect(onChange).toHaveBeenLastCalledWith({ ...beat, music: { ...withCue.music, loop: false } });
+        fireEvent.click(screen.getByRole('checkbox', { name: 'Start it by itself when the beat begins' }));
+        expect(onChange).toHaveBeenLastCalledWith({ ...beat, music: { ...withCue.music, auto: false } });
+    });
+
+    test('choosing no change takes the cue off the beat altogether', () => {
+        const onChange = jest.fn();
+        render(<MusicCueEditor beat={{ ...beat, music: { action: 'stop', auto: true } }} onChange={onChange}/>);
+        fireEvent.change(screen.getByLabelText('Music cue'), { target: { value: '' } });
+        expect(onChange).toHaveBeenCalledWith(beat);
+        expect(onChange.mock.calls[0][0]).not.toHaveProperty('music');
     });
 });

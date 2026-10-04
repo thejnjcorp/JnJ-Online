@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAutosavedDoc } from '../utils/useAutosavedDoc';
-import { AttachmentsEditor, BuilderSide, NewNpcDialog, OnlyIfSelect, StatBlockSelect, conditionKey, withStatBlock } from './SceneBuilderParts';
+import { AttachmentsEditor, BuilderSide, NewNpcDialog, MusicCueEditor, OnlyIfSelect, StatBlockSelect, conditionKey, withStatBlock } from './SceneBuilderParts';
 import { useBestiary } from '../utils/useBestiary';
 import {
     BEAT_TYPES, DECISION_METHODS, beatMinutes, beatTypeLabel, conditionChoices, decisionBeatOf, estimateMinutes, newBeat, newId, optionLetter, sessionTitle,
@@ -259,6 +259,7 @@ export function SceneBuilder({ scene, scenes, session, encounters, maps, onSave,
                                     placeholder={beat.type === 'decision' ? 'After the fight, where does the party go?' : 'Title'} onChange={event => changeBeat({ ...beat, title: event.target.value })}/>}
                             {beat.trigger && <span className="Scenes-chip">{beat.trigger}</span>}
                             {beat.onlyIf && <span className="Scenes-chip">Only if</span>}
+                            {beat.music && <span className="Scenes-chip" role="img" aria-label="Has a music cue">&#9834;</span>}
                             {beat.type !== 'narration' && beat.type !== 'decision' && !isCollapsed && beat.type !== 'combat' &&
                                 <input type="number" min="0" className="Scenes-beat-minutes" aria-label={`Minutes for ${label}`} value={beat.minutes || ''} placeholder="min" onChange={event => changeBeat({ ...beat, minutes: Number(event.target.value) })}/>}
                             <button type="button" className="Scenes-icon-button" aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${label}`} onClick={() => toggle(beat.id)}>{isCollapsed ? '▾' : '▴'}</button>
@@ -275,6 +276,7 @@ export function SceneBuilder({ scene, scenes, session, encounters, maps, onSave,
                             <BeatEditor beat={beat} scene={current} scenes={scenes} encounters={encounters} maps={maps} bestiary={bestiary} onChange={changeBeat} onOpenMaps={onOpenMaps} onOpenEncounter={onOpenEncounter} onCreateEncounter={onCreateEncounter}
                                 onCreatePathScene={(label, optionId) => onCreatePathScene(current, label, optionId)}/>
                             {!['combat', 'decision'].includes(beat.type) && <AttachmentsEditor beat={beat} onChange={changeBeat} bestiary={bestiary}/>}
+                            <MusicCueEditor key={beat.id} beat={beat} onChange={changeBeat}/>
                             {(beat.onlyIf || conditionOpen.has(beat.id)) && <OnlyIfSelect label="Only runs if" choices={conditionChoices(scenes, current, beat)} value={conditionKey(beat.onlyIf)}
                                 onChange={choice => changeBeat({ ...beat, onlyIf: choice ? { sceneId: choice.sceneId, beatId: choice.beatId, optionId: choice.optionId } : null })}
                                 onRemove={() => { closeCondition(beat.id); changeBeat({ ...beat, onlyIf: null }); }}/>}

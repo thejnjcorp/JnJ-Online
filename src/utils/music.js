@@ -72,3 +72,33 @@ export function correction({ expected, actual, now, lastSeekAt = 0 }) {
     if (now - lastSeekAt < SEEK_COOLDOWN_MS) return null;
     return Math.abs(expected - actual) > SYNC_TOLERANCE ? expected : null;
 }
+
+// ---- Music on a beat ---------------------------------------------------------------
+// A beat can carry a music cue - `beat.music` - that plays a song or stops the music when the beat
+// begins (or when the director presses its button in Run Scene):
+//
+//   { action: 'play', videoId, loop, auto }   or   { action: 'stop', auto }
+//
+// `auto` (on unless it is false) is whether it happens by itself when the beat begins.
+
+export const MUSIC_CUE_ACTIONS = [
+    { key: 'play', label: 'Play a song' },
+    { key: 'stop', label: 'Stop the music' },
+];
+
+export const newMusicCue = action => (action === 'stop' ? { action: 'stop', auto: true } : { action: 'play', videoId: '', loop: true, auto: true });
+
+// The link shown for a cue's song.
+export const cueLink = cue => (cue?.videoId ? `https://youtu.be/${cue.videoId}` : '');
+
+export const cueRunsItself = cue => Boolean(cue) && cue.auto !== false;
+
+// What the party's music becomes when the cue happens, given what it is now: the song, from the
+// start - unless that song is already playing, which a second beat of the same song leaves going -
+// or nothing for stop, or what it was for a cue with no song chosen yet.
+export function musicForCue(cue, current, now = Date.now()) {
+    if (cue.action === 'stop') return null;
+    if (!cue.videoId) return current ?? null;
+    if (current?.videoId === cue.videoId && current.state === 'playing') return current;
+    return startedMusic(cue.videoId, { loop: cue.loop !== false }, now);
+}

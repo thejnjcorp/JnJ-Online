@@ -525,6 +525,10 @@
     summary { cursor: pointer; }
     p { margin: var(--jnj-space-2) 0 0; white-space: pre-wrap; }
 }
+.Scenes-music-cue { display: flex; flex-direction: column; gap: var(--jnj-space-2);
+    input[type='text'] { padding: var(--jnj-space-2) var(--jnj-space-3); border: 1px solid var(--jnj-color-border); border-radius: 7px; background: var(--jnj-color-bg-sunken); color: var(--jnj-color-text); font: inherit; }
+}
+.Scenes-music-cue-check { display: flex; align-items: center; gap: var(--jnj-space-2); font-size: 0.8125rem; }
 .Scenes-attachments { display: flex; flex-direction: column; gap: var(--jnj-space-2); }
 .Scenes-attachment { display: flex; align-items: center; gap: var(--jnj-space-2); flex-wrap: wrap; input { flex: 1 1 10rem; min-width: 0; padding: var(--jnj-space-2) var(--jnj-space-3); border: 1px solid var(--jnj-color-border); border-radius: 7px; background: var(--jnj-color-bg-sunken); color: var(--jnj-color-text); font: inherit; } }
 .Scenes-goal-bar { position: relative; height: 0.5rem; border-radius: 999px; background: var(--jnj-color-bg-sunken); border: 1px solid var(--jnj-color-border); }
